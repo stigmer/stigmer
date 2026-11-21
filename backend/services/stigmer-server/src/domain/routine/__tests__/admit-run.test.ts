@@ -30,11 +30,12 @@
  *     answers, before the Environment is resolved; with none of them it
  *     passes;
  *   - the step asks a create always, and an update only when it changes the
- *     agent, its version, the harness, the resources or the Environment,
- *     or turns the routine back on: a rename, an every-path echo and
- *     disabling a broken routine pass; a resources edit, an Environment
- *     edit, a version edit, a harness edit on an agent without a computer
- *     and re-enabling a broken one are refused;
+ *     agent, its version, the resources or the Environment, or turns the
+ *     routine back on: a rename, an every-path echo, a harness change on an
+ *     agent with a computer and disabling a broken routine pass; a
+ *     resources edit, an Environment edit, a version edit and re-enabling a
+ *     broken one are refused; a harness-only change to Claude on an agent
+ *     without a computer is asked that one question, and refused;
  *   - routineSessionSpec is the conversation a fire sends: the agent at the
  *     routine's version, the routine's name (else slug) as subject, its
  *     resources, harness only when set, its Environment only when named.
@@ -586,6 +587,7 @@ describe("the AdmitRoutineRun step", () => {
     }
     await run(renamed, stored);
     await run(clone(RoutineSchema, stored), stored);
+    await run(routine({ ...BROKEN, harness: Harness.CLAUDE }), stored);
     await run(routine({ ...BROKEN, enabled: false }), stored);
     await run(
       routine({ ...BROKEN, enabled: false }),

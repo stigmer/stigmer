@@ -28,8 +28,11 @@
  *     without it.
  *
  * An agent's own MCP servers are reached over HTTP only, so none needs a
- * computer. A plugin agent's tool list naming Bash is not judged: a portable
- * plugin agent's entry naming a tool the turn lacks is ignored at run time.
+ * computer. A tool list elsewhere (a plugin's agent's, a message's own) may
+ * name Bash beside other tools: without a computer the turn simply lacks it.
+ * One that names only the shell is refused, at the save that brings the
+ * plugin and at the turn's create, because the runner refuses a list that
+ * names nothing the turn has, which would fail the turn partway through.
  *
  * Tests: __tests__/computer.test.ts.
  */
@@ -57,6 +60,11 @@ export function agentComputer(spec: AgentSpec | undefined): Computer {
 export const CLAUDE_NEEDS_COMPUTER_MESSAGE =
   "the Claude engine always runs with a computer; leave computer unset or set it to COMPUTER_REQUIRED, or choose the Stigmer engine";
 
+/** Whether a tool list names the shell and nothing else, so a turn without a computer has none of it. */
+export function namesOnlyTheShell(tools: readonly string[] | undefined): boolean {
+  return tools !== undefined && tools.length > 0 && tools.every((entry) => builtinToolOf(entry) === SHELL_TOOL);
+}
+
 /** What a plugin carries that needs a computer, in words; undefined when it carries nothing that does. */
 function pluginNeedsComputer(plugin: RunPlugin): string | undefined {
   if ((plugin.status.hooks?.groups.length ?? 0) > 0) {
@@ -65,6 +73,10 @@ function pluginNeedsComputer(plugin: RunPlugin): string | undefined {
   const server = plugin.status.mcpServers.find((entry) => entry.transport.case === "stdio");
   if (server !== undefined) {
     return `runs its MCP server '${server.name}' as a local program`;
+  }
+  const shellOnly = plugin.status.agents.find((agent) => namesOnlyTheShell(agent.tools));
+  if (shellOnly !== undefined) {
+    return `has an agent, '${shellOnly.name}', whose only tool is the shell`;
   }
   return undefined;
 }
@@ -201,20 +213,28 @@ export function refuseClaudeWithoutComputer(
 }
 
 /**
- * Refuses a turn of a conversation without a computer when a plugin it
- * would load carries hooks or a local program; the plugins move after the
- * agent's save, so each turn asks again. Returns when the conversation has
- * a computer.
+ * Refuses a turn of a conversation without a computer when its own tool
+ * list (`RunSpec.tools`) names only the shell, or a plugin it would load
+ * carries hooks, a local program or an agent whose only tool is the shell;
+ * the plugins move after the agent's save, so each turn asks again.
+ * Returns when the conversation has a computer.
  */
 export function refuseTurnWithoutComputer(
   session: Session | undefined,
   agentName: string,
   plugins: readonly RunPlugin[],
+  turnTools: readonly string[] = [],
 ): void {
   if (hasComputer(session?.status?.computer)) {
     return;
   }
-  refusePluginsWithoutComputer(conversationPrefix(agentName), plugins);
+  const prefix = conversationPrefix(agentName);
+  if (namesOnlyTheShell(turnTools)) {
+    throw failedPreconditionError(
+      `${prefix}, so this message's tools can't be only '${turnTools.join("', '")}', which runs commands; name other tools, or give the agent a computer`,
+    );
+  }
+  refusePluginsWithoutComputer(prefix, plugins);
 }
 
 function refusePluginsWithoutComputer(prefix: string, plugins: readonly RunPlugin[]): void {

@@ -34,8 +34,9 @@
  * vaults, the surface's vaults for a run with no person, and the person's
  * My vault; a required key found nowhere refuses the create naming who
  * must act. Two plugins of one name refuse the create, naming them. In a
- * conversation without a computer (SessionStatus.computer), a plugin that
- * now carries hooks or a local program refuses the turn (computer.ts):
+ * conversation without a computer (SessionStatus.computer), a turn whose
+ * own tools name only the shell, and a plugin that now carries hooks, a
+ * local program or a shell-only agent, refuse the turn (computer.ts):
  * plugins move after the agent's save, and a hook that does not run is a
  * policy that vanished. The run's
  * person is the one recorded on the run at create (RunStatus.credentials,
@@ -210,7 +211,7 @@ export async function planRunValues(
     execution.spec?.excludedPluginIds,
   );
   refuseLocalPrograms(deps.localPrograms, session.spec?.executionTarget ?? ExecutionTarget.UNSPECIFIED, plugins);
-  refuseTurnWithoutComputer(session, agentName, plugins);
+  refuseTurnWithoutComputer(session, agentName, plugins, execution.spec?.tools);
   if (deps.environments !== undefined) {
     await admitEnvironment({
       policy: deps.environments.policy,

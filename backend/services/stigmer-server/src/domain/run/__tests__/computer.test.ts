@@ -14,7 +14,11 @@
  *     the agent, a repository, a folder, an Environment, the Claude
  *     harness and a plugin with hooks; uploads pass;
  *   - a turn without one is refused a plugin carrying a local program, and
- *     a turn with one is not.
+ *     a turn with one is not;
+ *   - a tool list that names only the shell (a plugin agent's, a message's
+ *     own) is refused without a computer, since the runner refuses a list
+ *     naming nothing the turn has; one naming the shell beside other tools
+ *     passes.
  */
 import { create } from "@bufbuild/protobuf";
 import type { MessageInitShape } from "@bufbuild/protobuf";
@@ -34,6 +38,7 @@ import {
   CLAUDE_NEEDS_COMPUTER_MESSAGE,
   agentComputer,
   hasComputer,
+  namesOnlyTheShell,
   refuseAgentWithoutComputer,
   refuseClaudeWithoutComputer,
   refuseConversationWithoutComputer,
@@ -57,12 +62,15 @@ function noComputer(fields: Omit<MessageInitShape<typeof AgentSpecSchema>, "$typ
 
 const HOOKS = { groups: [{ event: "PreToolUse", matcher: "*", handlers: [{ command: "lint.sh" }] }] };
 
-function plugin(name: string, carries: "hooks" | "stdio" | "http"): RunPlugin {
+function plugin(name: string, carries: "hooks" | "stdio" | "http" | "shell-agent"): RunPlugin {
   return {
     id: `plg_${name}`,
     name,
     status: create(PluginStatusSchema, {
       ...(carries === "hooks" ? { hooks: HOOKS } : {}),
+      agents: [
+        { name: "reviewer", tools: carries === "shell-agent" ? ["Bash(git *)"] : ["Read", "Bash"] },
+      ],
       mcpServers: [
         carries === "stdio"
           ? { name: "git-local", transport: { case: "stdio", value: { command: "npx" } } }
@@ -147,6 +155,15 @@ describe("an agent without a computer", () => {
     expect([stdio.code, stdio.rawMessage]).toEqual([
       Code.FailedPrecondition,
       "this agent has no computer, so it can't use plugin 'github-tools', which runs its MCP server 'git-local' as a local program; remove the plugin, or give the agent a computer",
+    ]);
+    refuseAgentWithoutComputer(noComputer(), [plugin("docs", "http")], []);
+  });
+
+  it("is refused a plugin whose agent's only tool is the shell, and keeps one whose agent names more", () => {
+    const error = refusal(() => refuseAgentWithoutComputer(noComputer(), [plugin("git-helper", "shell-agent")], []));
+    expect([error.code, error.rawMessage]).toEqual([
+      Code.FailedPrecondition,
+      "this agent has no computer, so it can't use plugin 'git-helper', which has an agent, 'reviewer', whose only tool is the shell; remove the plugin, or give the agent a computer",
     ]);
     refuseAgentWithoutComputer(noComputer(), [plugin("docs", "http")], []);
   });
@@ -271,6 +288,25 @@ describe("a turn", () => {
       Code.FailedPrecondition,
       "agent 'support-desk' has no computer, so this conversation can't use plugin 'github-tools', which runs its MCP server 'git-local' as a local program; remove the plugin from the agent or the conversation, or give the agent a computer",
     ]);
+  });
+
+  it("without a computer is refused its own tools when they name only the shell, and keeps a list naming more", () => {
+    const error = refusal(() => refuseTurnWithoutComputer(conversation(Computer.NONE), "support-desk", [], ["Bash", "Bash(ls)"]));
+    expect([error.code, error.rawMessage]).toEqual([
+      Code.FailedPrecondition,
+      "agent 'support-desk' has no computer, so this message's tools can't be only 'Bash', 'Bash(ls)', which runs commands; name other tools, or give the agent a computer",
+    ]);
+    refuseTurnWithoutComputer(conversation(Computer.NONE), "support-desk", [], ["Bash", "Read"]);
+    refuseTurnWithoutComputer(conversation(Computer.NONE), "support-desk", [], []);
+    refuseTurnWithoutComputer(conversation(Computer.REQUIRED), "repo-fixer", [], ["Bash"]);
+  });
+
+  it("names only the shell for a list of Bash entries alone", () => {
+    expect(namesOnlyTheShell(["Bash"])).toBe(true);
+    expect(namesOnlyTheShell(["Bash(git *)", "Bash"])).toBe(true);
+    expect(namesOnlyTheShell(["Bash", "mcp__ledger"])).toBe(false);
+    expect(namesOnlyTheShell([])).toBe(false);
+    expect(namesOnlyTheShell(undefined)).toBe(false);
   });
 
   it("with a computer, or with no conversation stamp, is never refused", () => {

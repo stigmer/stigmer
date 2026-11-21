@@ -33,9 +33,11 @@
  * Which updates are asked. An update is asked when, comparing the merged
  * state with the stored row (never the field mask: a declarative apply
  * masks every path), it changes what a fire runs in (the agent, its
- * version, the harness, the resources or the Environment) or turns the
- * routine back on. The harness is asked because an agent without a
- * computer refuses the Claude harness. Any other edit (a rename, the
+ * version, the resources or the Environment) or turns the routine back on.
+ * An update that changes the harness, and nothing else asked, is asked the
+ * one question the harness reaches: the Claude harness on an agent without
+ * a computer (refuseClaudeWithoutComputer). It is not asked the rest, so a
+ * routine an Environment edit broke can still take a harness-only fix. Any other edit (a rename, the
  * message, the schedule, the run settings, the vaults, disabling) is not
  * asked, so a routine an Environment edit broke after its save can still
  * be paused, renamed or fixed one field at a time. Resume (the platform's
@@ -165,6 +167,27 @@ export async function admitRoutineRun(
   });
 }
 
+/** The one question a harness-only update asks: the Claude harness on an agent without a computer. */
+async function admitRoutineHarness(
+  deps: RoutineRunAdmissionDeps,
+  routine: Routine,
+  caller: CallerIdentity,
+): Promise<void> {
+  const harness = routine.spec?.agent?.harness ?? Harness.UNSPECIFIED;
+  if (harness !== Harness.CLAUDE) {
+    return;
+  }
+  const status = create(SessionStatusSchema, { routineId: routine.metadata?.id ?? "" });
+  const session = firedSession(routine, status);
+  const ref =
+    routine.spec?.agent?.agentRef ??
+    create(ApiResourceReferenceSchema, { kind: ApiResourceKind.agent });
+  const pin = await resolveAgentPin(deps.store, ref, { authorizer: deps.authorizer, caller });
+  status.agentId = pin.agentId;
+  status.agentVersionHash = pin.versionHash;
+  await resolveSessionComputer(deps.store, session);
+}
+
 function sameReference(
   a: ApiResourceReference | undefined,
   b: ApiResourceReference | undefined,
@@ -186,7 +209,6 @@ export function updateAsksNothing(stored: Routine, next: Routine): boolean {
   const afterResources = after?.resources ?? [];
   return (
     sameReference(before?.agentRef, after?.agentRef) &&
-    (before?.harness ?? Harness.UNSPECIFIED) === (after?.harness ?? Harness.UNSPECIFIED) &&
     sameReference(before?.environmentRef, after?.environmentRef) &&
     beforeResources.length === afterResources.length &&
     beforeResources.every((resource, index) => {
@@ -207,6 +229,11 @@ export function newAdmitRoutineRunStep(
     async execute(ctx: RequestContext<RoutineDesc>): Promise<void> {
       const stored = ctx.get(EXISTING_RESOURCE_KEY) as Routine | undefined;
       if (stored !== undefined && updateAsksNothing(stored, ctx.newState)) {
+        const before = stored.spec?.agent?.harness ?? Harness.UNSPECIFIED;
+        const after = ctx.newState.spec?.agent?.harness ?? Harness.UNSPECIFIED;
+        if (before !== after) {
+          await admitRoutineHarness(deps, ctx.newState, ctx.callerIdentity);
+        }
         return;
       }
       await admitRoutineRun(deps, ctx.newState, ctx.callerIdentity);

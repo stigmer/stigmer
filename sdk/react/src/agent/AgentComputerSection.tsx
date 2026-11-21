@@ -17,7 +17,7 @@
  * always runs with a computer. A reader sees the switch disabled, in the
  * state the agent has.
  *
- * Pinned by `__tests__/AgentComputerSection.test.tsx`.
+ * Pinned by `__tests__/AgentDetailView.computer.test.tsx`.
  */
 
 import { useId, useState } from "react";

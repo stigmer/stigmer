@@ -7,7 +7,8 @@
  *   - a create that names none gets COMPUTER_REQUIRED, the Claude harness
  *     included; COMPUTER_NONE on the Claude harness is refused;
  *   - an agent without one is refused a Bash tool, its own hooks, a plugin
- *     with hooks or a local MCP server, and a subagent that has a computer,
+ *     with hooks, a local MCP server or an agent whose only tool is the
+ *     shell, and a subagent that has a computer,
  *     on create and on update; a subagent without one is listed;
  *   - an update and an apply that leave the field unset keep the stored
  *     COMPUTER_NONE; an agent saved before the setting stays unset when
@@ -91,6 +92,7 @@ beforeAll(async () => {
   await seedPlugin("code-style", "hooks");
   await seedPlugin("github-tools", "stdio");
   await seedPlugin("docs", "http");
+  await seedPlugin("git-helper", "shell-agent");
 });
 
 afterAll(async () => {
@@ -105,7 +107,7 @@ function uniqueName(prefix: string): string {
 }
 
 /** A plugin of this organization carrying hooks, a local MCP server, or only a URL one. */
-async function seedPlugin(slug: string, carries: "hooks" | "stdio" | "http"): Promise<void> {
+async function seedPlugin(slug: string, carries: "hooks" | "stdio" | "http" | "shell-agent"): Promise<void> {
   const id = `plg_${slug.replace(/-/g, "_")}`;
   await namingSaves(server.store).saveResource(
     ApiResourceKind.plugin,
@@ -119,6 +121,7 @@ async function seedPlugin(slug: string, carries: "hooks" | "stdio" | "http"): Pr
         ...(carries === "hooks"
           ? { hooks: { groups: [{ event: "PreToolUse", matcher: "*", handlers: [{ command: "lint.sh" }] }] } }
           : {}),
+        agents: [{ name: "reviewer", tools: carries === "shell-agent" ? ["Bash"] : ["Read"] }],
         mcpServers: [
           carries === "stdio"
             ? { name: "git-local", transport: { case: "stdio", value: { command: "npx", args: [] } } }
@@ -205,6 +208,9 @@ describe("an agent's computer on save", () => {
     const stdio = await refusal(() => createAgent({ computer: Computer.NONE, plugins: [pluginRef("github-tools")] }));
     expect(stdio.code).toBe(Code.FailedPrecondition);
     expect(stdio.rawMessage).toContain("runs its MCP server 'git-local' as a local program");
+    const shellAgent = await refusal(() => createAgent({ computer: Computer.NONE, plugins: [pluginRef("git-helper")] }));
+    expect(shellAgent.code).toBe(Code.FailedPrecondition);
+    expect(shellAgent.rawMessage).toContain("has an agent, 'reviewer', whose only tool is the shell");
     expect((await createAgent({ computer: Computer.NONE, plugins: [pluginRef("docs")] })).spec?.computer).toBe(Computer.NONE);
     // An agent with a computer lists any of them.
     await createAgent({ plugins: [pluginRef("code-style"), pluginRef("github-tools")] });

@@ -23,8 +23,9 @@
  * deployment whose hosted sandbox cannot start a local program refuses a
  * listed plugin's stdio server before any value is asked for; one that
  * wires no such rule plans it. A conversation without a computer refuses
- * a plugin that now carries a local program, wherever it runs, before any
- * value is asked for; the same conversation with a computer plans it. The plan it records is exactly the
+ * a plugin that now carries a local program, wherever it runs, and a
+ * message whose own tools name only the shell, before any value is asked
+ * for; the same conversation with a computer plans it. The plan it records is exactly the
  * resolver's source manifest, written onto the run's status before Persist
  * and nowhere else, and a resolver refusal reaches the caller with its
  * code.
@@ -563,6 +564,17 @@ describe("a conversation without a computer", () => {
     expect(failure).toBeInstanceOf(ConnectError);
     expect((failure as ConnectError).code).toBe(Code.FailedPrecondition);
     expect((failure as ConnectError).rawMessage).toContain("has no computer, so this conversation can't use plugin 'files'");
+    expect(asked).toEqual([]);
+  });
+
+  it("refuses a message whose own tools name only the shell, before asking for any value", async () => {
+    const asked: RunCredentialInput[] = [];
+    const run = turn("run_shell_only");
+    run.spec!.tools = ["Bash"];
+    const session = create(SessionSchema, { metadata: { id: "ses_rec", org: ORG }, spec: {}, status: { computer: Computer.NONE } });
+    const failure = await planRunValues(deps({ session, asked }), run).catch((e: unknown) => e);
+    expect((failure as ConnectError).code).toBe(Code.FailedPrecondition);
+    expect((failure as ConnectError).rawMessage).toContain("this message's tools can't be only 'Bash'");
     expect(asked).toEqual([]);
   });
 
