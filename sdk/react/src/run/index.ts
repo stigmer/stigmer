@@ -191,6 +191,8 @@ export type {
 export { RunErrorNotice } from "./RunErrorNotice.js";
 export type { RunErrorNoticeProps, RunErrorNoticeLink } from "./RunErrorNotice.js";
 export type { TurnEndingAction, TurnEndingWiring } from "./ThreadPresentationContext.js";
+export type { ToolCallInfo, ToolCallState, ToolCardProps, ToolCards } from "./tool-cards-context.js";
+export type { MessageAction, MessageInfo } from "./message-actions.js";
 
 export { ThreadSkeleton } from "./ThreadSkeleton.js";
 export type { ThreadSkeletonProps } from "./ThreadSkeleton.js";

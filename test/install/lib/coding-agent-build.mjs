@@ -10,10 +10,12 @@
  * the stage's CLI with `--output json` (snake_case fields, defaults left
  * out, so a routine that is off carries no `enabled`); every plugin of the
  * organization through the TypeScript SDK (the CLI lists none), in its
- * JSON form (camelCase).
+ * JSON form (camelCase). The stage, the fixture and the turns are every
+ * walk's (lib/coding-agent-walk.mjs).
  */
 
 import { FIXTURE } from "./coding-agent-bank.mjs";
+import { parseWalkArgs } from "./coding-agent-walk.mjs";
 
 /** The ask, the agent it is about, and what it asks for. */
 export const BUILD = Object.freeze({
@@ -136,21 +138,5 @@ disallowed tools as they were. Needs
 
 /** The walk's flags, parsed; throws naming the flag on anything it does not know. */
 export function parseBuildArgs(argv) {
-  const args = { model: "claude-sonnet-5-5", maxBudgetUsd: undefined, claudeMaxTurns: undefined, maxTurns: 2, keep: false, help: false };
-  for (const arg of argv) {
-    const [flag, value] = arg.includes("=") ? [arg.slice(0, arg.indexOf("=")), arg.slice(arg.indexOf("=") + 1)] : [arg, undefined];
-    const number = () => {
-      const n = Number(value);
-      if (value === undefined || value === "" || !Number.isFinite(n) || n <= 0) throw new Error(`${flag} must be a positive number (got ${JSON.stringify(value)})`);
-      return n;
-    };
-    if (flag === "--help" || flag === "-h") args.help = true;
-    else if (flag === "--keep") args.keep = true;
-    else if (flag === "--model") args.model = value ?? "";
-    else if (flag === "--max-budget-usd") args.maxBudgetUsd = number();
-    else if (flag === "--claude-max-turns") args.claudeMaxTurns = Math.floor(number());
-    else if (flag === "--max-turns") args.maxTurns = Math.floor(number());
-    else throw new Error(`unknown flag ${JSON.stringify(arg)}\n\n${USAGE}`);
-  }
-  return args;
+  return parseWalkArgs(argv, USAGE);
 }

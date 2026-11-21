@@ -92,6 +92,13 @@ describe("cleanContent", () => {
     const body = 'import { Hero } from "@/components/docs";\n\n{/* A note. */}\nProse stays.';
     expect(cleanContent(body, SITE_URL)).toBe("Prose stays.");
   });
+
+  it("keeps a code example's own export and import lines, and strips the page's", () => {
+    const shell = "```bash\nexport OTEL_EXPORTER_OTLP_ENDPOINT=https://cloud.langfuse.com/api/public/otel\nstigmer up\n```";
+    const python = "~~~python\nimport os\n~~~";
+    const body = `export const meta = { title: "x" };\nimport { Steps } from "fumadocs-ui/components/steps";\n\n${shell}\n\n${python}\n\nProse stays.`;
+    expect(cleanContent(body, SITE_URL)).toBe(`${shell}\n\n${python}\n\nProse stays.`);
+  });
 });
 
 describe("a <Screen> in the export", () => {

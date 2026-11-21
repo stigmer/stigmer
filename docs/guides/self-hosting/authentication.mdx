@@ -208,10 +208,17 @@ such as `client_id` or `redirect_uri`.
 
 ### Create the keys
 
-Open **Settings → API keys** and choose **New API key** to create one for your
-own CLI. Each key is shown exactly once; the server stores only a hash and
-cannot show it again. The runner already has its key: the `STIGMER_TOKEN` line
-above on Docker Compose, the one the operator minted on Kubernetes.
+Open **Settings → API keys** and choose **New API key** when something needs a
+key of its own. Each key is shown exactly once; the server stores only a hash
+and cannot show it again. The runner already has its key: the `STIGMER_TOKEN`
+line above on Docker Compose, the one the operator minted on Kubernetes.
+
+Your own CLI signs in as you instead
+([Point the CLI at the stack](#point-the-cli-at-the-stack)). A CI pipeline or a
+script gets a key of its own from a
+[service account](/docs/guides/authentication/service-accounts), never a
+person's: it keeps working when that person leaves, and what it does is recorded
+as the service account, not as them.
 
 Create keys after you sign in. A key created while the server still trusted
 everyone is refused once authentication is on, and the refusal says so: the CLI
@@ -424,15 +431,21 @@ as [stigmer#2861](https://github.com/stigmer/stigmer/issues/2861).
 
 ## What still needs an API key
 
-The `stigmer` CLI cannot sign in to a self-hosted server through your OIDC
-provider yet. Point the CLI at the stack with an API key, as the last step
-shows. If you hold an access token from your provider, the CLI accepts it in
-place of a key: `STIGMER_API_KEY=<oidc-access-token>` in front of
-`stigmer auth whoami` creates your Identity Account if you have never signed in,
-and in front of `stigmer apikey create --name ci` mints a key without the
-console. How you obtain that token is your provider's business. Sign-in for the
-CLI is tracked as
-[stigmer#1077](https://github.com/stigmer/stigmer/issues/1077).
+People sign in through your provider: in the console, in the desktop app, and
+with `stigmer auth login` in the CLI once you have registered the client for
+installed apps
+([The CLI signs in through the same client](#the-cli-signs-in-through-the-same-client)).
+Machines use API keys:
+
+- **The runner** uses the key you gave it above.
+- **A CI pipeline, a script or an integration** uses a
+  [service account](/docs/guides/authentication/service-accounts)'s key, with
+  the smallest role the job needs. The job passes it as `STIGMER_API_KEY`.
+- **Your CLI before the client is registered** takes your own key from
+  **Settings → API keys** (`--api-key stk_...` on `config backend add`). If you
+  hold an access token from your provider, the CLI accepts it in place of a key:
+  `STIGMER_API_KEY=<oidc-access-token>` in front of `stigmer auth whoami`
+  creates your Identity Account if you have never signed in.
 
 ## Next step
 

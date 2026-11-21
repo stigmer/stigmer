@@ -47,6 +47,7 @@ import { DialogShell } from "../internal/DialogShell.js";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../internal/tooltip.js";
 import { useStigmerPortalContainer } from "../portal-container.js";
 import type { MessageThreadSlots } from "../run/MessageThread.js";
+import type { MessageAction, MessageInfo } from "../run/message-actions.js";
 import type { SessionAudience } from "../session/audience.js";
 import type { SessionInspectorProps } from "../session/inspector/SessionInspector.js";
 import { NewSessionViewer } from "../session/NewSessionViewer.js";
@@ -121,6 +122,12 @@ export interface AgentChatProps {
   readonly runConfig?: SessionRunConfig;
   /** Content placed in the conversation's thread (see `MessageThreadSlots`). */
   readonly threadSlots?: MessageThreadSlots;
+  /**
+   * The host's own actions for a message, drawn after Copy (see
+   * `MessageThread`'s `messageActions`). A host's own tool cards are set
+   * once, on `StigmerProvider` (`toolCards`).
+   */
+  readonly messageActions?: (message: MessageInfo) => readonly MessageAction[];
   /** The heading above the first message's box. */
   readonly heading?: string;
   /** The first message box's placeholder. */
@@ -190,6 +197,7 @@ export function AgentChat({
   inspector,
   runConfig,
   threadSlots,
+  messageActions,
   heading,
   placeholder,
   enableGitHub,
@@ -273,6 +281,7 @@ export function AgentChat({
           runConfig={runConfig}
           inspector={pageInspector}
           threadSlots={threadSlots}
+          messageActions={messageActions}
           enableGitHub={enableGitHub}
           showModelSelector={showModelSelector}
           showInteractionModePicker={showInteractionModePicker}

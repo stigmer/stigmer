@@ -1357,10 +1357,10 @@ export async function composeServer(
         sessionEventBroker,
         queuedTurns,
         temporalConfig,
-        // The workflow's own sandbox ensure, the request's body
-        // (sandbox/steps.ts) under the same lane and accounts; its
-        // activity also tells the session's streams while a turn waits
-        // for room, through the broker above.
+        // The turn's sandbox ensure (sandbox/session-sandbox.ts), the
+        // only one the server makes, under this lane and these accounts;
+        // its activity also tells the session's streams while a turn
+        // waits for room, through the broker above.
         sandboxLane,
         personAccounts,
       }),
@@ -2283,8 +2283,6 @@ export async function composeServer(
       statusObservers: runStatusObservers,
       runScores,
       responseDecorators: extensions.responseDecorators,
-      sandboxLane,
-      temporalConfig,
       sessionCreator: () => requireInProcess().executionSessionCreator,
       queuedTurns,
       queuedSenderLane: extensions.drivers.queuedSenderLane,

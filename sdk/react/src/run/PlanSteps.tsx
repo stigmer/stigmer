@@ -22,7 +22,7 @@
 // white but for status.
 
 import { useId } from "react";
-import { isBackgroundRunning, stepTense, type PlanItem, type ToolUse, type TurnEndingTone, type TurnSteps } from "@stigmer/client";
+import { type PlanItem, type ToolUse, type TurnEndingTone, type TurnSteps } from "@stigmer/client";
 import { isInternalTool } from "@stigmer/react-core/internal";
 import { cn } from "@stigmer/design-tokens";
 import { useAutoDisclosure } from "../internal/useAutoDisclosure.js";
@@ -32,6 +32,8 @@ import { useWaitingWords } from "./ApprovalContext.js";
 import { useThreadPresentation } from "./ThreadPresentationContext.js";
 import { SettledStepsRow } from "./SettledStepsRow.js";
 import { UNSTYLED_LIST } from "../internal/element-resets.js";
+import { foldsQuietly } from "./step-fold.js";
+import { holdsToolCard, useHasToolCard } from "./tool-card.js";
 
 /** Props for {@link PlanSteps}. */
 export interface PlanStepsProps {
@@ -60,11 +62,6 @@ export interface PlanStepsProps {
 /** The tone of the ending a turn stopped its plan on: the turn ending's own tones. */
 export type PlanStoppedTone = TurnEndingTone;
 
-/** Whether a step may sit in a folded stretch: it returned, runs nothing on, and did not fail. */
-function folds(tool: ToolUse): boolean {
-  return tool.result !== undefined && !isBackgroundRunning(tool) && stepTense(tool) !== "failed";
-}
-
 /** Whether a step waits for a person, or a helper it started has a step that does, at any depth. */
 function waitsWithin(tool: ToolUse): boolean {
   if (tool.state === "waiting") return true;
@@ -82,12 +79,13 @@ export function PlanSteps({ steps, working, stoppedNote = "Stopped here", stoppe
   const done = counted.filter((item) => item.todo.status === "completed").length;
   const { cardedAsks } = useThreadPresentation();
   const loose = uncarded(steps.loose, cardedAsks);
+  const hasCard = useHasToolCard();
   // Only a quiet stretch of two or more folds: a step still running (a
-  // background command runs on past its call) or one that failed stays in
-  // view, and a single step stays its own row.
-  const quiet = loose.filter((tool) => folds(tool));
+  // background command runs on past its call), one that failed or one with
+  // a host's card stays in view, and a single step stays its own row.
+  const quiet = loose.filter((tool) => foldsQuietly(tool, hasCard));
   const settledLoose = quiet.length > 1 ? quiet : [];
-  const openLoose = quiet.length > 1 ? loose.filter((tool) => !folds(tool)) : loose;
+  const openLoose = quiet.length > 1 ? loose.filter((tool) => !foldsQuietly(tool, hasCard)) : loose;
   return (
     <section
       aria-label="Plan"
@@ -134,7 +132,12 @@ function PlanItemRow({
   const waitingWords = useWaitingWords();
   const status = item.todo.status;
   const live = status === "in_progress" && working;
-  const [open, toggle] = useAutoDisclosure(live && calls.length > 0, { initialOpen: live && calls.length > 0 });
+  // A host's card under the item, its own step's or a helper's, keeps the
+  // item open after it stops being live: the card is never closed away.
+  const hasCard = useHasToolCard();
+  const showsCard = calls.some((tool) => holdsToolCard(tool, hasCard));
+  const autoOpen = (live || showsCard) && calls.length > 0;
+  const [open, toggle] = useAutoDisclosure(autoOpen, { initialOpen: autoOpen });
   const mark = <PlanMark status={status} live={live} stoppedTone={stoppedTone} />;
   // The item in hand's line sits on the running band, the drawing's tint
   // for what is at work: the band token keeps its muted second line

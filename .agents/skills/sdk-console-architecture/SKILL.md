@@ -215,6 +215,20 @@ component's seams. The same holds for every depicted surface: a demo scene
 renders the real SDK organism with fixture data and hand-draws only documented
 page framing.
 
+**Hosts customize through mechanisms.** A host shapes the session viewer through
+a few mechanisms that treat every host alike (slots, tool cards, message
+actions, custom tools, the headless hooks), never through a prop bent to one
+asker. A new mechanism is built only with evidence from two kinds of source, at
+least one a real host's ask or the kit's own use; an ask is answered by an
+existing mechanism first; the kit's own extras on the viewer go through the
+mechanism a host uses; a mechanism hands a host a view the kit owns, never the
+raw log type; and what an approval shows and records, the order of events, the
+transcript, Stop and keyboard access stay fixed for every host. Every row kind
+the thread draws is open or closed with its reason. The parts, the ask corpus,
+each mechanism's contract and where each setting lives are in
+[references/host-customization.md](references/host-customization.md)
+(stigmer/stigmer#3379, #3380, #973).
+
 ## Dont-dos
 
 1. No client-app imports in the SDK: nothing from `client-apps/web`,

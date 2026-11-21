@@ -1,9 +1,17 @@
-Show the status of the local Stigmer stack.
+Show which server the CLI uses and the local stack's health.
 
-`stigmer status` reports the health of each component the local daemon
-supervises — the daemon itself, managed Temporal, `stigmer-server`, and the
-runner — alongside the effective LLM configuration. Use it to confirm the
-stack is up before running agents, or to diagnose a stack that will not start.
+`stigmer status` first names the backend the CLI uses and its address
+(`Backend` and `Endpoint`, the words `stigmer config backend status` uses).
+Then it reports the health of each component the local daemon supervises —
+the daemon itself, managed Temporal, `stigmer-server`, and the runner —
+alongside the effective LLM configuration. Use it to confirm the stack is up
+before running agents, or to diagnose a stack that will not start.
+
+When the CLI uses another server (a self-hosted one, Stigmer Cloud, or an
+address in `STIGMER_SERVER_ADDRESS`), no local stack is needed: `status` says
+none is running and succeeds, without telling you to start one. It does not
+contact that server; `stigmer auth whoami` does, and names its version and
+edition.
 
 {/* AUTO_USAGE */}
 
@@ -27,7 +35,22 @@ stigmer status --json
 stigmer status
 ```
 
-Shows whether each component is running and which LLM provider is configured.
+Shows which server the CLI uses, whether each local component is running and
+which LLM provider is configured.
+
+### Check which server the CLI uses
+
+```bash
+stigmer status
+```
+
+Signed in to your own server added as the backend `team`, it opens with:
+
+```text
+The CLI uses backend "team" at stigmer.acme.example:443, not a local stack
+```
+
+To use the local stack instead, run `stigmer config backend use local`.
 
 ### Use status in a script
 
@@ -44,6 +67,8 @@ stigmer status --json | jq '.sections'
 | [`stigmer up`](./up) | Start the local stack |
 | [`stigmer down`](./down) | Stop the local stack |
 | [`stigmer logs`](./logs) | View logs from the local stack |
+| [`stigmer auth`](./auth) | Check who you are on the server the CLI uses (`whoami`) |
+| [`stigmer config backend`](./config) | Switch the server the CLI uses |
 
 ## See also
 

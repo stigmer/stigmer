@@ -11,6 +11,7 @@ import { memo, useMemo } from "react";
 import type { Thread, ToolUse, TurnItem } from "@stigmer/client";
 import { useRenderTracer } from "../internal/dev/index.js";
 import { useAutoDisclosure } from "../internal/useAutoDisclosure.js";
+import { holdsToolCard, useHasToolCard } from "./tool-card.js";
 import { formatElapsed } from "@stigmer/client";
 import { useElapsedSince } from "../internal/useElapsedSince.js";
 import { cn } from "@stigmer/design-tokens";
@@ -156,10 +157,14 @@ function HelperStep({ thread, displayLabel, startedAt, duration, toolUses, error
   // step opens while one waits and its inline decision (rendered by the
   // nested ToolCallItem) is visible without a click.
   const waitsInside = useMemo(() => threadWaits(thread), [thread]);
+  // A step inside with a host's card, at any depth, keeps the helper open:
+  // the card is never closed away.
+  const hasCard = useHasToolCard();
+  const cardInside = useMemo(() => thread.items.some((item) => item.kind === "tool_use" && holdsToolCard(item, hasCard)), [thread, hasCard]);
 
-  // Open while running or while a nested call waits; settle closed when done
-  // — unless the user takes manual control.
-  const [expanded, handleToggle] = useAutoDisclosure(isRunning || waitsInside);
+  // Open while running, while a nested call waits or shows a host's card;
+  // settle closed when done — unless the user takes manual control.
+  const [expanded, handleToggle] = useAutoDisclosure(isRunning || waitsInside || cardInside);
 
   const tag = helperTagWord(thread.agentName, displayLabel);
   const shows = toolUses.length > 0 || error !== "";

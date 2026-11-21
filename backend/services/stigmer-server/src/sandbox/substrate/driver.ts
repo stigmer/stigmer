@@ -32,7 +32,8 @@
  *   - running: push; the waiter keeps its runner and takes the fresh token
  *     for a restart. On another template than the current one, and only
  *     when the caller says the runner is idle (SandboxFacts.runnerIdle,
- *     the workflow's ensure right before it invokes the runner), suspend
+ *     set by the server's session ensure, right before it invokes the
+ *     runner), suspend
  *     it first and go on as for a suspended one: a suspend keeps its
  *     volumes, and the wake starts the current template's runner. A
  *     template is named by its content, the server's release among it

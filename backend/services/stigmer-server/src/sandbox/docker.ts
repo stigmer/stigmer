@@ -35,17 +35,19 @@
  * or whose baked STIGMER_SERVER_RELEASE is not this server's release (a
  * development server sets none, so there only the image counts). A
  * stopped one is recreated instead of started; a running one only when
- * the caller says the runner is idle (SandboxFacts.runnerIdle, the
- * workflow's ensure right before it invokes the runner), and is stopped
+ * the caller says the runner is idle (SandboxFacts.runnerIdle, set by the
+ * server's session ensure, which it makes right before it invokes the
+ * runner), and is stopped
  * first, so the copy is of files nothing is writing, and started again as
  * it was when its recreate fails before the swap. Every other ensure
  * of a running container stays the fast path, without a read. "Another"
  * has no direction: a rollback moves a container back, its files kept.
  *
  * Every ensure and teardown of one container runs through one in-process
- * queue, as the other drivers' do: the request's ensure and the workflow's
- * run at once by design (steps.ts), and two recreates of one container
- * would race over its temporary name and remove each other's result.
+ * queue, as the other drivers' do: a turn's ensure can meet the session
+ * delete's teardown, or a retried ensure the attempt it replaced, and two
+ * recreates of one container would race over its temporary name and
+ * remove each other's result.
  *
  * Deliberate divergences from the cloud manifest, named:
  *

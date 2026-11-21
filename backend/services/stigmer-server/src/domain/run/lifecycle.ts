@@ -85,12 +85,8 @@ import { newAuthorizeStep } from "../../pipeline/steps/authorize.js";
 import { ResourceNotFoundError } from "../../store/interface.js";
 import type { Store } from "../../store/interface.js";
 
-import type { SandboxLane } from "../../sandbox/lane.js";
-import type { AccountsByCaller } from "../identityaccount/resolve.js";
-import { ensureSessionSandboxForExecution } from "../../sandbox/steps.js";
 import type { RunValuePlannerDeps } from "./plan-run-values-step.js";
 import { planRunValues } from "./plan-run-values-step.js";
-import type { AgentExecutionTemporalConfig } from "./temporal/config.js";
 import type { ExecutionEngineStateProvider } from "./engine.js";
 import { EngineDispatchError, EngineWorkflowNotFoundError } from "./engine.js";
 import {
@@ -134,15 +130,6 @@ export interface LifecycleDeps {
   readonly gateSteps: ResolvedGateSteps;
   /** The composed status-transition observers. */
   readonly statusObservers: ReadonlyArray<RunStatusObserver>;
-  /** The sandbox lane — recover re-ensures the session sandbox. */
-  readonly sandboxLane: SandboxLane;
-  /** Dispatch config for the sandbox ensure's target/queue resolution. */
-  readonly temporalConfig: AgentExecutionTemporalConfig;
-  /**
-   * The accounts the sandbox ensure resolves the session's creator with;
-   * undefined under the trusted-local posture (sandbox/steps.ts).
-   */
-  readonly personAccounts: AccountsByCaller | undefined;
 }
 
 /** Inputs that carry an execution id. */
@@ -805,30 +792,9 @@ function runRecoverPipeline(
       // again and the fresh workflow's runner reads it (resolve-run-agent.ts).
       newStampRecoveredRunAgentStep(deps.store, deps.logger, alreadyRecovered),
       newRePlanRunValuesStep(deps),
+      // The fresh workflow asks for the turn's sandbox
+      // (temporal/agentexecution/sandbox-wait.ts).
       newStartFreshWorkflowStep(deps),
-      // The session-lane sandbox ensure — same position and
-      // non-critical posture as the create chain's step: after the
-      // workflow start, never failing the recover (the shared body
-      // pre-stamps failures onto status.error instead).
-      {
-        name: "EnsureSessionSandbox",
-        async execute(ctx) {
-          if (ctx.get(ALREADY_IN_TARGET_STATE_KEY) === true) {
-            return;
-          }
-          await ensureSessionSandboxForExecution(
-            {
-              store: deps.store,
-              logger: deps.logger,
-              lane: deps.sandboxLane,
-              temporalConfig: deps.temporalConfig,
-              accounts: deps.personAccounts,
-            },
-            loadedExecution(ctx),
-            ctx.callerIdentity,
-          );
-        },
-      },
       newUpdateExecutionPhaseAndPersistStep(
         deps,
         RunPhase.RUN_IN_PROGRESS,

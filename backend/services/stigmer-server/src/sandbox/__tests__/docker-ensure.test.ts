@@ -16,8 +16,8 @@
  * recreated the same way: a stopped one instead of started, a running one
  * stopped first, and only when the ensure says the runner is idle; one on
  * this configuration, or an ensure that does not say so, is left as it is
- * (stigmer#1843). Two ensures of one container (the request's and the
- * workflow's run at once) take turns, so a recreate never runs twice. An
+ * (stigmer#1843). Two ensures of one container at once (a retried ask
+ * and the attempt it replaced) take turns, so a recreate never runs twice. An
  * absent one is created (a connect sandbox on its
  * own queue), with the operator's runner
  * secrets beside the token, never on the command line. The real CLI and
@@ -419,7 +419,7 @@ describe("a container started under another configuration (stigmer#1843)", () =>
     expect(infos).toEqual([]);
   });
 
-  it("running on another image without the runner idle (the request's ensure): never touched", async () => {
+  it("running on another image without the runner idle (a caller not right before the runner): never touched", async () => {
     setState("running", jwtExpiringIn(3600), { image: "ghcr.io/stigmer/runner:old" });
     const { logger } = capturingLogger();
     await newDockerSandboxProvisioner({ config: CONFIG, logger }).ensureSessionSandbox("ses_ensure", ENV);
@@ -446,7 +446,7 @@ describe("a container started under another configuration (stigmer#1843)", () =>
     ]);
   });
 
-  it("the request's and the workflow's ensures at once: one recreate, the second ensure finding the swapped-in container", async () => {
+  it("two ensures at once: one recreate, the second ensure finding the swapped-in container", async () => {
     setState("stopped", jwtExpiringIn(3600), { image: "ghcr.io/stigmer/runner:old" });
     recreatesTo({});
     const { logger } = capturingLogger();

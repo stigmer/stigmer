@@ -5,7 +5,10 @@
 // scripts/publish-libs.test.mjs proves it); its front door
 // (skills/stigmer/SKILL.md), its setup guide (skills/stigmer-setup/SKILL.md),
 // its runs skill (skills/stigmer-run/SKILL.md), its integration skill
-// (skills/stigmer-integrate/SKILL.md),
+// (skills/stigmer-integrate/SKILL.md), its build skill
+// (skills/stigmer-build/SKILL.md), its operate skill
+// (skills/stigmer-operate/SKILL.md), each description within the 1,024
+// characters a tool reads of it,
 // the bundled `stigmer mcp-server` and Claude Code's guard hook read with no
 // warning by `@stigmer/plugin-package`, which knows all three dialects; each tool's marketplace file offering that
 // one plugin at the repository's root; and dist/index.js exporting the guide
@@ -43,6 +46,21 @@ function tree(dir: string): Map<string, string> {
   return files;
 }
 
+/** A SKILL.md's `description: >` block as YAML folds it: its lines joined by single spaces. */
+function foldedDescription(skill: string): string {
+  const lines = skill.split("\n");
+  const at = lines.findIndex((line) => line.startsWith("description:"));
+  if (at === -1) return "";
+  const inline = lines[at].slice("description:".length).trim();
+  if (inline !== ">" && inline !== ">-") return inline;
+  const body: string[] = [];
+  for (const line of lines.slice(at + 1)) {
+    if (!line.startsWith(" ")) break;
+    body.push(line.trim());
+  }
+  return body.join(" ").trim();
+}
+
 let files: Map<string, string>;
 
 beforeAll(() => {
@@ -59,13 +77,32 @@ describe("the plugin", () => {
     }
   });
 
-  it("reads with no error or warning: the front door, the setup guide, the runs, integration and build skills, the bundled MCP server and the guard", () => {
+  // Claude Code and the Agent Skills format read at most 1,024 characters of
+  // a skill's description; past that, the routing words at its end are cut.
+  it("keeps every skill's description within 1,024 characters", () => {
+    const skills = [...files.keys()].filter((path) => /^skills\/[^/]+\/SKILL\.md$/.test(path));
+    expect(skills.length).toBeGreaterThan(5);
+    for (const path of skills) {
+      const description = foldedDescription(files.get(path) ?? "");
+      expect(description.length, `${path} has no description`).toBeGreaterThan(0);
+      expect(description.length, `${path}'s description is ${description.length} characters`).toBeLessThanOrEqual(1024);
+    }
+  });
+
+  it("reads with no error or warning: the front door, the setup guide, the runs, integration, build and operate skills, the bundled MCP server and the guard", () => {
     const outcome = readPluginPackage(inMemoryPluginFiles(files));
     expect(outcome.warnings).toEqual([]);
     expect(outcome.ok).toBe(true);
     if (!outcome.ok) return;
     expect(outcome.plugin.name).toBe("stigmer");
-    expect(outcome.plugin.skills.map((skill) => skill.name).sort()).toEqual(["stigmer", "stigmer-build", "stigmer-integrate", "stigmer-run", "stigmer-setup"]);
+    expect(outcome.plugin.skills.map((skill) => skill.name).sort()).toEqual([
+      "stigmer",
+      "stigmer-build",
+      "stigmer-integrate",
+      "stigmer-operate",
+      "stigmer-run",
+      "stigmer-setup",
+    ]);
     expect(JSON.parse(files.get(".mcp.json") ?? "{}")).toEqual({
       mcpServers: { stigmer: { command: "stigmer", args: ["mcp-server"] } },
     });

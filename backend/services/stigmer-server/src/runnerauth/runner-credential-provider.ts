@@ -133,11 +133,11 @@ export interface RunnerBootstrapCredentials {
 }
 
 /**
- * What the sandbox ensure steps (steps.ts) and the MCP connect lane
+ * What the turn's sandbox ensure (sandbox/session-sandbox.ts) and the MCP connect lane
  * (domain/plugin/tools/sandbox.ts) know when they mint the credential
  * baked into a provisioned sandbox. `sessionId` is empty on the connect
  * scope; `callerIdentityId` is empty when the invocation site
- * has no caller (the ensure step then mints nothing rather than minting
+ * has no caller (the ensure then mints nothing rather than minting
  * unattributed).
  *
  * The connect scope binds `executionId` to one tools listing's synthetic
@@ -236,7 +236,7 @@ export interface RunnerCredentialProvider {
 
   /**
    * The credential baked into a provisioned sandbox (SandboxFacts.
-   * stigmerToken). When present, the ensure steps and the connect lane
+   * stigmerToken). When present, the sandbox ensure and the connect lane
    * delegate here with the full provisioning context; absent, they mint
    * on the execution_scoped lane exactly as before. Returns "" to launch tokenless (the
    * redaction-fallback contract lane.ts documents); a thrown error

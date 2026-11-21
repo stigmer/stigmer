@@ -689,7 +689,7 @@ describe("a running sandbox started under another configuration (stigmer#1843)",
     expect(h.substrate.actors.get(ACTOR)?.state).toBe("running");
   });
 
-  it("without the runner idle (the request's and the recover's ensure): pushed only, never restarted", async () => {
+  it("without the runner idle (a caller not right before the runner): pushed only, never restarted", async () => {
     const h = harness();
     await h.driver.internals.keeper.ready();
     h.substrate.put({

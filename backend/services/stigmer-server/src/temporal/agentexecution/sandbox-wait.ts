@@ -141,7 +141,7 @@ export function sandboxWaitBackoffMs(attempt: number): number {
 }
 
 /**
- * What one ask for the turn's sandbox came to (sandbox/steps.ts
+ * What one ask for the turn's sandbox came to (sandbox/session-sandbox.ts
  * `ensureSessionSandboxForExecution`): `ready`, `no_room`, `not_carried`
  * (its files cannot be carried to this server's runner: module header),
  * `out_of_memory` (it was killed for exceeding its memory limit and is
@@ -168,7 +168,7 @@ export interface EnsureSessionSandboxInput {
   readonly caller_class: string;
   /** The routine whose fire started the run; absent for every other request. */
   readonly routine_id?: string;
-  /** The caller's id, minted for only under the trusted-local posture (sandbox/steps.ts). */
+  /** The caller's id, minted for only under the trusted-local posture (sandbox/session-sandbox.ts). */
   readonly caller_identity_id?: string;
   /**
    * When the turn's wait for room began (workflow time, epoch ms), absent

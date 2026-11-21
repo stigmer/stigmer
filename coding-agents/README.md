@@ -44,6 +44,14 @@ one is for the coding agent on a person's laptop.
   outside Stigmer), then each job's method, pages and pitfalls, and how to
   act: a manifest applied from the live definition, a secret the person saves,
   a routine or channel turned on only on their yes.
+- `plugin/skills/stigmer-operate/SKILL.md`: running the person's own Stigmer
+  server and administering their organization: three first facts (the server
+  the CLI reaches, the edition the person runs, the shape they run), which
+  piece answers each question (the install shapes, sign-in with their own
+  provider, a service account's key, the Organization's roles, the runner,
+  tracing, upgrades and backups, the access history, agent hours), each job's
+  method, pages and pitfalls, and how to act: a key, a role or access proposed
+  first, a service account's key saved to a file and never shown.
 - `plugin/.mcp.json`: the bundled `stigmer mcp-server`, for making, running and
   reading agents once setup is done.
 - `plugin/hooks/`: the guard. `hooks.json` is Claude Code's: a `PreToolUse`
@@ -102,7 +110,14 @@ already has, from a one-line ask (a routine every Monday, an MCP server with
 only two of its tools), is `make walk-coding-agent-build`
 (`test/install/coding-agent-build.mjs`), by hand: it passes when the server
 holds the routine, still off, and the plugin, the agent names the two tools in
-full, and its instructions and skills are as they were.
+full, and its instructions and skills are as they were. The plugin making CI a
+key ("a key that can run agents but not change them") is
+`make walk-coding-agent-operate` (`test/install/coding-agent-operate.mjs`), by
+hand: it passes when the server holds one Member service account with one key,
+the key in the file the CLI named is that account's, no key appears in the
+coding agent's stream, and the person's own keys and the agents are as they
+were. Both walks share their stage, fixture and turns
+(`test/install/lib/coding-agent-walk.mjs`).
 
 ## The question bank
 

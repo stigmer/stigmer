@@ -33,8 +33,8 @@
  *     made under another configuration (another runner image, or another
  *     server release; a development server sets none, so there only the
  *     image counts), when the caller says the runner is idle
- *     (SandboxFacts.runnerIdle, the workflow's ensure right before it
- *     invokes the runner). It is put to sleep, the ensure waits until its
+ *     (SandboxFacts.runnerIdle, set by the server's session ensure, which
+ *     it makes right before it invokes the runner). It is put to sleep, the ensure waits until its
  *     status says the pod is gone (resource.ts), and it is woken as a
  *     Suspended one is, with this server's template, on the same claims.
  *     A template patch alone would wait for the next pod, and deleting the
@@ -48,8 +48,8 @@
  *     foreground), then create it.
  *
  * No readiness wait after any arm: a sandbox that never polls its queue
- * surfaces as the activity's ScheduleToStartTimeout, and the ensure step's
- * error stamp names a provisioning failure (a missing agent-sandbox
+ * surfaces as the activity's ScheduleToStartTimeout, and the session
+ * ensure's error stamp names a provisioning failure (a missing agent-sandbox
  * install among them, gateway.ts).
  *
  * Every ensure, suspend and delete of one Sandbox runs through one
