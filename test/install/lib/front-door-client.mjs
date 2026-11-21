@@ -41,7 +41,8 @@ export function request(url, { method = "GET", headers = {}, body, ca } = {}) {
   });
 }
 
-const decode = (s) => s.replace(/&amp;/g, "&").replace(/&#x2F;/g, "/").replace(/&#47;/g, "/").replace(/&quot;/g, '"');
+// `&amp;` last, so an escaped entity (`&amp;quot;`) decodes to its text, never twice.
+const decode = (s) => s.replace(/&#x2F;/g, "/").replace(/&#47;/g, "/").replace(/&quot;/g, '"').replace(/&amp;/g, "&");
 
 /** The forms on a page: { id, action, hidden: {name: value}, buttons: [names] }. */
 export function formsOf(html) {
@@ -198,8 +199,9 @@ export async function startSignedInProxy({ target, token, caFile }) {
         res.writeHead(out.status, { "content-type": out.headers["content-type"] ?? "application/octet-stream" });
         res.end(out.body);
       } catch (error) {
+        console.error(`front door proxy: ${req.method} ${req.url}: ${error instanceof Error ? error.message : String(error)}`);
         res.writeHead(502);
-        res.end(String(error));
+        res.end("bad gateway");
       }
     });
   });

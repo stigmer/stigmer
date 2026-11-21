@@ -297,6 +297,11 @@ function kubernetesType(n: SchemaNode): string | undefined {
  * URL in a comment is an example address (http://minio.storage.svc:9000),
  * never a page to visit, so it is shown as code rather than linked.
  */
+/** Text for a Markdown table cell: a backslash and a pipe escaped, so neither ends the cell or escapes what follows. */
+function tableCell(text: string): string {
+  return text.replace(/\\/g, "\\\\").replace(/\|/g, "\\|");
+}
+
 function prose(text: string): string {
   return text
     .split(/\n\s*\n/)
@@ -308,6 +313,7 @@ function prose(text: string): string {
       part.startsWith("`")
         ? part
         : part
+            .replace(/\\/g, "\\\\")
             .replace(/\{/g, "\\{")
             .replace(/\}/g, "\\}")
             .replace(/</g, "&lt;")
@@ -453,7 +459,7 @@ export function renderStigmerReference(def: StigmerDefinition): string {
     "",
     "| Column | Field | What it says |",
     "| --- | --- | --- |",
-    ...def.columns.map((c) => `| ${c.name} | \`${c.jsonPath.replace(/\|/g, "\\|")}\` | ${columnWords(c, def).replace(/\|/g, "\\|")} |`),
+    ...def.columns.map((c) => `| ${c.name} | \`${tableCell(c.jsonPath)}\` | ${tableCell(columnWords(c, def))} |`),
     "",
   );
   renderObject(def.status, "status", 2, out);

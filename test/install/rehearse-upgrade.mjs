@@ -219,7 +219,7 @@ export async function publishedReleases(name = RELEASE_PACKAGE, { registry = con
   const base = registry.endsWith("/") ? registry : `${registry}/`;
   let response;
   try {
-    response = await fetchImpl(`${base}${name.replace("/", "%2f")}`, {
+    response = await fetchImpl(`${base}${name.replaceAll("/", "%2f")}`, {
       headers: { accept: INSTALL_METADATA_ACCEPT },
       signal: AbortSignal.timeout(REGISTRY_TIMEOUT_MS),
     });

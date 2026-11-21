@@ -1444,6 +1444,7 @@ async function main() {
     failed = true;
     console.error(`smoke-operator: FAIL — ${error instanceof Error ? error.message : String(error)}`);
     if (current !== undefined) console.error(current.diagnostics());
+    console.error(cluster.diagnostics());
   } finally {
     await cluster.stop({ keep: args.keep && !failed });
     await fake.close();

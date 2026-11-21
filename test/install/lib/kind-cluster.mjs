@@ -92,6 +92,24 @@ export function createKindCluster({ existing = "", prefix = "stigmer-install-tes
     spawnKubectl: (args, options = {}) => spawn("kubectl", [...kubeconfigFlag, "--context", context, ...args], options),
     /** kubectl without throwing, for diagnostics. */
     kubectlQuiet: (args) => spawnSync("kubectl", [...kubeconfigFlag, "--context", context, ...args], { encoding: "utf8" }),
+    /**
+     * What a failed step leaves in the cluster: every pod with its node and
+     * state, and the latest events that are not Normal (a pull refused, a
+     * pod that cannot be scheduled, a probe failing). A step that fails
+     * before any Stigmer exists (the front door's controller, say) has no
+     * resource of its own to explain it.
+     */
+    diagnostics() {
+      const pods = cluster.kubectlQuiet(["get", "pods", "--all-namespaces", "-o", "wide"]);
+      const events = cluster.kubectlQuiet(["get", "events", "--all-namespaces", "--field-selector", "type!=Normal", "--sort-by", ".lastTimestamp"]);
+      const tail = (events.stdout ?? "").trimEnd().split("\n").slice(-60).join("\n");
+      return [
+        "--- pods ---",
+        (pods.stdout ?? "").trimEnd() || (pods.stderr ?? "").trimEnd(),
+        "--- events that are not Normal, latest 60 ---",
+        tail || (events.stderr ?? "").trimEnd(),
+      ].join("\n");
+    },
     helm: (args, options = {}) => run("helm", [...kubeconfigFlag, "--kube-context", context, ...args], options),
     /**
      * The name a pod on this cluster reaches the host by. Docker Desktop
