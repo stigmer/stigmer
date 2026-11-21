@@ -42,8 +42,6 @@ type Project = (typeof PROJECTS)[number];
 const SUBTLE_LABELS: KnownViolation = { rule: "color-contrast", issue: "stigmer#2574" };
 /** The home page's "How it fits" picture: its unlit boxes' detail lines. */
 const PICTURE_DETAILS: KnownViolation = { rule: "color-contrast", issue: "stigmer#3386" };
-/** The home page's code samples, which scroll but take no focus. */
-const HOME_CODE_SAMPLES: KnownViolation = { rule: "scrollable-region-focusable", issue: "stigmer#3384" };
 /** The quickstart's "On your machine" tab, whose id holds a space. */
 const QUICKSTART_TAB_ID: KnownViolation = { rule: "aria-valid-attr-value", issue: "stigmer#3385" };
 
@@ -54,8 +52,8 @@ const QUICKSTART_TAB_ID: KnownViolation = { rule: "aria-valid-attr-value", issue
  * until both are fixed; it fails as stale once neither fails.
  */
 const KNOWN_VIOLATIONS: Readonly<Partial<Record<`${PagePath} ${Project}`, readonly KnownViolation[]>>> = {
-  "/ narrow": [SUBTLE_LABELS, PICTURE_DETAILS, HOME_CODE_SAMPLES],
-  "/ wide": [SUBTLE_LABELS, PICTURE_DETAILS, HOME_CODE_SAMPLES],
+  "/ narrow": [SUBTLE_LABELS, PICTURE_DETAILS],
+  "/ wide": [SUBTLE_LABELS, PICTURE_DETAILS],
   "/docs/getting-started/quickstart narrow": [QUICKSTART_TAB_ID],
   "/docs/getting-started/quickstart wide": [QUICKSTART_TAB_ID],
   "/blog narrow": [SUBTLE_LABELS],
