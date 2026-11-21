@@ -18,13 +18,13 @@ from a clean machine to a running Agent.
 
 ## Pick your shape
 
-|                       | Laptop                                                                             | One server                                                                                                                                                     | Kubernetes                                                              |
-| --------------------- | ---------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------- |
-| **What you run**      | `stigmer up` with Node.js, or one `docker run` for evaluation                      | The Docker Compose stack on a VM                                                                                                                               | The Helm chart on your cluster                                          |
-| **What runs**         | The server with the web console, an embedded runner, SQLite, Temporal's dev-server | The server with the web console, one runner, Postgres, a real Temporal server                                                                                  | The same four parts as Pods; Postgres and Temporal bundled, or your own |
-| **Where state lives** | `~/.stigmer`, or one Docker volume                                                 | Docker volumes and your `.env`                                                                                                                                 | PersistentVolumeClaims and your Secret                                  |
-| **Sign-in**           | None: only you can reach the port                                                  | Off until you turn it on, then your OIDC provider and API keys                                                                                                 | Off until you turn it on, then your OIDC provider and API keys          |
-| **Best for**          | Building Agents, trying Stigmer, and anyone who never deploys                      | A team running Stigmer for real: a product adding an assistant, an internal-tools team keeping data in its own network, an agency handing a server to a client | Teams that already run a cluster                                        |
+|                       | Laptop                                                                             | One server                                                                                                                                                     | Kubernetes                                                                                                                    |
+| --------------------- | ---------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| **What you run**      | `stigmer up` with Node.js, or one `docker run` for evaluation                      | The Docker Compose stack on a VM                                                                                                                               | The Stigmer operator and one `Stigmer` resource on your cluster                                                               |
+| **What runs**         | The server with the web console, an embedded runner, SQLite, Temporal's dev-server | The server with the web console, one runner, Postgres, a real Temporal server                                                                                  | The same four parts, run by the operator; Postgres and Temporal bundled, or your own, and a sandbox per Session if you choose |
+| **Where state lives** | `~/.stigmer`, or one Docker volume                                                 | Docker volumes and your `.env`                                                                                                                                 | Your bucket, backed up continuously, or claims; and the keys Secret                                                           |
+| **Sign-in**           | None: only you can reach the port                                                  | Off until you turn it on, then your OIDC provider and API keys                                                                                                 | On with a hostname: the bundled sign-in, or your OIDC provider; and API keys                                                  |
+| **Best for**          | Building Agents, trying Stigmer, and anyone who never deploys                      | A team running Stigmer for real: a product adding an assistant, an internal-tools team keeping data in its own network, an agency handing a server to a client | Teams that already run a cluster                                                                                              |
 
 ## How to choose
 
@@ -55,16 +55,17 @@ client.
   first Agent on it.
 </Card>
 
-**You already run Kubernetes.** The Helm chart installs the same four parts on
-your cluster, with Postgres and Temporal bundled for one team or pointed at the
-ones you already operate.
+**You already run Kubernetes.** The Stigmer operator runs the same four parts on
+your cluster from one `Stigmer` resource, with Postgres and Temporal bundled or
+pointed at the ones you already operate, sign-in, backups to your bucket, and a
+sandbox for each Session if you want one.
 
 <Card
   href="/docs/guides/self-hosting/kubernetes"
-  title="Self-host on Kubernetes with Helm"
+  title="Self-host on Kubernetes"
 >
-  Create the Secrets, install the chart with one values file, reach the console,
-  and run your first Agent on the cluster.
+  Install the operator, declare one Stigmer resource, reach the console, and run
+  your first Agent on the cluster.
 </Card>
 
 ## What every shape shares
@@ -80,7 +81,7 @@ ones you already operate.
   network, not your host's.
 - **One Organization, one team.** Open source is built for a single
   Organization. Everyone who signs in joins it. Stigmer Enterprise, the same
-  chart with a license key, holds many.
+  server with a license key, holds many.
 - **Your provider keys, your bill.** The runner calls your LLM provider with the
   key you give it. There is no Stigmer billing when you self-host.
 - **Your backups.** State lives on disks you own.

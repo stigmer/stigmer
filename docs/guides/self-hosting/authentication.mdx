@@ -1,28 +1,30 @@
 ---
 title: Enable authentication
 description:
-  Turn on authentication for the Docker Compose stack or the Helm chart. People
-  sign in through your OIDC provider, machines use API keys, and the web console
-  signs in through the same provider.
+  Turn on authentication for the Docker Compose stack, or sign a Kubernetes
+  install in through your own provider instead of the operator's bundled
+  sign-in. People sign in through your OIDC provider, machines use API keys, and
+  the web console signs in through the same provider.
 ---
 
 By default, a self-hosted Stigmer server trusts every request. That is the right
 posture for a single-user machine, and the wrong one the moment the port is
 reachable by anyone else. This guide turns authentication on for the two shapes
-you serve to a team, the [Docker Compose stack](./docker-compose) and the
-[Helm chart](./kubernetes): people sign in through your OIDC provider, and
-machines (CI jobs, the runner, scripts) use API keys. The
+you serve to a team, the [Docker Compose stack](./docker-compose) and
+[Kubernetes](./kubernetes): people sign in through your OIDC provider, and
+machines (CI jobs, the runner, scripts) use API keys. On Kubernetes, an install
+with a front door signs people in through a sign-in the Stigmer operator runs
+for you unless you name your own provider; this guide is for naming yours. The
 [laptop install](/docs/getting-started/quickstart) and the
 [all-in-one container](./all-in-one) are single-user shapes and have no sign-in.
 
 ## What you need
 
-- A running stack, reached over TLS on port 443 the way its page's "Reach it
-  from outside" section sets up. The console's redirect URI and the CLI's TLS
-  rule both assume it. On Kubernetes the chart refuses an Ingress while
-  authentication is off, so the Ingress and the values below go into one
-  upgrade. For an evaluation on one machine over plain HTTP,
-  `http://localhost:7234` works too.
+- A running stack, reached over TLS on port 443 the way its page's "Reach it"
+  section sets up. The console's redirect URI and the CLI's TLS rule both assume
+  it. On Kubernetes the front door (`spec.ingress`) and your provider
+  (`spec.identity.oidc`) go into the `Stigmer` resource together. For an
+  evaluation on one machine over plain HTTP, `http://localhost:7234` works too.
 - An OIDC provider you control: Keycloak, Okta, Auth0, Dex, or any server that
   supports OIDC discovery. You need three values from it: the **issuer URL**
   (for example `https://auth.example.com/realms/main`; it must be `https`, since
@@ -33,20 +35,20 @@ machines (CI jobs, the runner, scripts) use API keys. The
   of the console client you register in the first step. For the desktop app, the
   client ID of a second, native client (the last step).
 
-Every setting on this page is one line in the file your shape already uses,
-`.env` for Compose and your values file for the chart:
+Every setting on this page is one line in what your shape already uses, `.env`
+for Compose and the `Stigmer` resource on Kubernetes:
 
-| Setting               | Docker Compose (`.env`)          | Kubernetes (values file)             |
+| Setting               | Docker Compose (`.env`)          | Kubernetes (`Stigmer` resource)      |
 | --------------------- | -------------------------------- | ------------------------------------ |
-| Issuer                | `STIGMER_OIDC_ISSUER`            | `server.oidc.issuer`                 |
-| Audience              | `STIGMER_OIDC_AUDIENCE`          | `server.oidc.audience`               |
-| Console client ID     | `STIGMER_OIDC_CONSOLE_CLIENT_ID` | `server.oidc.consoleClientId`        |
-| Desktop app client ID | `STIGMER_OIDC_NATIVE_CLIENT_ID`  | `server.oidc.nativeClientId`         |
-| The runner's API key  | `STIGMER_TOKEN`                  | `runner.stigmerToken.existingSecret` |
-| Operator email        | `STIGMER_OPERATOR_EMAIL`         | `server.operator.email`              |
+| Issuer                | `STIGMER_OIDC_ISSUER`            | `spec.identity.oidc.issuer`          |
+| Audience              | `STIGMER_OIDC_AUDIENCE`          | `spec.identity.oidc.audience`        |
+| Console client ID     | `STIGMER_OIDC_CONSOLE_CLIENT_ID` | `spec.identity.oidc.consoleClientId` |
+| Desktop app client ID | `STIGMER_OIDC_NATIVE_CLIENT_ID`  | `spec.identity.oidc.nativeClientId`  |
+| The runner's API key  | `STIGMER_TOKEN`                  | minted by the operator               |
+| Owner email           | `STIGMER_OPERATOR_EMAIL`         | `spec.owner.email`                   |
 
-On Kubernetes the runner's key lives in a Secret whose key is `STIGMER_TOKEN`,
-and the value names that Secret.
+On Kubernetes the operator mints the runner's key and the server stores it at
+start, so the runner signs in with nothing for you to create.
 
 ## Turn authentication on
 
@@ -125,28 +127,24 @@ Compose recreates the services whose settings changed.
 </Tab>
 <Tab value="Kubernetes">
 
-Add the three values to your values file, with the `ingress` lines from
-[Reach it from outside the cluster, signed in](./kubernetes#reach-it-from-outside-the-cluster-signed-in)
-if you are adding the Ingress now, and upgrade:
+Add your provider to the `Stigmer` resource, beside the front door from
+[Reach it at a hostname, signed in](./kubernetes#reach-it-at-a-hostname-signed-in),
+and apply it:
 
-```yaml no-validate="Helm values, not a Stigmer resource"
-server:
-  oidc:
-    issuer: https://auth.example.com/realms/main
-    audience: https://stigmer.example.com
-    consoleClientId: stigmer-console
+```yaml validate-as="Stigmer.identity"
+oidc:
+  issuer: https://auth.example.com/realms/main
+  audience: https://stigmer.example.com
+  consoleClientId: stigmer-console
 ```
 
 ```bash
-helm upgrade stigmer oci://ghcr.io/stigmer/charts/stigmer \
-  --namespace stigmer \
-  -f values.yaml \
-  --wait
+kubectl apply -f stigmer.yaml
 ```
 
-The pod is recreated with the server alone. The runner needs its own API key,
-and only someone signed in can create one, so it starts once you give it that
-key below; the upgrade's notes say so. Start your port-forward again afterwards.
+The operator rolls the server with your provider, and the runner beside it signs
+in with the key the operator minted. Naming your provider replaces the bundled
+sign-in, which the operator stops running.
 
 </Tab>
 </Tabs>
@@ -212,10 +210,8 @@ such as `client_id` or `redirect_uri`.
 
 Open **Settings → API keys** and choose **New API key** to create one for your
 own CLI. Each key is shown exactly once; the server stores only a hash and
-cannot show it again. On Docker Compose the runner already has its key (the
-`STIGMER_TOKEN` line above). On Kubernetes with the chart, also create one named
-`runner` with expiration **Never**: it is a long-lived credential, and a key
-that expires stops authenticating on that day.
+cannot show it again. The runner already has its key: the `STIGMER_TOKEN` line
+above on Docker Compose, the one the operator minted on Kubernetes.
 
 Create keys after you sign in. A key created while the server still trusted
 everyone is refused once authentication is on, and the refusal says so: the CLI
@@ -235,23 +231,11 @@ place" after that.
 </Tab>
 <Tab value="Kubernetes">
 
-Put the key in a Secret:
-
-```bash
-kubectl -n stigmer create secret generic stigmer-runner-token \
-  --from-literal=STIGMER_TOKEN=stk_...
-```
-
-Name it in your values file and upgrade with the same command as before. The pod
-is recreated with the runner beside the server:
-
-```yaml no-validate="Helm values, not a Stigmer resource"
-runner:
-  stigmerToken:
-    existingSecret: stigmer-runner-token
-```
-
-Start your port-forward again afterwards; it stops with the pod.
+Nothing to do: the operator minted the runner's key into the Secret
+`stigmer-runner-key`, and the server stored it at start. Its log says "the
+shared runner's key is stored; the runner signs in with it" on the first start,
+and "the shared runner's key is in place" after that. An install whose Sessions
+each run in a sandbox has no shared runner and no key.
 
 </Tab>
 </Tabs>
@@ -331,7 +315,7 @@ From the boot that read the issuer, every request needs a credential:
   authentication on belongs to no signed-in person and stops with a message
   saying so; start it again while signed in. A run's credential is written into
   the run's Temporal history and stays valid for ten minutes after the run ends,
-  so protect Temporal the way you protect the database. The Helm chart's bundled
+  so protect Temporal the way you protect the database. The operator's bundled
   Temporal admits only the Stigmer pod; a Temporal of your own can require TLS,
   mutual TLS or an API key, and both the server and the runner can present them
   ([Bring your own Postgres and Temporal](./kubernetes#bring-your-own-postgres-and-temporal)).
@@ -386,9 +370,9 @@ client with your provider:
 - **The access token carries your audience**, as for the console.
 
 Then set its client ID, `STIGMER_OIDC_NATIVE_CLIENT_ID` in `.env` or
-`server.oidc.nativeClientId` in your values file, and restart or upgrade as
-before. Until you do, the server logs a warning at start, and the app tells
-people this server has not been set up for it.
+`spec.identity.oidc.nativeClientId` on the `Stigmer` resource, and restart or
+apply as before. Until you do, the server logs a warning at start, and the app
+tells people this server has not been set up for it.
 
 The app connects only over `https` to another machine, so give people the
 address your TLS setup serves, `https://stigmer.example.com`. It keeps sign-in
@@ -459,7 +443,7 @@ With authentication on, your stack's state is worth protecting.
     title="Back up and upgrade your stack"
     href="/docs/guides/self-hosting/operations"
   >
-    The complete backup story, the volumes or claims that hold state and the
-    file every setting lives in, and the version-pin upgrade path.
+    The complete backup story, where each shape keeps its state and its
+    settings, and the upgrade path.
   </Card>
 </Cards>

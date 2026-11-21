@@ -100,9 +100,9 @@ that executes your Agents — with durable state in volumes you own and back up.
 
 ## What Stigmer Enterprise adds
 
-Stigmer Enterprise is the open-source server with a license key, run from the
-same [Helm chart](/docs/guides/self-hosting/kubernetes) or the Enterprise image,
-on Postgres. A verified key turns on:
+Stigmer Enterprise is the open-source server with a license key, run by the same
+[Stigmer operator](/docs/guides/self-hosting/kubernetes) or from the Enterprise
+image, on Postgres. A verified key turns on:
 
 - **Many Organizations.** As many as the license allows, and the operator may
   list who may create one.
@@ -117,8 +117,8 @@ on Postgres. A verified key turns on:
 
 Without a key, the Enterprise server is the open-source server exactly. When a
 license ends, the server keeps every person, Organization and record and refuses
-only growth until a renewed key is pasted. The chart's
-[Enterprise settings](https://github.com/stigmer/stigmer/blob/main/deploy/helm/stigmer/README.md#stigmer-enterprise)
+only growth until a renewed key is pasted. The `Stigmer` resource's
+[Enterprise settings](/docs/guides/self-hosting/kubernetes-reference/stigmer#specenterprise)
 list each switch; a license key comes through
 [Contact Sales](https://stigmer.ai/contact-sales).
 
@@ -151,13 +151,16 @@ because Stigmer runs the platform as a service.
 
 ## Know the limitations
 
-One honest caveat before you commit to self-hosting today:
+Two honest caveats before you commit to self-hosting today:
 
-- **Two production packagings, no operator.** [Docker Compose](./docker-compose)
-  for one server and a [Helm chart](./kubernetes) for Kubernetes run Stigmer for
-  real; `stigmer up` and the [all-in-one image](./all-in-one) are for building
-  and trying it on a laptop. There is no operator for the stack itself, and
-  nothing in it needs one.
+- **One server replica.** [Docker Compose](./docker-compose) for one server and
+  the [Stigmer operator](./kubernetes) for Kubernetes run Stigmer for real, each
+  with one server: it keeps state in its own process, so it scales up, not out.
+  `stigmer up` and the [all-in-one image](./all-in-one) are for building and
+  trying it on a laptop.
+- **One install per cluster, at the operator's version.** The operator runs one
+  `Stigmer` per cluster, at its own version. A team that wants staging ahead of
+  production runs them on two clusters.
 
 ## Next step
 
@@ -167,7 +170,7 @@ Enterprise runs in the same shapes with a license key.
 <Cards>
   <Card title="Self-host Stigmer" href="/docs/guides/self-hosting/overview">
     Pick a shape — your laptop, one server with Docker Compose, or Kubernetes
-    with the Helm chart — and run your first Agent on it.
+    with the Stigmer operator — and run your first Agent on it.
   </Card>
   <Card
     title="Talk to us about Stigmer Enterprise"

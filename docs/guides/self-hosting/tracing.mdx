@@ -58,8 +58,9 @@ everything off.
   add `OTEL_EXPORTER_OTLP_PROTOCOL=grpc`.
 </Callout>
 
-**The runner `stigmer up`, Compose or the chart starts** reads them from its own
-environment: add them where you set its other variables.
+**The runner `stigmer up`, Compose or the Stigmer operator starts** reads them
+from its own environment: add them where you set its other variables, which on
+Kubernetes is `spec.runner.extraEnv`.
 
 **Sandboxed runners** (a per-Session runner the server provisions, see
 [the runner page](./runners)) get them through the server's two lists. Put the

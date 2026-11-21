@@ -48,8 +48,10 @@ the server never calls it: the runner takes its work from a queue.
   without one.
 - **The all-in-one container.** The same composition as `stigmer up`, inside one
   container.
-- **The Docker Compose stack and the Helm chart.** One runner service beside the
-  server, or one runner container in the server's pod. The
+- **The Docker Compose stack and Kubernetes.** One runner service beside the
+  server, or one runner container in the server's pod, which the Stigmer
+  operator runs; on Kubernetes a sandbox driver can give each Session a runner
+  of its own instead. The
   [self-hosting runner page](/docs/guides/self-hosting/runners) explains what it
   is given, what happens when it is gone, and why it is one trust domain.
 - **Stigmer Cloud.** The platform provides the runner, in a sandbox it starts
@@ -82,7 +84,7 @@ depends on what you want to do:
 
 - **Run Stigmer for a team** — the
   [self-hosting runner page](/docs/guides/self-hosting/runners) covers the
-  runner on the Docker Compose stack and the Helm chart: its keys and addresses,
+  runner on the Docker Compose stack and on Kubernetes: its keys and addresses,
   its failure modes, and the per-Session sandbox mechanism.
 - **Embed the runner in your app** — The
   [embedding guide](/docs/guides/runners/embedding) covers hosting the runner in
