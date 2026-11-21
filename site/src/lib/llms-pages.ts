@@ -97,10 +97,7 @@ async function readJson<T>(p: string): Promise<T> {
  * (`hideFenceSetup`).
  */
 export function cleanContent(raw: string, siteUrl: string): string {
-  const cleaned = raw
-    // Lines starting with import or export are build-time directives, not content.
-    .replace(/^import\s+.*$/gm, "")
-    .replace(/^export\s+.*$/gm, "")
+  const cleaned = withoutDirectives(raw)
     // MDX comments add no value for readers.
     .replace(/\{\/\*[\s\S]*?\*\/\}/g, "");
   return (
@@ -109,6 +106,33 @@ export function cleanContent(raw: string, siteUrl: string): string {
       .replace(/\n{3,}/g, "\n\n")
       .trim()
   );
+}
+
+/**
+ * Drops the lines starting with `import` or `export` outside code: in the
+ * page's prose they are MDX's build-time directives, not content. Inside a
+ * fenced block they are the example itself (a shell's `export NAME=value`),
+ * and stay as written. Fences open and close as CommonMark reads them, as in
+ * `hideFenceSetup`.
+ */
+export function withoutDirectives(text: string): string {
+  const out: string[] = [];
+  let close: RegExp | null = null;
+  for (const line of text.split("\n")) {
+    if (close) {
+      out.push(line);
+      if (close.test(line)) close = null;
+      continue;
+    }
+    const open = /^ {0,3}(`{3,}|~{3,})/.exec(line);
+    if (open) {
+      close = new RegExp(`^ {0,3}\\${open[1][0]}{${open[1].length},}\\s*$`);
+      out.push(line);
+      continue;
+    }
+    out.push(/^(?:import|export)\s/.test(line) ? "" : line);
+  }
+  return out.join("\n");
 }
 
 /**

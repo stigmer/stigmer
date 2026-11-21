@@ -11,9 +11,9 @@ how it got that way: every time someone was given a role in your Organization or
 on anything in it, or lost one, it records who made the change, why, and when.
 
 The history is kept by Stigmer Enterprise and Stigmer Cloud. An open-source
-server keeps no access history and says so when asked. On Stigmer Cloud, reading
-the history is part of the Enterprise Cloud plan; on other plans it is still
-recorded, so an Organization that upgrades reads its whole past.
+server keeps no access history and says so when asked. On Stigmer Cloud it is
+recorded on every plan, Free included, and read on the Enterprise Cloud plan
+alone, so an Organization that upgrades reads its whole past.
 
 ## Who can read it
 
@@ -120,6 +120,22 @@ the JSON form writes every 64-bit number:
 
 The Console's **Download JSON Lines** writes the same lines.
 
+### Only one role, since a date
+
+`export` takes no filter of its own besides `--after`. Filter its lines with
+[jq](https://jqlang.org) on the fields above. Every change to anyone's Admin
+role since January 1, 2026, given or taken away, with who made it:
+
+```bash
+stigmer access-history export \
+  | jq -c 'select(.role.code == "admin" and .occurredAt >= "2026-01-01")' \
+  > admin-changes-2026.jsonl
+```
+
+Owner is a role of its own (`owner`); add `or .role.code == "owner"` inside the
+parentheses to include it. Each line keeps `actor`, who made the change, and
+`cause`, why.
+
 ### Keep a copy up to date
 
 Each Organization numbers its changes 1, 2, 3 and so on, in the order they
@@ -159,7 +175,10 @@ admin's role.
 
 - **Anything before it began.** The history starts when your server first kept
   it: when Stigmer Cloud began recording, or when a self-hosted server was
-  upgraded to a release that records it. Nothing earlier is filled in.
+  upgraded to a release that records it. Nothing earlier is filled in. To see
+  where yours begins, export it: the export is oldest first, so its first line
+  is the oldest entry your server holds. Where a window removed older entries,
+  the export also says so on stderr.
 - **Settings changes and sign-ins.** It records who has access, not what people
   did with it.
 - **A deleted Organization's history, to anyone.** Deleting an Organization

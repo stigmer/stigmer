@@ -10,7 +10,8 @@
 //
 // It names the server's version and edition from the server-info answer,
 // as text and in `-o json`'s data, so a docs page can be checked against the
-// server the person talks to.
+// server the person talks to; and the address the CLI dialled, as
+// `Endpoint`, so the answer says which server that is (stigmer#3369).
 //
 // runWhoami is the I/O half: it names the context organization by the slug
 // the backend answers now, falls back to the slug `config context set`
@@ -86,6 +87,24 @@ describe("whoamiResult", () => {
     expect(fields(unnamed).Server).toBeUndefined();
     expect(unnamed.data).toEqual({ server: { version: "", edition: "" } });
     expect(whoamiResult(ACCOUNT, { created: false, org: "acme", singleOrg: false }).data).toBeUndefined();
+  });
+
+  it("names the address the CLI dialled as Endpoint, as a field and in the JSON data", () => {
+    const result = whoamiResult(ACCOUNT, {
+      created: false,
+      org: "acme",
+      singleOrg: false,
+      server: { version: "0.2.0", edition: ServerEdition.oss },
+      endpoint: "stigmer.acme.example:443",
+    });
+    expect(fields(result).Endpoint).toBe("stigmer.acme.example:443");
+    expect(result.data).toEqual({ server: { version: "0.2.0", edition: "oss", endpoint: "stigmer.acme.example:443" } });
+
+    // The server's answer failed: the address is still known, and said.
+    const unanswered = whoamiResult(ACCOUNT, { created: false, org: "acme", singleOrg: false, endpoint: "localhost:7234" });
+    expect(fields(unanswered).Endpoint).toBe("localhost:7234");
+    expect(fields(unanswered).Server).toBeUndefined();
+    expect(unanswered.data).toEqual({ server: { endpoint: "localhost:7234" } });
   });
 
   it("renders an existing account as 'Authenticated' with its identity fields", () => {
@@ -286,12 +305,15 @@ describe("runWhoami's organization", () => {
     expect((await runWhoami()).hints).toEqual(["Stuck? Ask IT: https://help.acme.example"]);
   });
 
-  it("names the server it asked, and prints without it when the ask fails", async () => {
+  it("names the server it asked and the address it dialled, and prints the address alone when the ask fails", async () => {
     writeConfig(["context:", `  org: ${ACME_ID}`, "  org_slug: acme"]);
-    expect(fields(await runWhoami()).Server).toBe("0.2.0 (open source)");
+    const answered = fields(await runWhoami());
+    expect(answered.Server).toBe("0.2.0 (open source)");
+    expect(answered.Endpoint).toBe("127.0.0.1:1");
     serverAnswer = "unreachable";
     const result = await runWhoami();
     expect(fields(result).Server).toBeUndefined();
+    expect(fields(result).Endpoint).toBe("127.0.0.1:1");
     expect(result.status).toBe("success");
   });
 
