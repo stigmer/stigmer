@@ -45,6 +45,8 @@ The site will be available at [http://localhost:3000](http://localhost:3000).
 | `make preview` | Build and serve static site locally |
 | `make clean` | Remove build artifacts |
 
+The built site's accessibility audit runs from the repository root: `make test-site` builds the site and audits a sample of its pages with axe at a phone and a desktop width (`test/site/README.md`).
+
 The build and the dev server first run `scripts/generate-screens.ts`, which converts the screens the visual suite approves for the site (`test/visual/src/shown.ts`) into `public/screens`, a 1x and a 2x WebP each, and fails when a picture is missing, the wrong size, or over the image budget in `test/bundle-budgets.json`. `<Screen name alt />` embeds one.
 
 ### Custom Port

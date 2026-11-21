@@ -745,6 +745,15 @@ test-visual: build-libs ## Compare every gallery scene with its approved screens
 	cd test/visual && npx vitest run
 	node test/visual/run-in-image.mjs $(if $(UPDATE),--update-snapshots)
 
+.PHONY: test-site
+# The built site's browser suite (test/site/README.md). It builds the site
+# with site/Makefile's build, not build-site, whose Vale lint an audit does
+# not need; the export needs the built libraries, so build-libs comes first.
+test-site: build-libs ## Build the docs site and audit a sample of its pages with axe at a phone and a desktop width
+	$(MAKE) -C site build
+	cd test/site && npx playwright install chromium
+	npm run test:site -w @stigmer/site-tests
+
 # The UX scorecard (scripts/ux-scorecard.mjs, test/README.md "The UX bar"):
 # every promise on test/ux-bar.json with the tests that hold it and how they
 # did, or its open issue. It runs only the files that hold a promise, writing
