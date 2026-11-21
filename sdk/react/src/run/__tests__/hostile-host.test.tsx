@@ -13,7 +13,8 @@
  * slot replaces whole still received the decision's wiring, with nothing of
  * the kit's drawn behind them. Under a host that floods, Copy stays first,
  * two icons and one menu hold fifty acts, and an act that throws leaves the
- * thread drawn.
+ * thread drawn. A presenter whose label or summary fails leaves the kit's
+ * words whole: the counts, and "Created" on a write that made its file.
  *
  * The slots are typed `Required<MessageThreadSlots>`, so a new slot fails to
  * compile here until the hostile hosts replace it too; a new mechanism joins
@@ -32,7 +33,8 @@ import { ToolCardsContext, type ToolCards } from "../tool-cards-context";
 import { registerToolPresenter, type ToolPresenter } from "../tool-presenter";
 import { ToolCallItem } from "../ToolCallItem";
 import { openMenu } from "../../__tests__/helpers/open-menu";
-import { toolUse } from "./__fixtures__/fold-values";
+import { FileReviewContext } from "@stigmer/react-core";
+import { reviewFile, reviewSet, toolUse } from "./__fixtures__/fold-values";
 import { asked, conversation, result, said, status, toolId, use } from "./__fixtures__/thread-events";
 
 // ---------------------------------------------------------------------------
@@ -322,6 +324,40 @@ describe("a host whose every part draws nothing", () => {
     expect(row.querySelector(".stg\\:text-status-failed")).not.toBeNull();
     const toggle = container.querySelector('[data-cursor-target="thread-card-toggle"]');
     expect(toggle?.getAttribute("aria-label")).toContain("Command failed");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Which words stay the host's when its presenter fails
+// ---------------------------------------------------------------------------
+
+describe("a presenter whose words fail", () => {
+  /** The step's second line: the line under its words. */
+  const secondLine = (container: HTMLElement) => container.querySelector("[data-step-title]")!.nextElementSibling?.textContent ?? "";
+
+  it("keeps the kit's counts when its summary throws", () => {
+    disposers = [registerToolPresenter("file_edit", { summary: () => broke("presenter summary") })];
+    const { container } = render(<ToolCallItem toolUse={toolUse({ name: "Edit", input: { file_path: "/src/billing/invoice.ts", old_string: "a\nb\n", new_string: "c\n" }, result: "ok" })} />);
+
+    expect(secondLine(container)).toBe("+1 −2 · /src/billing");
+    expect(reportedParts()).toEqual(["presenter summary"]);
+  });
+
+  it.each([
+    ["throws", (): string => broke("presenter label")],
+    ["is blank", (): string => " "],
+  ])("keeps Created on a write its review says made the file when its label %s", (_name, label) => {
+    disposers = [registerToolPresenter("file_write", { label })];
+    const write = toolUse({ name: "write_file", input: { path: "/workspace/src/billing/rounding.test.ts", content: "a\nb\n" }, result: "ok" });
+    const set = reviewSet({ files: [reviewFile({ path: "src/billing/rounding.test.ts", change: "added" })] });
+    const { container } = render(
+      <FileReviewContext.Provider value={{ fileReviewByRunId: new Map([["run_1", [set]]]), changeSetsById: new Map() }}>
+        <ToolCallItem toolUse={write} />
+      </FileReviewContext.Provider>,
+    );
+
+    expect(container.querySelector("[data-step-title]")!.textContent).toContain("Created");
+    expect(secondLine(container)).toContain("new file");
   });
 });
 
