@@ -106,11 +106,22 @@ https://stigmer.ai/docs/guides/self-hosting/authentication.
 
 Tell the person first how a runner works, since it decides the answer: a
 runner takes runs from a Temporal task queue; it is not a resource,
-nothing registers it, and the server never picks or calls it. Read the
-runner page whole before answering: it says what the shipped stacks can't
-do today (the shared runner on another machine, a second shared runner) and
-what moves work off the server's machine (a runner per Session through a
-sandbox provisioner), with what each shape can exercise now. Pages:
+nothing registers it, and the server never picks or calls it. Then answer
+each part from the self-hosting runner page:
+
+- **The shared runner on another machine**: the page says why neither
+  Compose nor the chart runs it there today (the server and the runner
+  share file storage by disk), in "What the runner is given".
+- **Several runners**: "One runner, one replica" says why the chart runs
+  one, and that a second shared runner isn't something the guides teach.
+- **Work off the server's machine**: "A runner per Session" is the
+  mechanism (a sandbox provisioner), and says what the shipped stacks can't
+  exercise of it yet.
+
+The runner page is longer than one tool answer holds. When a read comes
+back as a saved file you can't open, save the page and read it in parts:
+`stigmer docs read guides/self-hosting/runners > "$TMPDIR/runners.md"`,
+then read that file through to its end. Pages:
 https://stigmer.ai/docs/guides/self-hosting/runners,
 https://stigmer.ai/docs/concepts/runners.
 
@@ -118,9 +129,11 @@ https://stigmer.ai/docs/concepts/runners.
 
 ### Send runs to their tracing tool
 
-Tell the person how to read their server's release on their shape and
-which releases have tracing, both from the tracing page; the CLI's own
-version is not the server's. The variables go on the runner: on the chart in
+Whatever release they name, have them confirm the one their server runs
+with the tracing page's command for their shape (on the chart,
+`helm list -n stigmer`, whose chart version is the Stigmer version), never
+the CLI's own version, and say which releases have tracing, from the same
+page. The variables go on the runner: on the chart in
 `runner.extraEnv`, the login read from a Secret; on a laptop, in the shell
 `stigmer up` starts from. Langfuse takes its OTLP address and a Basic-auth
 header built from its public and secret keys. Page:
@@ -155,9 +168,12 @@ needs. Page: https://stigmer.ai/docs/concepts/sharing-and-access.
 
 ### A key for a job
 
-A service account with the smallest role the job needs (Member to run the
-Organization's Agents without changing them), and an API key for that
-service account, saved to a file and kept as the job's secret. Pages:
+A service account with the smallest role the job needs, and an API key
+for that service account, saved to a file and kept as the job's secret.
+Tell the person why that role: Member starts conversations with the
+Agents shared with the Organization and changes none it didn't make; a
+Viewer can't start a conversation; an Admin manages every Agent, so it
+could change them. Pages:
 https://stigmer.ai/docs/guides/authentication/service-accounts,
 https://stigmer.ai/docs/cli/commands/service-account,
 https://stigmer.ai/docs/cli/commands/apikey.
