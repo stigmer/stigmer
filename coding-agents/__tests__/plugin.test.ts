@@ -11,7 +11,9 @@
 // characters a tool reads of it,
 // the bundled `stigmer mcp-server` and Claude Code's guard hook read with no
 // warning by `@stigmer/plugin-package`, which knows all three dialects; each tool's marketplace file offering that
-// one plugin at the repository's root; and dist/index.js exporting the guide
+// one plugin at the repository's root; what the plugin directories show (one
+// image inside the plugin, the name Stigmer, https links only, one
+// description everywhere, the hosts it reaches); and dist/index.js exporting the guide
 // without its frontmatter, as `stigmer coding-agent` prints it, and no
 // version of its own. The build's
 // own pack check (npm keeps every staged file, dot-folders included) runs in
@@ -122,6 +124,54 @@ describe("the plugin", () => {
     if (!outcome.ok) return;
     expect(outcome.marketplace.name).toBe("stigmer");
     expect(outcome.marketplace.plugins.map((entry) => entry.name)).toEqual(["stigmer"]);
+  });
+});
+
+// What the directories show: Anthropic's reads `icon` and the four link
+// fields from Claude Code's manifest, Cursor's Marketplace `displayName` and
+// `logo`, Codex `interface`. One image, one description, every link https.
+describe("the listings", () => {
+  const manifest = (path: string): Record<string, unknown> => JSON.parse(files.get(path) ?? "{}") as Record<string, unknown>;
+  const claude = (): Record<string, unknown> => manifest(".claude-plugin/plugin.json");
+  const cursor = (): Record<string, unknown> => manifest(".cursor-plugin/plugin.json");
+  const codexInterface = (): Record<string, unknown> => manifest(".codex-plugin/plugin.json").interface as Record<string, unknown>;
+
+  it("names one image, and the image is in the plugin", () => {
+    const images = [claude().icon, cursor().logo, codexInterface().logo, codexInterface().composerIcon];
+    expect(new Set(images)).toEqual(new Set(["./assets/logo.png"]));
+    expect(statSync(join(built, "assets", "logo.png")).size).toBeGreaterThan(0);
+  });
+
+  it("shows the name Stigmer in every tool", () => {
+    expect([claude().displayName, cursor().displayName, codexInterface().displayName]).toEqual(["Stigmer", "Stigmer", "Stigmer"]);
+  });
+
+  it("links only https pages", () => {
+    const links = [
+      ...["homepage", "documentationUrl", "supportUrl", "privacyPolicyUrl"].map((field) => claude()[field]),
+      cursor().homepage,
+      manifest(".codex-plugin/plugin.json").homepage,
+      codexInterface().websiteURL,
+      codexInterface().privacyPolicyURL,
+    ];
+    for (const link of links) expect(link).toMatch(/^https:\/\/[^\s]+$/);
+  });
+
+  it("says what it does in one text: the three manifests, both marketplace entries and Codex's long description", () => {
+    const text = claude().description;
+    expect(typeof text).toBe("string");
+    const entry = (path: string): unknown => (manifest(path).plugins as { description?: string }[])[0]?.description;
+    expect([
+      cursor().description,
+      manifest(".codex-plugin/plugin.json").description,
+      entry(".claude-plugin/marketplace.json"),
+      entry(".cursor-plugin/marketplace.json"),
+      codexInterface().longDescription,
+    ]).toEqual(Array(5).fill(text));
+  });
+
+  it("declares the hosts it reaches, stigmer.ai", () => {
+    expect(claude().network).toEqual({ hosts: ["stigmer.ai", "*.stigmer.ai"] });
   });
 });
 
