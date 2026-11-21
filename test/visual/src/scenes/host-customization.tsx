@@ -23,11 +23,12 @@ function IssueCard({ call }: ToolCardProps) {
         display: "grid",
         gap: 4,
         fontSize: 14,
+        lineHeight: "20px",
       }}
     >
-      <span style={{ color: "var(--stgm-muted-foreground)", fontSize: 12 }}>{done ? (call.result?.text ?? "") : "Filing…"}</span>
-      <strong style={{ color: "var(--stgm-foreground)", fontWeight: 600 }}>{title}</strong>
-      {team !== "" && <span style={{ color: "var(--stgm-muted-foreground)", fontSize: 12 }}>Team {team}</span>}
+      <span style={{ color: "var(--stgm-muted-foreground)", fontSize: 12, lineHeight: "16px" }}>{done ? (call.result?.text ?? "") : "Filing…"}</span>
+      <strong style={{ color: "var(--stgm-foreground)", fontWeight: 600, lineHeight: "20px" }}>{title}</strong>
+      {team !== "" && <span style={{ color: "var(--stgm-muted-foreground)", fontSize: 12, lineHeight: "16px" }}>Team {team}</span>}
     </section>
   );
 }
