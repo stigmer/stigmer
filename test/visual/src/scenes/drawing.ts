@@ -5,6 +5,7 @@
 import type { ReactElement } from "react";
 import type { DeploymentMode } from "@stigmer/client";
 import type { ThemePresetId } from "@stigmer/design-tokens";
+import type { ToolCards } from "@stigmer/react-sdk";
 import type { Routes } from "../fake-server.ts";
 
 export interface Drawing {
@@ -38,4 +39,6 @@ export interface Drawing {
   readonly publicBaseUrl?: string;
   /** End the kit's failure notes with the server's help link, as a console does; off when omitted. */
   readonly showHelpLink?: boolean;
+  /** The host's own tool cards the provider hands the thread; none when omitted. */
+  readonly toolCards?: ToolCards;
 }

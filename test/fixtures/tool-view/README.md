@@ -26,6 +26,11 @@ in one place, instead of silently drifting across client implementations.
   them on rows persisted before that. Asserted by BOTH the runner's
   args-preview tests (writer side) and the `@stigmer/client` tool-view tests
   (reader side).
+- `public-names.json` — a tool call's public name, the key a host registers
+  its own card under: `mcp__<server>__<tool>` for a connected server's tool,
+  none for a call the kit draws as its own kind. Asserted by BOTH the runner's
+  `mcp-tool-names` tests (writer side) and the `@stigmer/client` tool-view
+  tests (reader side, `toolPublicName`).
 
 ## Contract
 
@@ -68,6 +73,7 @@ cross-language scalar fact, so it is asserted in each surface's own unit tests
 - TS reader: `sdk/typescript/src/run/__tests__/tool-view.fixtures.test.ts`
 - Runner writer (intent-title): `backend/services/runner/src/middleware/__tests__/tool-intent.test.ts`
 - Runner writer (secret-args): `backend/services/runner/src/shared/__tests__/args-preview.test.ts`
+- Runner writer (public-names): `backend/services/runner/src/shared/__tests__/mcp-tool-names.test.ts`
 - React reader (intent-title rendering): `sdk/react/src/run/__tests__/intent-title.test.tsx`
 - Claude writer (result views): `backend/services/runner/src/activities/execute-claude/__tests__/tool-view-fixtures.test.ts`
   holds every `harness: "claude"` case equal to the row the real engine wrote

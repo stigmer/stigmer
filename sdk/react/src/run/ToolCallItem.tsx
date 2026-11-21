@@ -1,6 +1,6 @@
 "use client";
 
-import { memo, type ReactNode } from "react";
+import { memo, useMemo, type ReactNode } from "react";
 import { failureWords, formatElapsed, isBackgroundRunning, searchCountWords, stepPhrase, type ToolUse } from "@stigmer/client";
 import { useRenderTracer } from "../internal/dev/index.js";
 import { useAutoDisclosure } from "../internal/useAutoDisclosure.js";
@@ -43,6 +43,7 @@ import { HELPER_STATE_WORDS, HelperEndingBadge, HelperGlyph, helperShowsWork, he
 import { HelperMark, SubagentSection } from "./SubagentSection.js";
 import { underOutputs, useOutputFileOpener } from "./OutputFileContext.js";
 import { useStepPlace } from "./step-place.js";
+import { holdsToolCard, toolCallInfoOf, ToolCardBoundary, useHasToolCard, useHostCard } from "./tool-card.js";
 
 /** Props for {@link ToolCallItem}. */
 export interface ToolCallItemProps {
@@ -107,6 +108,12 @@ export interface ToolCallItemProps {
  *   command left running in the background stays closed until clicked.
  * - **Preview** (a memory proposal, or a kind a host asks to preview): the
  *   body is always in view under the line, because it is a decision surface.
+ * - **A host's own card** (`toolCards` on `StigmerProvider`, keyed by the
+ *   call's public name): it draws the body in every state, open by default
+ *   and never folded away, while the line, its mark, any approval and any
+ *   failure stay the kit's. A card that throws gives the body back to the
+ *   kit. Inside a finished turn's "How it got there" the card is drawn
+ *   above the fold instead, and the row draws the kit's body.
  *
  * Inside a list of steps (`bordered={false}`) a step is a divider row; on a
  * to-do's or a helper's rail it is an undivided row, a helper's steps
@@ -169,7 +176,8 @@ export const ToolCallItem = memo(function ToolCallItem({
   // the row open. None where the thread answers the ask in its own card:
   // the decision is drawn once, there.
   const offered = useApproval(toolUse);
-  const carded = useThreadPresentation().cardedAsks?.has(toolUse.id) === true;
+  const presentation = useThreadPresentation();
+  const carded = presentation.cardedAsks?.has(toolUse.id) === true;
   const approval = carded ? null : offered;
   // A step waiting with no decision on its row (one on a person this viewer
   // is not, or one answered in its own card): drawn running, its line
@@ -183,6 +191,19 @@ export const ToolCallItem = memo(function ToolCallItem({
   // A failed command stays open: its output is the content the person needs
   // next.
   const tailFailed = !isSubagent && disclosure === "tail" && failed;
+
+  // The host's own card for this call (`toolCards` on the provider): it
+  // draws the body in every state, under our line, open by default and kept
+  // in view. Inside a finished turn's fold the card is drawn above the fold
+  // instead, and this row draws our body.
+  const hostCard = useHostCard(toolUse);
+  const HostCard = isSubagent ? undefined : hostCard;
+  const sessionId = presentation.sessionId ?? "";
+  const cardCall = useMemo(() => (HostCard === undefined ? undefined : toolCallInfoOf(toolUse, sessionId)), [HostCard, toolUse, sessionId]);
+  // A helper holding a step with a host card, at any depth, stays open after
+  // it stops running.
+  const hasCard = useHasToolCard();
+  const helperShowsCard = isSubagent && holdsToolCard(toolUse, hasCard);
 
   // What the step opens to. A running command opens to what it printed so
   // far, once it has printed something; a running call of another kind has
@@ -198,11 +219,12 @@ export const ToolCallItem = memo(function ToolCallItem({
     foregroundLive ||
     backgroundRunning ||
     failedEdit ||
+    cardCall !== undefined ||
     (toolUse.result !== undefined && hasResultBody(result));
   // A Stop that failed opens the row again if it was closed, since the
   // reason sits in its body.
   const stopFailed = useBackgroundStop(toolUse)?.error != null;
-  const autoOpen = (isRunning && !backgroundRunning && hasBody) || approval != null || tailFailed || stopFailed;
+  const autoOpen = (isRunning && !backgroundRunning && hasBody) || approval != null || tailFailed || stopFailed || cardCall !== undefined || helperShowsCard;
   const [expanded, handleToggle] = useAutoDisclosure(autoOpen, {
     initialOpen: defaultExpanded || autoOpen,
   });
@@ -269,6 +291,7 @@ export const ToolCallItem = memo(function ToolCallItem({
       const answer = toolUse.result !== undefined && !failed ? oneLineAnswer(toolUse.result.text) : "";
       if (primaryArg !== null) parts.push(`“${primaryArg}”`);
       if (answer !== "") parts.push(answer);
+      if (waitsWithoutDecision) parts.push(waitingWords);
       return joinParts(parts);
     }
     if (hostSummary !== null) parts.push(<span key="summary" className="stg:tabular-nums">{hostSummary}</span>);
@@ -380,9 +403,21 @@ export const ToolCallItem = memo(function ToolCallItem({
     </>
   );
 
+  // The host's card in place of our detail, which comes back if the card
+  // throws.
+  function withHostCard(ours: ReactNode): ReactNode {
+    if (cardCall === undefined || HostCard === undefined) return ours;
+    return (
+      <ToolCardBoundary state={cardCall.state} fallback={ours}>
+        <HostCard call={cardCall} />
+      </ToolCardBoundary>
+    );
+  }
+
   // The disclosed body: a pending gate decides inline, a subagent shows its
   // own steps, a settled remember call renders the memory-proposal consent
-  // surface, otherwise the category detail.
+  // surface, a host's own card where it registered one, otherwise the
+  // category detail.
   const body = isSubagent ? (
     <SubagentSection
       thread={thread}
@@ -405,14 +440,16 @@ export const ToolCallItem = memo(function ToolCallItem({
     // chrome (the ApprovalCardBody posture).
     <MemoryProposalCardBody memoryId={result.memoryId} fact={result.fact} />
   ) : (
-    <>
-      <BackgroundStopError toolUse={toolUse} />
-      {/* A search or listing whose line had to cut its pattern restates it whole. */}
-      <ToolCallDetail
-        toolUse={toolUse}
-        primaryArgTruncated={(category === "search" || category === "list") && primaryArg != null && !displayLabel.includes(primaryArg)}
-      />
-    </>
+    withHostCard(
+      <>
+        <BackgroundStopError toolUse={toolUse} />
+        {/* A search or listing whose line had to cut its pattern restates it whole. */}
+        <ToolCallDetail
+          toolUse={toolUse}
+          primaryArgTruncated={(category === "search" || category === "list") && primaryArg != null && !displayLabel.includes(primaryArg)}
+        />
+      </>,
+    )
   );
 
   // A helper's mark follows the helper, not its call: running while it works

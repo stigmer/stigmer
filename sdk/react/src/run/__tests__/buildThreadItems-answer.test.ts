@@ -42,7 +42,7 @@ function footScores(items: readonly ThreadItem[]): string | undefined {
 /** The message carrying the turn's scores, if any. */
 function scored(items: readonly ThreadItem[]): string | undefined {
   const all = items.flatMap((item) => (item.kind === "how-it-got-there" ? item.items : [item]));
-  return all.find((item) => item.kind === "message" && item.scoresRunId !== undefined)?.key;
+  return all.find((item) => item.kind === "message" && item.isFinalAnswer === true)?.key;
 }
 
 function howKeys(items: readonly ThreadItem[]): string[] {
@@ -58,6 +58,29 @@ describe("buildThreadItems answer", () => {
     expect(howKeys(items)[0]).toBe(m(0));
     expect(footScores(items)).toBe(R);
     expect(items.filter((item) => item.kind === "turn-scores")).toHaveLength(1);
+  });
+
+  it("leads with nothing when Stigmer stopped the turn: its last message was never an answer, and the scores move to its foot", () => {
+    const items = buildThreadItems(
+      turnsOf(user(R, "go"), status(R, "running"), said(R, 0, "Looking."), call("c1", "read_file"), said(R, 1, "Halfway there."), status(R, "completed", { stopCause: "platform_stop" })),
+      [],
+      { includeLiveness: false },
+    );
+
+    expect(scored(items)).toBeUndefined();
+    expect(items.some((item) => item.kind === "how-it-got-there")).toBe(false);
+    expect(items.filter((item) => item.kind === "turn-scores").map((item) => (item.kind === "turn-scores" ? item.runId : ""))).toEqual([R]);
+  });
+
+  it("stamps every agent message with its run, and only the final answer as final", () => {
+    const items = finished(said(R, 0, "Let me look."), call("c1", "read_file"), said(R, 1, "Invoices round in billing.ts."));
+    const all = items.flatMap((item) => (item.kind === "how-it-got-there" ? item.items : [item]));
+    const messages = all.filter((item): item is Extract<ThreadItem, { kind: "message" }> => item.kind === "message" && item.message.kind === "message");
+
+    expect(messages.map((item) => [item.key, item.runId, item.isFinalAnswer === true, item.takesActions === true])).toEqual([
+      [m(1), R, true, true],
+      [m(0), R, false, true],
+    ]);
   });
 
   it("carries no scores row when the turn closed on its answer, or wrote no message", () => {

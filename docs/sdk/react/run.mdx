@@ -1418,6 +1418,7 @@ All visual properties flow through `--stgm-*` tokens.
     className: { type: "string", description: "Additional CSS class names for the root container." },
     contentColumn: { type: "ThreadContentColumn", description: "Constrain thread content to a max-width reading column (`max-w-3xl`, 768 px) inside the full-width scroll container — the scrollbar stays at the viewport edge.  - `\"center\"` — column horizontally centered (classic chat reading view). - `\"start\"` — column anchored to the left edge, so the thread's left   edge stays put when a sibling panel opens/closes beside it.  When omitted, content spans the full width.", typeDescriptionLink: "#threadcontentcolumn" },
     formatToolCallSummary: { type: "(toolUses: readonly ToolUse[]) => string", description: "Custom formatter for a folded run of tool calls' label. Passed through to each ToolCallGroup." },
+    messageActions: { type: "(message: MessageInfo) => readonly MessageAction[]", description: "The host's own actions for a message: an \"Open in Billing\" or a \"Mark as paid\" on the agent's final answer, a \"Save\" on a person's message. The thread calls it with what it knows about each message (MessageInfo) and draws the actions it returns: up to two with an icon beside Copy, the rest in one \"More actions\" menu, all reachable by keyboard. A person's message gets them in its log only, and an agent's once it settles; thinking, notes and a plan document get none. A `MessageEntry` slot receives the same actions as data (`MessageEntryProps.messageActions`).  Called once per message, and again for every message when the function changes: keep it stable (`useCallback`, or a function at module level), or each render of your component asks every message again and redraws every bubble." },
     onAnswerToolUse: { type: "(toolUseId: string, answer: ToolUseAnswer, denyMessage?: string) => void", description: "Answers a tool use that waits for a person (allow, deny with an optional reason, or grant its class). When provided, a waiting tool use renders its decision inline on its own row (and as a bottom ApprovalCard when it has none). When omitted, no decision UI is shown." },
     onBuildFromPlan: { type: "() => void", description: "Called when the user clicks \"Implement\" on a completed Plan-mode turn's PlanCompletionCard.  When provided, a CTA card is rendered at the end of the thread after a Plan-mode turn completes successfully. The consumer typically wires this to switch the interaction mode to Agent, pre-fill the composer, and focus it.  When omitted, no plan completion card is rendered." },
     onEditMessage: { type: "(text: string) => void", description: "When provided, the live turn's message (the person's prompt) shows a hover \"Edit\" affordance. Clicking it invokes this callback with the message text — the session chat stops the turn and pre-fills the composer for an edit-and-resubmit.  Provide this only while the live turn is stoppable; the SDK marks exactly the live turn's message editable. When omitted, no edit control is shown." },
@@ -1440,6 +1441,7 @@ All visual properties flow through `--stgm-*` tokens.
     runScores: { type: "boolean", description: "Show run scores: thumbs up and down on each completed turn's final answer and the run-health flags beside them. The thread then reads the session's scores once (and again shortly after a turn completes, while it is graded). Off by default, and a thread with it off makes no score request; `SessionViewer` sets it from its audience." },
     sandboxWorkspaceRoot: { type: "string", description: "Absolute sandbox workspace root (e.g. `/home/daytona/workspace`). When provided, shell commands and tool output normalize absolute sandbox paths to workspace-relative display paths.  Pass an empty string or omit for local sessions where paths are the user's own filesystem (no normalization needed)." },
     scrollOnSend: { type: "boolean", description: "Scroll to the reader's own message when they send one from a scrolled-up position (the WhatsApp convention: showing the result of the reader's own action is Nielsen #1 system-status feedback). The send moment is the pendingUserMessage transition from empty to present; the pin re-engages follow mode, so the optimistic bubble and the streamed reply stay in view. Incoming content is unaffected — it still never moves a scrolled-up reader.  Default `true` on all three SDK thread surfaces at once — a deliberate exception to opt-in defaults: cross-surface consistency is the point, and a per-surface opt-in would re-create the inconsistency it fixes. Set `false` to keep today's leave-the-reader-alone behavior." },
+    sessionId: { type: "string", description: "The session the thread shows. Host tool cards (`toolCards` on `StigmerProvider`) and message actions receive it; `SessionViewer` passes its own. A thread built by hand without it hands them `\"\"`." },
     slots: { type: "MessageThreadSlots", description: "Component overrides for the thread's chrome — see MessageThreadSlots. Omitted slots render the built-ins; omitting the prop entirely changes nothing.", typeDescriptionLink: "#messagethreadslots" },
     stopBackgroundErrors: { type: "ReadonlyMap<string, Error>", description: "Each tool use's last failed background stop, keyed by its id, shown on its row. Supply useStopBackgroundCommand's `errorsByToolUseId`." },
     stoppingBackgroundToolUseIds: { type: "ReadonlySet<string>", description: "The tool uses whose background stop is in flight, by id. Only meaningful with `onStopBackgroundCommand`." },
@@ -2787,6 +2789,14 @@ Props for [`LivenessStatusLine`](#livenessstatusline).
 />
 
 
+### MessageAction
+
+One action a host adds to a message. Up to two with an `icon` draw as
+quiet icon buttons beside Copy, named by their `label`; every other
+action sits, in order, in one "More actions" menu. No key shortcut: a
+message's actions never take a key from the page.
+
+
 ### MessageEntry
 
 Renders a single message in the conversation thread.
@@ -2825,6 +2835,8 @@ Props for [`MessageEntry`](#messageentry).
     interactionMode: { type: "InteractionMode", description: "The turn's interaction mode, stamped by the thread builder on the person's message. Renders the InteractionModeBadge for non-default modes (a \"Plan\" pill), so the transcript reads unambiguously after mode switches. Ignored for other messages." },
     isPlanDocument: { type: "boolean", description: "Renders an agent message as a first-class plan document (PlanDocumentMessage) instead of a chat bubble. Set by the thread builder only on the NO-PLAN-FILE fallback path: a completed Plan turn that never published `plan.md` (older runs, failed upload) keeps its plan inline — the message is the only copy of the plan. A turn that returned the plan File collapses the message into the compact plan card instead (the document lives in the panel's plan tab). Ignored for other messages." },
     message: { type: "ThreadMessage", description: "The message to render.", required: true, typeDescriptionLink: "#threadmessage" },
+    messageActions: { type: "readonly MessageAction[]", description: "The host's actions for this message (`messageActions` on the thread), as data. The built-in entry draws them after Copy (and the scores, and Edit); a slot that wraps the built-in passes them on, and one that draws its own bubble draws them its own way." },
+    messageInfo: { type: "MessageInfo", description: "What the thread knows about this message: whose it is, whether it is its turn's final answer, its run and session. Set on a person's message in the session's log and on every settled agent message; absent on thinking, notes, a plan document, a message still streaming, and a message not in the log yet (queued, sending or unsent). A slot that draws its own bubble reads it, for example to build its own right-click menu.", typeDescriptionLink: "#messageinfo" },
     onEdit: { type: "() => void", description: "When provided on a person's message, a hover-revealed \"Edit\" button appears on the bubble. Clicking it invokes this callback — the session chat uses it to stop the in-flight turn and pre-fill the composer with this message for editing. Ignored for other messages." },
     runId: { type: "string", description: "The run the files were sent with — enables their byte-backed affordances (image previews, document downloads), each link minted from the File when it is needed. Absent on the optimistic pending bubble, where the files render as inert chips until the real run record replaces it." },
   }}
@@ -2846,6 +2858,33 @@ turn the server recorded, and from the chat box's hand-off
     kind: { type: "\"document\" | \"image\"", description: "`\"image\"` shows a preview tile; `\"document\"` a click-to-download chip.", required: true },
   }}
 />
+
+
+### MessageInfo
+
+What a host is told about a message it may act on.
+
+<TypeTable
+  type={{
+    id: { type: "string", description: "The message's id in the session's log.", required: true },
+    isFinalAnswer: { type: "boolean", description: "Whether it is its turn's final answer: the message a finished turn closed on. False while the turn works, for a turn that stopped, failed or ended on a step, for a turn Stigmer stopped, for a completed Plan turn's plan, and for every person's message.", required: true },
+    role: { type: "\"agent\" | \"user\"", description: "Whose message it is: a person's or the agent's.", required: true },
+    runId: { type: "string", description: "The turn's run.", required: true },
+    sessionId: { type: "string", description: "The session the message belongs to; `\"\"` where the thread was not told it.", required: true },
+    text: { type: "string", description: "The message's text as the log records it.", required: true },
+  }}
+/>
+
+```tsx
+import type { MessageAction, MessageInfo } from "@stigmer/react-sdk";
+
+function actionsFor(message: MessageInfo): readonly MessageAction[] {
+  if (!message.isFinalAnswer) return [];
+  return [{ id: "save", label: "Save to notes", onAction: () => saveNote(message.sessionId, message.text) }];
+}
+
+declare function saveNote(sessionId: string, text: string): void;
+```
 
 
 ### MessageThreadSlots
@@ -3664,6 +3703,25 @@ Props for [`ToolCallGroup`](#toolcallgroup).
 />
 
 
+### ToolCallInfo
+
+The narrowed view of one tool call a host's card receives: never the raw
+log type, so the log can grow without breaking a card.
+
+<TypeTable
+  type={{
+    id: { type: "string", description: "The tool use's event id.", required: true },
+    input: { type: "JsonObject", description: "The call's input, whole, with secret-keyed values hidden. It is the model's output: show it, and never act on it alone.", required: true },
+    result: { type: "{ isError: boolean; text: string; truncated: boolean } | undefined", description: "What the tool returned, once it returned. `truncated` is true when the log kept only the head of an output too large to store inline.", required: true },
+    runId: { type: "string", description: "The turn's run.", required: true },
+    server: { type: "string", description: "The connected server's slug (`billing`); `\"\"` for a custom tool.", required: true },
+    sessionId: { type: "string", description: "The session the call belongs to; `\"\"` where the thread was not told it.", required: true },
+    state: { type: "ToolCallState", description: "How the call stands.", required: true, typeDescriptionLink: "#toolcallstate" },
+    tool: { type: "string", description: "The tool's bare name (`create_invoice`).", required: true },
+  }}
+/>
+
+
 ### ToolCallItem
 
 Renders a single tool call as one step, as the session page draws a step
@@ -3702,6 +3760,12 @@ what the step did.
   command left running in the background stays closed until clicked.
 - **Preview** (a memory proposal, or a kind a host asks to preview): the
   body is always in view under the line, because it is a decision surface.
+- **A host's own card** (`toolCards` on `StigmerProvider`, keyed by the
+  call's public name): it draws the body in every state, open by default
+  and never folded away, while the line, its mark, any approval and any
+  failure stay the kit's. A card that throws gives the body back to the
+  kit. Inside a finished turn's "How it got there" the card is drawn
+  above the fold instead, and the row draws the kit's body.
 
 Inside a list of steps (`bordered={false}`) a step is a divider row; on a
 to-do's or a helper's rail it is an undivided row, a helper's steps
@@ -3740,6 +3804,57 @@ Props for [`ToolCallItem`](#toolcallitem).
     toolUse: { type: "ToolUse", description: "The tool use to render as a summary row (from the session's fold). A tool use that started a subagent (`toolUse.thread`) renders its SubagentSection as the detail panel instead of a ToolCallDetail.", required: true },
   }}
 />
+
+
+### ToolCallState
+
+How a tool call stands, as a host's card reads it. The kit's own set,
+mapped from the session log's, so a new log state reaches a card only when
+the kit maps it.
+
+- `running`: the tool works.
+- `needs-approval`: a person must allow the call first; the decision is
+  the kit's, drawn in the row (the card gets no way to answer it).
+- `waiting-on-host`: a custom tool's call, until the host answers it.
+  Declared so a card's `switch` is total; no call reaches it yet.
+- `completed`: the tool returned.
+- `failed`: the tool returned an error, or its result says it failed.
+- `denied`: a person said no; the tool never ran.
+- `stopped`: the turn ended before the tool returned.
+
+
+### ToolCardProps
+
+Props a host's tool card receives.
+
+<TypeTable
+  type={{
+    answer: { type: "(text: string) => Promise<void>", description: "Answers a custom tool's waiting call, for a viewer who may answer it. Reserved: no call is answered through a card yet." },
+    call: { type: "ToolCallInfo", description: "The call to draw.", required: true, typeDescriptionLink: "#toolcallinfo" },
+  }}
+/>
+
+
+### ToolCards
+
+A host's own cards, keyed by a tool's public name: `mcp__<server>__<tool>`
+for a connected server's tool (`toolPublicName` in `@stigmer/client`).
+Built-in tools stay the kit's and take no card.
+
+Define each card at module level: the rows rely on `React.memo`, and a
+component recreated on every render remounts its card.
+
+```tsx
+import type { ToolCardProps, ToolCards } from "@stigmer/react-sdk";
+
+function InvoiceCard({ call }: ToolCardProps) {
+  if (call.state === "running") return <p>Creating the invoice…</p>;
+  if (call.result === undefined || call.result.isError) return <p>No invoice was made.</p>;
+  return <p>Invoice ready: {call.result.text}</p>;
+}
+
+export const toolCards: ToolCards = { mcp__billing__create_invoice: InvoiceCard };
+```
 
 
 ### ToolCategory

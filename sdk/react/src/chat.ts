@@ -11,3 +11,27 @@ export { StigmerProvider, type StigmerProviderProps } from "./provider.js";
 export { useStigmer } from "@stigmer/react-core";
 export type { SessionAudience } from "./session/audience.js";
 export type { SessionRunConfig } from "./session/run-config.js";
+// Making the chat your own: a host's tool cards (`toolCards` on the
+// provider), its message actions (`messageActions` on the chat) and the
+// thread's slots (`threadSlots`), with the props each slot receives. Types
+// only: the entry's bytes do not move.
+export type {
+  ToolCallInfo,
+  ToolCallState,
+  ToolCardProps,
+  ToolCards,
+  MessageAction,
+  MessageInfo,
+  MessageThreadSlots,
+  MessageEntryProps,
+  ApprovalCardProps,
+  TodoCardProps,
+  TodoRowProps,
+  PlanFileCardProps,
+  PlanCompletionCardProps,
+  PlanStreamingCardProps,
+  SetupProgressProps,
+  RecalledMemoriesCardProps,
+  RunErrorNoticeProps,
+  LivenessStatusLineProps,
+} from "./run/index.js";

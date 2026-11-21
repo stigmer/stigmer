@@ -423,6 +423,7 @@ export {
   type ToolKind,
   resolveToolKind,
   resolveToolKindByName,
+  toolPublicName,
   normalizeToolResult,
   editAttemptOf,
   SHELL_INTENT_ARG_FIELD,

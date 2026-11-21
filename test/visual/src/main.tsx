@@ -40,12 +40,13 @@ import { DRAWINGS } from "./scenes/index.ts";
  * provider on this page reads a drawing the same way and a field added to
  * `Drawing` reaches each of them.
  */
-function providerProps(drawing: Drawing): Pick<StigmerProviderProps, "preset" | "deploymentMode" | "publicBaseUrl" | "showHelpLink"> {
+function providerProps(drawing: Drawing): Pick<StigmerProviderProps, "preset" | "deploymentMode" | "publicBaseUrl" | "showHelpLink" | "toolCards"> {
   return {
     preset: drawing.preset,
     deploymentMode: drawing.deploymentMode,
     publicBaseUrl: drawing.publicBaseUrl,
     showHelpLink: drawing.showHelpLink,
+    toolCards: drawing.toolCards,
   };
 }
 

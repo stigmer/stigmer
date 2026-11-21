@@ -200,7 +200,7 @@ describe("buildThreadItems plan-document stamping (no-plan-File fallback)", () =
   it("scores the final answer of a completed turn that is not a plan", () => {
     const items = build([{ id: "a", mode: AGENT, messages: ["Working.", "Done."] }]);
 
-    expect(messageItems(items).filter((i) => i.scoresRunId === "a").map((i) => i.key)).toEqual([m("a", 1)]);
+    expect(messageItems(items).filter((i) => i.isFinalAnswer === true && i.runId === "a").map((i) => i.key)).toEqual([m("a", 1)]);
   });
 });
 

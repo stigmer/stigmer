@@ -344,6 +344,25 @@ working between visible steps). Each slot's props type is exported from
 built-in itself. See the [run reference](/docs/sdk/react/run) for each
 slot's props.
 
+Two more ways add your own parts without replacing ours. When your own tool
+runs (a tool of a server you connected, such as `create_invoice` on your
+billing server), pass your card for it to `StigmerProvider` as `toolCards`,
+keyed by the tool's name as the agent sees it (`mcp__billing__create_invoice`).
+The step's line stays ours and still says whether it's running, done or
+failed; your card replaces what opens under it, stays in view, and shows right
+after the answer once the turn finishes. If your card throws, ours shows
+instead. See the [core reference](/docs/sdk/react/core) for `toolCards`, and
+the [run reference](/docs/sdk/react/run) for `ToolCardProps`.
+
+To put your own buttons on a message ("Open in Billing" on the agent's answer),
+pass `messageActions` to `AgentChat`, `SessionViewer` or `MessageThread`: a
+function that gets what the thread knows about each message (whose it is,
+whether it's the final answer, its run and session) and returns your actions.
+Up to two with an icon show beside Copy, the rest in one "More actions" menu,
+all reachable by keyboard. A `MessageEntry` slot receives the same actions as
+data (`messageActions`, with `messageInfo`), for a bubble or a right-click menu
+of your own.
+
 ## Token reference
 
 The complete contract — all tokens with purposes, light/dark values, and

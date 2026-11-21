@@ -28,6 +28,7 @@ conversation, as a page, a docked panel or a corner popup.
     heading: { type: "string", description: "The heading above the first message's box." },
     includeMyVault: { type: "boolean", description: "Whether the conversation reads the sender's own My vault (see `NewSessionViewer`)." },
     inspector: { type: "ReactElement<SessionInspectorProps, string | JSXElementConstructor<any>>", description: "The inspector, for the page frame only (see `SessionInspector`)." },
+    messageActions: { type: "(message: MessageInfo) => readonly MessageAction[]", description: "The host's own actions for a message, drawn after Copy (see `MessageThread`'s `messageActions`). A host's own tool cards are set once, on `StigmerProvider` (`toolCards`)." },
     onError: { type: "(message: string, error: Error) => void", description: "Called when the first message could not be sent, after the chat shows the message under its box." },
     onOpenChange: { type: "(open: boolean) => void", description: "Called when the person opens or closes the popup, or closes the panel. The panel shows its close button only when this is set." },
     onSessionChange: { type: "(sessionId: string | null) => void", description: "Called when a conversation starts (with its id) or the person starts a new one (with `null`). Keep the id to reopen the conversation after a reload: the chat writes no storage of its own." },
