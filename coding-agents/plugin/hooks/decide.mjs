@@ -1,6 +1,10 @@
-// What the plugin's Claude Code guard (guard.mjs, a PreToolUse hook) decides
-// about one tool call: ask the person first, or say nothing and let Claude
-// Code's own permissions decide.
+// What the plugin's guard decides about one call: ask the person first, or
+// say nothing and let the coding agent's own permissions decide. The
+// decision is the tool's own (reasonFor); each coding agent's side reads its
+// hook input and writes its answer: decide() for Claude Code's PreToolUse
+// hook (guard.mjs), decideCursor() for Cursor's beforeMCPExecution and
+// beforeShellExecution hooks (cursor-guard.mjs). Codex's hooks cannot ask,
+// so Codex asks from the tool server's own marks instead.
 //
 // It asks before an act that can't be undone, or that is the person's to
 // give, even when they once chose "always allow" for the plugin's tools:
@@ -35,6 +39,15 @@ export const APPROVAL_TOOL = "submit_run_approval";
 export const TOOL_PREFIX = "mcp__plugin_stigmer_stigmer__";
 
 /**
+ * The `mcp_server_name` Cursor gives this plugin's tool server: a plugin's
+ * server is `plugin-<plugin folder>-<server>` (measured on Cursor's CLI
+ * 2026.11.19, the folder the install line clones into being `stigmer`), and
+ * a person's own `mcp.json` entry for `stigmer mcp-server` is `stigmer`.
+ * Another server's tools are never this guard's to judge.
+ */
+export const CURSOR_SERVER_NAMES = ["stigmer", "plugin-stigmer-stigmer"];
+
+/**
  * The CLI commands whose force flag skips a confirmation or overwrites,
  * each with the flags that mean force on it.
  */
@@ -58,8 +71,20 @@ const VALUE_GLOBALS = new Set(["--org", "--api-key"]);
 const AGENT_LINE = "If the person hasn't approved exactly this in the conversation, stop and ask them first.";
 
 /**
- * The hook's answer to one PreToolUse input: an `ask` with its reason, or
- * `null` to say nothing. Never throws.
+ * Why to ask before one call, whichever coding agent makes it, or null:
+ * `{ kind: "tool", name, args }` for a tool of this plugin's server (`name`
+ * bare, as the server names it), `{ kind: "shell", command }` for a shell
+ * line. Throws only on hostile input; each side catches.
+ */
+export function reasonFor(call) {
+  if (call.kind === "shell") return shellReason(call.command);
+  if (call.kind === "tool") return toolReason(call.name, call.args);
+  return null;
+}
+
+/**
+ * Claude Code's side: the answer to one PreToolUse input, an `ask` with its
+ * reason, or `null` to say nothing. Never throws.
  */
 export function decide(input) {
   try {
@@ -68,14 +93,51 @@ export function decide(input) {
     const args = input.tool_input !== null && typeof input.tool_input === "object" ? input.tool_input : {};
     if (tool === "Bash") {
       const command = typeof args.command === "string" ? args.command : "";
-      const reason = shellReason(command);
+      const reason = reasonFor({ kind: "shell", command });
       return reason === null ? null : ask(reason);
     }
     if (!tool.startsWith(TOOL_PREFIX)) return null;
-    const reason = toolReason(tool.slice(TOOL_PREFIX.length), args);
+    const reason = reasonFor({ kind: "tool", name: tool.slice(TOOL_PREFIX.length), args });
     return reason === null ? null : ask(reason);
   } catch {
     return null;
+  }
+}
+
+/**
+ * Cursor's side: the answer to one beforeMCPExecution or
+ * beforeShellExecution input, `{ permission: "ask", user_message,
+ * agent_message }`, or `{}` to say nothing. Cursor hands `tool_input` as a
+ * JSON string and the tool's bare name, beside the server's name. Never
+ * throws. Cursor asks the person in its window; a run that allows every
+ * command (`--force`) passes over an ask, which is the person's own choice.
+ */
+export function decideCursor(input) {
+  try {
+    if (input === null || typeof input !== "object") return {};
+    let reason = null;
+    if (input.hook_event_name === "beforeShellExecution") {
+      reason = reasonFor({ kind: "shell", command: typeof input.command === "string" ? input.command : "" });
+    } else if (input.hook_event_name === "beforeMCPExecution") {
+      if (!CURSOR_SERVER_NAMES.includes(input.mcp_server_name)) return {};
+      const name = typeof input.tool_name === "string" ? input.tool_name : "";
+      reason = reasonFor({ kind: "tool", name, args: toolInput(input.tool_input) });
+    }
+    return reason === null ? {} : { permission: "ask", user_message: reason, agent_message: `${reason} ${AGENT_LINE}` };
+  } catch {
+    return {};
+  }
+}
+
+/** Cursor's `tool_input`: a JSON string, read as an object; anything else is no arguments. */
+function toolInput(raw) {
+  if (raw !== null && typeof raw === "object") return raw;
+  if (typeof raw !== "string") return {};
+  try {
+    const parsed = JSON.parse(raw);
+    return parsed !== null && typeof parsed === "object" ? parsed : {};
+  } catch {
+    return {};
   }
 }
 

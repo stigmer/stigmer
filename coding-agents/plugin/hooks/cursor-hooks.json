@@ -1,1 +1,7 @@
-{"version": 1, "hooks": {}}
+{
+  "version": 1,
+  "hooks": {
+    "beforeMCPExecution": [{ "command": "node \"${CURSOR_PLUGIN_ROOT}/hooks/cursor-guard.mjs\"" }],
+    "beforeShellExecution": [{ "command": "node \"${CURSOR_PLUGIN_ROOT}/hooks/cursor-guard.mjs\"" }]
+  }
+}
