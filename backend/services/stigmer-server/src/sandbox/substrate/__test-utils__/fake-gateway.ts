@@ -3,7 +3,8 @@
  * and the sweep's suites: actors and templates with Substrate's state rules,
  * in the driver's words (a created actor is suspended; resume wakes
  * suspended; suspend takes running; a move needs suspended; revert takes
- * crashed), every call recorded in order, and a queue of
+ * crashed and clears why it crashed, as Substrate does), every call
+ * recorded in order, and a queue of
  * scripted failures per method so a test can make one call answer
  * ABORTED, crash, or run out of workers. An egress policy is created when
  * missing and replaced when its rules differ, as the real gateway does.
@@ -24,6 +25,7 @@ import type {
   AtespaceOutcome,
   AtespacePolicyOutcome,
   SubstrateActorView,
+  SubstrateCrashView,
   SubstrateGateway,
   SubstrateSandboxState,
   SubstrateSuspendOptions,
@@ -45,6 +47,8 @@ export interface FakeActor {
   policy: readonly EgressRule[] | undefined;
   /** The worker hosting it, while it has one. */
   worker?: string;
+  /** Why it crashed, in the gateway's words, while it is crashed. */
+  crash?: SubstrateCrashView;
 }
 
 export interface FakeTemplate {
@@ -235,6 +239,7 @@ export class FakeSubstrate implements SubstrateGateway {
       actor.state === "crashed",
       `revert from ${actor.state}`,
     );
+    delete actor.crash;
     this.mutate(actor, "suspended");
   }
 
@@ -311,6 +316,7 @@ function view(actor: FakeActor): SubstrateActorView {
     createTime: actor.createTime,
     updateTime: actor.updateTime,
     ...(actor.worker !== undefined ? { worker: actor.worker } : {}),
+    ...(actor.crash !== undefined ? { crash: actor.crash } : {}),
   };
 }
 

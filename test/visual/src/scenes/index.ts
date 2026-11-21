@@ -323,6 +323,7 @@ export const DRAWINGS: Readonly<Record<SceneId, () => Drawing>> = {
   "session-fail-internal": () => endingStoryScene("fail-internal", { inspector: true }),
   "session-fail-runner-lost": () => endingStoryScene("fail-runner-lost", { inspector: true, height: 1200 }),
   "session-fail-no-sandbox-room": () => endingStoryScene("fail-no-sandbox-room", { inspector: true }),
+  "session-fail-sandbox-out-of-memory": () => endingStoryScene("fail-sandbox-out-of-memory", { inspector: true, height: 1200 }),
   "session-fail-platform-stop": () => endingStoryScene("fail-platform-stop", { inspector: true, height: 1200 }),
   "session-fail-user-stop": () => endingStoryScene("fail-user-stop", { inspector: true, height: 1200 }),
   "session-fail-generic-model": () => endingStoryScene("fail-generic-model", { inspector: true }),

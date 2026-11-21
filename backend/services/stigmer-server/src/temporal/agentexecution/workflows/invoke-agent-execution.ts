@@ -38,6 +38,14 @@
  *     as `failed` / `internal` with a person's sentence, before any runner
  *     work. Behind its own `patched()` id, so a turn that went on to the
  *     runner on that answer before the end existed replays as recorded.
+ *   - A sandbox killed for its memory: an ask answered `out_of_memory` (the
+ *     sandbox was killed for exceeding its memory limit and is asleep
+ *     again, stigmer#3347) after the turn's first ask (a recovery, a resume,
+ *     an approval) ends the turn as `failed` / `sandbox_out_of_memory` with
+ *     a person's sentence, rather than recover into the same command. At
+ *     the turn's first ask the kill came before this turn: it asks once
+ *     more and goes on, and only a second `out_of_memory` there ends it.
+ *     Behind its own `patched()` id, for the same reason as `not_carried`.
  *   - Harness dispatch, one exhaustive switch: STIGMER/UNSPECIFIED and
  *     CLAUDE → the deterministic-state flow (EnsureThread once, thread
  *     stable across re-invocations; the engine derives its own state from
@@ -157,12 +165,16 @@ import {
 import {
   DEFAULT_SANDBOX_WAIT_SECONDS,
   SANDBOX_NOT_CARRIED_PATCH_ID,
+  SANDBOX_OUT_OF_MEMORY_PATCH_ID,
+  SANDBOX_OUT_OF_MEMORY_STOP_CAUSE,
+  SANDBOX_OUT_OF_MEMORY_STOP_KIND,
   SANDBOX_REENSURE_PATCH_ID,
   SANDBOX_WAIT_PATCH_ID,
   SANDBOX_WAIT_STOP_CAUSE,
   SANDBOX_WAIT_STOP_KIND,
   SANDBOX_WAITING_PHASE_TEXT,
   SandboxNotCarried,
+  SandboxOutOfMemory,
   SandboxWaitRanOut,
   sandboxWaitBackoffMs,
   type EnsureSessionSandboxInput,
@@ -740,7 +752,10 @@ interface RoomWait {
  * input's limit (waitForSandboxRoom's doc). `pauses` says who takes a
  * pause while it waits: "here", before the turn's first attempt, where no
  * pause monitor runs; or "in-attempt", inside an attempt's scope, whose
- * monitor takes it and cancels the backoff's sleep.
+ * monitor takes it and cancels the backoff's sleep. It also says whose
+ * memory kill an `out_of_memory` answer is (module header): in an attempt,
+ * this turn's, which ends it; before the first attempt, an earlier one's,
+ * so it asks once more, and a second such answer ends the turn.
  */
 async function askForRoom(
   input: InvokeAgentExecutionWorkflowInput,
@@ -753,9 +768,27 @@ async function askForRoom(
   let pauseCycles = 0;
   let since: number | undefined;
   let attempt = 0;
+  let askedAgainAfterKill = false;
 
   for (;;) {
     const outcome = await ensureTurnSandbox(input, callerClass, since);
+    if (outcome === "out_of_memory" && patched(SANDBOX_OUT_OF_MEMORY_PATCH_ID)) {
+      if (pauses === "here" && !askedAgainAfterKill) {
+        // Killed before this turn ran anything: the driver left it asleep,
+        // so one more ask wakes it, and this turn is never blamed for it.
+        askedAgainAfterKill = true;
+        log.info("A run's sandbox was killed for its memory before the turn; asking for it again", {
+          executionId,
+          sessionId: input.session_id,
+        });
+        continue;
+      }
+      log.info("A run's sandbox was killed for exceeding its memory limit; ending the turn", {
+        executionId,
+        sessionId: input.session_id,
+      });
+      throw new SandboxOutOfMemory();
+    }
     if (outcome === "not_carried" && patched(SANDBOX_NOT_CARRIED_PATCH_ID)) {
       log.info("A run's sandbox cannot be carried to this server's runner; ending the turn", {
         executionId,
@@ -1018,11 +1051,15 @@ async function runWithPauseAndRecovery(
       continue;
     }
 
-    if (attempt.error instanceof SandboxWaitRanOut || attempt.error instanceof SandboxNotCarried) {
-      // A resumed turn's wait for room ran out, or its sandbox cannot be
-      // carried (askBeforeCarryingOn): it ends as the first ask's does,
-      // its own cause and sentence, never wrapped as the runner
-      // activity's failure.
+    if (
+      attempt.error instanceof SandboxWaitRanOut ||
+      attempt.error instanceof SandboxNotCarried ||
+      attempt.error instanceof SandboxOutOfMemory
+    ) {
+      // A resumed turn's wait for room ran out, its sandbox cannot be
+      // carried, or its sandbox was killed for its memory
+      // (askBeforeCarryingOn): it ends with its own cause and sentence,
+      // never recovered into or wrapped as the runner activity's failure.
       throw attempt.error;
     }
 
@@ -1317,6 +1354,26 @@ async function updateStatusOnFailure(
           error: originalError.message,
           stopCause: "failed",
           stopDetail: { kind: "internal" },
+        }),
+      ),
+    );
+    log.info("Updated execution status to FAILED", { executionId });
+    return;
+  }
+
+  if (originalError instanceof SandboxOutOfMemory) {
+    // The sandbox was killed for exceeding its memory limit while the turn
+    // was alive: the person's sentence, as the turn's own failure, under its
+    // own kind (../sandbox-wait.ts).
+    await failurePathActivities[UPDATE_EXECUTION_STATUS_ACTIVITY_NAME](
+      executionId,
+      toJson(
+        RunStatusSchema,
+        create(RunStatusSchema, {
+          phase: RunPhase.RUN_FAILED,
+          error: originalError.message,
+          stopCause: SANDBOX_OUT_OF_MEMORY_STOP_CAUSE,
+          stopDetail: { kind: SANDBOX_OUT_OF_MEMORY_STOP_KIND },
         }),
       ),
     );

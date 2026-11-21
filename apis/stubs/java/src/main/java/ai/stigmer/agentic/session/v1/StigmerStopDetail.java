@@ -72,7 +72,9 @@ private static final long serialVersionUID = 0L;
    * turn's time limit) or workspace_busy (another turn held the workspace).
    * Under failed: agent_setup (the agent can't run as configured),
    * app_unreachable (a connected app wouldn't connect), app_needs_sign_in (a
-   * connected app needs a sign-in) or internal (a fault of the platform).
+   * connected app needs a sign-in), sandbox_out_of_memory (a command needed
+   * more memory than the sandbox has, so the sandbox was stopped) or internal
+   * (a fault of the platform).
    * Under infrastructure: runner_lost (the machine running the turn stopped)
    * or no_sandbox_room (no sandbox had room for the turn within the server's
    * wait, so it never started).
@@ -107,7 +109,9 @@ private static final long serialVersionUID = 0L;
    * turn's time limit) or workspace_busy (another turn held the workspace).
    * Under failed: agent_setup (the agent can't run as configured),
    * app_unreachable (a connected app wouldn't connect), app_needs_sign_in (a
-   * connected app needs a sign-in) or internal (a fault of the platform).
+   * connected app needs a sign-in), sandbox_out_of_memory (a command needed
+   * more memory than the sandbox has, so the sandbox was stopped) or internal
+   * (a fault of the platform).
    * Under infrastructure: runner_lost (the machine running the turn stopped)
    * or no_sandbox_room (no sandbox had room for the turn within the server's
    * wait, so it never started).
@@ -590,7 +594,9 @@ private static final long serialVersionUID = 0L;
      * turn's time limit) or workspace_busy (another turn held the workspace).
      * Under failed: agent_setup (the agent can't run as configured),
      * app_unreachable (a connected app wouldn't connect), app_needs_sign_in (a
-     * connected app needs a sign-in) or internal (a fault of the platform).
+     * connected app needs a sign-in), sandbox_out_of_memory (a command needed
+     * more memory than the sandbox has, so the sandbox was stopped) or internal
+     * (a fault of the platform).
      * Under infrastructure: runner_lost (the machine running the turn stopped)
      * or no_sandbox_room (no sandbox had room for the turn within the server's
      * wait, so it never started).
@@ -624,7 +630,9 @@ private static final long serialVersionUID = 0L;
      * turn's time limit) or workspace_busy (another turn held the workspace).
      * Under failed: agent_setup (the agent can't run as configured),
      * app_unreachable (a connected app wouldn't connect), app_needs_sign_in (a
-     * connected app needs a sign-in) or internal (a fault of the platform).
+     * connected app needs a sign-in), sandbox_out_of_memory (a command needed
+     * more memory than the sandbox has, so the sandbox was stopped) or internal
+     * (a fault of the platform).
      * Under infrastructure: runner_lost (the machine running the turn stopped)
      * or no_sandbox_room (no sandbox had room for the turn within the server's
      * wait, so it never started).
@@ -659,7 +667,9 @@ private static final long serialVersionUID = 0L;
      * turn's time limit) or workspace_busy (another turn held the workspace).
      * Under failed: agent_setup (the agent can't run as configured),
      * app_unreachable (a connected app wouldn't connect), app_needs_sign_in (a
-     * connected app needs a sign-in) or internal (a fault of the platform).
+     * connected app needs a sign-in), sandbox_out_of_memory (a command needed
+     * more memory than the sandbox has, so the sandbox was stopped) or internal
+     * (a fault of the platform).
      * Under infrastructure: runner_lost (the machine running the turn stopped)
      * or no_sandbox_room (no sandbox had room for the turn within the server's
      * wait, so it never started).
@@ -690,7 +700,9 @@ private static final long serialVersionUID = 0L;
      * turn's time limit) or workspace_busy (another turn held the workspace).
      * Under failed: agent_setup (the agent can't run as configured),
      * app_unreachable (a connected app wouldn't connect), app_needs_sign_in (a
-     * connected app needs a sign-in) or internal (a fault of the platform).
+     * connected app needs a sign-in), sandbox_out_of_memory (a command needed
+     * more memory than the sandbox has, so the sandbox was stopped) or internal
+     * (a fault of the platform).
      * Under infrastructure: runner_lost (the machine running the turn stopped)
      * or no_sandbox_room (no sandbox had room for the turn within the server's
      * wait, so it never started).
@@ -718,7 +730,9 @@ private static final long serialVersionUID = 0L;
      * turn's time limit) or workspace_busy (another turn held the workspace).
      * Under failed: agent_setup (the agent can't run as configured),
      * app_unreachable (a connected app wouldn't connect), app_needs_sign_in (a
-     * connected app needs a sign-in) or internal (a fault of the platform).
+     * connected app needs a sign-in), sandbox_out_of_memory (a command needed
+     * more memory than the sandbox has, so the sandbox was stopped) or internal
+     * (a fault of the platform).
      * Under infrastructure: runner_lost (the machine running the turn stopped)
      * or no_sandbox_room (no sandbox had room for the turn within the server's
      * wait, so it never started).

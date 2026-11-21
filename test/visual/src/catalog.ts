@@ -580,6 +580,7 @@ const SESSION_SCENES = [
   { id: "session-fail-internal", title: "Session: something broke on Stigmer's side", widths: ["desktop"] },
   { id: "session-fail-runner-lost", title: "Session: the machine running the turn stopped part-way through its plan", widths: ["desktop"] },
   { id: "session-fail-no-sandbox-room", title: "Session: every sandbox stayed busy, so the turn never started", widths: ["desktop"] },
+  { id: "session-fail-sandbox-out-of-memory", title: "Session: a command ran the sandbox out of memory part-way through the plan", widths: ["desktop"] },
   { id: "session-fail-platform-stop", title: "Session: Stigmer stopped the turn part-way through its plan", widths: ["desktop"] },
   { id: "session-fail-user-stop", title: "Session: the person stopped the turn part-way through its plan", widths: ["desktop"] },
   { id: "session-fail-generic-model", title: "Session: the model failed the turn and the runner named no kind", widths: ["desktop"] },

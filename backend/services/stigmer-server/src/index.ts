@@ -986,8 +986,10 @@ export {
   BUILT_IN_SANDBOX_PROVISIONER_TYPES,
   isSandboxNoRoom,
   isSandboxNotCarried,
+  isSandboxOutOfMemory,
   SandboxNoRoomError,
   SandboxNotCarriedError,
+  SandboxOutOfMemoryError,
 } from "./sandbox/provisioner.js";
 // The run phases a composition's own idle sweep reads: whether a run keeps
 // its session's sandbox awake (working), and whether it is alive at all
