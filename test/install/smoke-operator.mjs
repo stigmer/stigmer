@@ -93,8 +93,9 @@
  *   server, and the fake model reached by an in-cluster name named as a
  *   sandbox lane. The operator installs Substrate, waits in words for the
  *   pool's first worker and then for the server's sandbox image (the
- *   runner component reads PreparingSandboxImage before Ready), and the
- *   install is Ready with no shared runner. Two sessions run as two actors.
+ *   runner component reads PreparingSandboxImage before Ready, or the
+ *   server's log says the template was published before the operator first
+ *   asked), and the install is Ready with no shared runner. Two sessions run as two actors.
  *   From inside one, by a probe the agent runs, the server, the bucket and
  *   the model answer, and the model under a name that is not a lane, the
  *   database and Temporal do not; the same probe from the server's pod
@@ -946,8 +947,18 @@ async function runSubstrate(fake, modelBaseUrl) {
     },
     { intervalMs: 2000 },
   );
-  for (const want of ["sandboxes/WaitingForWorkers", "runner/PreparingSandboxImage"]) {
-    if (!seen.has(want)) throw new Error(`the install reached Ready without saying ${want}`);
+  if (!seen.has("sandboxes/WaitingForWorkers")) throw new Error("the install reached Ready without saying sandboxes/WaitingForWorkers");
+  // Ready waits for the sandbox starting image: either the runner component
+  // said so while the template's golden snapshot was being published, or
+  // the snapshot was already published when the server came up and the
+  // operator first asked (a warm worker publishes one in seconds), which
+  // the server's own log says before the install is Ready.
+  if (!seen.has("runner/PreparingSandboxImage")) {
+    const serverLog = cluster.kubectlQuiet(["-n", namespace, "logs", "deployment/stigmer", "-c", "server", "--tail=-1"]).stdout ?? "";
+    if (!serverLog.includes("Substrate template ready")) {
+      throw new Error("the install reached Ready without saying runner/PreparingSandboxImage, and the server has not published its sandbox template");
+    }
+    log("the template's golden snapshot was published before the operator first asked, so the runner never had to say it was preparing");
   }
   assertZeroRestarts(namespace);
   if (stigmer.images().runner !== undefined) throw new Error("a per-session install runs a shared runner");
