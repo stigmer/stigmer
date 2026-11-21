@@ -2000,9 +2000,10 @@ export function ThreadItemRenderer({
         />
       );
     }
+    // A row kind with a decision (`row-kinds.ts`) but no drawing here fails
+    // to compile.
+    /* v8 ignore next -- @preserve: the exhaustiveness guard over ThreadItem; every kind has its case above */
     default: {
-      // A row kind with a decision (`row-kinds.ts`) but no drawing here
-      // fails to compile.
       const unhandled: never = item;
       return unhandled;
     }
