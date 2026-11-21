@@ -67,9 +67,13 @@ the account's **Phone numbers** tab.
 3. Open **Step 2 — Production setup** in that flow and make sure your real
    WhatsApp Business account and number are the ones attached (not the test
    account Meta creates automatically). Skip the webhook section for now — the
-   webhook address comes from Stigmer later. Skip the payment method too:
-   Stigmer's Agent only ever _replies_ to people who message it, and service
-   replies need no payment method.
+   webhook address comes from Stigmer later. Add a payment method to the
+   WhatsApp Business account. Meta bills every
+   [template message](/docs/guides/channels/send-proactive-messages-with-templates),
+   and the Agent's replies too once a number passes Meta's monthly free tier;
+   with no payment method on file, Meta stops delivering replies past that tier.
+   [Meta's pricing page](https://developers.facebook.com/docs/whatsapp/pricing)
+   has the current rules and prices.
 4. From **App settings → Basic**, copy the **App ID** and **App secret**.
 
 ## Step 3 — Publish the app
