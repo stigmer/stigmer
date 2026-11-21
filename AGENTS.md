@@ -52,9 +52,8 @@ skill" when it could be misread.
   subprocess (desktop).
 - `tools/codegen/`: the generator behind every `gen-*` target;
   `tools/eslint-plugin-stigmer/`.
-- `test/conformance/`: the cross-edition gRPC contract suite; `test/e2e/`:
-  Playwright; `test/extension-consumer/`; `test/site/`: the built docs site's
-  accessibility audit (`make test-site`).
+- `test/conformance/`: cross-edition gRPC contract suite; `test/e2e/`:
+  Playwright; `test/extension-consumer/`; `test/site/`.
 - `plugins/`: the official plugin marketplace, published as `@stigmer/plugins`;
   what `stigmer install` and the console's Marketplace offer when no other
   source is named. Nothing in it is installed unasked.
@@ -122,7 +121,6 @@ summary line in the final message. Never report unverified work as done.
 - `test/conformance/**`, `test/support/**`:
   `npm run typecheck -w @stigmer/conformance -w @stigmer/test-support && make check-conformance-inventory`;
   suites under `test/conformance/src/suites/` also `make test-conformance`.
-- `test/site/**`: `npm run typecheck -w @stigmer/site-tests && make test-site`.
 - `plugins/**`: `make test-plugins-static`. `deploy/helm/**`:
   `make lint-helm test-helm`.
 - `docs/**`, `site/**`:
