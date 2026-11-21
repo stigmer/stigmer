@@ -286,7 +286,8 @@ function enterpriseImageDescription(): string | undefined {
  * label: scripts/lib/image-description.mjs), so each must say what its image
  * is. Only the images that are a way to run Stigmer (the server, Enterprise
  * and the all-in-one) carry the one sentence's core; the server's is held by
- * ENTRY_POINTS above, and the runners and the MCP server describe their job.
+ * ENTRY_POINTS above, and the runners, the MCP server and the Kubernetes
+ * operator describe their job.
  */
 const PUBLISHED_IMAGES: ReadonlyArray<{
   image: string;
@@ -302,6 +303,7 @@ const PUBLISHED_IMAGES: ReadonlyArray<{
   },
   { image: "ghcr.io/stigmer/stigmer", dockerfile: "deploy/all-in-one/Dockerfile" },
   { image: "ghcr.io/stigmer/mcp-server-stigmer", dockerfile: "mcp-server/Dockerfile" },
+  { image: "ghcr.io/stigmer/stigmer-operator", dockerfile: "deploy/operator/Dockerfile" },
   { image: "ghcr.io/stigmer/runner", dockerfile: "backend/services/runner/Dockerfile.sandbox", target: "sandbox" },
   {
     image: "ghcr.io/stigmer/stigmer-runner",

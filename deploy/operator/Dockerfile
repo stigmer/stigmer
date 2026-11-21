@@ -7,6 +7,8 @@
 # the operator runs. So is the per-session runner image's digest, which
 # pins every sandbox to the same bytes; a build without one runs agent-sandbox
 # sessions by tag and refuses the substrate driver, which needs the digest.
+# The description label is what GHCR shows on the package page: the release
+# lane writes it as the index annotation (scripts/lib/image-description.mjs).
 
 FROM --platform=$BUILDPLATFORM golang:1.25 AS build
 ARG TARGETOS
@@ -26,6 +28,7 @@ RUN CGO_ENABLED=0 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH} GOWORK=off \
 
 FROM gcr.io/distroless/static:nonroot
 LABEL org.opencontainers.image.title="stigmer-operator" \
+      org.opencontainers.image.description="Stigmer operator: installs and runs Stigmer on Kubernetes from one Stigmer resource, with its database, Temporal, sign-in, backups and per-session sandboxes" \
       org.opencontainers.image.source="https://github.com/stigmer/stigmer"
 COPY --from=build /out/stigmer-operator /stigmer-operator
 USER 65532:65532

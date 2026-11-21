@@ -115,11 +115,12 @@ the user's confirmation.
 The release pins travel in the commit the tag is cut from, and `make release`
 refuses to tag until every one names the new version: the compose stack's
 `STIGMER_VERSION` in `docker-compose.yml` and `.env.example` (the stack a fresh
-clone runs), `version` and `appVersion` in `deploy/helm/stigmer/Chart.yaml` (the
-chart's image tags default to the app version), and the two upgrade examples on
-`docs/guides/self-hosting/operations.mdx` (the version a reader copies into
-`.env` and into `helm upgrade --version`; the page went stale once when nothing
-owned it).
+clone runs), `version` and `appVersion` in
+`deploy/helm/stigmer-operator/Chart.yaml` (the Kubernetes operator's image tag
+is the app version, and that operator runs every Stigmer image at it), and the
+two upgrade examples on `docs/guides/self-hosting/operations.mdx` (the version a
+reader copies into `.env` and into `helm upgrade stigmer-operator --version`;
+the page went stale once when nothing owned it).
 
 Nothing reaches `main` but through a pull request and its required checks, so
 the pins go in a pull request of their own:
@@ -137,8 +138,8 @@ gh pr view <n> --json state,mergeCommit   # repeat until MERGED
 git switch main && git pull --ff-only
 ```
 
-The pins touch the docs, compose-stack and helm-chart lanes' paths, so `Gate`
-runs those three on the pull request, and again in the queue while there is one:
+The pins touch the docs, compose-stack and operator lanes' paths, so `Gate` runs
+those three on the pull request, and again in the queue while there is one:
 expect up to half an hour before it merges. They build from source, so they stay
 green before the images exist. Tag the merged commit (`main`'s head once the
 pull request says `MERGED`); `make release` refuses a `HEAD` whose pins
@@ -222,13 +223,16 @@ a release dispatched rather than tagged is copied that way), and the MCP server
 image, after that same green run (`release.mcp-server.yaml`, its own run; a
 failed build, a release dispatched rather than tagged, or one tagged before this
 trigger is built by dispatching it from main with the version), with the server,
-Enterprise server, runner and all-in-one images pushed to GHCR and the Helm
-chart to its OCI registry, each smoked before promotion; the Go SDK through the
-module proxy; the Python packages to PyPI; the Java SDK to Maven; the Rust
-crate; the sandbox cloud image, whose `runner:v<version>` tag and `prod` appear
-only after its smoke test passes. When the npm release succeeds for a release
-tag (a prerelease tag ends the run green with nothing run), `ci.live.yaml` runs
-the tagged commit's live suites and the published CLI against the real model
+Enterprise server, runner, all-in-one and Kubernetes operator images pushed to
+GHCR and the operator's chart to its OCI registry, each smoked before promotion
+(the operator's image waits, up to an hour, for the sandbox image's
+`runner:v<version>`, whose digest it pins); the Go SDK through the module proxy;
+the Python packages to PyPI; the Java SDK to Maven; the Rust crate; the sandbox
+image, whose `prod` moves only after its amd64 smoke test passes, and whose
+`runner:v<version>` is written as one index of amd64 and arm64 only after both
+architectures' smoke tests pass. When the npm release succeeds for a release tag
+(a prerelease tag ends the run green with nothing run), `ci.live.yaml` runs the
+tagged commit's live suites and the published CLI against the real model
 providers. A red run files a `live-failure` issue: a broken provider path is
 fixed like any defect, an outage is waited out, and a person closes the issue
 once a dispatch of the workflow runs green. A dispatch installs a published CLI,

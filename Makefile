@@ -1581,22 +1581,22 @@ release-preflight: ## Refuse to release while RELEASE_HOLD.md exists at the repo
 # The release pins travel in the commit the tag is cut from: the compose
 # stack pin in docker-compose.yml + .env.example (the release lane cannot
 # push the bump to the protected main — GH006 on v3.14.0 and v3.14.1), the
-# Helm chart's Chart.yaml (version == appVersion; the chart's image tags
-# default to v<appVersion>, and release.npm-libs refuses to package on a
-# mismatch), and the two upgrade examples on the self-hosting operations
-# page (the version a reader copies into .env and into `helm upgrade
-# --version`; a literal nothing owned went stale at v3.14.0 while the stack
-# was at v3.16.0). `make release` refuses to tag until every pin names the
+# Kubernetes operator chart's Chart.yaml (version == appVersion; the
+# operator's image tag is v<appVersion>, and release.npm-libs refuses to
+# package on a mismatch), and the two upgrade examples on the self-hosting
+# operations page (the version a reader copies into .env and into
+# `helm upgrade stigmer-operator --version`; a literal nothing owned went
+# stale at v3.14.0 while the stack was at v3.16.0). `make release` refuses to tag until every pin names the
 # new version. perl, not sed -i: the recipe must run the same on macOS and
 # Linux.
-release-pins: ## Bump the release pins to version=X.Y.Z (compose stack, Helm chart, operations page); commit before `make release`
+release-pins: ## Bump the release pins to version=X.Y.Z (compose stack, operator chart, operations page); commit before `make release`
 	@[ -n "$(version)" ] || { echo "usage: make release-pins version=X.Y.Z"; exit 1; }
 	@echo "$(version)" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+$$' || { echo "error: version must be X.Y.Z (got '$(version)')"; exit 1; }
 	@perl -pi -e 's/STIGMER_VERSION:-v[0-9A-Za-z.+-]+/STIGMER_VERSION:-v$(version)/g' docker-compose.yml
 	@perl -pi -e 's/^#STIGMER_VERSION=.*/#STIGMER_VERSION=v$(version)/' .env.example
-	@perl -pi -e 's/^version: .*/version: $(version)/; s/^appVersion: .*/appVersion: "$(version)"/' deploy/helm/stigmer/Chart.yaml
+	@perl -pi -e 's/^version: .*/version: $(version)/; s/^appVersion: .*/appVersion: "$(version)"/' deploy/helm/stigmer-operator/Chart.yaml
 	@perl -pi -e 's/^STIGMER_VERSION=v[0-9A-Za-z.+-]+$$/STIGMER_VERSION=v$(version)/; s/^(\s+--version )[0-9A-Za-z.+-]+( \\)$$/$${1}$(version)$${2}/' docs/guides/self-hosting/operations.mdx
-	@echo "release pins set to $(version):"; git --no-pager diff --stat -- docker-compose.yml .env.example deploy/helm/stigmer/Chart.yaml docs/guides/self-hosting/operations.mdx
+	@echo "release pins set to $(version):"; git --no-pager diff --stat -- docker-compose.yml .env.example deploy/helm/stigmer-operator/Chart.yaml docs/guides/self-hosting/operations.mdx
 
 # The new tag is the newest stable v* tag bumped by `bump=`, or v0.1.0 when
 # the line has no stable tag yet, whatever `bump=` says
@@ -1610,15 +1610,15 @@ release: release-preflight ## Tag and push a release (usage: make release [bump=
 	fi; \
 	COMPOSE_PIN=$$(git show HEAD:docker-compose.yml | sed -n -E 's/.*STIGMER_VERSION:-v([0-9A-Za-z.+-]+).*/\1/p' | sort -u | tr '\n' ' ' | sed 's/ $$//'); \
 	ENV_PIN=$$(git show HEAD:.env.example | sed -n -E 's/^#STIGMER_VERSION=v(.*)$$/\1/p'); \
-	CHART_PIN=$$(git show HEAD:deploy/helm/stigmer/Chart.yaml | sed -n -E 's/^version: (.*)$$/\1/p'); \
-	CHART_APP_PIN=$$(git show HEAD:deploy/helm/stigmer/Chart.yaml | sed -n -E 's/^appVersion: "?([^"]*)"?$$/\1/p'); \
+	CHART_PIN=$$(git show HEAD:deploy/helm/stigmer-operator/Chart.yaml | sed -n -E 's/^version: (.*)$$/\1/p'); \
+	CHART_APP_PIN=$$(git show HEAD:deploy/helm/stigmer-operator/Chart.yaml | sed -n -E 's/^appVersion: "?([^"]*)"?$$/\1/p'); \
 	DOCS_PIN=$$(git show HEAD:docs/guides/self-hosting/operations.mdx | sed -n -E 's/^STIGMER_VERSION=v(.*)$$/\1/p; s/^ +--version ([0-9A-Za-z.+-]+) \\$$/\1/p' | sort -u | tr '\n' ' ' | sed 's/ $$//'); \
 	if [ "$$COMPOSE_PIN" != "$$NEW_VERSION" ] || [ "$$ENV_PIN" != "$$NEW_VERSION" ] || [ "$$CHART_PIN" != "$$NEW_VERSION" ] || [ "$$CHART_APP_PIN" != "$$NEW_VERSION" ] || [ "$$DOCS_PIN" != "$$NEW_VERSION" ]; then \
 		echo "error: the release pins at HEAD do not all name $$NEW_VERSION:"; \
 		echo "  docker-compose.yml     STIGMER_VERSION:-v$$COMPOSE_PIN   (a fresh clone runs this stack)"; \
 		echo "  .env.example           #STIGMER_VERSION=v$$ENV_PIN"; \
-		echo "  deploy/helm/stigmer/Chart.yaml  version=$$CHART_PIN appVersion=$$CHART_APP_PIN   (the chart's image tags default to v<appVersion>; release.npm-libs refuses to package on a mismatch)"; \
-		echo "  docs/guides/self-hosting/operations.mdx  $$DOCS_PIN   (the version a reader copies into .env and helm upgrade --version)"; \
+		echo "  deploy/helm/stigmer-operator/Chart.yaml  version=$$CHART_PIN appVersion=$$CHART_APP_PIN   (the operator's image tag is v<appVersion>; release.npm-libs refuses to package on a mismatch)"; \
+		echo "  docs/guides/self-hosting/operations.mdx  $$DOCS_PIN   (the version a reader copies into .env and helm upgrade stigmer-operator --version)"; \
 		echo "Bump them in a pull request, and tag the merged commit:"; \
 		echo "  make release-pins version=$$NEW_VERSION"; \
 		echo "  (.agents/skills/release-stigmer-oss/SKILL.md, section 3)"; \
@@ -1637,8 +1637,10 @@ release: release-preflight ## Tag and push a release (usage: make release [bump=
 	@echo "  - CLI binaries + GitHub release  (release.cli.yaml)"
 	@echo "  - Desktop installers on the release (release.desktop.yaml)"
 	@echo "  - @stigmer/* npm packages        (release.npm-libs.yaml)"
-	@echo "    + the server, Enterprise server, runner and all-in-one images on GHCR, and the Helm chart"
-	@echo "      at oci://ghcr.io/stigmer/charts/stigmer, each smoked before it is promoted or pushed"
+	@echo "    + the server, Enterprise server, runner, all-in-one and Kubernetes operator images on GHCR,"
+	@echo "      and the operator's chart at oci://ghcr.io/stigmer/charts/stigmer-operator, each smoked"
+	@echo "      before it is promoted or pushed"
+	@echo "  - The sandbox runner image, amd64 and arm64 (release.sandbox-cloud.yaml; the operator waits for it)"
 	@echo "  - Go SDK (go get)                (sdk/go tag auto-cached by proxy.golang.org)"
 	@echo "  - stigmer-sdk + stigmer-apis PyPI  (release.python-sdk.yaml)"
 	@echo "  - MCP server Docker image        (release.mcp-server.yaml)"
