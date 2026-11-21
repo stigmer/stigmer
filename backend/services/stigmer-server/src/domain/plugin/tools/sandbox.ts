@@ -35,7 +35,7 @@
 import type { Logger } from "../../../boot/logger.js";
 import { unavailableError } from "../../../pipeline/errors.js";
 import { mintSandboxToken, type SandboxLane } from "../../../sandbox/lane.js";
-import type { SandboxCaller } from "../../../sandbox/steps.js";
+import type { SandboxCaller } from "../../../sandbox/session-sandbox.js";
 import { connectTaskQueueFor } from "../../../temporal/plugintools/names.js";
 import type { ToolsTaskQueue } from "./engine.js";
 

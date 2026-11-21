@@ -101,9 +101,6 @@ function lifecycleDeps(store: Store): LifecycleDeps {
     runValuePlanner: untouchable("runValuePlanner"),
     gateSteps: new Map(),
     statusObservers: [],
-    sandboxLane: untouchable("sandboxLane"),
-    temporalConfig: untouchable("temporalConfig"),
-    personAccounts: undefined,
   };
 }
 

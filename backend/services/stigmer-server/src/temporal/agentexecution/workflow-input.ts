@@ -60,7 +60,7 @@ export interface InvokeAgentExecutionWorkflowInput {
   /**
    * The caller's id (CallerIdentity.identityId). The sandbox ensure mints
    * its runner credential for it only under the trusted-local posture
-   * (sandbox/steps.ts). Not a secret; history is operator-only, as for
+   * (sandbox/session-sandbox.ts). Not a secret; history is operator-only, as for
    * `invoker_identity_account_id`.
    */
   readonly caller_identity_id?: string;

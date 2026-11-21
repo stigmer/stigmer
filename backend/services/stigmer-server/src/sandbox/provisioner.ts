@@ -57,7 +57,7 @@
  * The probe is ensure-time LIVE-STATE inspection, never a boot-readiness
  * wait: the verified cloud design has NO readiness
  * probes — a sandbox that never polls its queue surfaces as the
- * activity's ScheduleToStartTimeout, with the ensure step's error
+ * activity's ScheduleToStartTimeout, with the session ensure's error
  * pre-stamp naming the root cause.
  *
  * Selection follows the artifact-storage precedent: built-in
@@ -139,14 +139,13 @@ export interface SandboxFacts {
   readonly environment?: EnvironmentFacts;
   /**
    * True when the caller invokes the runner next, with none of the
-   * session's runner work in flight: the agent-execution workflow's own
-   * ensure, which runs before every runner invocation of a turn
-   * (temporal/agentexecution/sandbox-wait.ts). A driver may then restart a
-   * RUNNING sandbox started under another configuration to move it to
-   * this one, keeping its files (module header, stigmer#1843). Absent for
-   * every other ensure (the request's and the recover chain's, which race
-   * the workflow's first runner activity, and during a rolling update
-   * another release's): a running sandbox is then never restarted. The one
+   * session's runner work in flight. The server sets it on every session
+   * ensure, which it makes right before it invokes the runner (the
+   * agent-execution workflow's ask, temporal/agentexecution/sandbox-wait.ts).
+   * A driver restarts a RUNNING sandbox started under another
+   * configuration, to move it to this one keeping its files, only when it
+   * is set (module header, stigmer#1843); absent, a running sandbox is
+   * never restarted. The one
    * runner activity a turn does not wait for, the session's title, may be
    * cut by such a restart; it is best-effort, so a title is lost at worst.
    * A fact, never policy; optional because forgetting it is the safe
@@ -338,10 +337,9 @@ export interface SandboxProvisioner {
    * start; true when one went to sleep. Never puts a busy sandbox to sleep,
    * never `forSessionId`'s own, and acts only on sandboxes on the workers
    * the waiting one could use; which one yields is make-room.ts's
-   * `orderSandboxesToFree`. The agent-execution workflow's ask for its
-   * sandbox calls it once per ask that hears "no room", never the
-   * request's ensure, so one waiting run puts at most one sandbox to sleep
-   * per ask (steps.ts). A driver whose fleet never answers "no room"
+   * `orderSandboxesToFree`. The server's session ensure calls it once per
+   * ask that hears "no room", so one waiting run puts at most one sandbox
+   * to sleep per ask (session-sandbox.ts). A driver whose fleet never answers "no room"
    * leaves it out; a rejection is logged and read as false.
    */
   makeRoom?(forSessionId: string): Promise<boolean>;

@@ -16,10 +16,10 @@
  * running one without its keys.
  *
  * A provider with the mintSandboxCredential capability owns the mint
- * instead: the ensure steps hand it the full
- * provisioning context and bake whatever it returns — the cloud's
- * session-scoped tokens ride this without the steps knowing any
- * lane vocabulary beyond their own identifiers.
+ * instead: the turn's sandbox ensure and the MCP connect lane hand it the
+ * full provisioning context and bake whatever it returns — the cloud's
+ * session-scoped tokens ride this without either knowing any lane
+ * vocabulary beyond its own identifiers.
  */
 import type {
   RunnerCredentialProvider,

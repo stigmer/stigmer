@@ -8,8 +8,8 @@
  *
  * An Environment governs only a sandbox this server starts: the sandbox
  * lane composed, the conversation's target resolving to CLOUD, and its
- * turns routed to a per-session queue. That is exactly when the session
- * ensure step provisions one (sandbox/steps.ts), so a server with no
+ * turns routed to a per-session queue. That is exactly when the turn's
+ * sandbox ensure provisions one (sandbox/session-sandbox.ts), so a server with no
  * sandbox driver never applies an organization default it has no way to
  * honour. Anywhere else (a conversation on the person's own machine, in
  * the desktop app or the CLI) the agent's and organization's defaults do
@@ -74,7 +74,7 @@ export interface EnvironmentPolicy {
   readonly support: EnvironmentSupport;
 }
 
-/** The deployment's policy: the condition the session ensure step provisions under (the module header). */
+/** The deployment's policy: the condition the turn's sandbox ensure provisions under (the module header). */
 export function newEnvironmentPolicy(
   lane: SandboxLane,
   temporalConfig: Pick<AgentExecutionTemporalConfig, "resolveExecutionTarget" | "activityRouting">,
@@ -237,7 +237,7 @@ export async function sessionRunServers(store: Store, session: Session): Promise
 /**
  * The facts a session's sandbox gets for its Environment, read now:
  * `undefined` when it has none, refused when that Environment is gone (the
- * ensure step stamps it as the run's provisioning failure, and run create
+ * turn's sandbox ensure stamps it as the run's provisioning failure, and run create
  * and recover refuse the turn naming it). The agent tree is read only for a
  * limited Environment that allows its MCP servers.
  */

@@ -57,13 +57,13 @@
  * log read under its lock. Idempotent, so a retry or a replay that runs
  * it again records nothing new.
  *
- * EnsureSessionSandbox is the request's sandbox ensure
- * (sandbox/steps.ts `ensureSessionSandboxForExecution`), run by the
- * workflow before the turn's first runner activity on a CLOUD target, with
- * the caller's facts from the workflow input. It answers in one word
- * (sandbox-wait.ts SandboxEnsureOutcome), and the workflow asks again while
- * the answer is `no_room`. Only this ensure asks the driver to make room
- * on "no room" (sandbox/make-room.ts), putting one idle sandbox to sleep
+ * EnsureSessionSandbox is the turn's sandbox ensure
+ * (sandbox/session-sandbox.ts `ensureSessionSandboxForExecution`), the
+ * only one the server makes, run by the workflow before the turn's runner
+ * activities on a CLOUD target, with the caller's facts from the workflow
+ * input. It answers in one word (sandbox-wait.ts SandboxEnsureOutcome),
+ * and the workflow asks again while the answer is `no_room`. The ensure
+ * asks the driver to make room on "no room" (sandbox/make-room.ts), putting one idle sandbox to sleep
  * per ask, so a waiting run takes an idle sandbox's seat rather than
  * waiting out its idle window. Ensuring the sandbox can rightly take minutes (a
  * template being built, an actor settling), so the activity heartbeats
@@ -122,7 +122,7 @@ import type { AccountsByCaller } from "../../domain/identityaccount/resolve.js";
 import type { AgentExecutionTemporalConfig } from "../../domain/run/temporal/config.js";
 import { sessionIdOf } from "../../domain/run/target.js";
 import type { SandboxLane } from "../../sandbox/lane.js";
-import { ensureSessionSandboxForExecution } from "../../sandbox/steps.js";
+import { ensureSessionSandboxForExecution } from "../../sandbox/session-sandbox.js";
 import { ResourceNotFoundError } from "../../store/interface.js";
 import type { Store } from "../../store/interface.js";
 import {
@@ -314,12 +314,6 @@ export function createAgentExecutionActivities(
             callerClass: input.caller_class,
             ...(input.routine_id !== undefined ? { routineId: input.routine_id } : {}),
           },
-          // The workflow asks right before it invokes the runner, with none
-          // of the turn's runner work in flight, so a driver may restart a
-          // sandbox started under another configuration (stigmer#1843).
-          // The run is waiting for its sandbox, so on "no room" the driver
-          // may put an idle one to sleep for it (sandbox/make-room.ts).
-          { runnerIdle: true, makeRoom: true },
         );
       } finally {
         clearInterval(beat);

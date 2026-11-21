@@ -58,7 +58,7 @@
  * test pins the grant-scope fact by name; an edition that grants
  * `participant` on sessions (the cloud does) has the cloud's own
  * credential story (the session sandbox's runner acts as the session's
- * creator, sandbox/steps.ts), and a change to open source's scope must
+ * creator, sandbox/session-sandbox.ts), and a change to open source's scope must
  * revisit this sentence.
  *
  * Claim rule: exactly `token_type === "execution_scoped"`, read from the

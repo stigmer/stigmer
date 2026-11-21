@@ -132,7 +132,7 @@ import { newValidateVisibilityStep } from "../../pipeline/steps/validate-visibil
 import { ResourceNotFoundError } from "../../store/interface.js";
 import type { Store } from "../../store/interface.js";
 import type { SandboxLane } from "../../sandbox/lane.js";
-import { deprovisionSessionSandboxBestEffort } from "../../sandbox/steps.js";
+import { deprovisionSessionSandboxBestEffort } from "../../sandbox/session-sandbox.js";
 import type { RunScoreCascade } from "../score/cascade.js";
 import { newResolveSessionAgentStep } from "./resolve-session-agent.js";
 import { newAdmitSessionEnvironmentStep } from "./admit-session-environment.js";
