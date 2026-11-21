@@ -660,10 +660,11 @@ A worker lost under an awake Session leaves its actor crashed, and the next
 message reverts it to its last snapshot and wakes it, so it loses what the
 Session wrote since then. The sweep runs every
 `STIGMER_SANDBOX_SUBSTRATE_SWEEP_INTERVAL_SECONDS` (30), so a Session sleeps up
-to that long after its window. The server never puts a Session to sleep while
-its Environment installs. A Session you suspend by hand (`kubectl ate suspend`)
-in the middle of an install can wake with `apt` refusing every install until its
-interrupted run is repaired; start a new conversation for it.
+to that long after its window. A sleep can cut an install off: the install runs
+on when the turn waiting for it is cancelled, and the Session can be put to
+sleep before it ends. Its next wake runs the install again, and finishes first
+an `apt` run that was cut off in the middle, which would otherwise block every
+later install.
 
 A new value for one of the runner's secrets, a model key for one, takes effect
 when the server restarts with it, and reaches each sandbox at its next wake: at
@@ -686,6 +687,10 @@ belongs to the image it was written over, so when a sleeping Session moves to a
 new template, by an upgrade or a rollback, its two volumes move with it and the
 rest of its disk starts over from the new image: its Environment's packages
 install once more at its next wake, and are kept again from its next sleep.
+Before upgrading to the first release whose sleep keeps the disk
+([stigmer#3360](https://github.com/stigmer/stigmer/issues/3360)), narrow
+`STIGMER_SANDBOX_SUBSTRATE_WORKER_SELECTOR` to workers of one CPU architecture
+if it matches more than one (below).
 
 **How many Sessions a worker holds.** Each sandbox books
 `STIGMER_SANDBOX_SUBSTRATE_CPU_MILLICORES` of CPU (2000, two cores, by default)

@@ -2,8 +2,8 @@
  * Pins the Environment's install (`install.ts`):
  *
  *   - the commands each manager runs, as argv, in the order apt, cargo,
- *     gem, go, npm, pip: apt updates then installs after `--`, by exact
- *     name (`APT::Cmd::Pattern-Only`); cargo installs into the prefix; gem
+ *     gem, go, npm, pip: apt finishes an interrupted dpkg run, updates,
+ *     then installs after `--`, by exact name (`APT::Cmd::Pattern-Only`); cargo installs into the prefix; gem
  *     installs its unpinned entries together and each `name:ver` as
  *     `name -v ver`; go runs one `go install` per module with GOBIN, GOPATH
  *     and GOCACHE in the prefix; npm installs globally into the prefix after
@@ -118,6 +118,7 @@ describe("installCommands", () => {
     const bin = `${PREFIX}/bin`;
     const gemArgs = ["gem", "install", "--no-document", "--install-dir", `${PREFIX}/gem`, "--bindir", bin];
     expect(commands.map((command) => [command.manager, command.argv, command.asAgent])).toEqual([
+      ["apt", ["dpkg", "--configure", "-a"], false],
       ["apt", ["apt-get", "update"], false],
       ["apt", ["apt-get", "install", "-y", "--no-install-recommends", "-o", "APT::Cmd::Pattern-Only=true", "--", "poppler-utils=22.02.0-2", "jq"], false],
       ["cargo", ["cargo", "install", "--root", PREFIX, "hyperfine@1.18.0", "ripgrep"], true],
@@ -130,6 +131,16 @@ describe("installCommands", () => {
       ["pip", ["python3", "-m", "venv", "--system-site-packages", `${PREFIX}/python`], true],
       ["pip", [`${PREFIX}/python/bin/pip`, "install", "--disable-pip-version-check", "--", "sqlalchemy==2.0.30", "requests[socks]"], true],
     ]);
+  });
+
+  it("finishes an interrupted dpkg run, as root, before apt updates, and only when apt has packages", () => {
+    // A disk that outlives its runner (a docker restart, a Substrate sleep)
+    // can keep a dpkg run an install was cut off in; apt refuses every later
+    // install until it is finished (stigmer#3360).
+    const [repair, update] = installCommands(packages({ apt: ["jq"] }), PREFIX) as [InstallCommand, InstallCommand];
+    expect(repair).toEqual({ manager: "apt", argv: ["dpkg", "--configure", "-a"], asAgent: false, env: { DEBIAN_FRONTEND: "noninteractive" } });
+    expect(update.argv).toEqual(["apt-get", "update"]);
+    expect(installCommands(packages({ npm: ["express"] }), PREFIX).some((command) => command.argv[0] === "dpkg")).toBe(false);
   });
 
   it("gives each manager the variables it installs by", () => {
@@ -164,7 +175,7 @@ describe("commandEnvironment", () => {
     AWS_SECRET_ACCESS_KEY: "aws-canary",
     KUBERNETES_SERVICE_HOST: "10.0.0.1",
   };
-  const [apt, , npm] = installCommands(packages({ apt: ["jq"], npm: ["express"] }), PREFIX) as [InstallCommand, InstallCommand, InstallCommand];
+  const [apt, , , npm] = installCommands(packages({ apt: ["jq"], npm: ["express"] }), PREFIX) as [InstallCommand, InstallCommand, InstallCommand, InstallCommand];
 
   it("never gives an agent command a runner secret", () => {
     expect(RUNNER_SECRET_ENV_KEYS).toEqual(expect.arrayContaining(["ANTHROPIC_API_KEY", "STIGMER_TOKEN"]));
@@ -227,7 +238,7 @@ describe("installEnvironment", () => {
     programs = join(dir, "programs");
     mkdirSync(programs);
     // The programs the managers need, as executables on the install's PATH; the stand-in runner never starts them.
-    for (const program of ["apt-get", "cargo", "gem", "go", "npm", "python3", "setpriv"]) {
+    for (const program of ["apt-get", "cargo", "dpkg", "gem", "go", "npm", "python3", "setpriv"]) {
       writeFileSync(join(programs, program), "#!/bin/sh\nexit 0\n");
       chmodSync(join(programs, program), 0o755);
     }
@@ -246,6 +257,7 @@ describe("installEnvironment", () => {
     const set = environment({ apt: ["jq"], npm: ["express"] });
     expect(await installEnvironment(set, { identity, prefix, env: { PATH: programs }, run, log })).toBe("installed");
     expect(calls.map((call) => call.argv)).toEqual([
+      [join(programs, "dpkg"), "--configure", "-a"],
       [join(programs, "apt-get"), "update"],
       [join(programs, "apt-get"), "install", "-y", "--no-install-recommends", "-o", "APT::Cmd::Pattern-Only=true", "--", "jq"],
       [
@@ -267,7 +279,7 @@ describe("installEnvironment", () => {
         "express",
       ],
     ]);
-    expect(calls[2]!.env["HOME"]).toBe(identity.home);
+    expect(calls[3]!.env["HOME"]).toBe(identity.home);
     // Root's own commands never see the agent's folders on their PATH.
     expect(calls[0]!.env["PATH"]).toBe(programs);
     expect(calls.every((call) => call.deadlineMs <= COMMAND_DEADLINE_MS)).toBe(true);
@@ -278,13 +290,13 @@ describe("installEnvironment", () => {
     const identity = ownIdentity();
     const planted = join(prefix, "bin");
     mkdirSync(planted, { recursive: true });
-    for (const program of ["apt-get", "setpriv"]) {
+    for (const program of ["apt-get", "dpkg", "setpriv"]) {
       writeFileSync(join(planted, program), "#!/bin/sh\nexit 0\n");
       chmodSync(join(planted, program), 0o755);
     }
     await installEnvironment(environment({ apt: ["jq"], npm: ["express"] }), { identity, prefix, env: { PATH: programs }, run, log });
     const started = calls.map((call) => call.argv[0]!);
-    expect(started).toEqual([join(programs, "apt-get"), join(programs, "apt-get"), join(programs, "setpriv")]);
+    expect(started).toEqual([join(programs, "dpkg"), join(programs, "apt-get"), join(programs, "apt-get"), join(programs, "setpriv")]);
     expect(started.some((program) => program.startsWith(prefix))).toBe(false);
     expect(calls[0]!.env["PATH"]!.split(delimiter)).not.toContain(planted);
   });
