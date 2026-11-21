@@ -453,9 +453,8 @@ function useStableRecord<T>(record: Readonly<Record<string, T>> | undefined): Re
   return kept ?? null;
 }
 
-/** Whether two records hold the same values under the same own keys. */
+/** Whether two different records hold the same values under the same own keys. */
 function sameEntries<T>(a: Readonly<Record<string, T>> | undefined, b: Readonly<Record<string, T>> | undefined): boolean {
-  if (a === b) return true;
   if (a === undefined || b === undefined) return false;
   const keys = Object.keys(a);
   if (keys.length !== Object.keys(b).length) return false;

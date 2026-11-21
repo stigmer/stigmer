@@ -2072,11 +2072,13 @@ const LiftedToolCard = memo(function LiftedToolCard({ toolUse }: { readonly tool
   const Card = useLiftedHostCard(toolUse);
   const { sessionId = "" } = useThreadPresentation();
   const call = useMemo(() => toolCallInfoOf(toolUse, sessionId), [toolUse, sessionId]);
-  if (Card === undefined) return null;
+  // The list was made from the same map, so the card is there; the kit's
+  // body stands in only if the map lost it in between.
+  const ours = <ToolCallDetail toolUse={toolUse} />;
   return (
     <div role="group" aria-label={stepPhrase(toolUse).text} data-cursor-target="host-tool-card">
-      <ToolCardBoundary state={call.state} fallback={<ToolCallDetail toolUse={toolUse} />}>
-        <Card call={call} />
+      <ToolCardBoundary state={call.state} fallback={ours}>
+        {Card === undefined ? ours : <Card call={call} />}
       </ToolCardBoundary>
     </div>
   );
