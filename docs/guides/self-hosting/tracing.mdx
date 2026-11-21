@@ -34,6 +34,19 @@ turn is a root span in it, and your tool shows the latest turn's name.
 judge grading another run) or `eval-try` (one try of an eval run). Filter on it
 to keep the judge's grades out of a view of your users' runs.
 
+## Which release has it
+
+Every release from 0.1.0 sends runner traces, with the settings on this page. A
+server that sends none is missing its settings, not a newer release.
+
+To read the release your server runs, ask the server, not your own CLI
+(`stigmer version` names the CLI's):
+
+- Anywhere you're signed in: the `Server` line of `stigmer auth whoami`.
+- On Kubernetes: `helm list -n stigmer`. The chart's version is the Stigmer
+  version.
+- On Docker Compose: `STIGMER_VERSION` in your `.env`.
+
 ## Turn it on
 
 Set these on the runner. Which list each goes in depends on how your runner
@@ -58,8 +71,36 @@ everything off.
   add `OTEL_EXPORTER_OTLP_PROTOCOL=grpc`.
 </Callout>
 
-**The runner `stigmer up`, Compose or the chart starts** reads them from its own
-environment: add them where you set its other variables.
+**On your laptop**, `stigmer up` passes its shell's environment to the runner:
+export them before you run it.
+
+**On Kubernetes**, put them in your values file's `runner.extraEnv`, with the
+login read from a Secret so the values file still holds no key:
+
+```bash
+kubectl -n stigmer create secret generic stigmer-tracing \
+  --from-literal=OTEL_EXPORTER_OTLP_HEADERS="Authorization=Basic%20<base64 of pk:sk>"
+```
+
+```yaml no-validate="Helm values, not a Stigmer resource"
+runner:
+  extraEnv:
+    - name: OTEL_EXPORTER_OTLP_ENDPOINT
+      value: https://cloud.langfuse.com/api/public/otel
+    - name: OTEL_EXPORTER_OTLP_HEADERS
+      valueFrom:
+        secretKeyRef:
+          name: stigmer-tracing
+          key: OTEL_EXPORTER_OTLP_HEADERS
+```
+
+Then run the `helm upgrade` from [the Kubernetes page](./kubernetes).
+
+**On Docker Compose, the runner can't send traces today.** The Compose file
+gives the runner a fixed list of settings, and these aren't on it, so lines in
+`.env` never reach the runner. Run the stack on Kubernetes, or the runner on a
+laptop with `stigmer up`, to trace runs; the Compose stack's support is
+[stigmer#3376](https://github.com/stigmer/stigmer/issues/3376).
 
 **Sandboxed runners** (a per-Session runner the server provisions, see
 [the runner page](./runners)) get them through the server's two lists. Put the

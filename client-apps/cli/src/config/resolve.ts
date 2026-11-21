@@ -37,10 +37,11 @@ export function resolveEndpoint(config: Config): string {
  * The endpoint {@link resolveEndpoint} names, with where it came from: the
  * override's name, or the active backend's kind. The backend client records
  * it when made, so a failure names the address tried and the fix that fits
- * its source.
+ * its source. `env` is the environment the override is read from; `stigmer
+ * status` passes the one it was given, so its tests need no process state.
  */
-export function resolveServerAddress(config: Config): ServerAddress {
-  const override = process.env.STIGMER_SERVER_ADDRESS;
+export function resolveServerAddress(config: Config, env: NodeJS.ProcessEnv = process.env): ServerAddress {
+  const override = env.STIGMER_SERVER_ADDRESS;
   if (override !== undefined && override !== "") {
     return { address: override, source: "environment" };
   }
