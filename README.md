@@ -151,7 +151,7 @@ Every component is themeable with design tokens, and the hooks underneath are ex
 
 | | Stigmer open source | Stigmer Enterprise | Stigmer Cloud |
 |---|---|---|---|
-| **Start with** | `stigmer up`, Docker Compose or the Helm chart | The Helm chart with a license key Secret | `stigmer config backend set cloud` |
+| **Start with** | `stigmer up`, Docker Compose or the Kubernetes operator | The Kubernetes operator with a license key Secret | `stigmer config backend set cloud` |
 | **Storage** | SQLite (`~/.stigmer/stigmer.db`) or your Postgres | Your Postgres | Managed |
 | **Users** | One organization, with sign-in, roles and service accounts | Many organizations, teams, invitations and federation | The same, hosted |
 | **LLM** | Your key, held by the runner (Anthropic) | Your key, held by the runner (Anthropic) | Your organization's keys (Anthropic, OpenAI, compatible endpoints) |
@@ -171,7 +171,7 @@ profile images. Use `brand/avatar.png` for GitHub and other profile uploads.
 - [Getting Started](https://stigmer.ai/docs/getting-started/quickstart) — Give an agent a job and get its report back, on your machine or on Stigmer Cloud
 - [Try it in one container](https://stigmer.ai/docs/guides/self-hosting/all-in-one) — `docker run ghcr.io/stigmer/stigmer` for evaluation (not for production)
 - [Self-hosting](https://stigmer.ai/docs/guides/self-hosting/docker-compose) — Run the full stack on your own machine with Docker Compose
-- [Kubernetes](https://stigmer.ai/docs/guides/self-hosting/kubernetes) — The same stack on a cluster with the Helm chart (`oci://ghcr.io/stigmer/charts/stigmer`)
+- [Kubernetes](https://stigmer.ai/docs/guides/self-hosting/kubernetes) — The same stack on a cluster, run by the Stigmer operator (`oci://ghcr.io/stigmer/charts/stigmer-operator`) from one `Stigmer` resource
 - [CLI Reference](https://stigmer.ai/docs/cli) — Commands, flags, and examples
 - [SDK Reference](https://stigmer.ai/docs/sdk) — Go, TypeScript, Python, Java, React, and Ink
 - [What is Stigmer?](https://stigmer.ai/docs/concepts/what-is-stigmer) — What each customer's agent has, and how one job runs end to end

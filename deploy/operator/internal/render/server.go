@@ -5,8 +5,8 @@
 //
 // One replica, recreated rather than rolled: the server keeps per-process
 // state (its keyed serializer, a sandbox driver's queues) besides its claims,
-// so two copies must never overlap. The containers keep the Helm chart's
-// security posture: the server runs as the image's non-root user; the runner
+// so two copies must never overlap. The containers' security posture: the
+// server runs as the image's non-root user; the runner
 // runs as root because its start script drops each agent to its own user,
 // keeping only the five capabilities that takes. Every container reports its
 // last log lines as its termination message, so a server that refuses to

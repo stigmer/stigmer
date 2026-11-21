@@ -11,8 +11,9 @@
  *
  * That origin is `SKILL_TRANSFER_BASE_URL` when the operator named one. The
  * team shapes fill it from the address they were told clients reach the
- * server on (Compose's `STIGMER_PUBLIC_URL`, the chart's `server.publicUrl`
- * or its Ingress API host), and the console is served on that same origin,
+ * server on (Compose's `STIGMER_PUBLIC_URL`, the Kubernetes operator's
+ * front door, `spec.ingress.hostname`), and the console is served on that
+ * same origin,
  * so its callback page is there too. Unnamed, the server is reached by a
  * browser on the machine it runs on (`stigmer up`, the desktop app, the
  * all-in-one image), and the origin is `http://localhost:<port>`, the host

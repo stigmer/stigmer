@@ -126,7 +126,8 @@ export interface ServerConfig {
    * that discover their coordinates from this server instead of being
    * given them (STIGMER_RUNNER_BOOTSTRAP_TEMPORAL_ADDRESS; stigmer#1357).
    * Defaults to TEMPORAL_HOST_PORT — right whenever those runners share
-   * this server's network (a laptop, the compose stack, the chart). Set
+   * this server's network (a laptop, the compose stack, the Kubernetes
+   * operator's shared runner). Set
    * it when they do not: a server in a cluster that dials Temporal by its
    * internal service name, and a desktop runner that must dial the
    * frontend's external ingress. The namespace is not split; one
@@ -456,7 +457,8 @@ export interface ServerConfig {
    * runners reach none, and a run that needs one is refused at create
    * (extensions/provider-availability.ts). `stigmer up` sets it from the
    * runner environment it builds; an operator whose runners hold keys sets
-   * it for a compose or Helm install.
+   * it for a compose install, or in a Kubernetes install's
+   * spec.server.extraEnv.
    */
   readonly runnerProviders: ReadonlySet<ModelProvider> | undefined;
   /**

@@ -11,7 +11,7 @@ Report it privately through GitHub instead:
 maintainers can read it. Please include:
 
 - the version and the component affected (the server, the runner, the CLI,
-  an SDK, the Helm chart, `ee/`, ...);
+  an SDK, the Kubernetes operator, `ee/`, ...);
 - the steps to reproduce it, or a proof of concept;
 - the impact as you understand it.
 

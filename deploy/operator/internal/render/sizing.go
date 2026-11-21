@@ -2,7 +2,7 @@
 // override merged over it, and a refusal before anything renders when the
 // result cannot run.
 //
-// Defaults are the Helm chart's, which were sized for one team: memory is
+// Defaults are sized for one team: memory is
 // requested and limited, so a leak is a restart and not a node; CPU is
 // requested and never limited, so a burst (a search-index rebuild at boot)
 // is not throttled. An override replaces a default per resource name, so

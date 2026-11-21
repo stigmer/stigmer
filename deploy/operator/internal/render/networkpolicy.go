@@ -17,8 +17,8 @@
 //   Substrate's own egress gateway instead (substrate.go), which lets them
 //   out only to the lanes the server names.
 // - The server's egress is fenced only when asked for (spec.server.egress)
-//   or under an Enterprise license whose outbound egress is strict, as the
-//   Helm chart had it: a server's own outbound calls include an issuer or an
+//   or under an Enterprise license whose outbound egress is strict: a
+//   server's own outbound calls include an issuer or an
 //   MCP server on the adopter's private network, which a default fence
 //   would cut. Fenced, it reaches DNS, the Kubernetes API (the agent-sandbox
 //   driver's), its database, Temporal, the bundled sign-in, Substrate, the

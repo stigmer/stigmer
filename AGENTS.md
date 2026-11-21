@@ -59,10 +59,9 @@ skill" when it could be misread.
   source is named. Nothing in it is installed unasked.
 - `docs/` and `site/`: documentation content (MDX, Vale, Prettier) and the
   Fumadocs site; `docs-agent/`: the Ask AI agent.
-- `deploy/`: Helm chart, operator, all-in-one image; `examples/`; `marketing/`;
+- `deploy/`: operator, its chart, all-in-one image; `examples/`; `marketing/`;
   `blog/`.
-- `scripts/`: repo-level Node scripts, each with a `*.test.mjs` sibling run by
-  `npm run test:scripts`.
+- `scripts/`: repo-level Node scripts, each with a `*.test.mjs` sibling.
 
 Dependency direction: `@stigmer/apis` (from `apis/stubs/ts`) ->
 `@stigmer/client` -> `@stigmer/react-core` -> kits -> client apps. Server and
@@ -121,14 +120,15 @@ summary line in the final message. Never report unverified work as done.
 - `test/conformance/**`, `test/support/**`:
   `npm run typecheck -w @stigmer/conformance -w @stigmer/test-support && make check-conformance-inventory`;
   suites under `test/conformance/src/suites/` also `make test-conformance`.
-- `plugins/**`: `make test-plugins-static`. `deploy/helm/stigmer/**`:
-  `make lint-helm test-helm`. `deploy/operator/**`,
+- `plugins/**`: `make test-plugins-static`. `deploy/operator/**`,
   `deploy/helm/stigmer-operator/**`: `make lint-operator test-operator`.
+  `coding-agents/**`: `npm test -w @stigmer/coding-agent-plugin`.
 - `docs/**`, `site/**`:
   `make lint-docs format-docs-check check-docs-yaml check-docs-inventory build-site`,
   `make -C site lint typecheck`.
-- `scripts/**`: `npm run test:scripts`. `.github/**`: `make lint-workflows`. Any
-  `AGENTS.md` or `.agents/**`: `make agents-check format-docs-check`.
+- `scripts/**`, `test/install/**`: `npm run test:scripts`. `.github/**`:
+  `make lint-workflows`. Any `AGENTS.md` or `.agents/**`:
+  `make agents-check format-docs-check`.
 
 ## Hard laws
 

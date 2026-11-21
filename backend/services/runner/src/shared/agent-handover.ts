@@ -10,7 +10,8 @@
  *  - that state and the workspace root become the agent's, every entry
  *    changed in place with `lchown`, never followed through a link;
  *  - the directories between the runner's home and a workspace root inside
- *    its state (the chart's `/data/.stigmer/data/workspace`) become 0711,
+ *    its state (the shared runner's `/data/.stigmer/data/workspace` on
+ *    Kubernetes) become 0711,
  *    traversable but not listable, so the agent reaches its workspace but
  *    cannot list what lies beside it. A sibling whose name it knows stays
  *    as reachable as its own mode makes it: compose's artifact volume

@@ -6,21 +6,20 @@ it names are the truth.
 
 ## Read in this order
 
-- `README.md`: what the operator runs, how to build and test it, and where the
-  install test lives.
+- `README.md`: what the operator runs, how to build and test it; its chart's own
+  README, `deploy/helm/stigmer-operator/README.md`.
 - `api/v1/stigmer_types.go` header: the resource, why a field arrives only with
   the code that acts on it, and which rules are the API server's (CEL) versus
   the operator's (status).
-- `api/v1/component_reason.go`: the reasons status carries, as constants, each
-  with its sentence.
+- `api/v1/component_reason.go`: the reasons status carries, each with its
+  sentence.
 - `internal/component/component.go` header: the component contract, the two
   readers (cached and direct) and when each is used; then `apply.go`,
   `prerequisite.go`, `notready.go`, `secrets.go`.
 - `internal/controller/stigmer_controller.go` header: the walk, the
   whole-install refusals, one status write per pass.
 - `internal/render/env.go` and `internal/render/parity_test.go`: the server's
-  and the runner's settings and the Compose parity contract that holds them to
-  `docker-compose.yml`.
+  and runner's settings, held to `docker-compose.yml` by the parity test.
 - `internal/manifests/README.md`: the embedded releases and how to move them.
 - `internal/render/sandbox.go`, `internal/render/networkpolicy.go`,
   `internal/substrate/install/install.go`, `internal/janitor/janitor.go`
@@ -33,9 +32,10 @@ it names are the truth.
 ## Laws
 
 - Generated files are never edited by hand: `api/v1/zz_generated.deepcopy.go`,
-  `config/crd/bases/`, `config/rbac/role.yaml`, and their copies in
-  `deploy/helm/stigmer-operator/files/`. Run `make manifests generate` here;
-  `make generated-check` fails a stale copy.
+  `config/crd/bases/`, `config/rbac/role.yaml`, their copies in
+  `deploy/helm/stigmer-operator/files/`, and the docs' reference page. Run
+  `make manifests generate` here, then `make gen-operator-docs` at the root;
+  `make generated-check` and `make gen-operator-docs-check` fail a stale copy.
 - A reason is a constant in `api/v1/component_reason.go` with a sentence in
   `ReasonMessages`; never a string literal at a call site. A released reason is
   never renamed.
@@ -73,9 +73,8 @@ it names are the truth.
 
 ## Verification
 
-`make lint-operator test-operator` from the repository root; a behaviour change
-also runs `make smoke-operator PROFILE=bundled` (the install test on kind), and
-a change to the bucket, backups or upgrades `PROFILE=bucket` and
-`PROFILE=upgrade`, a change to the front door or sign-in `PROFILE=exposed`, and
-a change to sandboxes, fences or the janitor `PROFILE=agent-sandbox`, and to
-Substrate `PROFILE=substrate`.
+`make lint-operator test-operator` from the repository root. A behaviour change
+also runs the install test on kind, `make smoke-operator` with `PROFILE=` by
+area: `bundled`; `bucket` and `upgrade` for the bucket, backups or upgrades;
+`exposed` for the front door or sign-in; `agent-sandbox` for sandboxes, fences
+or the janitor; `substrate` for Substrate.

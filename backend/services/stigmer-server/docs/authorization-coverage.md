@@ -522,7 +522,7 @@ Static web-console assets on the unified port, present only when a console expor
 
 ### Artifact HTTP file server (`src/artifactstorage/file-server.ts`)
 
-A SECOND listener, not a unified-port lane: `GET /<storage_key>` on `127.0.0.1:ARTIFACT_HTTP_PORT` (unset: the unified port + 1, or ephemeral beside an ephemeral unified port; `src/boot/artifact-lane.ts`), started only when artifact storage is local, before the server reports SERVING; a lane that cannot bind fails the boot. Serves the exact bytes local artifact storage wrote, to a link that storage signed: the URL's signature and expiry are the credential (`src/artifactstorage/url-signer.ts`), checked before the disk is touched, and an unsigned, tampered, expired or re-named link is answered the 404 a missing key gets. The loopback bind is the default (0.0.0.0 inside the official container; the Helm chart exposes the lane through its artifacts host).
+A SECOND listener, not a unified-port lane: `GET /<storage_key>` on `127.0.0.1:ARTIFACT_HTTP_PORT` (unset: the unified port + 1, or ephemeral beside an ephemeral unified port; `src/boot/artifact-lane.ts`), started only when artifact storage is local, before the server reports SERVING; a lane that cannot bind fails the boot. Serves the exact bytes local artifact storage wrote, to a link that storage signed: the URL's signature and expiry are the credential (`src/artifactstorage/url-signer.ts`), checked before the disk is touched, and an unsigned, tampered, expired or re-named link is answered the 404 a missing key gets. The loopback bind is the default (0.0.0.0 inside the official container; the Kubernetes operator's front door exposes the lane at `/artifacts` on its one hostname).
 
 ## Notes on the authorization chain
 

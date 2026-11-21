@@ -67,7 +67,7 @@
  *   --require-license fails the run when STIGMER_EE_SMOKE_LICENSE_KEY is
  *   unset, so a release can never drop step 4 in silence.
  *   --build-only builds that local image, labels checked, prints its tag and
- *   stops: the Helm chart's kind smoke (test/install/smoke-helm.mjs,
+ *   stops: the operator's install test (test/install/smoke-operator.mjs,
  *   --profiles=enterprise) installs the image this smoke proves.
  *
  * Plain node + docker CLI, no dependencies, like the shared smoke.

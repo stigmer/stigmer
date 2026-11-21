@@ -1,7 +1,7 @@
 // The enforcing lane of an EXECUTION target: the open-source sibling in the
-// OIDC posture, beside its own engine, with a runner keyed the way the
-// Helm chart keys one — see TargetProfile.enforcingLane and
-// CapabilityFlags.runnerActsAsRunCreator.
+// OIDC posture, beside its own engine, with a runner keyed with a signed-in
+// person's API key as the runner's one token — see
+// TargetProfile.enforcingLane and CapabilityFlags.runnerActsAsRunCreator.
 // Domain: conformance harness (execution engine).
 //
 // A Class A enforcing lane (enforcing-lane.ts) proves what an authorization
@@ -13,9 +13,9 @@
 //   1. the people lane boots the issuer and the sibling — through the
 //      target's spawnSibling, which on an execution target brings its own
 //      Temporal (SiblingExecutionServer) — and provisions the founder;
-//   2. the founder mints an API key in an organization of their own: the
-//      "signed-in operator mints the runner's key" step of the chart's
-//      two-step install, driven by the harness instead of a person;
+//   2. the founder mints an API key in an organization of their own, the
+//      way a signed-in person keyed a self-hosted runner before the server
+//      provisioned the runner's own key at boot, driven by the harness;
 //   3. a runner boots against the sibling's engine, its unified port and
 //      its artifact store, keyed with that key as its ONE token (the runner
 //      has one token variable for the proxy bearer and the control-plane
@@ -107,8 +107,8 @@ export async function newSiblingEnforcingExecutionLane(
   const mock = new MockLlmProxy();
   let runner: RunningRunner | undefined;
   try {
-    // The operator's key: minted by the founder in an organization of their
-    // own, exactly as the chart's install asks a signed-in operator to do.
+    // The runner's key: minted by the founder in an organization of their
+    // own, a signed-in person's key as the runner's one token.
     // Newcomers the people lane provisions are revoked on this organization
     // like every other the founder holds, so no arm ever meets it.
     const home = await people.lane.provisionTenancy();
