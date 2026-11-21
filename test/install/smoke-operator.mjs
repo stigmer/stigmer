@@ -13,8 +13,8 @@
  *   reaches Ready with no other Secret written by hand: the operator mints
  *   the keys, installs CloudNativePG, runs Postgres and Temporal and the
  *   server with its runner. Every container reaches Ready with zero
- *   restarts. Through a port-forward, the same probes as the chart and the
- *   compose stack: health SERVING, the console's /config.json contract, the
+ *   restarts. Through a port-forward, the same probes as the compose
+ *   stack: health SERVING, the console's /config.json contract, the
  *   artifact file server, and one END-TO-END AGENT RUN through the runner,
  *   answered by the fake model on this host
  *   (test/install/lib/fake-model.mjs), whose key and address reach the
@@ -118,10 +118,16 @@
  *
  * Usage:
  *   node test/install/smoke-operator.mjs [--profiles=bundled,byo] [--cluster=<name>] [--keep] [--fake-model=reply|error]
+ *       [--chart=<dir|.tgz>] [--published --version=vX.Y.Z]
  *
  * `make smoke-operator` first builds what the source images bundle (the
  * server, the console, the runner's CLI); this script builds the images
  * (compose's build, the operator's Dockerfile) and loads them into kind.
+ * --chart installs the operator from a packaged chart instead of the
+ * checkout's, as `helm package` leaves it. --published builds nothing: the
+ * release lane runs it against a release's packaged chart and the images it
+ * has just pushed, before the chart is pushed
+ * (test/install/lib/smoke-operator-args.mjs says which profiles run so).
  *
  * Plain node + the helm, kind, kubectl and docker CLIs, no dependencies.
  */
@@ -151,6 +157,7 @@ import {
   startSignedInProxy,
 } from "./lib/front-door-client.mjs";
 import { ARTIFACT_PORT, SERVER_PORT, createOperator, createStigmer } from "./lib/install-operator.mjs";
+import { PROFILES, parseSmokeOperatorArgs } from "./lib/smoke-operator-args.mjs";
 import { createActorReader } from "./lib/substrate.mjs";
 import {
   assertArtifactLane,
@@ -166,8 +173,6 @@ import {
 } from "./lib/stigmer-smoke.mjs";
 
 const repoRoot = fileURLToPath(new URL("../..", import.meta.url));
-/** In the order they run: upgrade last, since it leaves the operator at its second build. */
-const PROFILES = ["bundled", "byo", "enterprise", "bucket", "exposed", "agent-sandbox", "substrate", "upgrade"];
 // A first install pulls CloudNativePG and Temporal, creates the database and
 // its schema, and waits through the server's startup probe; generous on a
 // shared CI host.
@@ -182,23 +187,6 @@ const BACKUP_TIMEOUT_MS = 10 * 60_000;
 const MODEL_SECRET = "anthropic";
 /** The line the Enterprise server prints when it refuses a key (ee/server/scripts/smoke-image.mjs checks the same). */
 const LICENSE_REFUSAL = "boot failed: The Stigmer Enterprise license key";
-
-function parseArgs() {
-  const args = { profiles: ["bundled", "byo"], cluster: "", keep: false, fakeModel: "reply" };
-  for (const arg of process.argv.slice(2)) {
-    let m;
-    const fakeModelMode = parseFakeModelArg(arg);
-    if (fakeModelMode !== undefined) args.fakeModel = fakeModelMode;
-    else if ((m = arg.match(/^--profiles=(.+)$/)) !== null) args.profiles = m[1].split(",");
-    else if ((m = arg.match(/^--cluster=(.+)$/)) !== null) args.cluster = m[1];
-    else if (arg === "--keep") args.keep = true;
-    else fail(`unknown argument: ${arg}`);
-  }
-  for (const profile of args.profiles) {
-    if (!PROFILES.includes(profile)) fail(`unknown profile '${profile}' (one of ${PROFILES.join(", ")})`);
-  }
-  return args;
-}
 
 function fail(message) {
   console.error(`smoke-operator: ${message}`);
@@ -215,6 +203,26 @@ let objectStore;
 let frontDoor;
 /** The Stigmer being exercised, so a failure can print its diagnostics. */
 let current;
+/** The version every Stigmer runs: compose-dev for a source build, the release's tag for a published one. */
+let expectedVersion;
+
+/**
+ * The install runs the version under test: the operator reports it, and the
+ * server and its runner run the image at that tag, from Stigmer's registry.
+ */
+function assertRunsExpectedVersion(stigmer) {
+  const reported = stigmer.read()?.status?.version;
+  if (reported !== expectedVersion) throw new Error(`status.version reads ${reported}, not ${expectedVersion}`);
+  const images = stigmer.images();
+  for (const [container, repository] of [
+    ["server", "stigmer-server"],
+    ["runner", "stigmer-runner"],
+  ]) {
+    const want = `${IMAGE_REGISTRY}/${repository}:${expectedVersion}`;
+    if (images[container] !== want) throw new Error(`the ${container} runs ${images[container]}, not ${want}`);
+  }
+  log(`the install runs ${expectedVersion}: status.version and the server's and runner's images agree`);
+}
 
 function kubectl(args, options = {}) {
   return cluster.kubectl(args, options);
@@ -336,6 +344,7 @@ async function runBundled(fake, modelBaseUrl) {
   await stigmer.waitReady(READY_TIMEOUT_MS);
   assertZeroRestarts(namespace);
   log("Ready, every container with zero restarts");
+  assertRunsExpectedVersion(stigmer);
 
   const keysMessage = stigmer.component("keys")?.message ?? "";
   if (!keysMessage.includes("keep a copy outside the cluster")) throw new Error(`the keys component does not say to keep the keys: ${keysMessage}`);
@@ -447,6 +456,7 @@ async function runByo(fake, modelBaseUrl) {
   await stigmer.waitReady(READY_TIMEOUT_MS);
   assertZeroRestarts(namespace);
   log("Ready, every container with zero restarts");
+  assertRunsExpectedVersion(stigmer);
   const running = cluster.kubectlJson(["-n", namespace, "get", "deployments,statefulsets"]).items.map((i) => i.metadata.name);
   if (running.join(",") !== "stigmer") throw new Error(`the operator runs more than the server against your own Postgres and Temporal: ${running}`);
   const clusters = cluster.kubectlQuiet(["-n", namespace, "get", "clusters.postgresql.cnpg.io", "-o", "name"]).stdout?.trim() ?? "";
@@ -1369,7 +1379,13 @@ function kubeconfigArgs() {
 }
 
 async function main() {
-  const args = parseArgs();
+  let args;
+  try {
+    args = parseSmokeOperatorArgs(process.argv.slice(2));
+  } catch (error) {
+    fail(error instanceof Error ? error.message : String(error));
+  }
+  expectedVersion = args.published?.tag ?? SOURCE_TAG;
   assertTools();
   await assertPortFree(SERVER_PORT);
   await assertPortFree(ARTIFACT_PORT);
@@ -1377,7 +1393,7 @@ async function main() {
   let config = args.profiles.includes("exposed") ? kindConfig() : undefined;
   if (args.profiles.includes("substrate")) config = substrateKindConfig(config);
   cluster = createKindCluster({ existing: args.cluster, prefix: "stigmer-operator-smoke", log, config });
-  operator = createOperator(cluster, { log });
+  operator = createOperator(cluster, { log, chart: args.chart, published: args.published !== undefined });
   objectStore = createObjectStore(cluster, { log });
   frontDoor = createFrontDoor(cluster, { log, workDir: mkdtempSync(join(tmpdir(), "stigmer-front-door-")) });
   let failed = false;
@@ -1385,10 +1401,14 @@ async function main() {
   try {
     await cluster.start();
     if (args.profiles.includes("substrate")) cluster.prepareForSubstrate();
-    cluster.loadSourceImages();
-    if (args.profiles.includes("enterprise")) cluster.loadEnterpriseSourceImage();
-    if (args.profiles.includes("agent-sandbox")) cluster.loadSandboxRunnerImage();
-    operator.buildAndLoad();
+    if (args.published === undefined) {
+      cluster.loadSourceImages();
+      if (args.profiles.includes("enterprise")) cluster.loadEnterpriseSourceImage();
+      if (args.profiles.includes("agent-sandbox")) cluster.loadSandboxRunnerImage();
+      operator.buildAndLoad();
+    } else {
+      log(`a published release: every image is pulled at ${args.published.tag}`);
+    }
     operator.install();
     log("the operator is installed and ready");
     const modelBaseUrl = fakeModelEnv(fake, cluster.hostAddress()).ANTHROPIC_BASE_URL;

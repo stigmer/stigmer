@@ -4,19 +4,23 @@
  * (its chart, deploy/helm/stigmer-operator) and how a Stigmer resource is
  * declared, waited on and read back. Used by test/install/smoke-operator.mjs.
  *
- * Two levels, as in install-helm.mjs:
- *   - the operator ({@link createOperator}): its image built from
- *     deploy/operator for this machine's architecture, loaded into kind,
- *     installed with `helm upgrade --install` into its own namespace (the
- *     upgrade test moves it between two builds stamped as consecutive
- *     versions); its log, read for ERROR lines (a healthy install logs none);
+ * Two levels:
+ *   - the operator ({@link createOperator}): its chart (the checkout's, or a
+ *     packaged one) installed with `helm upgrade --install` into its own
+ *     namespace, the image built from deploy/operator for this machine's
+ *     architecture and loaded into kind (the upgrade test moves it between
+ *     two builds stamped as consecutive versions) or, for a published
+ *     release, pulled at the tag the chart's appVersion names; its log, read
+ *     for ERROR lines (a healthy install logs none);
  *   - a Stigmer in a namespace ({@link createStigmer}): `kubectl apply` of
  *     the resource, waits on its Ready condition or on one component's
  *     standing, a port-forward to the server's Service, diagnostics.
  *
  * A source build runs every image at `compose-dev` with pullPolicy Never:
  * the operator is stamped with that version, so it pulls nothing behind the
- * proof's back.
+ * proof's back. A published release builds and loads nothing: the operator
+ * and every image it runs come from the registry, at the release's version,
+ * exactly as a platform engineer's install pulls them.
  *
  * Plain node and the helm, kind, kubectl and docker CLIs, no dependencies.
  */
@@ -42,8 +46,12 @@ const OPERATOR_RELEASE = "stigmer-operator";
 export const SERVER_PORT = 7234;
 export const ARTIFACT_PORT = 7235;
 
-/** The operator: built, loaded and installed on `cluster`. */
-export function createOperator(cluster, { log }) {
+/**
+ * The operator on `cluster`, installed from `chart` (a chart directory or a
+ * packaged .tgz; the checkout's by default). `published` is true for a
+ * published release, whose image is pulled rather than built.
+ */
+export function createOperator(cluster, { log, chart = OPERATOR_CHART, published = false }) {
   return {
     /**
      * Build the operator's image from source, stamped `version` (compose-dev
@@ -52,6 +60,7 @@ export function createOperator(cluster, { log }) {
      * it into the node.
      */
     buildAndLoad({ version = SOURCE_TAG, runnerDigest = "" } = {}) {
+      if (published) throw new Error("a published release's operator is pulled from the registry, never built here");
       const image = `${IMAGE_REGISTRY}/stigmer-operator:${version}`;
       log(`docker build ${image} from deploy/operator${runnerDigest === "" ? "" : `, the runner pinned at ${runnerDigest}`}`);
       execFileSync(
@@ -62,31 +71,32 @@ export function createOperator(cluster, { log }) {
       cluster.loadImage(image);
     },
     /**
-     * `helm upgrade --install` the operator chart at the image stamped `tag`
-     * and wait for the operator to be ready: a first install, or the upgrade
-     * a platform engineer runs to move to the next release. `localRegistry`
-     * is the chart's development-cluster registry; `restart` rolls the
-     * operator so an image rebuilt at the same tag runs.
+     * `helm upgrade --install` the operator chart and wait for the operator
+     * to be ready: a first install, or the upgrade a platform engineer runs
+     * to move to the next release. A source build runs the image stamped
+     * `tag`, never pulled; a published release runs the chart's own default,
+     * the image at `v<appVersion>`, pulled. `localRegistry` is the chart's
+     * development-cluster registry; `restart` rolls the operator so an image
+     * rebuilt at the same tag runs.
      */
     install({ tag = SOURCE_TAG, localRegistry = "", restart = false } = {}) {
+      const image = published ? [] : ["--set", `image.tag=${tag}`, "--set", "image.pullPolicy=Never"];
+      const registry = localRegistry === "" ? [] : ["--set", `localRegistry=${localRegistry}`];
+      log(`helm upgrade --install ${OPERATOR_RELEASE} ${chart}${published ? " (the chart's own image)" : ` (image ${tag})`}`);
       cluster.helm(
         [
           "upgrade",
           "--install",
           OPERATOR_RELEASE,
-          OPERATOR_CHART,
+          chart,
           "-n",
           OPERATOR_NAMESPACE,
           "--create-namespace",
-          "--set",
-          `image.tag=${tag}`,
-          "--set",
-          "image.pullPolicy=Never",
-          "--set",
-          `localRegistry=${localRegistry}`,
+          ...image,
+          ...registry,
           "--wait",
           "--timeout",
-          "3m",
+          published ? "6m" : "3m",
         ],
         { stdio: "inherit" },
       );
