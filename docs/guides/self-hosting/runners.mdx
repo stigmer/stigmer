@@ -597,7 +597,13 @@ for 15; a failed command is tried once more after two seconds. On one machine
 (2026-10-18), a set of two `apt` packages, two `npm` packages, pandas and one Go
 program took about 35 seconds on `docker`, 38 on `agent-sandbox` and 68 on
 `substrate`, Go's module download the largest part each time. The image, the
-registries and the network decide yours.
+registries and the network decide yours. What a `substrate` sleep keeps costs
+little: on one machine (2026-11-21, Agent Substrate v1.0.0 on a local cluster),
+a Session with one `apt`, one `npm` and one `pip` package suspended in 0.22 to
+0.25 s and answered its next message in 3.8 s, where installing the set again
+had taken 14.6 s, and its stored snapshot held about 31 MB. A Session with no
+Environment suspended and woke as fast as before, in about 0.19 s and 3.5 to 3.8
+s.
 
 ### Sessions that sleep, with the `substrate` driver
 
@@ -610,19 +616,20 @@ flight, the files it saved to its outputs folder and the context it set aside),
 as `agent-sandbox` keeps its two claims. The home starts empty: the image's
 skeleton dotfiles are not copied onto it. A sleep keeps the rest of the
 sandbox's disk too: the packages an Environment installed, and anything else the
-agent or the runner left there, files in `/tmp` among them. Only its processes
-start over. Substrate's atelet copies the volumes and the disk's changes to
-storage 5 minutes later and lets the node go after 30 (atelet's
-`--snapshot-upload-delay` and `--snapshot-detach-delay`), so a node lost in
-those first 5 minutes loses what the Session wrote since its last copy. The next
-message wakes it with its files, its packages and its conversation intact and a
-fresh runner, from its node when it wakes on the node that still holds them, and
-from storage when the node has let them go or Substrate places it on another
-node. A Session with a run in progress is never put to sleep. A run waiting for
-approval, or paused, needs no sandbox while it waits: its sandbox sleeps after
-the same idle time, counted from the run's start, and wakes with its files
-before the turn carries on, when the person answers or resumes. Connect
-sandboxes don't sleep; they end with their run.
+agent or the runner left there. `/tmp` is not on the disk: it is held in memory,
+so it starts empty at each wake, as the processes start over. Substrate's atelet
+copies the volumes and the disk's changes to storage 5 minutes later and lets
+the node go after 30 (atelet's `--snapshot-upload-delay` and
+`--snapshot-detach-delay`), so a node lost in those first 5 minutes loses what
+the Session wrote since its last copy. The next message wakes it with its files,
+its packages and its conversation intact and a fresh runner, from its node when
+it wakes on the node that still holds them, and from storage when the node has
+let them go or Substrate places it on another node. A Session with a run in
+progress is never put to sleep. A run waiting for approval, or paused, needs no
+sandbox while it waits: its sandbox sleeps after the same idle time, counted
+from the run's start, and wakes with its files before the turn carries on, when
+the person answers or resumes. Connect sandboxes don't sleep; they end with
+their run.
 
 Two things put a Session to sleep before its idle time is up. When a run waits
 because no worker has room, the server puts the awake Session that has been idle
