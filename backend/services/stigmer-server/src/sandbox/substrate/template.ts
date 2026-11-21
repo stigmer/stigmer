@@ -328,6 +328,11 @@ export interface TemplateKeeper {
   readyNow(): boolean;
   /** Forget a ready template that turned out to be gone (another server retired it). */
   invalidate(): void;
+  /**
+   * Calls `listener` whenever readyNow() changes; returns the call that
+   * stops it.
+   */
+  onReadyChange(listener: (ready: boolean) => void): () => void;
 }
 
 export function newTemplateKeeper(options: {
@@ -346,6 +351,12 @@ export function newTemplateKeeper(options: {
   const name = template.metadata?.name ?? "";
   let inFlight: Promise<string> | undefined;
   let isReady = false;
+  const listeners = new Set<(ready: boolean) => void>();
+  const setReady = (ready: boolean): void => {
+    if (ready === isReady) return;
+    isReady = ready;
+    for (const listener of listeners) listener(ready);
+  };
   let recreated = false;
   let deniedLogged = false;
 
@@ -375,7 +386,7 @@ export function newTemplateKeeper(options: {
           template: name,
           waitedMs: now() - started,
         });
-        isReady = true;
+        setReady(true);
         return name;
       } else if (current.goldenError !== "") {
         const failure = goldenFailureMessage(name, current.goldenError);
@@ -410,7 +421,13 @@ export function newTemplateKeeper(options: {
     readyNow: () => isReady,
     invalidate() {
       inFlight = undefined;
-      isReady = false;
+      setReady(false);
+    },
+    onReadyChange(listener) {
+      listeners.add(listener);
+      return () => {
+        listeners.delete(listener);
+      };
     },
   };
 }

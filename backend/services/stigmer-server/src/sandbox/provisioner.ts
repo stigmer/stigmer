@@ -403,6 +403,15 @@ export interface SessionActivityReader {
 export interface SandboxBackgroundContext {
   readonly sessions: SessionActivityReader;
   readonly logger: Logger;
+  /**
+   * Optional: tells the server whether a new session can start now, which
+   * it reports as the stigmer.sandboxes health status
+   * (transport/health.ts). A driver whose new sandboxes start from
+   * something it prepares (Substrate's golden snapshot) reports false
+   * until that exists and again when it is lost; a driver that never
+   * calls it is ready from boot.
+   */
+  readonly reportReady?: (ready: boolean) => void;
 }
 
 /** A started driver's background work; `stop` resolves once it is idle. */

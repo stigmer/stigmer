@@ -348,8 +348,8 @@ export interface SubstrateSandboxLifecycle {
   retireTemplates(): Promise<number>;
   /**
    * Prepares the current template (its golden snapshot) so the first turn
-   * rarely waits for it. Never rejects: a failure is logged and the next
-   * ensure prepares it again.
+   * rarely waits for it. Never rejects: a failure is logged, and the sweep's
+   * next pass or the next ensure prepares it again.
    */
   prepare(): Promise<void>;
 }
@@ -1053,7 +1053,7 @@ export function newSubstrateSandboxDriverOverGateway(
         await keeper.ready();
       } catch (error) {
         logger.error(
-          "Substrate template preparation failed; the next sandbox ensure retries it",
+          "Substrate template preparation failed; the next sweep pass or sandbox ensure retries it",
           {
             template: keeper.name,
             error: error instanceof Error ? error.message : String(error),

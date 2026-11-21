@@ -300,7 +300,11 @@ import {
   type SandboxBackgroundHandle,
 } from "../sandbox/provisioner.js";
 import { newStoreSessionActivityReader } from "../sandbox/session-activity.js";
-import { HealthState, registerHealthService } from "../transport/health.js";
+import {
+  HealthState,
+  registerHealthService,
+  SANDBOXES_HEALTH_SERVICE,
+} from "../transport/health.js";
 import { resolveConsoleAssets } from "../transport/console/assets.js";
 import {
   createConsoleLane,
@@ -2814,10 +2818,18 @@ export async function composeServer(
       historyRetention?.start();
       // The sandbox driver's background work, when it has any: it reads the
       // store and the sandbox platform, never Temporal.
+      // Sessions can start from boot unless the driver says otherwise
+      // (transport/health.ts, stigmer.sandboxes).
+      healthState.set(SANDBOXES_HEALTH_SERVICE, ServingStatus.SERVING);
       if (sandboxLane.enabled) {
         sandboxBackground = sandboxLane.provisioner.startBackground?.({
           sessions: newStoreSessionActivityReader(store, logger),
           logger,
+          reportReady: (ready) =>
+            healthState.set(
+              SANDBOXES_HEALTH_SERVICE,
+              ready ? ServingStatus.SERVING : ServingStatus.NOT_SERVING,
+            ),
         });
       }
       // Artifact storage must be reachable and writable before the server

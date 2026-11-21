@@ -682,13 +682,17 @@ Every Session's actor comes from one template the server creates and names by
 its content, so a new runner image or setting makes a new template. Sleeping
 Sessions move to it when they next wake, an awake one at its next message, and
 the server deletes old templates nothing uses any more. A first wake after an
-upgrade waits for the new template to be prepared. Substrate moves a sandbox to
-a new template only when both keep the same volumes, so a sandbox made by a
-server from before the Agent's home had a volume of its own
-([stigmer#3349](https://github.com/stigmer/stigmer/issues/3349)) can't move:
-once, its next message ends with the line saying the conversation's sandbox is
-from another release, and the person starts a new conversation. A rollback to
-such a server ends the conversations made since the same way.
+upgrade waits for the new template to be prepared. While it is, the server's
+health check names it: `grpc.health.v1.Health/Check` with the service
+`stigmer.sandboxes` answers `NOT_SERVING` until the template is ready and
+`SERVING` after, while the overall check stays `SERVING`, so the console answers
+meanwhile. The Kubernetes operator waits on it before calling an install Ready.
+Substrate moves a sandbox to a new template only when both keep the same
+volumes, so a sandbox made by a server from before the Agent's home had a volume
+of its own ([stigmer#3349](https://github.com/stigmer/stigmer/issues/3349))
+can't move: once, its next message ends with the line saying the conversation's
+sandbox is from another release, and the person starts a new conversation. A
+rollback to such a server ends the conversations made since the same way.
 
 **How many Sessions a worker holds.** Each sandbox books
 `STIGMER_SANDBOX_SUBSTRATE_CPU_MILLICORES` of CPU (2000, two cores, by default)

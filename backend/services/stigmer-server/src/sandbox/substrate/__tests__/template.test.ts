@@ -36,6 +36,8 @@
  *     hosting many organisations), which no operator setting overrides;
  *   - the keeper says once per process that an owner must grant the
  *     atespace's bindings when it may not write them;
+ *   - the keeper tells its listeners once when it becomes ready and once
+ *     when it is invalidated, and nothing after they stop listening;
  *   - the keeper prepares once however many callers wait, waits for the
  *     golden snapshot, recreates a failed template once and then fails, and
  *     gives up after its cap;
@@ -492,6 +494,19 @@ describe("the keeper", () => {
       substrate.calls.filter((c) => c.startsWith("createTemplate")),
     ).toHaveLength(1);
     expect(k.readyNow()).toBe(true);
+  });
+
+  it("tells its listeners when it becomes ready and when it is invalidated, once each", async () => {
+    const k = keeper(new FakeSubstrate());
+    const seen: boolean[] = [];
+    const stop = k.onReadyChange((ready) => seen.push(ready));
+    await k.ready();
+    await k.ready();
+    k.invalidate();
+    k.invalidate();
+    stop();
+    await k.ready();
+    expect(seen).toEqual([true, false]);
   });
 
   it("recreates a template whose golden snapshot failed, once", async () => {

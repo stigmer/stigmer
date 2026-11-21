@@ -9,7 +9,10 @@
  *   - actual cross-origin RPC responses carry the echoed-origin headers;
  *   - the skill-transfer prefix is a seam: with no handler installed it
  *     falls through to 404 exactly like an unknown path;
- *   - shutdown drains promptly with idle keepalive clients connected.
+ *   - shutdown drains promptly with idle keepalive clients connected;
+ *   - the health service keeps whether sessions can start as its own named
+ *     status (stigmer.sandboxes), apart from the overall one, and answers
+ *     it over Connect JSON as the Kubernetes operator asks it.
  *
  * This suite boots WITHOUT a console lane, so its arms also pin the
  * lane-absent posture (no bundled export → the router behaves exactly as
@@ -26,7 +29,11 @@ import {
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { createLogger } from "../../boot/logger.js";
-import { HealthState, registerHealthService } from "../health.js";
+import {
+  HealthState,
+  registerHealthService,
+  SANDBOXES_HEALTH_SERVICE,
+} from "../health.js";
 import { createUnifiedPortServer, type UnifiedPortServer } from "../server.js";
 
 const silentLogger = createLogger({
@@ -136,5 +143,30 @@ describe("RPC surface", () => {
     healthState.setOverall(ServingStatus.SERVING);
     const after = await client.check({});
     expect(after.status).toBe(ServingStatus.SERVING);
+  });
+
+  it("keeps whether sessions can start as its own named status, apart from the overall one", async () => {
+    const client = createClient(Health, createGrpcTransport({ baseUrl }));
+    healthState.setOverall(ServingStatus.SERVING);
+    healthState.set(SANDBOXES_HEALTH_SERVICE, ServingStatus.NOT_SERVING);
+
+    expect((await client.check({})).status).toBe(ServingStatus.SERVING);
+    expect(
+      (await client.check({ service: SANDBOXES_HEALTH_SERVICE })).status,
+    ).toBe(ServingStatus.NOT_SERVING);
+    const listed = await client.list({});
+    expect(Object.keys(listed.statuses).sort()).toEqual([
+      "",
+      SANDBOXES_HEALTH_SERVICE,
+    ]);
+
+    // The operator asks it over Connect JSON (deploy/operator/internal/serverhealth).
+    healthState.set(SANDBOXES_HEALTH_SERVICE, ServingStatus.SERVING);
+    const response = await fetch(`${baseUrl}/grpc.health.v1.Health/Check`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ service: SANDBOXES_HEALTH_SERVICE }),
+    });
+    expect(await response.json()).toEqual({ status: "SERVING" });
   });
 });
