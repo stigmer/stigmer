@@ -336,10 +336,15 @@ describe("a presenter whose words fail", () => {
   const secondLine = (container: HTMLElement) => container.querySelector("[data-step-title]")!.nextElementSibling?.textContent ?? "";
 
   it("keeps the kit's counts when its summary throws", () => {
-    disposers = [registerToolPresenter("file_edit", { summary: () => broke("presenter summary") })];
-    const { container } = render(<ToolCallItem toolUse={toolUse({ name: "Edit", input: { file_path: "/src/billing/invoice.ts", old_string: "a\nb\n", new_string: "c\n" }, result: "ok" })} />);
+    disposers = [registerToolPresenter("search", { summary: () => broke("presenter summary") })];
+    const grep = toolUse({
+      name: "grep",
+      input: { pattern: "round(", path: "src/billing" },
+      result: "src/billing/invoice.ts:41:sum + roundCents(lineTotal(line))\nsrc/billing/credit-note.ts:18:amount: roundCents(line.amount)",
+    });
+    const { container } = render(<ToolCallItem toolUse={grep} />);
 
-    expect(secondLine(container)).toBe("+1 −2 · /src/billing");
+    expect(secondLine(container)).toBe("2 matches in 2 files");
     expect(reportedParts()).toEqual(["presenter summary"]);
   });
 
