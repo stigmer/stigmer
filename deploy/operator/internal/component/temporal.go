@@ -3,9 +3,17 @@
 //
 // Bundled: the chart is rendered in memory and every object applied as the
 // Stigmer's. Readiness follows the order Temporal comes up in: the schema Job
-// (still running is a wait; failed names the Job to read), then each server
-// service's Deployment (a pod that is not ready is explained by its own
-// cause), then the namespace Job. Temporal is Ready only once `default` is
+// (still running is a wait; failed names the Job to read), then the
+// frontend's Deployment alone, then the other services' (a pod that is not
+// ready is explained by its own cause), then the namespace Job.
+//
+// The frontend comes up alone because each Temporal service, as it starts,
+// writes the cluster's metadata row when it finds none, with no retry: on a
+// fresh database, services that start together race to insert it and the
+// loser exits once (temporal/fx.go, initCurrentClusterMetadataRecord, in
+// Temporal 1.32). A service that finds the row only reads it, and a ready
+// frontend has written it, so the others never race and a first install
+// has no restart. Temporal is Ready only once `default` is
 // registered, because a Stigmer server that connects before the namespace
 // exists never retries its worker. External: the Secrets its TLS and API key
 // name must hold their keys; reachability is the server's to report.
@@ -70,11 +78,14 @@ func (Temporal) Reconcile(ctx context.Context, env *Env) (Result, error) {
 	var first, services []client.Object
 	var namespaceObj *unstructured.Unstructured
 	var schemaJob string
+	var frontend *unstructured.Unstructured
 	var deployments []*unstructured.Unstructured
 	for _, o := range objs {
 		switch {
 		case o.GetKind() == "Job" && strings.HasPrefix(o.GetName(), render.TemporalNamespaceJobPrefix(st)):
 			namespaceObj = o
+		case o.GetKind() == "Deployment" && o.GetName() == render.TemporalFrontendDeployment(st):
+			frontend = o
 		case o.GetKind() == "Deployment":
 			deployments = append(deployments, o)
 			services = append(services, o)
@@ -97,20 +108,22 @@ func (Temporal) Reconcile(ctx context.Context, env *Env) (Result, error) {
 			return res, err
 		}
 	}
+	if frontend == nil {
+		return Result{}, fmt.Errorf("Temporal's chart rendered no Deployment %s", render.TemporalFrontendDeployment(st))
+	}
+	if err := Apply(ctx, env, frontend); err != nil {
+		return Result{}, err
+	}
+	if res, waiting, err := temporalServiceUp(ctx, env, frontend); err != nil || waiting {
+		return res, err
+	}
 	if err := Apply(ctx, env, services...); err != nil {
 		return Result{}, err
 	}
 	for _, d := range deployments {
-		var live appsv1.Deployment
-		if err := env.Reader.Get(ctx, client.ObjectKey{Namespace: st.Namespace, Name: d.GetName()}, &live); err != nil {
-			return Result{}, fmt.Errorf("reading Deployment %s: %w", d.GetName(), err)
+		if res, waiting, err := temporalServiceUp(ctx, env, d); err != nil || waiting {
+			return res, err
 		}
-		if live.Status.AvailableReplicas >= 1 && live.Status.UpdatedReplicas >= 1 && live.Status.ObservedGeneration >= live.Generation {
-			continue
-		}
-		selector, _, _ := unstructured.NestedStringMap(d.Object, "spec", "selector", "matchLabels")
-		return Explain(ctx, env, selector, nil, Deploying(stigmerv1.ReasonDeploying,
-			Ref("Deployment", st.Namespace, d.GetName()), fmt.Sprintf("waiting for Temporal's %s to come up", d.GetName())))
 	}
 	if namespaceObj != nil {
 		if err := Apply(ctx, env, namespaceObj); err != nil {
@@ -123,6 +136,23 @@ func (Temporal) Reconcile(ctx context.Context, env *Env) (Result, error) {
 		}
 	}
 	return Ready(fmt.Sprintf("Temporal at %s, namespace %s registered (%s retention)", conn.HostPort, conn.Namespace, render.TemporalRetention)), nil
+}
+
+// temporalServiceUp reports whether one Temporal service's Deployment is
+// rolled out and available, and when it is not, the Result that explains it.
+func temporalServiceUp(ctx context.Context, env *Env, d *unstructured.Unstructured) (Result, bool, error) {
+	st := env.Stigmer
+	var live appsv1.Deployment
+	if err := env.Reader.Get(ctx, client.ObjectKey{Namespace: st.Namespace, Name: d.GetName()}, &live); err != nil {
+		return Result{}, false, fmt.Errorf("reading Deployment %s: %w", d.GetName(), err)
+	}
+	if live.Status.AvailableReplicas >= 1 && live.Status.UpdatedReplicas >= 1 && live.Status.ObservedGeneration >= live.Generation {
+		return Result{}, false, nil
+	}
+	selector, _, _ := unstructured.NestedStringMap(d.Object, "spec", "selector", "matchLabels")
+	res, err := Explain(ctx, env, selector, nil, Deploying(stigmerv1.ReasonDeploying,
+		Ref("Deployment", st.Namespace, d.GetName()), fmt.Sprintf("waiting for Temporal's %s to come up", d.GetName())))
+	return res, true, err
 }
 
 // jobStanding reports whether a Job has succeeded, and when it has not, the
