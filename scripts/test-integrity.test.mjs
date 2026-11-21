@@ -891,7 +891,10 @@ it("a TypeScript test lives in __tests__, a spec under the spec homes; the suite
   assert.deepEqual(layout({ "pkg/src/cmd/run.test.ts": ok }), ["layout-placement pkg/src/cmd/run.test.ts"]);
   assert.deepEqual(layout({ "pkg/src/cmd/__tests__/run.test.ts": ok }), []);
   assert.deepEqual(layout({ "pkg/e2e/flow.spec.ts": ok }), ["layout-placement pkg/e2e/flow.spec.ts"]);
-  assert.deepEqual(layout({ "site/e2e/demos/demo.spec.ts": ok }, { packages: ["site"] }), []);
+  assert.deepEqual(layout({ "test/site/tests/site.spec.ts": ok }, { packages: ["test/site"] }), []);
+  assert.deepEqual(layout({ "test/site/src/site.spec.ts": ok }, { packages: ["test/site"] }), ["layout-placement test/site/src/site.spec.ts"]);
+  // The site's own tree is no home: its Playwright suite moved to test/site.
+  assert.deepEqual(layout({ "site/e2e/demos/demo.spec.ts": ok }, { packages: ["site"] }), ["layout-placement site/e2e/demos/demo.spec.ts"]);
   assert.deepEqual(layout({ "test/visual/tests/gallery.spec.ts": ok }, { packages: ["test/visual"] }), []);
   assert.deepEqual(layout({ "test/visual/src/gallery.spec.ts": ok }, { packages: ["test/visual"] }), ["layout-placement test/visual/src/gallery.spec.ts"]);
   assert.deepEqual(layout({ "test/conformance/src/suites-execution/agent.harness.test.ts": ok }, { packages: ["test/conformance"] }), []);
