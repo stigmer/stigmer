@@ -3,6 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
+import { SCROLL_REGION } from "@/lib/scroll-region";
 import { SITE_CONFIG } from "@/lib/constants";
 import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/ui/icon";
@@ -69,7 +70,10 @@ function FinalCTA({ className, ...props }: FinalCTAProps) {
             <div className="px-4 sm:px-6 py-3 border-b border-border">
               <span className="text-xs font-mono text-subtle">Terminal</span>
             </div>
-            <pre className="p-4 sm:p-6 text-xs sm:text-sm font-mono leading-relaxed overflow-x-auto">
+            <pre
+              {...SCROLL_REGION}
+              className={cn("p-4 sm:p-6 text-xs sm:text-sm font-mono leading-relaxed overflow-x-auto", SCROLL_REGION.className)}
+            >
               <code>
                 {QUICKSTART_COMMANDS.map((command) => (
                   <div key={command}>
