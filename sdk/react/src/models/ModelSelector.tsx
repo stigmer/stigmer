@@ -69,7 +69,7 @@ export interface ModelSelectorProps {
   readonly availableHarnesses?: readonly HarnessOption[];
   /**
    * One line under the harness row saying why the harness is fixed or a
-   * harness is missing ("Claude Agent isn't offered: support-desk has no
+   * harness is missing ("Claude Agent isn't offered: ledger-answers has no
    * computer"); nothing when omitted.
    */
   readonly harnessNote?: string;

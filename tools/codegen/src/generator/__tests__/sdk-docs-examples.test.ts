@@ -103,7 +103,7 @@ describe("the SDK resource pages' examples", () => {
   it("shows each language's imports once, in Client Access, as a prelude fence", () => {
     const agent = read("agent");
     const access = agent.slice(agent.indexOf("## Client Access"), agent.indexOf("## Methods"));
-    expect(access).toContain('```typescript prelude\nimport { Harness } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";');
+    expect(access).toContain('```typescript prelude\nimport { Computer, Harness } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";');
     expect(access).toContain('```go prelude\nimport (\n\tstigmer "go.stigmer.ai/sdk"\n\tagentv1 "go.stigmer.ai/sdk/proto/ai/stigmer/agentic/agent/v1"');
     expect(access).toContain("```python prelude\nfrom stigmer import AgentInput, ResourceRef, RunConfigInput\n");
     expect(access).toContain("from ai.stigmer.agentic.agent.v1 import io_pb2, version_pb2\n");
