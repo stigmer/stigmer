@@ -910,15 +910,17 @@ async function runSubstrate(fake, modelBaseUrl) {
     runner: { llm: { secretName: MODEL_SECRET } },
     objectStore: objectStore.spec(),
     // The server's own fence too: it reaches Substrate through it, and the
-    // model's host by the range named here.
-    server: { egress: { fenced: true, allowCIDRs: [`${modelIP}/32`] } },
+    // model's host by the range named here. Every request below is smaller
+    // than its default: a CI runner has four cores, Agent Substrate's
+    // control plane asks for most of them, and a pod that cannot be
+    // scheduled leaves the install waiting (measured: 3910m of 4000m asked
+    // for with the defaults, the Temporal worker and the server unplaced).
+    server: { egress: { fenced: true, allowCIDRs: [`${modelIP}/32`] }, resources: { requests: { cpu: "100m", memory: "1Gi" } } },
+    database: { postgresql: { bundled: { resources: { requests: { cpu: "50m", memory: "256Mi" } } } } },
+    temporal: { bundled: { resources: { requests: { cpu: "25m", memory: "256Mi" } } } },
     sandboxes: {
       driver: "substrate",
       idleSeconds: 30,
-      // The worker asks for a tenth of a core, not the default half: a CI
-      // runner has four, most of them asked for by Agent Substrate's control
-      // plane and the bundled database and Temporal, and a worker that
-      // cannot be scheduled leaves the pool, and the install, waiting.
       substrate: {
         workers: 1,
         worker: { resources: { requests: { cpu: "100m", memory: "1Gi" } } },
