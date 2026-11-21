@@ -50,7 +50,7 @@ import { ThreadPresentationContext, useThreadPresentation, type ThreadPresentati
 import { ToolCallItem } from "./ToolCallItem.js";
 import { ToolCallDetail } from "./ToolCallDetail.js";
 import { foldsQuietly } from "./step-fold.js";
-import { CardsLiftedContext, NO_TOOL_CARD, ToolCardBoundary, toolCallInfoOf, toolCardCalls, useHasToolCard, useLiftedHostCard, type HasToolCard } from "./tool-card.js";
+import { CardsLiftedContext, NO_TOOL_CARD, toolCallInfoOf, toolCardCalls, useHasToolCard, useLiftedHostCard, type HasToolCard } from "./tool-card.js";
 import type { MessageAction, MessageInfo } from "./message-actions.js";
 import { RunPhaseBadge } from "./RunPhaseBadge.js";
 import { SetupProgress, type SetupProgressProps } from "./SetupProgress.js";
@@ -67,6 +67,7 @@ import { PlanFileCard, type PlanFileCardProps } from "./PlanFileCard.js";
 import { PlanStreamingCard, type PlanStreamingCardProps } from "./PlanStreamingCard.js";
 import { TodoCard, type TodoCardProps } from "./TodoCard.js";
 import type { TodoRowProps } from "./TodoList.js";
+import { guardSlots } from "./slot-guard.js";
 import { findStreamingPlan } from "../library/detect-streaming-plan.js";
 import { extractPrimaryArg, resolveToolCategoryFromCall } from "@stigmer/react-core";
 import { isInternalTool } from "@stigmer/react-core/internal";
@@ -87,6 +88,8 @@ import { useAutoScroll, usePinToLatestOnSignal } from "../internal/useAutoScroll
 import { JumpToLatestButton } from "../internal/JumpToLatestButton.js";
 import { ApprovalPeekBar } from "../internal/ApprovalPeekBar.js";
 import { ThreadItemWrapper } from "../internal/ThreadItemWrapper.js";
+import { HostPartBoundary } from "../internal/HostPartBoundary.js";
+import { callHostPart } from "../internal/host-part-error.js";
 import { Button } from "../button/Button.js";
 
 const LazyVirtualizedThread = lazy(() =>
@@ -116,6 +119,14 @@ const NO_CARDED_ASKS: ReadonlySet<string> = new Set();
  * rows rely on `React.memo` and the session fold's shared references to skip
  * re-renders during streaming; a slot component recreated on every host
  * render defeats that for its rows.
+ *
+ * A slot that throws while it draws never takes the thread down: the
+ * built-in draws in its place, with the same props, until the row remounts,
+ * and React reports the error through the root's caught-error hook
+ * (`onCaughtError`, which logs with `console.error` unless the host's root
+ * sets its own). A slot that draws nothing hides that part: for
+ * `ApprovalCard` and `RunErrorNotice` it hides a decision or a failure,
+ * which a host must not do.
  */
 export interface MessageThreadSlots {
   /**
@@ -461,7 +472,9 @@ export interface MessageThreadProps {
    * Called once per message, and again for every message when the function
    * changes: keep it stable (`useCallback`, or a function at module level),
    * or each render of your component asks every message again and redraws
-   * every bubble.
+   * every bubble. If it throws, that message draws with no host actions
+   * (Copy, Edit and the scores as always), and the error is reported once
+   * with `console.error`.
    *
    * @example
    * ```tsx
@@ -1403,7 +1416,7 @@ export function MessageThread({
   planActionsDisabled,
   planBuildPending,
   contentColumn,
-  slots,
+  slots: hostSlots,
   runScores = false,
   turnOutcome,
   turnEnding,
@@ -1412,6 +1425,9 @@ export function MessageThread({
   messageActions,
 }: MessageThreadProps) {
   useRenderTracer("MessageThread", { turns, runs });
+  // Each host slot is guarded once, here: if it throws, the built-in draws
+  // in its place with the same props, wherever in the thread it draws.
+  const slots = guardSlots(hostSlots);
   // Which calls have a host's card: stable while the provider's map is.
   const hasToolCard = useHasToolCard();
 
@@ -1984,6 +2000,12 @@ export function ThreadItemRenderer({
         />
       );
     }
+    default: {
+      // A row kind with a decision (`row-kinds.ts`) but no drawing here
+      // fails to compile.
+      const unhandled: never = item;
+      return unhandled;
+    }
   }
 }
 
@@ -2044,8 +2066,10 @@ const MessageRow = memo(function MessageRow({
     () => (takesActions && role !== undefined ? { id: message.id, role, text, isFinalAnswer, sessionId, runId } : undefined),
     [takesActions, role, message.id, text, isFinalAnswer, sessionId, runId],
   );
+  // A host function that throws gives this message no host acts; Copy, Edit
+  // and the scores draw as always.
   const hostActions = useMemo(
-    () => (messageInfo !== undefined && messageActions !== undefined ? messageActions(messageInfo) : NO_MESSAGE_ACTIONS),
+    () => (messageInfo !== undefined ? (callHostPart("A host's messageActions", messageActions, () => messageActions?.(messageInfo)) ?? NO_MESSAGE_ACTIONS) : NO_MESSAGE_ACTIONS),
     [messageInfo, messageActions],
   );
   return (
@@ -2077,9 +2101,9 @@ const LiftedToolCard = memo(function LiftedToolCard({ toolUse }: { readonly tool
   const ours = <ToolCallDetail toolUse={toolUse} />;
   return (
     <div role="group" aria-label={stepPhrase(toolUse).text} data-cursor-target="host-tool-card">
-      <ToolCardBoundary state={call.state} fallback={ours}>
+      <HostPartBoundary resetKey={call.state} fallback={ours}>
         {Card === undefined ? ours : <Card call={call} />}
-      </ToolCardBoundary>
+      </HostPartBoundary>
     </div>
   );
 });

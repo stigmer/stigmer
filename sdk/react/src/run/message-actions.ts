@@ -45,6 +45,8 @@ export interface MessageInfo {
  * One action a host adds to a message. Up to two with an `icon` draw as
  * quiet icon buttons beside Copy, named by their `label`; every other
  * action sits, in order, in one "More actions" menu. No key shortcut: a
- * message's actions never take a key from the page.
+ * message's actions never take a key from the page. The `id` names the act,
+ * so it is unique among one message's actions; the `label` is its accessible
+ * name, never blank.
  */
 export type MessageAction = Pick<DetailAction, "id" | "label" | "icon" | "onAction" | "disabled" | "variant">;

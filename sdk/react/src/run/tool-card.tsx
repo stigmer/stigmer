@@ -2,11 +2,12 @@
 
 // How the thread meets a host's own tool cards (`toolCards` on
 // `StigmerProvider`): which call has one, the narrowed view the card
-// receives, the boundary that puts our body back when a card throws, and the
-// one test every place that closes or groups steps asks, so a call with a
-// host card is never folded out of sight.
+// receives, and the one test every place that closes or groups steps asks,
+// so a call with a host card is never folded out of sight. A card that
+// throws draws our body through the kit's one host-part boundary
+// (`internal/HostPartBoundary.tsx`).
 
-import { Component, createContext, useContext, useMemo, type ComponentType, type ErrorInfo, type ReactNode } from "react";
+import { createContext, useContext, useMemo, type ComponentType } from "react";
 import type { JsonObject } from "@bufbuild/protobuf";
 import { redactSecretArgs, stepTense, toolPublicName, type ToolUse } from "@stigmer/client";
 import { ToolCardsContext, type ToolCallInfo, type ToolCallState, type ToolCardProps, type ToolCards } from "./tool-cards-context.js";
@@ -115,50 +116,4 @@ export function toolCallInfoOf(tool: ToolUse, sessionId: string): ToolCallInfo {
     sessionId,
     runId: tool.runId,
   };
-}
-
-interface ToolCardBoundaryProps {
-  /** What draws when the card threw: the kit's own body for the call. */
-  readonly fallback: ReactNode;
-  /** The call's state: once the card threw, a new state gives it a fresh try. */
-  readonly state: ToolCallState;
-  readonly children: ReactNode;
-}
-
-interface ToolCardBoundaryState {
-  /**
-   * The call's state when the card threw, `"caught"` between the throw and
-   * its report, or null while the card draws.
-   */
-  readonly failedIn: ToolCallState | "caught" | null;
-}
-
-/**
- * Puts the kit's own body back when a host's card throws. A card that threw
- * while its call ran gets one fresh try once the call's state moves (its
- * result landed); a card that draws is never remounted, so it keeps its own
- * state across the call's states. React reports the error as it does for
- * any boundary.
- *
- * @internal
- */
-export class ToolCardBoundary extends Component<ToolCardBoundaryProps, ToolCardBoundaryState> {
-  override state: ToolCardBoundaryState = { failedIn: null };
-
-  static getDerivedStateFromError(): ToolCardBoundaryState {
-    return { failedIn: "caught" };
-  }
-
-  static getDerivedStateFromProps(props: ToolCardBoundaryProps, state: ToolCardBoundaryState): ToolCardBoundaryState | null {
-    // A fresh try once the call moved on from the state the card threw in.
-    return state.failedIn !== null && state.failedIn !== "caught" && state.failedIn !== props.state ? { failedIn: null } : null;
-  }
-
-  override componentDidCatch(_error: Error, _info: ErrorInfo): void {
-    this.setState({ failedIn: this.props.state });
-  }
-
-  override render(): ReactNode {
-    return this.state.failedIn !== null ? this.props.fallback : this.props.children;
-  }
 }

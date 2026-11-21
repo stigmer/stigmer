@@ -21,6 +21,7 @@ import type { ToolDisclosure } from "@stigmer/react-core";
 import type { ToolChrome } from "@stigmer/react-core/internal";
 import type { ToolCategory } from "@stigmer/react-core";
 import { summarizeResultView } from "./ResultView.js";
+import { callHostPart } from "../internal/host-part-error.js";
 
 /** Optional per-kind overrides for label, summary, disclosure, and run-grouping. */
 export interface ToolPresenter {
@@ -64,6 +65,12 @@ const registry = new Map<ToolKind, ToolPresenter>();
  * for that kind (or the default). Most apps register once at startup and ignore
  * it; tests and dynamic hosts use it to avoid leaking global state.
  *
+ * An override that throws gives the kit's default for that field, and is
+ * reported once with `console.error`; a `label` that is blank counts as none,
+ * since the row takes its accessible name from it. The label words the step in
+ * every state, its failure included; the failed mark and the row's escalation
+ * to a card stay the kit's.
+ *
  * @example
  * ```ts
  * import { registerToolPresenter } from "@stigmer/react-sdk";
@@ -106,10 +113,50 @@ export function getToolPresenter(kind: ToolKind): ToolPresenter | undefined {
  * the component layer share one source of truth (and honour the same override).
  */
 export function resolveRunGroupable(toolUse: ToolUse): boolean {
-  const kind = resolveToolKind(toolUse);
-  const override = registry.get(kind)?.runGroupable;
-  if (override) return override(toolUse);
-  return isRunGroupableCategory(resolveToolCategoryFromCall(toolUse).category);
+  const presenter = registry.get(resolveToolKind(toolUse));
+  return (
+    callHostPart(PRESENTER_RUN_GROUPABLE, presenter?.runGroupable, () => presenter?.runGroupable?.(toolUse)) ??
+    isRunGroupableCategory(resolveToolCategoryFromCall(toolUse).category)
+  );
+}
+
+const PRESENTER_LABEL = "A tool presenter's label";
+const PRESENTER_SUMMARY = "A tool presenter's summary";
+const PRESENTER_DISCLOSURE = "A tool presenter's disclosure";
+const PRESENTER_CHROME = "A tool presenter's chrome";
+const PRESENTER_RUN_GROUPABLE = "A tool presenter's runGroupable";
+
+/**
+ * A presenter's label for a call, or undefined where it gave none, threw,
+ * or gave a blank one: the row's toggle takes its accessible name from the
+ * title, and a row with no name is never a host's design choice.
+ */
+function presenterLabel(presenter: ToolPresenter | undefined, toolUse: ToolUse): string | undefined {
+  const label = callHostPart(PRESENTER_LABEL, presenter?.label, () => presenter?.label?.(toolUse));
+  return typeof label === "string" && label.trim() !== "" ? label : undefined;
+}
+
+/** Which of a presentation's words are a host presenter's own, for the row that draws it. */
+interface PresentationWording {
+  /** The title is the presenter's label. */
+  readonly hostLabel: boolean;
+  /** The result summary is the presenter's summary. */
+  readonly hostSummary: boolean;
+}
+
+const wordingOf = new WeakMap<ToolPresentation, PresentationWording>();
+const KIT_WORDING: PresentationWording = { hostLabel: false, hostSummary: false };
+
+/**
+ * Whether a presentation's title and summary are a host presenter's words
+ * (the row then shows them as given), as {@link useToolPresentation}
+ * resolved them: a presenter's label or summary that threw, or a blank
+ * label, left the kit's words in place.
+ *
+ * @internal
+ */
+export function presentationWording(presentation: ToolPresentation): PresentationWording {
+  return wordingOf.get(presentation) ?? KIT_WORDING;
 }
 
 /**
@@ -201,25 +248,27 @@ export function useToolPresentation(toolUse: ToolUse): ToolPresentation {
     const result = normalizeToolResult(toolUse);
     const override = registry.get(kind);
 
-    const overrideLabel = override?.label?.(toolUse);
+    // A presenter's override that throws gives the kit's default, as an
+    // override left out does.
+    const overrideLabel = presenterLabel(override, toolUse);
     const label = overrideLabel ?? categoryInfo.label;
     const intent = extractShellIntent(toolUse);
     const stop = categoryInfo.category === "background-stop" ? backgroundStopPresentation(toolUse) : undefined;
     const phrase = stepPhrase(toolUse);
     const title = overrideLabel ?? stop?.title ?? phrase.text;
-    const resultSummary =
-      override?.summary?.(toolUse, result) ?? summarizeResultView(result);
+    const hostSummary = callHostPart(PRESENTER_SUMMARY, override?.summary, () => ({ words: override?.summary?.(toolUse, result) }));
+    const resultSummary = hostSummary?.words ?? summarizeResultView(result);
     const disclosure =
-      override?.disclosure?.(toolUse, result) ??
+      callHostPart(PRESENTER_DISCLOSURE, override?.disclosure, () => override?.disclosure?.(toolUse, result)) ??
       defaultDisclosureForCategory(categoryInfo.category);
     const chrome =
-      override?.chrome?.(toolUse, result) ??
+      callHostPart(PRESENTER_CHROME, override?.chrome, () => override?.chrome?.(toolUse, result)) ??
       defaultChromeForCategory(categoryInfo.category);
     const runGroupable =
-      override?.runGroupable?.(toolUse) ??
+      callHostPart(PRESENTER_RUN_GROUPABLE, override?.runGroupable, () => override?.runGroupable?.(toolUse)) ??
       isRunGroupableCategory(categoryInfo.category);
 
-    return {
+    const presentation: ToolPresentation = {
       kind,
       category: categoryInfo.category,
       label,
@@ -233,5 +282,9 @@ export function useToolPresentation(toolUse: ToolUse): ToolPresentation {
       chrome,
       runGroupable,
     };
+    // A summary that ran counts as the host's words even when it gave none
+    // (the default then reads in its place), as before; one that threw does not.
+    wordingOf.set(presentation, { hostLabel: overrideLabel !== undefined, hostSummary: hostSummary !== undefined });
+    return presentation;
   }, [toolUse]);
 }
