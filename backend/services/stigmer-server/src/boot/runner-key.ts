@@ -26,7 +26,11 @@
  *     person made: a name already taken is a boot error naming it. The
  *     record is also how the membership rules know this account is the
  *     server's own, so its role never stops the first person to sign in
- *     from owning the organization (domain/grant/membership.ts);
+ *     from owning the organization (domain/grant/membership.ts). The record
+ *     reads `creating` while the account is being made, so a boot that
+ *     stopped between making it and recording it is finished by the next:
+ *     a `runner` account with no keys found under that mark is the
+ *     server's own, and is recorded;
  *   - when one of that account's keys already has the key's hash, nothing
  *     more: this is its idempotency;
  *   - otherwise deletes the account's keys named `runner` (the key was
@@ -36,7 +40,10 @@
  *
  * The key is still an API key (the runner stays inside the server's trust
  * domain, as boot/shared-runner.ts explains). A key whose hash another
- * account's key holds is a boot error: the operator reused a key.
+ * account's key already holds is left where it is, with a warning: it is a
+ * key a person made for the runner before the runner started signed in
+ * (Compose's earlier procedure), and the runner keeps working with it. The
+ * server moves nothing between accounts.
  */
 import { create } from "@bufbuild/protobuf";
 import { Code, ConnectError } from "@connectrpc/connect";
@@ -76,7 +83,10 @@ export interface RunnerKeyBootDeps {
 }
 
 /** What the step did, for its log line and its tests. */
-export type RunnerKeyOutcome = "in place" | "provisioned" | "replaced";
+export type RunnerKeyOutcome = "in place" | "provisioned" | "replaced" | "held by another account";
+
+/** The record's value while the server is making its runner account. */
+export const RUNNER_ACCOUNT_CREATING = "creating";
 
 export async function ensureRunnerKey(deps: RunnerKeyBootDeps): Promise<RunnerKeyOutcome> {
   const hash = hashApiKey(deps.plaintext);
@@ -88,9 +98,11 @@ export async function ensureRunnerKey(deps: RunnerKeyBootDeps): Promise<RunnerKe
       deps.logger.info("the shared runner's key is in place", { serviceAccountId: accountId });
       return "in place";
     }
-    throw new Error(
-      "STIGMER_RUNNER_API_KEY is already the key of another account: generate a new key for the runner (one stk_ value used only by it) and start the server again",
+    deps.logger.warn(
+      "STIGMER_RUNNER_API_KEY is already the key of another account, so the server leaves it there and the runner keeps working with it; to have the runner sign in as the server's own runner account, generate a new stk_ key used only by the runner, set it as STIGMER_TOKEN and start the stack again",
+      { serviceAccountId: accountId },
     );
+    return "held by another account";
   }
   const old = (await keysOwnedBy(deps.store, [accountId])).filter(
     (key) => key.metadata?.name === RUNNER_SERVICE_ACCOUNT_NAME,
@@ -115,7 +127,7 @@ export async function ensureRunnerKey(deps: RunnerKeyBootDeps): Promise<RunnerKe
 
 async function runnerAccount(deps: RunnerKeyBootDeps): Promise<IdentityAccount> {
   const recorded = await deps.store.bootstrapState.get(SERVER_RUNNER_ACCOUNT_KEY);
-  if (recorded !== "") {
+  if (recorded !== "" && recorded !== RUNNER_ACCOUNT_CREATING) {
     const existing = (await deps.accounts.findByOrg(deps.org)).find(
       (account) => isServiceAccount(account) && account.metadata?.id === recorded,
     );
@@ -123,6 +135,7 @@ async function runnerAccount(deps: RunnerKeyBootDeps): Promise<IdentityAccount> 
       return existing;
     }
   }
+  await deps.store.bootstrapState.set(SERVER_RUNNER_ACCOUNT_KEY, RUNNER_ACCOUNT_CREATING);
   let created: IdentityAccount;
   try {
     created = await deps.edges.createServiceAccount(
@@ -134,6 +147,15 @@ async function runnerAccount(deps: RunnerKeyBootDeps): Promise<IdentityAccount> 
     );
   } catch (error) {
     if (error instanceof ConnectError && error.code === Code.AlreadyExists) {
+      const unfinished =
+        recorded === RUNNER_ACCOUNT_CREATING ? await unrecordedRunnerAccount(deps) : undefined;
+      if (unfinished !== undefined) {
+        await deps.store.bootstrapState.set(SERVER_RUNNER_ACCOUNT_KEY, unfinished.metadata?.id ?? "");
+        deps.logger.warn("an earlier start made the shared runner's account and stopped before recording it; it is recorded now", {
+          serviceAccountId: unfinished.metadata?.id ?? "",
+        });
+        return unfinished;
+      }
       throw new Error(
         `a service account named "${RUNNER_SERVICE_ACCOUNT_NAME}" already exists that this server did not make: rename or delete it so the server can make the shared runner's own`,
         { cause: error },
@@ -143,4 +165,20 @@ async function runnerAccount(deps: RunnerKeyBootDeps): Promise<IdentityAccount> 
   }
   await deps.store.bootstrapState.set(SERVER_RUNNER_ACCOUNT_KEY, created.metadata?.id ?? "");
   return created;
+}
+
+/**
+ * The `runner` service account an earlier boot made and stopped before
+ * recording: the organization's service account of that name, holding no
+ * key. Called only under the `creating` mark.
+ */
+async function unrecordedRunnerAccount(deps: RunnerKeyBootDeps): Promise<IdentityAccount | undefined> {
+  const named = (await deps.accounts.findByOrg(deps.org)).find(
+    (account) => isServiceAccount(account) && account.metadata?.name === RUNNER_SERVICE_ACCOUNT_NAME,
+  );
+  if (named === undefined) {
+    return undefined;
+  }
+  const keys = await keysOwnedBy(deps.store, [named.metadata?.id ?? ""]);
+  return keys.length === 0 ? named : undefined;
 }

@@ -118,6 +118,12 @@ STIGMER_TOKEN=stk_...
 At boot the server stores that key as the key of its `runner` service account,
 and the runner signs in with it. You never create a key for the runner yourself.
 
+A stack set up before the runner started signed in already has a `STIGMER_TOKEN`
+that someone created in the console. The server leaves that key where it is and
+logs a warning, and the runner keeps working with it. To move the runner onto
+the server's own account, put a newly generated key in `STIGMER_TOKEN` and run
+`docker compose up -d`; then delete the old key in **Settings → API keys**.
+
 ```bash
 docker compose up -d
 ```

@@ -547,11 +547,14 @@ export async function composeServer(
   const requireAuthentication =
     authEnabled || extensions.requireAuthentication !== undefined;
   // The shared runner's key at boot (boot/runner-key.ts) is a one-
-  // organization act: a server that holds several runs per-session
-  // sandboxes, each run on its own credential.
-  if (config.runnerApiKey !== "" && requireAuthentication && extensions.orgLimit !== 1) {
-    throw new Error(
-      "STIGMER_RUNNER_API_KEY is set on a server that holds several organizations: one shared runner would carry one organization's key into every organization's runs. Unset it and run agents in per-session sandboxes (SANDBOX_PROVISIONER_TYPE)",
+  // organization act: a server that holds several never makes a shared
+  // runner a key of its own. The value is left alone, not refused: a
+  // Compose install that accepted one shared runner across organizations
+  // already hands the runner a key a person made, and keeps it.
+  const runnerKeyStored = extensions.orgLimit === 1;
+  if (config.runnerApiKey !== "" && requireAuthentication && !runnerKeyStored) {
+    logger.warn(
+      "STIGMER_RUNNER_API_KEY is not stored: the server holds several organizations, so it never makes the shared runner a key of its own; the runner keeps the key it is handed (STIGMER_TOKEN)",
     );
   }
   if (config.runnerApiKey !== "" && !requireAuthentication) {
@@ -2763,7 +2766,7 @@ export async function composeServer(
         // generated becomes the `runner` service account's
         // (boot/runner-key.ts). Only under sign-in, on the one organization.
         const runnerOrg = singleOrganization.current();
-        if (config.runnerApiKey !== "" && requireAuthentication && runnerOrg !== undefined) {
+        if (config.runnerApiKey !== "" && requireAuthentication && runnerKeyStored && runnerOrg !== undefined) {
           await ensureRunnerKey({
             plaintext: config.runnerApiKey,
             org: runnerOrg,
@@ -2781,7 +2784,7 @@ export async function composeServer(
             }),
             logger,
           });
-        } else if (config.runnerApiKey !== "" && runnerOrg === undefined) {
+        } else if (config.runnerApiKey !== "" && runnerKeyStored && runnerOrg === undefined) {
           logger.warn(
             "STIGMER_RUNNER_API_KEY is set but the server holds no single organization yet, so the runner's key is not stored this start",
           );
