@@ -129,11 +129,12 @@ describe("every skill the plugin carries names only commands that run, with flag
     ),
   );
 
-  it("reads every skill, the runs, integration and build skills' commands among them", () => {
-    expect(skills.sort()).toEqual(["stigmer", "stigmer-build", "stigmer-integrate", "stigmer-run", "stigmer-setup"]);
+  it("reads every skill, the runs, integration, build and operate skills' commands among them", () => {
+    expect(skills.sort()).toEqual(["stigmer", "stigmer-build", "stigmer-integrate", "stigmer-operate", "stigmer-run", "stigmer-setup"]);
     expect(lines.map(([, line]) => line)).toContain("stigmer list runs --agent invoice-checker --limit 5");
     expect(lines.map(([, line]) => line)).toContain("stigmer app-handover --stack <nextjs|node|python|go|java> --agent <agent> --write .");
     expect(lines.map(([, line]) => line)).toContain("stigmer apply -f <file> --dry-run");
+    expect(lines.map(([, line]) => line)).toContain("stigmer config backend add <name> --endpoint <host:port>");
   });
 
   it.each(lines)("%s: %s", (_skill, line) => {

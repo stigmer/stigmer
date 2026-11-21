@@ -2,20 +2,19 @@
 name: stigmer
 description: >
   Stigmer's front door: answers any question about Stigmer from its live
-  docs at stigmer.ai/docs, cited, and holds the rules for acting on
-  Stigmer for the person. Use whenever the person asks what Stigmer is,
-  whether it fits, open source or paid editions, pricing and who pays the
-  model bill, how an Agent, Session, File, Vault, Skill, plugin, tool,
-  approval, Channel, Routine, Organization or runner works, how Stigmer
-  compares with an agent SDK or framework or with Claude Managed Agents,
-  how to do something with the CLI or SDKs, or why something in Stigmer
-  fails, hangs or won't start; and before deleting, cancelling or
-  approving anything in their Stigmer. To set Stigmer up in this project,
-  use the stigmer-setup skill; to run their agents or read their runs,
-  stigmer-run; to put their agent in their own product (backend calls, the
-  chat, their users' sign-in), stigmer-integrate; to design an agent or
-  connect it to people (keys, tools, approvals, Slack, WhatsApp,
-  routines), stigmer-build.
+  docs, cited, and holds the rules for acting on Stigmer for the person. Use whenever the person asks what Stigmer is,
+  whether it fits, its editions, pricing and who pays the model bill, how
+  an Agent, Session, File, Vault, Skill, plugin, tool, approval, Channel,
+  Routine, Organization or runner works, how Stigmer compares with an
+  agent SDK or Claude Managed Agents, how to do something with the CLI or
+  SDKs, or why something fails or hangs; and before deleting, cancelling
+  or approving anything in their Stigmer. To set Stigmer up here, use
+  stigmer-setup; to run their agents or read runs, stigmer-run; to put
+  their agent in their product (backend calls, the chat, their users'
+  sign-in), stigmer-integrate; to design an agent or connect it to people
+  (keys, tools, approvals, Slack, WhatsApp, routines), stigmer-build; to
+  run their own server or organization (sign-in, runners, upgrades, roles,
+  CI keys, access history, usage), stigmer-operate.
 ---
 
 # Stigmer
@@ -72,6 +71,11 @@ about what the docs don't cover.
   to people (a chat link, Slack, WhatsApp, staff taking over, a routine on
   a schedule or started by another system): the stigmer-build skill. How
   these pieces work, asked as a question, stays here.
+- Running their own Stigmer server or administering their organization
+  (the shape to run, turning sign-in on with their provider, runners and
+  tracing, upgrades and backups, who may run or change which agent, a key
+  for CI, the access history, agent hours and the plan's limits): the
+  stigmer-operate skill.
 
 ## What Stigmer is
 
