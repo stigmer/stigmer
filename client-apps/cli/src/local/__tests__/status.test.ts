@@ -1,6 +1,6 @@
 import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import { beforeEach, describe, expect, it } from "vitest";
 import { configPath } from "../../config/paths.js";
 import { DAEMON_PID_FILE } from "../constants.js";
@@ -31,11 +31,67 @@ function writeHealth(state: HealthState): void {
   writeFileSync(join(dataDir(home), "health-state.json"), JSON.stringify(state));
 }
 
+// A config file under `home`, as `stigmer config backend add` leaves one.
+function writeConfig(text: string): void {
+  mkdirSync(dirname(configPath(home)), { recursive: true });
+  writeFileSync(configPath(home), text);
+}
+
+const SELF_HOSTED = "backends:\n  team:\n    type: selfhost\n    endpoint: stigmer.acme.example:443\ncurrent_backend: team\n";
+
 describe("buildStatusResult", () => {
   it("reports not-running when no daemon and the port is closed", async () => {
     const result = await buildStatusResult(home, closed);
     expect(result.status).toBe("warning");
     expect(result.message).toMatch(/not running/);
+  });
+
+  it("on the local backend, names it and its address, and still says how to start the stack", async () => {
+    const result = await buildStatusResult(home, closed, {});
+    expect(result.status).toBe("warning");
+    expect(field(result, "", "Backend")).toBe("local");
+    expect(field(result, "", "Endpoint")).toBe("localhost:7234");
+    expect(result.hints).toContain("To start: stigmer up");
+  });
+
+  // stigmer#3369: a person signed in to their own server followed the
+  // `stigmer up` hint and started a second server.
+  it("on another server's backend, names it, says no local stack runs, and neither warns nor says to start one", async () => {
+    writeConfig(SELF_HOSTED);
+    const result = await buildStatusResult(home, closed, {});
+    expect(result.status).toBe("success");
+    expect(result.message).toBe('The CLI uses backend "team" at stigmer.acme.example:443, not a local stack');
+    expect(field(result, "", "Backend")).toBe("team");
+    expect(field(result, "", "Endpoint")).toBe("stigmer.acme.example:443");
+    expect(field(result, "Local Stack", "Status")).toBe("Not running ○");
+    expect(result.hints.join("\n")).not.toMatch(/stigmer up|stigmer setup/);
+  });
+
+  it("names an address STIGMER_SERVER_ADDRESS sets, and treats one naming the local stack as local", async () => {
+    const elsewhere = await buildStatusResult(home, closed, { STIGMER_SERVER_ADDRESS: "10.0.0.5:7234" });
+    expect(elsewhere.status).toBe("success");
+    expect(elsewhere.message).toBe("The CLI uses 10.0.0.5:7234 (STIGMER_SERVER_ADDRESS), not a local stack");
+    expect(field(elsewhere, "", "Set by")).toBe("STIGMER_SERVER_ADDRESS");
+
+    const local = await buildStatusResult(home, closed, { STIGMER_SERVER_ADDRESS: "127.0.0.1:7234" });
+    expect(local.status).toBe("warning");
+    expect(local.hints).toContain("To start: stigmer up");
+  });
+
+  it("reports a running local stack after naming the other server the CLI uses", async () => {
+    writeConfig(SELF_HOSTED);
+    const result = await buildStatusResult(home, open, {});
+    expect(result.status).toBe("success");
+    expect(result.message).toBe('The CLI uses backend "team" at stigmer.acme.example:443, not a local stack');
+    expect(field(result, "Stigmer Server", "Status")).toBe("Running ✓");
+  });
+
+  it("shows a backend config it cannot read on the Backend line, and still reports the local stack", async () => {
+    writeConfig("current_backend: gone\n");
+    const result = await buildStatusResult(home, closed, {});
+    expect(field(result, "", "Backend")).toMatch(/^unreadable: current backend "gone" does not exist/);
+    expect(result.hints).toContain("See the configured backends: stigmer config backend list");
+    expect(result.message).toBe("Stigmer server is not running");
   });
 
   it("renders components in order, with runner readiness", async () => {
