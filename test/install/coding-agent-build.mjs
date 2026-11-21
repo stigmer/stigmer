@@ -5,14 +5,17 @@
  * Stigmer's plugin installed, changes an agent they already have, and the
  * server afterwards holds what was asked and nothing more. The ask
  * (lib/coding-agent-build.mjs, BUILD): "Make invoice-checker check our
- * invoices every Monday at 9 Berlin time, and give it pdfplumber in its
- * sandbox."
+ * invoices every Monday at 9 Berlin time, and hook up our ledger API's MCP
+ * server at https://mcp.ledgerline.example/mcp so it can use only
+ * get_ledger and list_accounts from it."
  *
  * The question bank grades answers and traces; no grader reads the server
  * after a try. This walk does, so it proves the plugin builds: a routine
- * and an Environment made the way the docs show, the agent changed from its
- * live definition rather than rewritten, and the routine left off, since
- * switching it on spends the Organization's model keys and no one asked.
+ * and a plugin holding the MCP server made the way the docs show, the
+ * server's two tools named in the full tool-name form, the agent changed
+ * from its live definition rather than rewritten, and the routine left off,
+ * since switching it on spends the Organization's model keys and no one
+ * asked.
  *
  * It needs a coding agent on a real model, so it is in no gate lane: by
  * hand (`make walk-coding-agent-build`). The stage is lib/hermetic-stage.mjs
@@ -27,15 +30,21 @@
  * The plugin reads Stigmer's docs from the live site, as it does for a
  * person.
  *
- * The stage's server starts no sandboxes, so the Environment is stored, not
- * used: the walk reads that it exists and that the agent names it.
+ * The stage's server starts no sandboxes, so it refuses an Environment that
+ * installs packages or limits networking (domain/environment/facts.ts): the
+ * ask's second half is an MCP server, which `stigmer mcp add` installs as a
+ * plugin without reaching its address, so no one need serve it.
  *
  * Pass when lib/coding-agent-build.mjs's judgeBuild finds nothing wrong in
- * what the stage's CLI reads back (`--output json`): one routine names
+ * what it reads back (the stage's CLI with `--output json`, and the
+ * organization's plugins through the TypeScript SDK on the CLI's own
+ * sign-in, since the CLI lists no plugins): one routine names
  * invoice-checker, with Mondays at 9 in Europe/Berlin, not switched on and
- * never started; invoice-checker names an Environment that lists
- * pdfplumber among its pip packages; invoice-checker's instructions, skills
- * and tool limits are what they were before the coding agent started.
+ * never started; one plugin holds the MCP server, invoice-checker lists it,
+ * and its tools name get_ledger and list_accounts in the full
+ * `mcp__plugin_<plugin>_<server>__<tool>` form and nothing wider of that
+ * server; invoice-checker's instructions, skills and disallowed tools are
+ * what they were before the coding agent started.
  *
  * Usage: lib/coding-agent-build.mjs, USAGE (`--help` prints it).
  */
@@ -46,7 +55,7 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync } from "node:f
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import process from "node:process";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import { anthropicText, anthropicToolUse } from "../support/src/llm-wire.ts";
 import { listedSlugs, seedFixture, writeProjectManifests } from "./lib/bank-fixture.mjs";
 import { fixtureScript } from "./lib/coding-agent-bank.mjs";
@@ -93,8 +102,35 @@ async function readJson(shim, env, args) {
   return JSON.parse(stdout);
 }
 
-/** What the server holds now: the agent, every routine with its fires, every Environment. */
-async function readState(shim, env) {
+/**
+ * The organization's plugins, each as its slug and MCP servers, through the
+ * TypeScript SDK on the token the stage's CLI signed in with (the hermetic
+ * issuer's; read from the CLI's config, never printed). Read after a CLI
+ * call, which refreshes the token when it is near its end.
+ */
+async function readPlugins(cliHome) {
+  const config = readFileSync(join(cliHome, ".stigmer", "config.yaml"), "utf8");
+  const token = /^\s+token:\s*["']?([^\s"']+)/m.exec(config)?.[1];
+  const endpoint = /^\s+endpoint:\s*["']?([^\s"']+)/m.exec(config)?.[1];
+  check(token !== undefined && endpoint !== undefined, "the stage's CLI holds no sign-in to read plugins with");
+  const { createNodeClient } = await import(pathToFileURL(join(repoRoot, "sdk", "typescript", "dist", "node.js")).href);
+  const client = createNodeClient({ baseUrl: `http://${endpoint}`, getAccessToken: () => token });
+  const org = (await client.organization.listMine({})).entries[0]?.metadata?.slug;
+  check(org !== undefined, "the stage's CLI reaches no organization");
+  const listed = (await client.plugin.list({ org })).entries ?? [];
+  return listed.map((plugin) => ({
+    metadata: { slug: plugin.metadata?.slug },
+    status: {
+      mcpServers: (plugin.status?.mcpServers ?? []).map((server) => ({
+        name: server.name,
+        http: server.transport?.case === "http" ? { url: server.transport.value.url } : undefined,
+      })),
+    },
+  }));
+}
+
+/** What the server holds now: the agent, every routine with its fires, every plugin. */
+async function readState(shim, env, cliHome) {
   const agent = await readJson(shim, env, ["get", "agent", BUILD.agent]);
   const routines = [];
   for (const slug of listedSlugs(JSON.stringify((await readJson(shim, env, ["list", "routines"])) ?? []))) {
@@ -103,12 +139,7 @@ async function readState(shim, env) {
     const fired = Array.isArray(fires) ? fires.length : Array.isArray(fires?.entries) ? fires.entries.length : Array.isArray(fires?.fires) ? fires.fires.length : 0;
     if (routine !== undefined) routines.push({ routine, fires: fired });
   }
-  const environments = [];
-  for (const slug of listedSlugs(JSON.stringify((await readJson(shim, env, ["list", "environments"])) ?? []))) {
-    const environment = await readJson(shim, env, ["get", "environment", slug]);
-    if (environment !== undefined) environments.push(environment);
-  }
-  return { agent, routines, environments };
+  return { agent, routines, plugins: await readPlugins(cliHome) };
 }
 
 async function main() {
@@ -139,9 +170,9 @@ async function main() {
     const written = writeProjectManifests(projectDir);
     log(`the project holds ${written.join(", ")}, as a person who set up has them`);
 
-    const before = await readState(stage.stigmer, env);
+    const before = await readState(stage.stigmer, env, stage.cliHome);
     check(before.agent !== undefined, `${BUILD.agent} was not seeded`);
-    check(before.routines.length === 0 && before.environments.length === 0, "the stage held a routine or an Environment before the walk");
+    check(before.routines.length === 0 && before.plugins.length === 0, "the stage held a routine or a plugin before the walk");
 
     const sessionId = randomUUID();
     log(`claude -p in ${projectDir} on ${args.model} with the plugin: ${BUILD.ask}`);
@@ -159,7 +190,7 @@ async function main() {
     // An indicator, outside the pass: whether the coding agent loaded the job's skill.
     log(`the stigmer-build skill ${/"skill":"[^"]*stigmer-build"/.test(readFileSync(streamPath, "utf8")) ? "loaded" : "did not load"}`);
     check(failed.length === 0, `the server does not hold what was asked:\n  - ${failed.join("\n  - ")}`);
-    log(`one routine on ${BUILD.agent}, Mondays at 9 ${BUILD.timeZone}, off and never started; its Environment lists ${BUILD.pipPackage}; its instructions, skills and tool limits as they were`);
+    log(`one routine on ${BUILD.agent}, Mondays at 9 ${BUILD.timeZone}, off and never started; the MCP server a plugin it lists, its tools ${BUILD.mcpTools.join(" and ")} alone; its instructions, skills and disallowed tools as they were`);
     log("passed");
     passed = true;
   } finally {
@@ -179,8 +210,8 @@ async function main() {
   }
 
   async function stateFor(agentBefore) {
-    const now = await readState(stage.stigmer, stage.env(process.env));
-    return { agentBefore, agentAfter: now.agent, routines: now.routines, environments: now.environments };
+    const now = await readState(stage.stigmer, stage.env(process.env), stage.cliHome);
+    return { agentBefore, agentAfter: now.agent, routines: now.routines, plugins: now.plugins };
   }
 }
 

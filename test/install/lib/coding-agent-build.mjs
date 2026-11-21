@@ -5,11 +5,12 @@
  * that state and names every check it fails, and the walk's flags. Held by
  * lib/coding-agent-build.test.mjs.
  *
- * The state is what the walk reads back through the stage's CLI with
- * `--output json` (snake_case fields, defaults left out, so a routine that
- * is off carries no `enabled`): the agent before the coding agent started
- * and after it stopped, every routine with its fires, and every
- * Environment.
+ * The state is what the walk reads back: the agent before the coding agent
+ * started and after it stopped, and every routine with its fires, through
+ * the stage's CLI with `--output json` (snake_case fields, defaults left
+ * out, so a routine that is off carries no `enabled`); every plugin of the
+ * organization through the TypeScript SDK (the CLI lists none), in its
+ * JSON form (camelCase).
  */
 
 import { FIXTURE } from "./coding-agent-bank.mjs";
@@ -17,12 +18,28 @@ import { FIXTURE } from "./coding-agent-bank.mjs";
 /** The ask, the agent it is about, and what it asks for. */
 export const BUILD = Object.freeze({
   agent: FIXTURE.invoiceAgent,
-  ask: `Make ${FIXTURE.invoiceAgent} check our invoices every Monday at 9 Berlin time, and give it pdfplumber in its sandbox.`,
+  ask: `Make ${FIXTURE.invoiceAgent} check our invoices every Monday at 9 Berlin time, and hook up our ledger API's MCP server at https://mcp.ledgerline.example/mcp so it can use only get_ledger and list_accounts from it.`,
   /** Mondays at 09:00: minute, hour, day of month, month, day of week. */
   cron: ["0", "9", "*", "*", "1"],
   timeZone: "Europe/Berlin",
-  pipPackage: "pdfplumber",
+  /** The MCP server's address, which no one serves: adding it as a plugin never reaches it. */
+  mcpUrl: "https://mcp.ledgerline.example/mcp",
+  /** The server's tools the agent may use, and nothing else of that server. */
+  mcpTools: ["get_ledger", "list_accounts"],
 });
+
+/**
+ * A name part of a plugin tool's name as Claude Code writes it: every
+ * character outside `A-Za-z0-9_-` becomes `_` (the plugin-package library's
+ * tool-names.ts, the rule the runner and the docs share).
+ */
+export function toolNamePart(name) {
+  return String(name).replace(/[^A-Za-z0-9_-]/g, "_");
+}
+
+function sameUrl(a, b) {
+  return typeof a === "string" && a.replace(/\/+$/, "") === b.replace(/\/+$/, "");
+}
 
 /** The fields of the agent the ask did not touch, which must come through the change as they were. */
 export const KEPT_AGENT_FIELDS = Object.freeze(["instructions", "skill_refs", "disallowed_tools"]);
@@ -52,10 +69,10 @@ function refSlug(ref) {
  *   agentBefore: { spec?: Record<string, unknown> },
  *   agentAfter: { spec?: Record<string, unknown> } | undefined,
  *   routines: Array<{ routine: { metadata?: { slug?: string }, spec?: Record<string, any> }, fires: number }>,
- *   environments: Array<{ metadata?: { slug?: string, name?: string }, spec?: Record<string, any> }>,
+ *   plugins: Array<{ metadata?: { slug?: string }, status?: { mcpServers?: Array<{ name?: string, http?: { url?: string } }> } }>,
  * }} state
  */
-export function judgeBuild({ agentBefore, agentAfter, routines, environments }) {
+export function judgeBuild({ agentBefore, agentAfter, routines, plugins }) {
   const failed = [];
   const mine = routines.filter(({ routine }) => refSlug(routine.spec?.agent?.agent_ref) === BUILD.agent);
   if (mine.length !== 1) {
@@ -73,16 +90,23 @@ export function judgeBuild({ agentBefore, agentAfter, routines, environments }) 
     failed.push(`${BUILD.agent} is gone`);
     return failed;
   }
-  const envSlug = refSlug(agentAfter.spec?.environment_ref);
-  if (envSlug === undefined) {
-    failed.push(`${BUILD.agent} names no Environment (environment_ref)`);
+  const serving = plugins.flatMap((plugin) =>
+    (plugin.status?.mcpServers ?? []).filter((server) => sameUrl(server.http?.url, BUILD.mcpUrl)).map((server) => ({ plugin, server })),
+  );
+  if (serving.length !== 1) {
+    failed.push(`${serving.length} plugins hold an MCP server at ${BUILD.mcpUrl}; the ask wants one`);
   } else {
-    const env = environments.find((e) => (e.metadata?.slug ?? e.metadata?.name) === envSlug);
-    const pip = env?.spec?.packages?.pip ?? [];
-    if (env === undefined) failed.push(`${BUILD.agent} names Environment ${envSlug}, which does not exist`);
-    else if (!pip.some((entry) => typeof entry === "string" && new RegExp(`^${BUILD.pipPackage}([=<>~!\\[]|$)`, "i").test(entry))) {
-      failed.push(`Environment ${envSlug} lists no ${BUILD.pipPackage} among its pip packages (${JSON.stringify(pip)})`);
+    const { plugin, server } = serving[0];
+    const slug = plugin.metadata?.slug ?? "(no slug)";
+    const listed = (agentAfter.spec?.plugins ?? []).map(refSlug);
+    if (!listed.includes(slug)) failed.push(`${BUILD.agent} does not list plugin ${slug} in its plugins (${JSON.stringify(listed)})`);
+    const segment = `mcp__plugin_${toolNamePart(slug)}_${toolNamePart(server.name ?? slug)}`;
+    const tools = agentAfter.spec?.tools ?? [];
+    for (const tool of BUILD.mcpTools) {
+      if (!tools.includes(`${segment}__${tool}`)) failed.push(`${BUILD.agent}'s tools do not name ${segment}__${tool} (${JSON.stringify(tools)})`);
     }
+    const wide = tools.filter((entry) => entry === segment || entry === `${segment}__*` || entry === "mcp__*");
+    if (wide.length > 0) failed.push(`${BUILD.agent}'s tools grant every tool of the server (${wide.join(", ")}), not only ${BUILD.mcpTools.join(" and ")}`);
   }
   for (const field of KEPT_AGENT_FIELDS) {
     if (!sameJson(agentAfter.spec?.[field], agentBefore.spec?.[field])) failed.push(`${BUILD.agent}'s ${field} changed: the change did not start from the live definition`);
@@ -97,8 +121,10 @@ export const USAGE = `Usage:
 Asks Claude Code, with Stigmer's plugin, to change an agent the person
 already has on a hermetic local Stigmer ("${BUILD.ask}"),
 then reads the server: one routine on that agent, Mondays at 9 Berlin time,
-still off and never started; an Environment with ${BUILD.pipPackage}, named by the
-agent; the agent's instructions, skills and tool limits as they were. Needs
+still off and never started; one plugin holding the MCP server, listed by
+the agent, whose tools name ${BUILD.mcpTools.join(" and ")} in the full form and
+nothing wider of that server; the agent's instructions, skills and
+disallowed tools as they were. Needs
 \`claude\` signed in, the plugin built (npm run build -w
 @stigmer/coding-agent-plugin) and \`make build-server build-runner build-libs\`.
 

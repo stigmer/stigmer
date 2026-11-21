@@ -1,14 +1,16 @@
 // Holds the build walk's judge (lib/coding-agent-build.mjs): the right
 // state passes; a routine switched on or already started, a schedule on the
-// wrong day or zone, no routine or two, an Environment without the package
-// or not named by the agent, and an agent whose instructions or skills were
-// replaced each fail, naming what is wrong; cron spellings of Mondays at 9
-// read alike; and the flags refuse what they do not know.
+// wrong day or zone, no routine or two, no plugin holding the MCP server or
+// two, a plugin the agent does not list, a tool named bare or a whole server
+// granted, and an agent whose instructions or skills were replaced each
+// fail, naming what is wrong; a hyphen in the plugin's name stays in the
+// tool names; cron spellings of Mondays at 9 read alike; and the flags
+// refuse what they do not know.
 
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-import { BUILD, cronFields, judgeBuild, parseBuildArgs } from "./coding-agent-build.mjs";
+import { BUILD, cronFields, judgeBuild, parseBuildArgs, toolNamePart } from "./coding-agent-build.mjs";
 
 const agentBefore = {
   spec: {
@@ -21,7 +23,13 @@ const agentBefore = {
 function rightState() {
   return {
     agentBefore,
-    agentAfter: { spec: { ...structuredClone(agentBefore.spec), environment_ref: { kind: "environment", slug: "invoice-checker-env" } } },
+    agentAfter: {
+      spec: {
+        ...structuredClone(agentBefore.spec),
+        plugins: [{ kind: "plugin", slug: "ledger" }],
+        tools: ["Read", "mcp__plugin_ledger_ledger__get_ledger", "mcp__plugin_ledger_ledger__list_accounts"],
+      },
+    },
     routines: [
       {
         routine: {
@@ -31,7 +39,10 @@ function rightState() {
         fires: 0,
       },
     ],
-    environments: [{ metadata: { slug: "invoice-checker-env" }, spec: { packages: { pip: ["pdfplumber"] } } }],
+    plugins: [
+      { metadata: { slug: "ledger" }, status: { mcpServers: [{ name: "ledger", http: { url: BUILD.mcpUrl } }] } },
+      { metadata: { slug: "linear" }, status: { mcpServers: [{ name: "linear", http: { url: "https://mcp.linear.app/mcp" } }] } },
+    ],
   };
 }
 
@@ -72,19 +83,38 @@ test("the wrong schedule or zone, no routine, or two routines fail", () => {
   assert.match(judgeBuild(two).join("\n"), /2 routines name invoice-checker/);
 });
 
-test("an Environment without the package, one the agent does not name, or one that is missing fails", () => {
-  const noPackage = rightState();
-  noPackage.environments[0].spec.packages.pip = ["pdfminer.six"];
-  assert.match(judgeBuild(noPackage).join("\n"), /lists no pdfplumber/);
-  const unnamed = rightState();
-  delete unnamed.agentAfter.spec.environment_ref;
-  assert.match(judgeBuild(unnamed).join("\n"), /names no Environment/);
-  const missing = rightState();
-  missing.environments = [];
-  assert.match(judgeBuild(missing).join("\n"), /which does not exist/);
-  const pinned = rightState();
-  pinned.environments[0].spec.packages.pip = ["pdfplumber==0.11.4"];
-  assert.deepEqual(judgeBuild(pinned), []);
+test("no plugin holding the server, two, or one the agent does not list fail", () => {
+  const none = rightState();
+  none.plugins = none.plugins.slice(1);
+  assert.match(judgeBuild(none).join("\n"), /0 plugins hold an MCP server/);
+  const two = rightState();
+  two.plugins.push({ metadata: { slug: "ledger-2" }, status: { mcpServers: [{ name: "ledger-2", http: { url: `${BUILD.mcpUrl}/` } }] } });
+  assert.match(judgeBuild(two).join("\n"), /2 plugins hold an MCP server/);
+  const unlisted = rightState();
+  unlisted.agentAfter.spec.plugins = [];
+  assert.match(judgeBuild(unlisted).join("\n"), /does not list plugin ledger/);
+});
+
+test("a tool named bare, or the whole server granted, fails", () => {
+  const bare = rightState();
+  bare.agentAfter.spec.tools = ["get_ledger", "list_accounts"];
+  assert.match(judgeBuild(bare).join("\n"), /tools do not name mcp__plugin_ledger_ledger__get_ledger/);
+  const wide = rightState();
+  wide.agentAfter.spec.tools.push("mcp__plugin_ledger_ledger");
+  assert.match(judgeBuild(wide).join("\n"), /grant every tool of the server/);
+  const every = rightState();
+  every.agentAfter.spec.tools.push("mcp__*");
+  assert.match(judgeBuild(every).join("\n"), /grant every tool of the server/);
+});
+
+test("a hyphen in the plugin's name stays in its tool names, a dot becomes _", () => {
+  assert.equal(toolNamePart("ledger-api"), "ledger-api");
+  assert.equal(toolNamePart("ledger.v2"), "ledger_v2");
+  const hyphen = rightState();
+  hyphen.plugins[0] = { metadata: { slug: "ledger-api" }, status: { mcpServers: [{ name: "ledger-api", http: { url: BUILD.mcpUrl } }] } };
+  hyphen.agentAfter.spec.plugins = [{ kind: "plugin", slug: "ledger-api" }];
+  hyphen.agentAfter.spec.tools = BUILD.mcpTools.map((tool) => `mcp__plugin_ledger-api_ledger-api__${tool}`);
+  assert.deepEqual(judgeBuild(hyphen), []);
 });
 
 test("an agent that is gone fails", () => {

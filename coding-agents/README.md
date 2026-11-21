@@ -98,11 +98,11 @@ one-line ask, is `make walk-coding-agent-app APP=ledgerly-nextjs` (Next.js) or
 `APP=statements-fastapi` (FastAPI) (`test/install/coding-agent-app.mjs`), by
 hand: it passes when one of the app's signed-in customers uses the agent in the
 app and the conversation is theirs. The plugin changing an agent the person
-already has, from a one-line ask (a routine every Monday, a package in its
-sandbox), is `make walk-coding-agent-build`
+already has, from a one-line ask (a routine every Monday, an MCP server with
+only two of its tools), is `make walk-coding-agent-build`
 (`test/install/coding-agent-build.mjs`), by hand: it passes when the server
-holds the routine, still off, and the Environment, and the agent's
-instructions and skills are as they were.
+holds the routine, still off, and the plugin, the agent names the two tools in
+full, and its instructions and skills are as they were.
 
 ## The question bank
 
