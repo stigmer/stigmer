@@ -6,6 +6,8 @@
  * an unclassified block, an anchor naming an unknown kind, a validate-as
  * marker with no anchor, a no-validate marker with no reason and a manifest
  * that does not decode each fail the gate with their own message;
+ * the Kubernetes operator's Stigmer resource, whole or anchored, validates
+ * against the operator's definition and fails on a field it does not have;
  * and report mode prints a protovalidate violation without failing the build.
  */
 import * as fs from "node:fs";
@@ -23,6 +25,20 @@ const AGENT = [
   "  name: my-first-agent",
   "spec:",
   "  instructions: Answer clearly.",
+].join("\n");
+
+const STIGMER = [
+  "apiVersion: stigmer.ai/v1",
+  "kind: Stigmer",
+  "metadata:",
+  "  name: stigmer",
+  "  namespace: stigmer",
+  "spec:",
+  "  owner:",
+  "    email: owner@example.com",
+  "  runner:",
+  "    llm:",
+  "      secretName: anthropic",
 ].join("\n");
 
 const fence = (meta: string, body: string): string =>
@@ -111,6 +127,38 @@ describe("the docs YAML gate", () => {
     expect(printed).toContain(
       'no-validate="reason" marker in the fence info string.',
     );
+  });
+
+  it("validates the operator's Stigmer resource against its definition, whole or anchored", () => {
+    writeDoc(
+      "docs/kubernetes.mdx",
+      [
+        fence("", STIGMER),
+        fence('validate-as="Stigmer.ingress"', "hostname: stigmer.example.com\ntls:\n  secretName: stigmer-tls"),
+      ].join("\n"),
+    );
+
+    runDocsYamlCheck(path.join(root, "docs"), [], "off");
+
+    expect(printed).toContain("✓ docs YAML gate: 2 blocks across 1 files — 1 manifests, 1 anchored fragments");
+  });
+
+  it("fails a Stigmer example with a field, a value or an anchor the definition does not have, naming each", () => {
+    writeDoc(
+      "docs/kubernetes.mdx",
+      [
+        fence("", `${STIGMER}\n  ingres:\n    hostname: x`),
+        fence('validate-as="Stigmer.image"', "pullPolicy: Sometimes"),
+        fence('validate-as="Stigmer.fleet"', "workers: 3"),
+      ].join("\n"),
+    );
+
+    expect(() => runDocsYamlCheck(path.join(root, "docs"), [], "off")).toThrow(
+      "docs YAML validation failed with 3 problem(s)",
+    );
+    expect(printed).toContain('spec: unknown field "ingres" (did you mean "ingress"?)');
+    expect(printed).toContain('spec.image.pullPolicy: "Sometimes" is not one of "Always", "IfNotPresent", "Never"');
+    expect(printed).toContain('validate-as "Stigmer.fleet": spec has no object field "fleet"');
   });
 
   it("reports a protovalidate violation in report mode without failing the build", () => {

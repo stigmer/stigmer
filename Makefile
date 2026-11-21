@@ -95,7 +95,7 @@ install-vale: ## Install Vale prose linter (auto-detects OS)
 
 # ─── Build ────────────────────────────────────
 
-.PHONY: build build-java-protos build-java-sdk build-runner build-runner-slim build-server protos codegen build-ts-stubs build-libs gen-sdk-docs gen-proto-sdk-docs gen-react-sdk-docs gen-ink-sdk-docs gen-theme-docs gen-sdk-docs-check gen-proto-sdk-docs-check gen-react-sdk-docs-check gen-ink-sdk-docs-check gen-theme-docs-check gen-ipc-fixtures gen-ipc-fixtures-check stubs-internal-check gen-authorization-model gen-authorization-model-check gen-substrate-stubs gen-substrate-stubs-check gen-runner-turn-stubs gen-runner-turn-stubs-check
+.PHONY: build build-java-protos build-java-sdk build-runner build-runner-slim build-server protos codegen build-ts-stubs build-libs gen-sdk-docs gen-proto-sdk-docs gen-react-sdk-docs gen-ink-sdk-docs gen-theme-docs gen-operator-docs gen-operator-docs-check gen-sdk-docs-check gen-proto-sdk-docs-check gen-react-sdk-docs-check gen-ink-sdk-docs-check gen-theme-docs-check gen-ipc-fixtures gen-ipc-fixtures-check stubs-internal-check gen-authorization-model gen-authorization-model-check gen-substrate-stubs gen-substrate-stubs-check gen-runner-turn-stubs gen-runner-turn-stubs-check
 build: build-libs build-web verify-desktop docs-build build-java-sdk build-runner build-server ## Build all project artifacts
 	@echo ""
 	@echo "built: the server ($(SERVER_DIR)/dist) and runner (the CLI ships as the @stigmer/cli npm package)"
@@ -174,7 +174,7 @@ protos: ## Generate protocol buffer stubs and SDK client code
 	$(MAKE) -C sdk/python codegen
 	$(MAKE) -C sdk/java codegen
 
-gen-sdk-docs: gen-proto-sdk-docs gen-react-sdk-docs gen-ink-sdk-docs gen-theme-docs gen-cli-docs ## Generate all SDK reference docs
+gen-sdk-docs: gen-proto-sdk-docs gen-react-sdk-docs gen-ink-sdk-docs gen-theme-docs gen-cli-docs gen-operator-docs ## Generate all SDK reference docs
 
 gen-proto-sdk-docs: ## Generate SDK resource docs from proto schemas
 	@test -x node_modules/.bin/tsx || { echo "error: node_modules/.bin/tsx not found — run 'npm install' at the repo root"; exit 1; }
@@ -260,7 +260,7 @@ gen-react-core-docs: site-deps ## Generate the React core (@stigmer/react-core) 
 gen-theme-docs: site-deps ## Generate theme token reference docs from tokens.css
 	cd site && yarn generate-theme-docs
 
-gen-sdk-docs-check: gen-proto-sdk-docs-check gen-react-sdk-docs-check gen-react-core-docs-check gen-ink-sdk-docs-check gen-theme-docs-check gen-cli-docs-check ## Verify all SDK docs are up to date (CI)
+gen-sdk-docs-check: gen-proto-sdk-docs-check gen-react-sdk-docs-check gen-react-core-docs-check gen-ink-sdk-docs-check gen-theme-docs-check gen-cli-docs-check gen-operator-docs-check ## Verify all SDK docs are up to date (CI)
 
 gen-proto-sdk-docs-check: ## Verify proto SDK docs are up to date (CI)
 	@test -x node_modules/.bin/tsx || { echo "error: node_modules/.bin/tsx not found — run 'npm install' at the repo root"; exit 1; }
@@ -342,6 +342,28 @@ gen-theme-docs-check: site-deps ## Verify theme token docs are up to date (CI)
 		echo "error: theme token docs are stale — run 'make gen-theme-docs'"; exit 1; \
 	fi; \
 	echo "✓ Theme token docs are up to date"
+
+# The Stigmer resource's reference page, rendered from the Kubernetes
+# operator's generated definition (deploy/operator/config/crd/bases, written
+# by `make manifests` in deploy/operator from the Go types' doc comments):
+# tools/codegen/src/generator/stigmer-resource.ts.
+OPERATOR_DOCS_DIR := docs/guides/self-hosting/kubernetes-reference
+
+gen-operator-docs: node_modules ## Generate the Stigmer resource's reference page from the operator's definition
+	node_modules/.bin/tsx tools/codegen/src/generator/main.ts --target=operator-docs --output-dir $(OPERATOR_DOCS_DIR)
+	@$(PRETTIER_GUARD)
+	$(PRETTIER) --write --prose-wrap always $(OPERATOR_DOCS_DIR)/stigmer.mdx
+
+gen-operator-docs-check: node_modules ## Verify the Stigmer resource's reference page is up to date (CI)
+	@$(PRETTIER_GUARD)
+	@tmpdir=$$(mktemp -d) && \
+	node_modules/.bin/tsx tools/codegen/src/generator/main.ts --target=operator-docs --output-dir "$$tmpdir" >/dev/null && \
+	$(PRETTIER) --stdin-filepath "$(OPERATOR_DOCS_DIR)/stigmer.mdx" --prose-wrap always < "$$tmpdir/stigmer.mdx" > "$$tmpdir/stigmer.fmt.mdx" && \
+	if diff -q "$$tmpdir/stigmer.fmt.mdx" "$(OPERATOR_DOCS_DIR)/stigmer.mdx" > /dev/null 2>&1; then \
+		rm -rf "$$tmpdir"; echo "✓ The Stigmer resource's reference page is up to date"; \
+	else \
+		rm -rf "$$tmpdir"; echo "error: the Stigmer resource's reference page is stale — run 'make manifests' in deploy/operator, then 'make gen-operator-docs'"; exit 1; \
+	fi
 
 gen-cli-docs: ## Generate CLI reference docs from the TypeScript command tree
 	cd client-apps/cli && npx tsx scripts/gen-cli-docs.ts --output ../../docs/cli/commands/

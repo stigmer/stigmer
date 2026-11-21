@@ -1025,6 +1025,10 @@ cohorts:
     generator: gen-cli-docs
     diataxis: reference
     medium: none
+  guides/self-hosting/kubernetes-reference/:
+    generator: gen-operator-docs
+    diataxis: reference
+    medium: none
   sdk/react/:
     generator: gen-react-sdk-docs
     diataxis: reference

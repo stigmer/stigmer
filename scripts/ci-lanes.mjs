@@ -441,6 +441,10 @@ export const LANES = {
       "site/**",
       "apis/**",
       "tools/codegen/**",
+      // The Stigmer resource's definition: gen-operator-docs-check renders
+      // its reference page from it, and check-docs-yaml validates every
+      // stigmer.ai/v1 example against it.
+      "deploy/operator/config/crd/bases/**",
       // check-docs-yaml validates the raw manifests under these
       // authoring surfaces too (Makefile: --authoring-dirs).
       "examples/**",
