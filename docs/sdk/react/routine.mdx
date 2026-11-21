@@ -527,6 +527,11 @@ so the interactive and scheduled surfaces cannot drift, minus only
 what unattended makes impossible (no local folders, no file uploads,
 no approval-mode choice).
 
+For an agent without a computer (`AgentSpec.computer`), the workspace
+and Environment fields are left out with one line saying why, and the
+model picker is fixed to the Stigmer harness: the server would refuse a
+repository, an Environment or the Claude harness for it.
+
 Enabled defaults to OFF, deliberately: it matches the proto/YAML
 default (an omitted `enabled` is false) and the platform's
 recommended practice — create staged-disabled, validate with
