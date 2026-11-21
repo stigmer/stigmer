@@ -13,6 +13,9 @@
 // It names the server's version and edition (`Server: 0.2.0 (Cloud)`), from
 // the same server-info answer, so a person, or their coding agent, can tell
 // whether a feature the docs describe has reached the server they talk to.
+// Beside it, `Endpoint` is the address the CLI dialled (the word `stigmer
+// config backend status` uses for it), so the answer also says which server
+// that is: a self-hosted one, Stigmer Cloud, or a local stack (stigmer#3369).
 //
 // It names the context organization by the slug the backend answers now,
 // not the one `config context set` stored, and stores the current one when
@@ -30,6 +33,7 @@ import {
   ensureAuthenticated,
   load,
   resolveContextOrganization,
+  resolveServerAddress,
   save,
 } from "../../config/index.js";
 import { CommandResult } from "../../output/index.js";
@@ -51,6 +55,8 @@ export interface WhoamiContext {
   readonly help?: { readonly url: string; readonly label: string };
   /** The server's version and edition; absent when the server didn't say. */
   readonly server?: { readonly version: string; readonly edition: ServerEdition };
+  /** The address the CLI dialled; absent when unknown. */
+  readonly endpoint?: string;
 }
 
 /**
@@ -101,7 +107,18 @@ export function whoamiResult(
   if (context.server !== undefined) {
     const server = serverLine(context.server.version, context.server.edition);
     if (server !== "") section.field("Server", server);
-    result.withData({ server: { version: context.server.version, edition: EDITION_KEYS[context.server.edition] ?? "" } });
+  }
+  const endpoint = context.endpoint ?? "";
+  if (endpoint !== "") section.field("Endpoint", endpoint);
+  if (context.server !== undefined || endpoint !== "") {
+    result.withData({
+      server: {
+        ...(context.server !== undefined
+          ? { version: context.server.version, edition: EDITION_KEYS[context.server.edition] ?? "" }
+          : {}),
+        ...(endpoint !== "" ? { endpoint } : {}),
+      },
+    });
   }
 
   if (context.help !== undefined) {
@@ -148,7 +165,11 @@ export async function runWhoami(): Promise<CommandResult> {
     .then((answer) => answer, () => undefined);
   const help = info?.help;
   const server = info === undefined ? undefined : { version: info.version, edition: info.edition };
+  // The address the client dials, from the resolver it dialled by; it
+  // resolved once already when the client was made, so this cannot throw.
+  const endpoint = resolveServerAddress(client.config).address;
   return whoamiResult(account, {
+    endpoint,
     created,
     org: org.label,
     orgId: org.id,

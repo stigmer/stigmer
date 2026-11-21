@@ -1,4 +1,16 @@
-// `stigmer status` — render the local stack's health as a structured result.
+// `stigmer status` — say which server the CLI uses, then render the local
+// stack's health as a structured result.
+//
+// It names the backend the CLI uses and its address first, read from the
+// same resolver the backend client dials by (config/resolve.ts). When that is
+// not the local stack (a self-hosted server, Stigmer Cloud, or an address in
+// STIGMER_SERVER_ADDRESS), a missing local stack is nothing wrong: it says so
+// and returns success, with no hint to start one, since a person signed in to
+// their own server who follows `stigmer up` starts a second server
+// (stigmer#3369). It never asks the remote server anything; reaching it is
+// `stigmer auth whoami`'s. A backend config that cannot be read is shown on
+// the Backend line with its own error, and the local stack is still reported:
+// a diagnostic command never fails on what it diagnoses.
 //
 // Source of truth is `health-state.json`, written by the daemon's health
 // monitor. If it is missing but the server port answers (the daemon wrote a PID
@@ -10,8 +22,9 @@
 import { formatElapsed } from "@stigmer/client";
 import { homedir } from "node:os";
 import { join } from "node:path";
-import { load as loadConfig } from "../config/config.js";
+import { activeBackend, load as loadConfig } from "../config/config.js";
 import { configPath } from "../config/paths.js";
+import { resolveServerAddress } from "../config/resolve.js";
 import { CommandResult } from "../output/command-result.js";
 import { SERVER_PORT, TEMPORAL_UI_PORT } from "./constants.js";
 import { resolveApiKey } from "./llm-config.js";
@@ -48,14 +61,25 @@ export async function buildStatusResult(
   const pid = recordedLiveProcess(join(data, DAEMON_PID_FILE));
   const daemonAlive = pid !== null;
   const portOpen = await probe(SERVER_PORT);
+  const backend = backendInUse(home, env);
+  const elsewhere = backend.kind === "remote";
 
   if (!daemonAlive && !portOpen) {
-    return CommandResult.warning("Stigmer server is not running").hint("To start: stigmer up");
+    if (elsewhere) {
+      const result = CommandResult.success(usesMessage(backend));
+      addBackendSection(result, backend);
+      result.addSection("Local Stack").field("Status", "Not running ○");
+      return result;
+    }
+    const result = CommandResult.warning("Stigmer server is not running");
+    addBackendSection(result, backend);
+    return result.hint("To start: stigmer up");
   }
 
   const health = loadHealthState(join(data, "health-state.json")) ?? synthesizeHealth(pid, portOpen);
 
-  const result = CommandResult.success("Stigmer server is running");
+  const result = CommandResult.success(elsewhere ? usesMessage(backend) : "Stigmer server is running");
+  addBackendSection(result, backend);
 
   const daemon = result.addSection("Daemon");
   daemon.field("PID", String(health.daemon_pid));
@@ -78,6 +102,47 @@ export async function buildStatusResult(
   addWebUiSection(result, health);
 
   return result;
+}
+
+/** The server the CLI uses: the local stack, another server, or a config that names none it can read. */
+type BackendInUse =
+  | { readonly kind: "local"; readonly name: string; readonly address: string }
+  | { readonly kind: "remote"; readonly name: string; readonly address: string; readonly fromEnvironment: boolean }
+  | { readonly kind: "broken"; readonly error: string };
+
+// The local stack's own address, as the resolver names it or as an
+// override may spell it; an override naming it is still the local stack.
+const LOCAL_ADDRESSES = new Set([`localhost:${SERVER_PORT}`, `127.0.0.1:${SERVER_PORT}`]);
+
+function backendInUse(home: string, env: NodeJS.ProcessEnv): BackendInUse {
+  try {
+    const config = loadConfig(configPath(home));
+    const { name } = activeBackend(config);
+    const { address, source } = resolveServerAddress(config, env);
+    if (source === "local" || LOCAL_ADDRESSES.has(address)) return { kind: "local", name, address };
+    return { kind: "remote", name, address, fromEnvironment: source === "environment" };
+  } catch (err) {
+    return { kind: "broken", error: err instanceof Error ? err.message : String(err) };
+  }
+}
+
+function usesMessage(backend: Extract<BackendInUse, { kind: "remote" }>): string {
+  return backend.fromEnvironment
+    ? `The CLI uses ${backend.address} (STIGMER_SERVER_ADDRESS), not a local stack`
+    : `The CLI uses backend "${backend.name}" at ${backend.address}, not a local stack`;
+}
+
+// The same words `stigmer config backend status` uses for the same facts.
+function addBackendSection(result: CommandResult, backend: BackendInUse): void {
+  const section = result.addSection("");
+  if (backend.kind === "broken") {
+    section.field("Backend", `unreadable: ${backend.error}`);
+    result.hint("See the configured backends: stigmer config backend list");
+    return;
+  }
+  section.field("Backend", backend.name);
+  section.field("Endpoint", backend.address);
+  if (backend.kind === "remote" && backend.fromEnvironment) section.field("Set by", "STIGMER_SERVER_ADDRESS");
 }
 
 function synthesizeHealth(pid: number | null, portOpen: boolean): HealthState {

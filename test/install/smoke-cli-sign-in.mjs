@@ -13,7 +13,10 @@
  *      follows the authorize address to the CLI's loopback callback (the
  *      issuer consents as its person). The login says it authenticated with
  *      that server, the config file keeps the sign-in beside its issuer, and
- *      `stigmer auth whoami` answers as the issuer's person.
+ *      `stigmer auth whoami` answers as the issuer's person and names the
+ *      server's address as its `Endpoint`. `stigmer status` names that
+ *      backend and address, and never says to start a local stack, which a
+ *      person signed in to their own server does not need (stigmer#3369).
  *   2. `stigmer auth logout` clears it, and `stigmer auth whoami` is refused.
  *   3. A code on any device: `stigmer auth login --device` with no browser
  *      prints the address and a code, the issuer approves it, and the
@@ -95,6 +98,11 @@ async function main() {
     check(config.includes(`oidc_client_id: ${NATIVE_CLIENT}`), "the config keeps no client beside the sign-in");
     const whoami = await stigmer(["auth", "whoami"]);
     check(whoami.status === 0 && said(whoami, server.issuer.person.email), "whoami did not answer as the issuer's person", whoami);
+    check(new RegExp(`Endpoint\\s+${endpoint.replaceAll(".", "\\.")}`).test(`${whoami.stdout}${whoami.stderr}`), "whoami did not name the server's address as its Endpoint", whoami);
+    const status = await stigmer(["status"]);
+    check(status.status === 0, `status exited ${status.status}`, status);
+    check(said(status, `The CLI uses backend "smoke" at ${endpoint}`), "status did not name the backend the CLI uses and its address", status);
+    check(!said(status, "stigmer up"), "status told a person signed in to their own server to start a local stack", status);
 
     log("case 2: auth logout");
     const logout = await stigmer(["auth", "logout"]);
