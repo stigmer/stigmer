@@ -145,15 +145,19 @@ sandboxes your server runs:
 - **On Kubernetes sandboxes** (the `agent-sandbox` driver), a conversation's
   sandbox sleeps when idle and keeps only its workspace and the Agent's home, so
   its packages install again when it wakes.
-- **On Agent Substrate**, a sleeping sandbox keeps the same two, its workspace
-  and the Agent's home, so its packages install again when it wakes too
-  ([stigmer#3360](https://github.com/stigmer/stigmer/issues/3360)).
+- **On Agent Substrate**, a sleeping sandbox keeps its whole disk, so its
+  packages are still installed when it wakes. They install once more after your
+  server is upgraded, at a conversation's next wake.
 
 An edit to an Environment reaches its conversations in two halves:
 
 - **Its network** applies at a conversation's next turn. On Agent Substrate, a
   host you remove from the list stops being reachable from the next turn on.
-- **Its packages** apply at a sandbox's next fresh start.
+- **Its packages** apply when a sleeping sandbox next wakes, on Agent Substrate
+  and on Kubernetes sandboxes alike; a sandbox that is awake keeps its packages
+  until it next sleeps. On Agent Substrate a changed set installs over the one
+  the sandbox kept, so a package you remove stays installed in that
+  conversation.
 
 A failed install fails the turn, with the installer's own output. A command that
 fails is tried once more after two seconds; one command may run for 10 minutes

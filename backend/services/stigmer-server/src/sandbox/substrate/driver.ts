@@ -6,10 +6,11 @@
  * session's sandbox therefore sleeps while the session is idle and wakes
  * when the next turn arrives.
  *
- * Every wake starts a fresh runner. The template captures volumes only
- * (template.ts), so a suspend keeps no runner's memory: a memory fidelity
- * would bring a suspended runner back with the secrets it slept with,
- * where a fresh start takes this configuration's.
+ * Every wake starts a fresh runner. The template captures the volumes and
+ * the disk's changes, never memory (template.ts), so a suspend keeps no
+ * runner's memory: a memory fidelity would bring a suspended runner back
+ * with the secrets it slept with, where a fresh start takes this
+ * configuration's.
  *
  * Shape: a gateway is the only surface touching
  * Substrate (gateway.ts), the provisioner is built over it, and
