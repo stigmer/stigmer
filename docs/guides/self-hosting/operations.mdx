@@ -249,11 +249,13 @@ kubectl -n stigmer-system scale deploy/stigmer-operator --replicas=1
 
 A database can't be dropped while something is connected to it, which is why the
 server and Temporal go to zero first; the operator, started again, brings them
-back. `ON_ERROR_STOP` makes a failed restore stop and say so. Then fill the two
-file stores through the server container, and restart it so it reads them fresh:
+back. `ON_ERROR_STOP` makes a failed restore stop and say so. Then wait for the
+server to be back, fill the two file stores through its container, and restart
+it so it reads them fresh:
 
 ```bash
-kubectl -n stigmer rollout status deploy/stigmer
+kubectl -n stigmer wait --for=jsonpath='{.status.readyReplicas}'=1 \
+  deploy/stigmer --timeout=10m
 kubectl -n stigmer exec -i deploy/stigmer -c server -- \
   tar xzf - --strip-components=1 -C /data < backup/server-data.tgz
 kubectl -n stigmer exec -i deploy/stigmer -c server -- \
@@ -455,9 +457,9 @@ says "the shared runner's key changed".
 </Tab>
 <Tab value="Kubernetes">
 
-The operator mints the runner's key into the Secret `stigmer-runner-key`. To
-rotate it, delete the Secret, wait for the operator to mint a new one, and
-restart the pod so the server and the runner both read it:
+With sign-in on, the operator mints the runner's key into the Secret
+`stigmer-runner-key`. To rotate it, delete the Secret, wait for the operator to
+mint a new one, and restart the pod so the server and the runner both read it:
 
 ```bash
 kubectl -n stigmer delete secret stigmer-runner-key
