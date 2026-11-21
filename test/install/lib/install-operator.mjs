@@ -47,23 +47,28 @@ export function createOperator(cluster, { log }) {
   return {
     /**
      * Build the operator's image from source, stamped `version` (compose-dev
-     * unless the upgrade test stamps two versions of one build), and load it
-     * into the node.
+     * unless the upgrade test stamps two versions of one build) and, for a
+     * profile whose sandboxes are pinned by digest, `runnerDigest`, and load
+     * it into the node.
      */
-    buildAndLoad({ version = SOURCE_TAG } = {}) {
+    buildAndLoad({ version = SOURCE_TAG, runnerDigest = "" } = {}) {
       const image = `${IMAGE_REGISTRY}/stigmer-operator:${version}`;
-      log(`docker build ${image} from deploy/operator`);
-      execFileSync("docker", ["build", "--build-arg", `STIGMER_VERSION=${version}`, "-t", image, OPERATOR_MODULE], {
-        stdio: "inherit",
-      });
+      log(`docker build ${image} from deploy/operator${runnerDigest === "" ? "" : `, the runner pinned at ${runnerDigest}`}`);
+      execFileSync(
+        "docker",
+        ["build", "--build-arg", `STIGMER_VERSION=${version}`, "--build-arg", `SANDBOX_RUNNER_DIGEST=${runnerDigest}`, "-t", image, OPERATOR_MODULE],
+        { stdio: "inherit" },
+      );
       cluster.loadImage(image);
     },
     /**
      * `helm upgrade --install` the operator chart at the image stamped `tag`
      * and wait for the operator to be ready: a first install, or the upgrade
-     * a platform engineer runs to move to the next release.
+     * a platform engineer runs to move to the next release. `localRegistry`
+     * is the chart's development-cluster registry; `restart` rolls the
+     * operator so an image rebuilt at the same tag runs.
      */
-    install({ tag = SOURCE_TAG } = {}) {
+    install({ tag = SOURCE_TAG, localRegistry = "", restart = false } = {}) {
       cluster.helm(
         [
           "upgrade",
@@ -77,12 +82,19 @@ export function createOperator(cluster, { log }) {
           `image.tag=${tag}`,
           "--set",
           "image.pullPolicy=Never",
+          "--set",
+          `localRegistry=${localRegistry}`,
           "--wait",
           "--timeout",
           "3m",
         ],
         { stdio: "inherit" },
       );
+      if (restart) {
+        // An image rebuilt at the same tag reaches only a new pod.
+        cluster.kubectl(["-n", OPERATOR_NAMESPACE, "rollout", "restart", `deployment/${OPERATOR_RELEASE}`]);
+        cluster.kubectl(["-n", OPERATOR_NAMESPACE, "rollout", "status", `deployment/${OPERATOR_RELEASE}`, "--timeout=3m"]);
+      }
     },
     /** The operator's whole log. */
     logs() {

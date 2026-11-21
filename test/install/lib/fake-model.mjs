@@ -113,9 +113,10 @@ export function parseFakeModelArg(arg) {
  * the default reply's words (the shared fake's, which say plainly that no
  * real model answered, unless a journey's reader needs an answer's words).
  * Resolves
- * `{ url, port, replyText, requests, anthropicKeys, enqueue, close }`: `url`
+ * `{ url, port, replyText, requests, anthropicKeys, bodies, enqueue, close }`: `url`
  * is the loopback address, `requests()` the number of model calls answered so
  * far, `anthropicKeys()` the key each Anthropic call carried, and
+ * `bodies()` every call's raw body (a tool's output the agent sends back),
  * `enqueue(script)` queues one scripted answer (FakeLlmUpstream's
  * UpstreamScript) ahead of the mode's default, for a journey whose agent
  * must do something a canned reply cannot, such as save a file.
@@ -133,6 +134,8 @@ export async function startFakeModel({ host = "127.0.0.1", mode = "reply", reply
     requests: () => fake.requests().filter((request) => request.provider !== "unknown").length,
     /** The key each Anthropic model call carried (`x-api-key`), in order: which key reached the runner. */
     anthropicKeys: () => fake.requests().filter((request) => request.provider === "anthropic").map((request) => request.headers["x-api-key"] ?? ""),
+    /** Every model call's raw body, in order: what the agent sent back, such as a tool's output. */
+    bodies: () => fake.requests().map((request) => request.rawBody),
     enqueue: (script) => void fake.enqueue(script),
     close: () => fake.close(),
   };

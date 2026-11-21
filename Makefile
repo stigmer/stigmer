@@ -865,8 +865,8 @@ smoke-helm-enterprise: build-server build-web stage-compose-runner-cli bundle-ee
 # and its chart deploy/helm/stigmer-operator). build/test/lint delegate to
 # the module's Makefile, which pins its tools; smoke-operator is its install
 # test on kind (test/install/smoke-operator.mjs), one profile at a time:
-# PROFILE=bundled (the default), byo, bucket, exposed, agent-sandbox, upgrade,
-# or enterprise, which builds the Enterprise image too.
+# PROFILE=bundled (the default), byo, bucket, exposed, agent-sandbox,
+# substrate, upgrade, or enterprise, which builds the Enterprise image too.
 OPERATOR_DIR := deploy/operator
 OPERATOR_CHART_DIR := deploy/helm/stigmer-operator
 PROFILE ?= bundled

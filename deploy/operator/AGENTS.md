@@ -23,8 +23,9 @@ it names are the truth.
   `docker-compose.yml`.
 - `internal/manifests/README.md`: the embedded releases and how to move them.
 - `internal/render/sandbox.go`, `internal/render/networkpolicy.go`,
-  `internal/janitor/janitor.go` headers: per-session sandboxes, the fences, and
-  the cleanup once no `Stigmer` remains.
+  `internal/substrate/install/install.go`, `internal/janitor/janitor.go`
+  headers: per-session sandboxes, fences, Substrate's install, and the cleanup
+  once no `Stigmer` remains.
 - `internal/render/backup.go`, `internal/component/backup.go` and
   `internal/component/upgrade.go`: backups to the bucket, restores, and the
   backup an upgrade waits for.
@@ -61,7 +62,8 @@ it names are the truth.
   second host.
 - Exposure signs people in, or says on purpose it does not
   (`spec.server.allowUnauthenticatedExposure`).
-- Outbound calls go only to components the operator runs (`internal/keycloak`).
+- Outbound calls go only to components the operator runs (`internal/keycloak`,
+  `internal/serverhealth`).
 - The sandbox pool is the declared size; the operator never sizes it from
   demand, which is the sandbox runtime's own autoscaler's job. A sandbox image
   is pinned by digest.
@@ -76,4 +78,5 @@ it names are the truth.
 also runs `make smoke-operator PROFILE=bundled` (the install test on kind), and
 a change to the bucket, backups or upgrades `PROFILE=bucket` and
 `PROFILE=upgrade`, a change to the front door or sign-in `PROFILE=exposed`, and
-a change to sandboxes, fences or the janitor `PROFILE=agent-sandbox`.
+a change to sandboxes, fences or the janitor `PROFILE=agent-sandbox`, and to
+Substrate `PROFILE=substrate`.

@@ -5,7 +5,7 @@
  * installed with its chart on a kind cluster this script creates, and one
  * Stigmer resource per profile brought up and proven end to end.
  *
- *   make smoke-operator PROFILE=bundled      (or byo, enterprise, bucket, exposed, agent-sandbox, upgrade)
+ *   make smoke-operator PROFILE=bundled      (or byo, enterprise, bucket, exposed, agent-sandbox, substrate, upgrade)
  *
  * What one pass proves, per profile:
  *
@@ -84,6 +84,27 @@
  *   profile's does, and the janitor then removes the sandbox namespace,
  *   agent-sandbox and CloudNativePG, saying so in the operator's log.
  *
+ * substrate: a cluster with Kubernetes' pod-certificate APIs and a local
+ *   registry, as Agent Substrate's own kind script makes it; the runner
+ *   image pushed there and the operator rebuilt pinned to its digest, its
+ *   chart told the registry's in-cluster address. The bucket stack, then one
+ *   declaration with per-session sandboxes on Agent Substrate, a fenced
+ *   server, and the fake model reached by an in-cluster name named as a
+ *   sandbox lane. The operator installs Substrate, waits in words for the
+ *   pool's first worker and then for the server's sandbox image (the
+ *   runner component reads PreparingSandboxImage before Ready), and the
+ *   install is Ready with no shared runner. Two sessions run as two actors.
+ *   From inside one, by a probe the agent runs, the server, the bucket and
+ *   the model answer, and the model under a name that is not a lane, the
+ *   database and Temporal do not; the same probe from the server's pod
+ *   reaches the database and Temporal, so the probe tells them apart. Both
+ *   actors sleep; the first session's next message wakes only its actor,
+ *   with the file its first turn wrote. The database archives. Deleting the
+ *   Stigmer leaves the namespace as the bucket profile's does, and the
+ *   janitor removes the sandbox namespace, Substrate (its namespaces, its
+ *   definitions, its trust bundles), the backup plugin and CloudNativePG,
+ *   and withdraws the label that admitted the namespace to Substrate's API.
+ *
  * upgrade: two builds of this checkout's operator stamped as consecutive
  *   versions (smoke-1, smoke-2), with the source images tagged at both. A
  *   bucket-backed Stigmer under smoke-1 runs an agent; `helm upgrade` moves
@@ -114,7 +135,7 @@ import { fileURLToPath } from "node:url";
 import { LAYER_ENGINES, assertClaudeReady } from "./lib/claude-engine.mjs";
 import { FAKE_MODEL_API_KEY, fakeModelEnv, isTitleCall, parseFakeModelArg, startFakeModel } from "./lib/fake-model.mjs";
 import { anthropicText, anthropicToolUse } from "../support/src/llm-wire.ts";
-import { IMAGE_REGISTRY, SOURCE_TAG, createKindCluster } from "./lib/kind-cluster.mjs";
+import { IMAGE_REGISTRY, LOCAL_REGISTRY, SOURCE_TAG, createKindCluster, substrateKindConfig } from "./lib/kind-cluster.mjs";
 import { createObjectStore } from "./lib/object-store.mjs";
 import { CA_ISSUER, GATEWAY, HOSTNAME, MAIL, PUBLIC_URL, TRAEFIK_H2C, createFrontDoor, kindConfig } from "./lib/front-door.mjs";
 import {
@@ -129,6 +150,7 @@ import {
   startSignedInProxy,
 } from "./lib/front-door-client.mjs";
 import { ARTIFACT_PORT, SERVER_PORT, createOperator, createStigmer } from "./lib/install-operator.mjs";
+import { createActorReader } from "./lib/substrate.mjs";
 import {
   assertArtifactLane,
   assertConsoleServed,
@@ -144,11 +166,13 @@ import {
 
 const repoRoot = fileURLToPath(new URL("../..", import.meta.url));
 /** In the order they run: upgrade last, since it leaves the operator at its second build. */
-const PROFILES = ["bundled", "byo", "enterprise", "bucket", "exposed", "agent-sandbox", "upgrade"];
+const PROFILES = ["bundled", "byo", "enterprise", "bucket", "exposed", "agent-sandbox", "substrate", "upgrade"];
 // A first install pulls CloudNativePG and Temporal, creates the database and
 // its schema, and waits through the server's startup probe; generous on a
 // shared CI host.
 const READY_TIMEOUT_MS = 15 * 60_000;
+/** Agent Substrate's own install, a worker's gVisor download and the sandbox image's golden snapshot come first. */
+const SUBSTRATE_READY_TIMEOUT_MS = 30 * 60_000;
 const SERVER_HEALTHY_TIMEOUT_MS = 180_000;
 const RUN_COMPLETED_TIMEOUT_MS = 240_000;
 const GONE_TIMEOUT_MS = 3 * 60_000;
@@ -768,6 +792,233 @@ async function runAgentSandbox(fake, modelBaseUrl) {
   kubectl(["delete", "namespace", namespace, "--wait=false"]);
 }
 
+/**
+ * What a sandbox lets through, probed by the agent itself (a Substrate actor
+ * takes no exec): an HTTP GET to each HTTP target, and for the database and
+ * Temporal the first bytes their own protocol answers (Postgres's reply to
+ * an SSLRequest, an HTTP/2 SETTINGS frame), so a reply from a gateway in
+ * between is never mistaken for theirs. It prints one line, FENCE=<base64
+ * JSON>, which the fake model reads back from the tool's output.
+ */
+const PROTOCOL_PROBE = `
+const net = require("node:net"), http = require("node:http");
+const targets = JSON.parse(Buffer.from(process.argv[process.argv.length - 1], "base64").toString());
+const probe = (t) => new Promise((resolve) => {
+  const done = (v) => resolve([t.name, v]);
+  if (t.kind === "http") {
+    const req = http.get({ host: t.host, port: t.port, path: t.path, timeout: 5000 }, (res) => {
+      let body = "";
+      res.on("data", (c) => { if (body.length < 400) body += c; });
+      res.on("end", () => done({ status: res.statusCode, body: body.slice(0, 400) }));
+    });
+    req.on("timeout", () => { req.destroy(); done({ error: "timeout" }); });
+    req.on("error", (e) => done({ error: String(e.code ?? e.message) }));
+    return;
+  }
+  const s = net.connect({ host: t.host, port: t.port, timeout: 5000 });
+  let got = Buffer.alloc(0);
+  s.once("connect", () => s.write(t.kind === "postgres" ? Buffer.from([0, 0, 0, 8, 4, 210, 22, 47]) : Buffer.from("PRI * HTTP/2.0\\r\\n\\r\\nSM\\r\\n\\r\\n")));
+  s.on("data", (d) => { got = Buffer.concat([got, d]); if (got.length >= 9 || t.kind === "postgres") { s.destroy(); done({ first: got.subarray(0, 16).toString("hex") }); } });
+  s.once("timeout", () => { s.destroy(); done({ first: got.toString("hex"), error: "timeout" }); });
+  s.once("error", (e) => done({ first: got.toString("hex"), error: String(e.code ?? e.message) }));
+  s.once("close", () => done({ first: got.toString("hex") }));
+});
+Promise.all(targets.map(probe)).then((r) => console.log("FENCE=" + Buffer.from(JSON.stringify(Object.fromEntries(r))).toString("base64")));
+`;
+
+/** Whether a probe result is the target's own answer. */
+const reached = {
+  server: (r) => r.status === 200 && (r.body ?? "").trimStart().startsWith("{"),
+  bucket: (r) => (r.body ?? "").includes("<?xml"),
+  model: (r) => (r.body ?? "").includes("FakeLlmUpstream"),
+  postgres: (r) => r.first === "53" || r.first === "4e",
+  temporal: (r) => typeof r.first === "string" && r.first.length >= 18 && r.first.slice(6, 8) === "04",
+};
+
+/** The probe's results, from the last FENCE= line any model call carried. */
+function fenceResults(fake) {
+  for (const body of [...fake.bodies()].reverse()) {
+    const m = /FENCE=([A-Za-z0-9+/=]+)/.exec(body);
+    if (m !== null) return JSON.parse(Buffer.from(m[1], "base64").toString());
+  }
+  throw new Error("no model call carried the fence probe's output");
+}
+
+/** A selectorless Service in `namespace` named `name`, forwarding `port` to the host at `ip`. */
+function hostService(namespace, name, ip, port) {
+  kubectl(["apply", "-f", "-"], {
+    input: JSON.stringify({
+      apiVersion: "v1",
+      kind: "List",
+      items: [
+        { apiVersion: "v1", kind: "Service", metadata: { name, namespace }, spec: { ports: [{ name: "http", port, targetPort: port }] } },
+        {
+          apiVersion: "discovery.k8s.io/v1",
+          kind: "EndpointSlice",
+          metadata: { name, namespace, labels: { "kubernetes.io/service-name": name } },
+          addressType: "IPv4",
+          endpoints: [{ addresses: [ip] }],
+          ports: [{ name: "http", port, protocol: "TCP" }],
+        },
+      ],
+    }),
+  });
+}
+
+async function runSubstrate(fake, modelBaseUrl) {
+  const namespace = "smoke-substrate";
+  const sandboxes = `${namespace}-sandboxes`;
+  const registry = `${LOCAL_REGISTRY.host}/stigmer`;
+  log(`=== profile substrate (namespace ${namespace}, workers in ${sandboxes}) ===`);
+  const digest = cluster.pushSandboxRunnerImage(registry);
+  log(`the runner is ${registry}/runner:${SOURCE_TAG}@${digest}`);
+  cluster.loadSourceImagesAs(registry);
+  operator.buildAndLoad({ runnerDigest: digest });
+  operator.install({ localRegistry: LOCAL_REGISTRY.inCluster, restart: true });
+  objectStore.install();
+
+  // The model, by an in-cluster name a Substrate lane can carry (a lane is
+  // never an address), and the same fake under a name no lane carries.
+  const modelIP = hostIPv4(new URL(modelBaseUrl).hostname);
+  const modelPort = Number(new URL(modelBaseUrl).port);
+  const modelHost = `fake-model.${namespace}.svc.cluster.local`;
+  prepareNamespace(namespace, `http://${modelHost}:${modelPort}`);
+  hostService(namespace, "fake-model", modelIP, modelPort);
+  hostService(namespace, "fake-model-unlisted", modelIP, modelPort);
+  objectStore.writeCredentials(namespace);
+
+  const stigmer = createStigmer(cluster, { namespace, log });
+  current = stigmer;
+  stigmer.apply({
+    owner: { email: "owner@example.com" },
+    image: { registry },
+    runner: { llm: { secretName: MODEL_SECRET } },
+    objectStore: objectStore.spec(),
+    // The server's own fence too: it reaches Substrate through it, and the
+    // model's host by the range named here.
+    server: { egress: { fenced: true, allowCIDRs: [`${modelIP}/32`] } },
+    sandboxes: {
+      driver: "substrate",
+      idleSeconds: 30,
+      substrate: { workers: 1, sandbox: { cpuMillicores: 1000, memoryMiB: 1024 }, egress: { http: [`${modelHost}:${modelPort}`] } },
+    },
+  });
+  const seen = new Set();
+  await pollUntil(
+    `Stigmer ${namespace}/stigmer to be Ready`,
+    SUBSTRATE_READY_TIMEOUT_MS,
+    () => {
+      const now = stigmer.read();
+      for (const c of now?.status?.components ?? []) {
+        const key = `${c.name}/${c.reason}`;
+        if (!seen.has(key)) {
+          seen.add(key);
+          log(`status: ${c.name} ${c.phase} ${c.reason}: ${c.message}`);
+        }
+      }
+      return now?.status?.conditions?.find((c) => c.type === "Ready")?.status === "True";
+    },
+    { intervalMs: 2000 },
+  );
+  for (const want of ["sandboxes/WaitingForWorkers", "runner/PreparingSandboxImage"]) {
+    if (!seen.has(want)) throw new Error(`the install reached Ready without saying ${want}`);
+  }
+  assertZeroRestarts(namespace);
+  if (stigmer.images().runner !== undefined) throw new Error("a per-session install runs a shared runner");
+  log(`Ready; sandboxes: ${stigmer.component("sandboxes")?.message}`);
+
+  const reader = createActorReader(cluster, { serverNamespace: namespace, serverAccount: "stigmer-server", atespace: "stigmer", log });
+  const forward = await stigmer.portForward();
+  let first;
+  try {
+    const { baseUrl } = forward;
+    await waitForServing(baseUrl, SERVER_HEALTHY_TIMEOUT_MS);
+    const agent = await createSmokeAgent(baseUrl, { log });
+    const marker = `slept-and-woke-${randomUUID().slice(0, 8)}`;
+    first = await runInSession(baseUrl, fake, { orgId: agent.orgId, agent, command: `echo ${marker} > /workspace/sleep-wake.txt`, reply: "Saved." });
+    log(`session one: run ${first.runId} COMPLETED, its file written in its actor`);
+
+    log("the fence, probed by the agent from inside its actor");
+    const targets = [
+      { name: "server", kind: "http", host: `stigmer.${namespace}.svc.cluster.local`, port: 7234, path: "/config.json" },
+      { name: "bucket", kind: "http", host: "seaweedfs.object-store.svc.cluster.local", port: 8333, path: "/" },
+      { name: "model", kind: "http", host: modelHost, port: modelPort, path: "/fence-probe" },
+      { name: "unlisted", kind: "http", host: `fake-model-unlisted.${namespace}.svc.cluster.local`, port: modelPort, path: "/fence-probe" },
+      { name: "database", kind: "postgres", host: `stigmer-postgres-rw.${namespace}.svc.cluster.local`, port: 5432 },
+      { name: "temporal", kind: "temporal", host: `stigmer-temporal-frontend.${namespace}.svc.cluster.local`, port: 7233 },
+    ];
+    const encoded = Buffer.from(JSON.stringify(targets)).toString("base64");
+    const script = Buffer.from(PROTOCOL_PROBE).toString("base64");
+    const second = await runInSession(baseUrl, fake, {
+      orgId: agent.orgId,
+      agent,
+      command: `echo ${script} | base64 -d > /tmp/probe.js && node /tmp/probe.js ${encoded}`,
+      reply: "Probed.",
+    });
+    log(`session two: run ${second.runId} COMPLETED`);
+    const probed = fenceResults(fake);
+    const want = { server: true, bucket: true, model: true, unlisted: false, database: false, temporal: false };
+    for (const [name, open] of Object.entries(want)) {
+      const kind = targets.find((t) => t.name === name).kind;
+      const check = kind === "http" ? reached[name === "unlisted" ? "model" : name] : reached[kind];
+      const got = check(probed[name] ?? {});
+      if (got !== open) throw new Error(`from an actor, ${name} ${got ? "answered" : "did not answer"} (${JSON.stringify(probed[name])}); want ${open ? "an answer" : "it fenced off"}`);
+    }
+    log("from an actor: server, bucket and model answer; the unlisted name, the database and Temporal do not");
+    const serverPod = cluster.kubectlJson(["-n", namespace, "get", "pods", "-l", "app.kubernetes.io/component=server"]).items[0]?.metadata?.name;
+    if (serverPod === undefined) throw new Error("no server pod to probe from");
+    const control = kubectl(["-n", namespace, "exec", serverPod, "-c", "server", "--", "node", "-e", PROTOCOL_PROBE, Buffer.from(JSON.stringify(targets.slice(4))).toString("base64")]);
+    const controlResults = JSON.parse(Buffer.from(/FENCE=([A-Za-z0-9+/=]+)/.exec(control)[1], "base64").toString());
+    if (!reached.postgres(controlResults.database) || !reached.temporal(controlResults.temporal)) {
+      throw new Error(`from the server's pod the probe did not reach the database and Temporal (${JSON.stringify(controlResults)}), so it cannot tell them fenced off`);
+    }
+    log("from the server's pod the same probe reaches the database and Temporal");
+
+    const actors = reader.actors();
+    if (actors.length !== 2) throw new Error(`two sessions made ${actors.length} actors: ${JSON.stringify(actors)}`);
+    log(`two sessions, two actors: ${actors.map((a) => `${a.name} ${a.state}`).join(", ")}`);
+
+    await pollUntil("both actors to sleep", 5 * 60_000, () => reader.actors().every((a) => a.state === "SUSPENDED"), { intervalMs: 5000 });
+    log("both actors asleep");
+
+    await runInSession(baseUrl, fake, { orgId: agent.orgId, sessionId: first.sessionId, command: "cat /workspace/sleep-wake.txt", reply: "Read." });
+    const awake = reader.actors().filter((a) => a.state === "RUNNING");
+    if (awake.length !== 1) throw new Error(`one session's next message woke ${awake.length} actors`);
+    if (!fake.bodies().slice(-3).some((b) => b.includes(marker))) throw new Error(`the woken actor's file did not read ${marker}`);
+    log(`session one woke with its file: ${marker}`);
+  } finally {
+    forward.stop();
+  }
+  log(`backups: ${await waitBackupHealthy(stigmer)}`);
+  assertOperatorLogClean();
+
+  log("arm: deleting the Stigmer removes Substrate and what else the operator installed");
+  stigmer.delete();
+  const allowed = ["Secret/anthropic", "Secret/bucket", "Secret/stigmer-keys", "Service/fake-model", "Service/fake-model-unlisted"];
+  await pollUntil("everything the Stigmer owned to be removed", GONE_TIMEOUT_MS, () => leftovers(namespace).every((n) => allowed.includes(n)));
+  const gone = (args) => cluster.kubectlQuiet(args).status !== 0;
+  await pollUntil("the janitor to remove the sandbox namespace, Substrate and CloudNativePG", 10 * 60_000, () =>
+    gone(["get", "namespace", sandboxes]) &&
+    gone(["get", "crd", "workerpools.ate.dev"]) &&
+    gone(["get", "namespace", "ate-system"]) &&
+    gone(["get", "namespace", "podcertificate-controller-system"]) &&
+    gone(["get", "clusterrole", "ate-api-server"]) &&
+    gone(["get", "crd", "clusters.postgresql.cnpg.io"]) &&
+    gone(["get", "namespace", "cnpg-system"]),
+  );
+  await pollUntil("Substrate's trust bundles to go with their namespaces", 3 * 60_000, () =>
+    cluster.kubectlJson(["get", "clustertrustbundles.certificates.k8s.io"]).items.every((b) => !b.metadata.name.includes("ate.dev")),
+  );
+  const labels = cluster.kubectlJson(["get", "namespace", namespace]).metadata.labels ?? {};
+  if (labels["ate.dev/api-access"] !== undefined) throw new Error(`namespace ${namespace} still carries ate.dev/api-access`);
+  const said = operator.logs().split("\n").filter((l) => l.includes("cleaned up after the last Stigmer"));
+  if (said.length === 0) throw new Error("the janitor said nothing of what it removed");
+  log(`the janitor: ${said.pop()}`);
+  assertOperatorLogClean();
+  log("=== profile substrate: PASS ===");
+  kubectl(["delete", "namespace", namespace, "--wait=false"]);
+}
+
 const OWNER = "owner@team.test";
 const OWNER_PASSWORD = `Owner-${randomBytes(9).toString("base64url")}`;
 const COLLEAGUE = "alice@team.test";
@@ -1117,7 +1368,9 @@ async function main() {
   await assertPortFree(SERVER_PORT);
   await assertPortFree(ARTIFACT_PORT);
   if (args.profiles.includes("exposed")) await assertPortFree(443);
-  cluster = createKindCluster({ existing: args.cluster, prefix: "stigmer-operator-smoke", log, config: args.profiles.includes("exposed") ? kindConfig() : undefined });
+  let config = args.profiles.includes("exposed") ? kindConfig() : undefined;
+  if (args.profiles.includes("substrate")) config = substrateKindConfig(config);
+  cluster = createKindCluster({ existing: args.cluster, prefix: "stigmer-operator-smoke", log, config });
   operator = createOperator(cluster, { log });
   objectStore = createObjectStore(cluster, { log });
   frontDoor = createFrontDoor(cluster, { log, workDir: mkdtempSync(join(tmpdir(), "stigmer-front-door-")) });
@@ -1125,6 +1378,7 @@ async function main() {
   const fake = await startFakeModel({ host: "0.0.0.0", mode: args.fakeModel });
   try {
     await cluster.start();
+    if (args.profiles.includes("substrate")) cluster.prepareForSubstrate();
     cluster.loadSourceImages();
     if (args.profiles.includes("enterprise")) cluster.loadEnterpriseSourceImage();
     if (args.profiles.includes("agent-sandbox")) cluster.loadSandboxRunnerImage();
@@ -1140,6 +1394,7 @@ async function main() {
       else if (profile === "bucket") await runBucket(fake, modelBaseUrl);
       else if (profile === "exposed") await runExposed(fake, modelBaseUrl);
       else if (profile === "agent-sandbox") await runAgentSandbox(fake, modelBaseUrl);
+      else if (profile === "substrate") await runSubstrate(fake, modelBaseUrl);
       else await runUpgrade(fake, modelBaseUrl);
     }
     log("PASS");

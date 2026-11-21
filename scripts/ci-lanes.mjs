@@ -845,6 +845,10 @@ export const LANES = {
       // in the cluster, as the operator configures it.
       "backend/services/stigmer-server/src/sandbox/agent-sandbox/**",
       "backend/services/stigmer-server/src/sandbox/provisioner.ts",
+      // The substrate profile proves the server's Substrate driver in the
+      // cluster and the health status the operator waits on.
+      "backend/services/stigmer-server/src/sandbox/substrate/**",
+      "backend/services/stigmer-server/src/transport/health.ts",
       "Makefile",
       ".nvmrc",
       "package.json",

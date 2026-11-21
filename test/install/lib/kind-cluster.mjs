@@ -34,6 +34,28 @@ export const SOURCE_TAG = "compose-dev";
 const ENTERPRISE_LOCAL_TAG = "stigmer-server-ee:smoke-local";
 
 /**
+ * A local registry on this host for a cluster whose node agent pulls images
+ * itself (Agent Substrate's atelet): pushed to at `localhost:5001`, reached
+ * from the cluster at `kind-registry:5000`, the names kind's own guide and
+ * Agent Substrate's kind script use.
+ */
+export const LOCAL_REGISTRY = { container: "kind-registry", host: "localhost:5001", inCluster: "kind-registry:5000" };
+
+/**
+ * What Agent Substrate needs of a kind cluster, as its own kind script sets
+ * it: the pod-certificate and trust-bundle APIs, and parallel image pulls.
+ * Merged into any other configuration a run needs (a port mapping).
+ */
+export function substrateKindConfig(base = { kind: "Cluster", apiVersion: "kind.x-k8s.io/v1alpha4", nodes: [{ role: "control-plane" }] }) {
+  return {
+    ...base,
+    featureGates: { ...(base.featureGates ?? {}), ClusterTrustBundle: true, ClusterTrustBundleProjection: true, PodCertificateRequest: true },
+    runtimeConfig: { ...(base.runtimeConfig ?? {}), "certificates.k8s.io/v1beta1": "true" },
+    kubeadmConfigPatches: [...(base.kubeadmConfigPatches ?? []), "kind: KubeletConfiguration\nserializeImagePulls: false\nmaxParallelImagePulls: 4\n"],
+  };
+}
+
+/**
  * A kind cluster: `existing` names one the caller owns (left as found);
  * otherwise one is created on `start` and deleted on `stop`.
  */
@@ -157,6 +179,67 @@ export function createKindCluster({ existing = "", prefix = "stigmer-helm-smoke"
       run("docker", ["tag", ENTERPRISE_LOCAL_TAG, tagged]);
       log(`kind load docker-image ${tagged}`);
       run("kind", ["load", "docker-image", tagged, "--name", name], { stdio: "inherit" });
+    },
+    /**
+     * Ready the node for Agent Substrate's gVisor workers and its node
+     * agent's pulls, as Substrate's kind script does: proxy ARP on the node,
+     * and the local registry (started if it is not running) on the kind
+     * network, wired into the node's containerd and documented in
+     * kube-public (KEP-1755).
+     */
+    prepareForSubstrate() {
+      const node = `${name}-control-plane`;
+      run("docker", ["exec", node, "sysctl", "net.ipv4.conf.all.proxy_arp=1"]);
+      const running = spawnSync("docker", ["inspect", "-f", "{{.State.Running}}", LOCAL_REGISTRY.container], { encoding: "utf8" });
+      if (running.stdout.trim() !== "true") {
+        log(`starting the local registry ${LOCAL_REGISTRY.container} on ${LOCAL_REGISTRY.host}`);
+        spawnSync("docker", ["rm", "-f", LOCAL_REGISTRY.container], { stdio: "ignore" });
+        run("docker", ["run", "-d", "--restart=always", "-p", "127.0.0.1:5001:5000", "--network", "bridge", "--name", LOCAL_REGISTRY.container, "registry:3"]);
+      }
+      const networks = run("docker", ["inspect", "-f", "{{json .NetworkSettings.Networks}}", LOCAL_REGISTRY.container]);
+      if (!Object.keys(JSON.parse(networks)).includes("kind")) run("docker", ["network", "connect", "kind", LOCAL_REGISTRY.container]);
+      const certs = `/etc/containerd/certs.d/${LOCAL_REGISTRY.host}`;
+      run("docker", ["exec", node, "mkdir", "-p", certs]);
+      run("docker", ["exec", "-i", node, "cp", "/dev/stdin", `${certs}/hosts.toml`], { input: `[host."http://${LOCAL_REGISTRY.inCluster}"]\n` });
+      cluster.kubectl(["apply", "-f", "-"], {
+        input: JSON.stringify({
+          apiVersion: "v1",
+          kind: "ConfigMap",
+          metadata: { name: "local-registry-hosting", namespace: "kube-public" },
+          data: { "localRegistryHosting.v1": `host: "${LOCAL_REGISTRY.host}"\nhostFromClusterNetwork: "${LOCAL_REGISTRY.inCluster}"\nhelp: "https://kind.sigs.k8s.io/docs/user/local-registry/"\n` },
+        }),
+      });
+    },
+    /**
+     * The per-session runner image, built as loadSandboxRunnerImage builds
+     * it and pushed to the local registry under `registry` (its
+     * repository prefix there); returns its digest, which Agent Substrate
+     * requires the runner be pinned by.
+     */
+    pushSandboxRunnerImage(registry) {
+      const tagged = `${registry}/runner:${SOURCE_TAG}`;
+      log(`building ${tagged} (Dockerfile.sandbox, target sandbox) and pushing it`);
+      run("docker", ["build", "--target", "sandbox", "-f", join(repoRoot, "backend", "services", "runner", "Dockerfile.sandbox"), "-t", tagged, repoRoot], {
+        stdio: "inherit",
+      });
+      run("docker", ["push", tagged], { stdio: "inherit" });
+      const digest = run("docker", ["image", "inspect", "--format", "{{range .RepoDigests}}{{println .}}{{end}}", tagged])
+        .split("\n")
+        .map((line) => line.trim())
+        .find((line) => line.startsWith(`${registry}/runner@sha256:`))
+        ?.split("@")[1];
+      if (digest === undefined) throw new Error(`the registry gave ${tagged} no digest`);
+      return digest;
+    },
+    /** The source images already loaded, loaded again under another registry's names, for a Stigmer that declares spec.image.registry. */
+    loadSourceImagesAs(registry) {
+      for (const repository of ["stigmer-server", "stigmer-runner"]) {
+        const from = `${IMAGE_REGISTRY}/${repository}:${SOURCE_TAG}`;
+        const to = `${registry}/${repository}:${SOURCE_TAG}`;
+        run("docker", ["tag", from, to]);
+        log(`kind load docker-image ${to}`);
+        run("kind", ["load", "docker-image", to, "--name", name], { stdio: "inherit" });
+      }
     },
     /** Delete a cluster this module created (unless `keep`); an existing one is left. */
     async stop({ keep = false } = {}) {
