@@ -14,6 +14,12 @@ export interface HarnessSelectorProps {
   readonly className?: string;
   /** When true, disables the selector. */
   readonly disabled?: boolean;
+  /**
+   * The harnesses offered here, in display order; every harness the
+   * platform runs when omitted. An agent without a computer offers Stigmer
+   * alone, since the Claude harness always runs with one.
+   */
+  readonly options?: readonly HarnessOption[];
 }
 
 /**
@@ -43,6 +49,7 @@ export function HarnessSelector({
   onValueChange,
   className,
   disabled,
+  options = OPTIONS,
 }: HarnessSelectorProps) {
   const groupRef = useRef<HTMLDivElement>(null);
 
@@ -50,23 +57,23 @@ export function HarnessSelector({
     (e: KeyboardEvent<HTMLDivElement>) => {
       if (disabled) return;
 
-      const idx = OPTIONS.indexOf(value);
+      const idx = options.indexOf(value);
       let next: number | undefined;
 
       if (e.key === "ArrowRight" || e.key === "ArrowDown") {
-        next = (idx + 1) % OPTIONS.length;
+        next = (idx + 1) % options.length;
       } else if (e.key === "ArrowLeft" || e.key === "ArrowUp") {
-        next = (idx - 1 + OPTIONS.length) % OPTIONS.length;
+        next = (idx - 1 + options.length) % options.length;
       }
 
       if (next !== undefined) {
         e.preventDefault();
-        onValueChange(OPTIONS[next]);
+        onValueChange(options[next]);
         const buttons = groupRef.current?.querySelectorAll<HTMLButtonElement>("[role=radio]");
         buttons?.[next]?.focus();
       }
     },
-    [value, onValueChange, disabled],
+    [value, onValueChange, disabled, options],
   );
 
   return (
@@ -83,7 +90,7 @@ export function HarnessSelector({
         .filter(Boolean)
         .join(" ")}
     >
-      {OPTIONS.map((option) => {
+      {options.map((option) => {
         const isActive = value === option;
 
         return (

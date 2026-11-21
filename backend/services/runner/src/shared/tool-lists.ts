@@ -48,7 +48,7 @@
  * without them cannot answer its channel.
  */
 
-import { CLAUDE_TOOL_ALIASES, isClaudeTool, type ClaudeTool } from "@stigmer/tool-vocabulary";
+import { builtinToolOf, type ClaudeTool } from "@stigmer/tool-vocabulary";
 
 /** One parsed list entry. */
 export type ToolListEntry =
@@ -74,9 +74,8 @@ export function parseToolListEntry(raw: string): ToolListEntry {
     return { kind: "mcp", raw, server, tool: tool === "*" ? null : tool };
   }
   const open = raw.indexOf("(");
-  const name = open === -1 ? raw : raw.slice(0, open);
   const specifier = open === -1 ? null : raw.slice(open + 1, raw.endsWith(")") ? -1 : undefined);
-  const tool = isClaudeTool(name) ? name : CLAUDE_TOOL_ALIASES.get(name);
+  const tool = builtinToolOf(raw);
   if (!tool) return { kind: "unknown", raw };
   const agentTypes =
     tool === "Agent" && specifier !== null

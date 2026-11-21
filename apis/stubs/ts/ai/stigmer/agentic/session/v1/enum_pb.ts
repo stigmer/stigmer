@@ -9,7 +9,7 @@ import { enumDesc, fileDesc } from "@bufbuild/protobuf/codegenv1";
  * Describes the file ai/stigmer/agentic/session/v1/enum.proto.
  */
 export const file_ai_stigmer_agentic_session_v1_enum: GenFile = /*@__PURE__*/
-  fileDesc("CihhaS9zdGlnbWVyL2FnZW50aWMvc2Vzc2lvbi92MS9lbnVtLnByb3RvEh1haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MSpZChBHaXRXcml0ZUJhY2tNb2RlEiMKH0dJVF9XUklURV9CQUNLX01PREVfVU5TUEVDSUZJRUQQABIgChxHSVRfV1JJVEVfQkFDS19CUkFOQ0hfQU5EX1BSEAEqSwoHSGFybmVzcxIXChNIQVJORVNTX1VOU1BFQ0lGSUVEEAASEwoPSEFSTkVTU19TVElHTUVSEAESEgoOSEFSTkVTU19DTEFVREUQAyq6AQoRRW52aXJvbm1lbnRTb3VyY2USIgoeRU5WSVJPTk1FTlRfU09VUkNFX1VOU1BFQ0lGSUVEEAASHgoaRU5WSVJPTk1FTlRfU09VUkNFX1NFU1NJT04QARIeChpFTlZJUk9OTUVOVF9TT1VSQ0VfUk9VVElORRACEhwKGEVOVklST05NRU5UX1NPVVJDRV9BR0VOVBADEiMKH0VOVklST05NRU5UX1NPVVJDRV9PUkdBTklaQVRJT04QBCprCg9FeGVjdXRpb25UYXJnZXQSIAocRVhFQ1VUSU9OX1RBUkdFVF9VTlNQRUNJRklFRBAAEhoKFkVYRUNVVElPTl9UQVJHRVRfTE9DQUwQARIaChZFWEVDVVRJT05fVEFSR0VUX0NMT1VEEAJiBnByb3RvMw");
+  fileDesc("CihhaS9zdGlnbWVyL2FnZW50aWMvc2Vzc2lvbi92MS9lbnVtLnByb3RvEh1haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MSpZChBHaXRXcml0ZUJhY2tNb2RlEiMKH0dJVF9XUklURV9CQUNLX01PREVfVU5TUEVDSUZJRUQQABIgChxHSVRfV1JJVEVfQkFDS19CUkFOQ0hfQU5EX1BSEAEqSwoHSGFybmVzcxIXChNIQVJORVNTX1VOU1BFQ0lGSUVEEAASEwoPSEFSTkVTU19TVElHTUVSEAESEgoOSEFSTkVTU19DTEFVREUQAypOCghDb21wdXRlchIYChRDT01QVVRFUl9VTlNQRUNJRklFRBAAEhEKDUNPTVBVVEVSX05PTkUQARIVChFDT01QVVRFUl9SRVFVSVJFRBACKroBChFFbnZpcm9ubWVudFNvdXJjZRIiCh5FTlZJUk9OTUVOVF9TT1VSQ0VfVU5TUEVDSUZJRUQQABIeChpFTlZJUk9OTUVOVF9TT1VSQ0VfU0VTU0lPThABEh4KGkVOVklST05NRU5UX1NPVVJDRV9ST1VUSU5FEAISHAoYRU5WSVJPTk1FTlRfU09VUkNFX0FHRU5UEAMSIwofRU5WSVJPTk1FTlRfU09VUkNFX09SR0FOSVpBVElPThAEKmsKD0V4ZWN1dGlvblRhcmdldBIgChxFWEVDVVRJT05fVEFSR0VUX1VOU1BFQ0lGSUVEEAASGgoWRVhFQ1VUSU9OX1RBUkdFVF9MT0NBTBABEhoKFkVYRUNVVElPTl9UQVJHRVRfQ0xPVUQQAmIGcHJvdG8z");
 
 /**
  * GitWriteBackMode controls the platform's git workflow for a git-backed workspace entry.
@@ -95,6 +95,50 @@ export const HarnessSchema: GenEnum<Harness> = /*@__PURE__*/
   enumDesc(file_ai_stigmer_agentic_session_v1_enum, 1);
 
 /**
+ * Computer says whether an agent's conversations have a computer: a machine
+ * where its commands, repositories, folders, Environment, hooks and local
+ * programs run.
+ *
+ * Only COMPUTER_NONE means no computer. An unset value reads as having one,
+ * so an agent or conversation saved before this setting existed keeps its
+ * computer.
+ *
+ * @generated from enum ai.stigmer.agentic.session.v1.Computer
+ */
+export enum Computer {
+  /**
+   * Unset: has a computer. A new agent's create fills it in.
+   *
+   * @generated from enum value: COMPUTER_UNSPECIFIED = 0;
+   */
+  UNSPECIFIED = 0,
+
+  /**
+   * No computer: no shell, repositories, folders, Environment, hooks or
+   * local programs. Saving such an agent, and starting its conversations or
+   * routines, refuses each of them, naming the one to remove.
+   *
+   * @generated from enum value: COMPUTER_NONE = 1;
+   */
+  NONE = 1,
+
+  /**
+   * Needs a computer: a sandbox where the server runs one, or the person's
+   * own machine in the desktop app or the CLI. The Claude harness always
+   * has one.
+   *
+   * @generated from enum value: COMPUTER_REQUIRED = 2;
+   */
+  REQUIRED = 2,
+}
+
+/**
+ * Describes the enum ai.stigmer.agentic.session.v1.Computer.
+ */
+export const ComputerSchema: GenEnum<Computer> = /*@__PURE__*/
+  enumDesc(file_ai_stigmer_agentic_session_v1_enum, 2);
+
+/**
  * EnvironmentSource names whose choice a conversation's Environment was.
  *
  * @generated from enum ai.stigmer.agentic.session.v1.EnvironmentSource
@@ -140,7 +184,7 @@ export enum EnvironmentSource {
  * Describes the enum ai.stigmer.agentic.session.v1.EnvironmentSource.
  */
 export const EnvironmentSourceSchema: GenEnum<EnvironmentSource> = /*@__PURE__*/
-  enumDesc(file_ai_stigmer_agentic_session_v1_enum, 2);
+  enumDesc(file_ai_stigmer_agentic_session_v1_enum, 3);
 
 /**
  * ExecutionTarget specifies where session activities are executed.
@@ -185,5 +229,5 @@ export enum ExecutionTarget {
  * Describes the enum ai.stigmer.agentic.session.v1.ExecutionTarget.
  */
 export const ExecutionTargetSchema: GenEnum<ExecutionTarget> = /*@__PURE__*/
-  enumDesc(file_ai_stigmer_agentic_session_v1_enum, 3);
+  enumDesc(file_ai_stigmer_agentic_session_v1_enum, 4);
 

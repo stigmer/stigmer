@@ -40,6 +40,7 @@ import type { ServiceTierOption } from "@stigmer/react-core";
 import { thinkingLocked } from "@stigmer/react-core";
 import { type ThinkingModeOption } from "@stigmer/react-core";
 import { agentHarnessOf } from "./run-defaults.js";
+import { agentHasComputer, claudeNotOfferedCopy, harnessesFor } from "./computer.js";
 import { SpinnerIcon } from "../internal/SpinnerIcon.js";
 import { Button } from "../button/Button.js";
 import { FieldError, TextInput } from "../internal/form/index.js";
@@ -264,7 +265,12 @@ function RunDefaultsEditor({
           </div>
         ) : (
           <div className="stg:flex stg:flex-wrap stg:items-center stg:gap-2">
-            <HarnessSelector value={engine} onValueChange={changeEngine} disabled={isSaving} />
+            <HarnessSelector
+              value={engine}
+              onValueChange={changeEngine}
+              options={harnessesFor(spec)}
+              disabled={isSaving}
+            />
             <ModelSelector
               value={modelName}
               onValueChange={setModelName}
@@ -288,6 +294,9 @@ function RunDefaultsEditor({
               No harness
             </Button>
           </div>
+        )}
+        {!agentHasComputer(spec) && (
+          <p className="stg:text-2xs stg:text-muted-foreground">{claudeNotOfferedCopy()}</p>
         )}
         <p className="stg:text-2xs stg:text-muted-foreground">
           A new conversation on this agent starts on this harness unless the

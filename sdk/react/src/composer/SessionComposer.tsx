@@ -341,6 +341,12 @@ export interface SessionComposerProps {
   readonly onHarnessChange?: (harness: HarnessOption) => void;
   /** Show the harness selector in the toolbar. @default false */
   readonly showHarnessSelector?: boolean;
+  /**
+   * One line under the model picker's harness row saying why the harness
+   * is fixed, as for an agent without a computer, which runs on Stigmer
+   * alone (`claudeNotOfferedCopy`).
+   */
+  readonly harnessNote?: string;
 
   /**
    * Currently selected interaction mode.
@@ -776,6 +782,7 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
   harness,
   onHarnessChange,
   showHarnessSelector = false,
+  harnessNote,
   interactionMode,
   onInteractionModeChange,
   showInteractionModePicker = false,
@@ -2187,6 +2194,7 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
           onConfigActivePanelChange={handleConfigActivePanelChange}
           renderConfigPanel={renderConfigPanel}
           showHarnessSelector={showHarnessSelector}
+          harnessNote={harnessNote}
           harness={harness}
           onHarnessChange={handleHarnessChange}
           showInteractionModePicker={showInteractionModePicker}

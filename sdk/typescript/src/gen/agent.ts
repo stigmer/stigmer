@@ -14,7 +14,7 @@ import { TagAgentVersionInputSchema, ListAgentVersionsInputSchema, ListAgentVers
 import { HookFormat, HookHandlerSchema, HookGroupSchema, HookConfigSchema, type HookHandler, type HookGroup, type HookConfig } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/hooks_pb";
 import { ServiceTier, ThinkingMode } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 import { RunConfigSchema, type RunConfig } from "@stigmer/apis/ai/stigmer/agentic/run/v1/invocation_pb";
-import { Harness } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
+import { Harness, Computer } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
 import { EnvVarDeclarationSchema, type EnvVarDeclaration } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/declaration_pb";
 import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiResourceVisibility } from "@stigmer/apis/ai/stigmer/commons/apiresource/enum_pb";
@@ -161,6 +161,7 @@ export interface AgentInput {
   subagents?: ResourceRef[];
   mcpServers?: AgentMcpServerInput[];
   environmentRef?: ResourceRef;
+  computer?: Computer;
 }
 
 /** SDK input type for EnvVarDeclaration. */
@@ -315,6 +316,7 @@ export function buildAgentProto(input: AgentInput): Agent {
       subagents,
       mcpServers,
       environmentRef,
+      computer: input.computer,
     })),
   }) as Agent;
 }
@@ -417,5 +419,6 @@ export function toAgentInput(resource: Agent): AgentInput {
     subagents: toResourceRefInputs(spec.subagents),
     mcpServers: spec.mcpServers?.length ? spec.mcpServers.map(toAgentMcpServerInput) : undefined,
     environmentRef: toResourceRefInput(spec.environmentRef),
+    computer: spec.computer || undefined,
   };
 }

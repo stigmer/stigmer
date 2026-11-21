@@ -13,7 +13,7 @@ import { RoutineSchema, type Routine } from "@stigmer/apis/ai/stigmer/agentic/ro
 import { RunSchema, type Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 import { RunPhase, ServiceTier, ThinkingMode } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 import { SessionSchema, type Session } from "@stigmer/apis/ai/stigmer/agentic/session/v1/api_pb";
-import { EnvironmentSource, Harness } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
+import { Computer, EnvironmentSource, Harness } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
 import { SkillSchema, type Skill } from "@stigmer/apis/ai/stigmer/agentic/skill/v1/api_pb";
 import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { OrganizationSchema, type Organization } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/api_pb";
@@ -82,6 +82,7 @@ export const agent: Agent = create(AgentSchema, {
       REGION: {},
     },
     harness: Harness.CLAUDE,
+    computer: Computer.REQUIRED,
     runConfig: {
       modelName: "claude-sonnet-4-6",
       thinkingMode: ThinkingMode.ENABLED,

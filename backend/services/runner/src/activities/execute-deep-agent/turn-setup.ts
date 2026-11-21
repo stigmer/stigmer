@@ -42,6 +42,7 @@ import type { DynamicStructuredTool } from "@langchain/core/tools";
 import type { Command } from "@langchain/langgraph";
 import { createDeepAgent } from "deepagents";
 import { InteractionMode } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
+import { Computer } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
 
 import type { Config } from "../../config.js";
 import type { TurnInput, TurnSink } from "../../harness/types.js";
@@ -539,9 +540,15 @@ export async function buildEngine(
   await ensurePricingLoaded();
   const pricing = getModelPricing(modelName);
   const isPlanMode = interactionMode === InteractionMode.PLAN;
-  const shellEnv = isPlanMode
-    ? undefined
-    : buildShellEnv(shellRunValues(input.values));
+  // Whether this turn may run commands: never in plan mode, and never in a
+  // conversation without a computer (SessionStatus.computer; only
+  // COMPUTER_NONE means none, so a conversation from before the setting
+  // keeps its shell). The conversation's computer is every graph's: no
+  // shell for the parent or any subagent.
+  const runsCommands = !isPlanMode && input.session.status?.computer !== Computer.NONE;
+  const shellEnv = runsCommands
+    ? buildShellEnv(shellRunValues(input.values))
+    : undefined;
   // Plan mode's filesystem permission rules, hoisted once: the parent graph
   // and every sub-agent graph carry this single value (the write-deny half
   // of plan mode; the read boundary is structural, issue #754).
@@ -604,8 +611,9 @@ export async function buildEngine(
 
   // Each saved subagent's graph: its own servers' tools, its own gate (the
   // conversation's hooks, then its own, `hooks-setup.ts`) and its own shell,
-  // which holds its values and never the agent's. Plan mode gives no
-  // subagent a shell, as it gives the parent none.
+  // which holds its values and never the agent's. A turn that runs no
+  // commands (plan mode, no computer) gives no subagent a shell, as it
+  // gives the parent none.
   const subagentGraphs: SavedSubagentGraph[] = [];
   for (const subagent of input.subagents) {
     const evaluator = await buildHookEvaluator(input, sink, config.cursorStreamStallTimeoutMs, subagent);
@@ -613,7 +621,7 @@ export async function buildEngine(
       subagent,
       mcpTools: toolsOf(tools.serverToolMap, subagent.servers),
       approvalGate: gateConfigFor(evaluator),
-      shellEnv: isPlanMode ? undefined : buildShellEnv(subagent.values),
+      shellEnv: runsCommands ? buildShellEnv(subagent.values) : undefined,
     });
   }
 
@@ -622,7 +630,8 @@ export async function buildEngine(
   // records the pre-turn bytes of every CAS-owned path. Gate-independent, so
   // it holds even under the global bypass. Built before the stack, because a
   // shell-capable backend is what the runner's shell tool runs through
-  // (`middleware/shell.ts`); plan mode's is filesystem-only and gets none.
+  // (`middleware/shell.ts`); a turn that runs no commands gets a
+  // filesystem-only one and no shell.
   const workspaceBackend = await createCasCaptureBackend({ rootDir: primaryDir, observer: workspace.casObserver, shellEnv });
   // Every graph's shell runs its background commands in this invocation's
   // one registry, writing their output beside the results deepagents

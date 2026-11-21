@@ -145,6 +145,69 @@ func (Harness) EnumDescriptor() ([]byte, []int) {
 	return file_ai_stigmer_agentic_session_v1_enum_proto_rawDescGZIP(), []int{1}
 }
 
+// Computer says whether an agent's conversations have a computer: a machine
+// where its commands, repositories, folders, Environment, hooks and local
+// programs run.
+//
+// Only COMPUTER_NONE means no computer. An unset value reads as having one,
+// so an agent or conversation saved before this setting existed keeps its
+// computer.
+type Computer int32
+
+const (
+	// Unset: has a computer. A new agent's create fills it in.
+	Computer_COMPUTER_UNSPECIFIED Computer = 0
+	// No computer: no shell, repositories, folders, Environment, hooks or
+	// local programs. Saving such an agent, and starting its conversations or
+	// routines, refuses each of them, naming the one to remove.
+	Computer_COMPUTER_NONE Computer = 1
+	// Needs a computer: a sandbox where the server runs one, or the person's
+	// own machine in the desktop app or the CLI. The Claude harness always
+	// has one.
+	Computer_COMPUTER_REQUIRED Computer = 2
+)
+
+// Enum value maps for Computer.
+var (
+	Computer_name = map[int32]string{
+		0: "COMPUTER_UNSPECIFIED",
+		1: "COMPUTER_NONE",
+		2: "COMPUTER_REQUIRED",
+	}
+	Computer_value = map[string]int32{
+		"COMPUTER_UNSPECIFIED": 0,
+		"COMPUTER_NONE":        1,
+		"COMPUTER_REQUIRED":    2,
+	}
+)
+
+func (x Computer) Enum() *Computer {
+	p := new(Computer)
+	*p = x
+	return p
+}
+
+func (x Computer) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (Computer) Descriptor() protoreflect.EnumDescriptor {
+	return file_ai_stigmer_agentic_session_v1_enum_proto_enumTypes[2].Descriptor()
+}
+
+func (Computer) Type() protoreflect.EnumType {
+	return &file_ai_stigmer_agentic_session_v1_enum_proto_enumTypes[2]
+}
+
+func (x Computer) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use Computer.Descriptor instead.
+func (Computer) EnumDescriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_session_v1_enum_proto_rawDescGZIP(), []int{2}
+}
+
 // EnvironmentSource names whose choice a conversation's Environment was.
 type EnvironmentSource int32
 
@@ -190,11 +253,11 @@ func (x EnvironmentSource) String() string {
 }
 
 func (EnvironmentSource) Descriptor() protoreflect.EnumDescriptor {
-	return file_ai_stigmer_agentic_session_v1_enum_proto_enumTypes[2].Descriptor()
+	return file_ai_stigmer_agentic_session_v1_enum_proto_enumTypes[3].Descriptor()
 }
 
 func (EnvironmentSource) Type() protoreflect.EnumType {
-	return &file_ai_stigmer_agentic_session_v1_enum_proto_enumTypes[2]
+	return &file_ai_stigmer_agentic_session_v1_enum_proto_enumTypes[3]
 }
 
 func (x EnvironmentSource) Number() protoreflect.EnumNumber {
@@ -203,7 +266,7 @@ func (x EnvironmentSource) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use EnvironmentSource.Descriptor instead.
 func (EnvironmentSource) EnumDescriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_session_v1_enum_proto_rawDescGZIP(), []int{2}
+	return file_ai_stigmer_agentic_session_v1_enum_proto_rawDescGZIP(), []int{3}
 }
 
 // ExecutionTarget specifies where session activities are executed.
@@ -254,11 +317,11 @@ func (x ExecutionTarget) String() string {
 }
 
 func (ExecutionTarget) Descriptor() protoreflect.EnumDescriptor {
-	return file_ai_stigmer_agentic_session_v1_enum_proto_enumTypes[3].Descriptor()
+	return file_ai_stigmer_agentic_session_v1_enum_proto_enumTypes[4].Descriptor()
 }
 
 func (ExecutionTarget) Type() protoreflect.EnumType {
-	return &file_ai_stigmer_agentic_session_v1_enum_proto_enumTypes[3]
+	return &file_ai_stigmer_agentic_session_v1_enum_proto_enumTypes[4]
 }
 
 func (x ExecutionTarget) Number() protoreflect.EnumNumber {
@@ -267,7 +330,7 @@ func (x ExecutionTarget) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use ExecutionTarget.Descriptor instead.
 func (ExecutionTarget) EnumDescriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_session_v1_enum_proto_rawDescGZIP(), []int{3}
+	return file_ai_stigmer_agentic_session_v1_enum_proto_rawDescGZIP(), []int{4}
 }
 
 var File_ai_stigmer_agentic_session_v1_enum_proto protoreflect.FileDescriptor
@@ -281,7 +344,11 @@ const file_ai_stigmer_agentic_session_v1_enum_proto_rawDesc = "" +
 	"\aHarness\x12\x17\n" +
 	"\x13HARNESS_UNSPECIFIED\x10\x00\x12\x13\n" +
 	"\x0fHARNESS_STIGMER\x10\x01\x12\x12\n" +
-	"\x0eHARNESS_CLAUDE\x10\x03*\xba\x01\n" +
+	"\x0eHARNESS_CLAUDE\x10\x03*N\n" +
+	"\bComputer\x12\x18\n" +
+	"\x14COMPUTER_UNSPECIFIED\x10\x00\x12\x11\n" +
+	"\rCOMPUTER_NONE\x10\x01\x12\x15\n" +
+	"\x11COMPUTER_REQUIRED\x10\x02*\xba\x01\n" +
 	"\x11EnvironmentSource\x12\"\n" +
 	"\x1eENVIRONMENT_SOURCE_UNSPECIFIED\x10\x00\x12\x1e\n" +
 	"\x1aENVIRONMENT_SOURCE_SESSION\x10\x01\x12\x1e\n" +
@@ -306,12 +373,13 @@ func file_ai_stigmer_agentic_session_v1_enum_proto_rawDescGZIP() []byte {
 	return file_ai_stigmer_agentic_session_v1_enum_proto_rawDescData
 }
 
-var file_ai_stigmer_agentic_session_v1_enum_proto_enumTypes = make([]protoimpl.EnumInfo, 4)
+var file_ai_stigmer_agentic_session_v1_enum_proto_enumTypes = make([]protoimpl.EnumInfo, 5)
 var file_ai_stigmer_agentic_session_v1_enum_proto_goTypes = []any{
 	(GitWriteBackMode)(0),  // 0: ai.stigmer.agentic.session.v1.GitWriteBackMode
 	(Harness)(0),           // 1: ai.stigmer.agentic.session.v1.Harness
-	(EnvironmentSource)(0), // 2: ai.stigmer.agentic.session.v1.EnvironmentSource
-	(ExecutionTarget)(0),   // 3: ai.stigmer.agentic.session.v1.ExecutionTarget
+	(Computer)(0),          // 2: ai.stigmer.agentic.session.v1.Computer
+	(EnvironmentSource)(0), // 3: ai.stigmer.agentic.session.v1.EnvironmentSource
+	(ExecutionTarget)(0),   // 4: ai.stigmer.agentic.session.v1.ExecutionTarget
 }
 var file_ai_stigmer_agentic_session_v1_enum_proto_depIdxs = []int32{
 	0, // [0:0] is the sub-list for method output_type
@@ -331,7 +399,7 @@ func file_ai_stigmer_agentic_session_v1_enum_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ai_stigmer_agentic_session_v1_enum_proto_rawDesc), len(file_ai_stigmer_agentic_session_v1_enum_proto_rawDesc)),
-			NumEnums:      4,
+			NumEnums:      5,
 			NumMessages:   0,
 			NumExtensions: 0,
 			NumServices:   0,

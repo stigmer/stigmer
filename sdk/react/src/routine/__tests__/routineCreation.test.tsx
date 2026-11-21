@@ -11,7 +11,8 @@ import { renderHook, act } from "@testing-library/react";
 import { useState, type ReactNode } from "react";
 import { create } from "@bufbuild/protobuf";
 import { RoutineSchema } from "@stigmer/apis/ai/stigmer/agentic/routine/v1/api_pb";
-import { Harness } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
+import { Computer, Harness } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
+import { routineNotApplyingCopy } from "../../agent/computer";
 import { ServiceTier } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 import { VaultSchema } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/api_pb";
 import { StigmerContext } from "@stigmer/react-core";
@@ -217,6 +218,8 @@ function createClient(overrides?: {
   checkFails?: boolean;
   /** Reading the picked agent fails. */
   agentReadFails?: boolean;
+  /** The picked agent's computer (`AgentSpec.computer`); unset by default. */
+  computer?: Computer;
 }) {
   return {
     routine: { apply: overrides?.apply ?? vi.fn().mockResolvedValue(CREATED) },
@@ -234,7 +237,10 @@ function createClient(overrides?: {
         ? vi.fn().mockRejectedValue(new Error("agent store unavailable"))
         : vi.fn().mockResolvedValue({
             metadata: { id: "agt_fee", org: "isc", slug: "fee-reminder" },
-            spec: { environmentRef: { org: "isc", slug: "data-science" } },
+            spec:
+              overrides?.computer === undefined
+                ? { environmentRef: { org: "isc", slug: "data-science" } }
+                : { computer: overrides.computer },
           }),
     },
     organization: { get: vi.fn().mockResolvedValue({ metadata: { id: "isc" }, spec: {} }) },
@@ -714,6 +720,37 @@ describe("RoutineForm", () => {
 
     await waitFor(() => expect(onComplete).toHaveBeenCalledWith(CREATED));
     expect(apply.mock.calls[0][0].agent).not.toHaveProperty("environmentRef");
+  });
+
+  it("leaves out the workspace and Environment for an agent without a computer, saying why, and sends neither", async () => {
+    const apply = vi.fn().mockResolvedValue(CREATED);
+    const onComplete = vi.fn();
+    render(<RoutineForm org="isc" onComplete={onComplete} />, {
+      wrapper: wrapper(createClient({ apply, computer: Computer.NONE })),
+    });
+
+    fireEvent.change(screen.getByLabelText("Name"), { target: { value: "ticket-digest" } });
+    fireEvent.change(screen.getByLabelText("Message"), { target: { value: "Summarise today's tickets." } });
+    expect(screen.getByText("Workspace")).toBeTruthy();
+    await pickAgent();
+
+    expect(await screen.findByText(routineNotApplyingCopy("Fee Reminder"))).toBeTruthy();
+    expect(screen.queryByText("Workspace")).toBeNull();
+    expect(screen.queryByRole("combobox", { name: "Environment" })).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Create routine" }));
+
+    await waitFor(() => expect(onComplete).toHaveBeenCalledWith(CREATED));
+    const agent = apply.mock.calls[0][0].agent;
+    expect(agent).not.toHaveProperty("environmentRef");
+    expect(agent).not.toHaveProperty("resources");
+  });
+
+  it("keeps the workspace and Environment for an agent with a computer", async () => {
+    render(<RoutineForm org="isc" />, { wrapper: wrapper(createClient({ computer: Computer.REQUIRED })) });
+    await pickAgent();
+    expect(screen.getByText("Workspace")).toBeTruthy();
+    expect(screen.getByRole("combobox", { name: "Environment" })).toBeTruthy();
+    expect(screen.queryByText(routineNotApplyingCopy("Fee Reminder"))).toBeNull();
   });
 
   it("offers My vault in its picker, and a picker elsewhere does not", async () => {

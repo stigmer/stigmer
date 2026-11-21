@@ -210,6 +210,7 @@ function useNewSessionFlow(options: UseNewSessionFlowOptions): UseNewSessionFlow
 
 <TypeTable
   type={{
+    agentHasComputer: { type: "boolean", description: "Whether the selected agent's conversations have a computer (`AgentSpec.computer`; the built-in assistant has one). Without one the flow runs on Stigmer alone, offers no Environment and sends no repositories or folders, the choices the server would refuse: hide the composer's workspace and say why the harness is fixed." },
     agentRef: { type: "ResourceRef | null", description: "Currently selected agent reference, or `null` for the built-in assistant." },
     agentRunDefaults: { type: "AgentRunDefaults | undefined", description: "The selected agent's run defaults that apply on the active harness: pass it to the composer's `agentRunDefaults`. `undefined` with no agent, an agent that names no model for this harness, a guest, and while the agent loads." },
     autoApproveAll: { type: "boolean", description: "Pre-arm \"auto-approve tool calls\" for the session this surface will create (stigmer/stigmer#816, the walk-away scenario). Seeded from the account's `default_auto_approve` preference and the host's `StigmerProvider` `approvalDefaults` (#302) — guests inherit neither; the user's explicit flip (the run settings switch) wins from then on. Carried into the bootstrap create as `spec.auto_approve_all` — the whole-run server-side bypass — so the first run stays covered even if the user closes the tab." },

@@ -6,7 +6,7 @@ import { bringOthersInScene } from "./bring-others-in.tsx";
 import { PRESETS, THREAD_STATES, type Preset, type SceneId, type ThreadState } from "../catalog.ts";
 import { inheritedOpenAiKey, NOTHING_CONNECTED, NOTHING_ON_THE_RUNNER, ownAnthropicKey } from "../fixtures.ts";
 import { agentChatScene } from "./agent-chat.tsx";
-import { agentProfileScene } from "./agent.tsx";
+import { agentComputerScene, agentProfileScene } from "./agent.tsx";
 import {
   agentPageReadScene,
   environmentDetailScene,
@@ -171,6 +171,8 @@ export const DRAWINGS: Readonly<Record<SceneId, () => Drawing>> = {
   ...SETTINGS_ROUTE_DRAWINGS,
   "agent-profile-owner": () => agentProfileScene("owner"),
   "agent-profile-viewer": () => agentProfileScene("reader"),
+  "agent-profile-no-computer": () => agentComputerScene("off"),
+  "agent-profile-computer-refused": () => agentComputerScene("refused"),
   "agent-profile-channels": () => agentProfileScene("owner"),
   "agent-profile-evals-failed": () => agentProfileScene("owner"),
   "agent-profile-versions": () => agentProfileScene("owner"),

@@ -13,7 +13,8 @@
  * through the host's `onSave`, and the server's refusal (an Environment the
  * writer may not view, one that is gone) shows under the section, as the
  * other agent edits show theirs. On a server whose conversations run in no
- * sandbox it starts, the section says so beneath.
+ * sandbox it starts, the section says so beneath. On an agent without a
+ * computer no Environment applies: the section says so and offers no edit.
  *
  * Pinned by `__tests__/AgentEnvironmentSection.test.tsx`.
  */
@@ -30,6 +31,7 @@ import { useOrganization } from "../organization/useOrganization.js";
 import { useEnvironmentAvailability } from "../server-info.js";
 import { SpinnerIcon } from "../internal/SpinnerIcon.js";
 import { Button } from "../button/Button.js";
+import { COMPUTER_COPY, agentHasComputer } from "./computer.js";
 
 /** Props for {@link AgentEnvironmentSection}. */
 export interface AgentEnvironmentSectionProps {
@@ -87,6 +89,14 @@ export function AgentEnvironmentSection({
   );
 
   if (!show) return null;
+
+  if (!agentHasComputer(spec)) {
+    return (
+      <Section title="Environment">
+        <p className="stg:p-3 stg:text-sm stg:text-muted-foreground">{COMPUTER_COPY.environmentNotApplying}</p>
+      </Section>
+    );
+  }
 
   const inherited = resolveEnvironmentChoice({ organization: organization?.spec?.preferences?.defaultEnvironmentRef });
 

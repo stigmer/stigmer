@@ -18,7 +18,7 @@ import { RoutineSchema } from "@stigmer/apis/ai/stigmer/agentic/routine/v1/api_p
 import { RunSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 import { RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 import { SessionSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/api_pb";
-import { EnvironmentSource, Harness } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
+import { Computer, EnvironmentSource, Harness } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
 import { SkillSchema } from "@stigmer/apis/ai/stigmer/agentic/skill/v1/api_pb";
 import { VaultSchema } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/api_pb";
 import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
@@ -429,6 +429,11 @@ describe("CLI-09 the views leave out what a resource does not carry", () => {
 
   it("draws a bare agent as its title alone", () => {
     expect(bare(ApiResourceKind.agent, { name: "A", slug: "a", org: "o" })).toBe("\nA  acme/a\n");
+  });
+
+  it("says an agent without a computer has none, in its Environment section", () => {
+    const agent = create(AgentSchema, { metadata: { name: "A", slug: "a", org: "o" }, spec: { computer: Computer.NONE } });
+    expect(draw(ApiResourceKind.agent, AgentSchema, agent)).toContain("Environment\n  Computer:  no\n");
   });
 
   it("draws a bare skill, environment and organization as their titles and what is always said", () => {

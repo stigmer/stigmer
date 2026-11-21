@@ -188,6 +188,7 @@ type AgentInput struct {
 	Subagents       []ResourceRef
 	McpServers      []*AgentMcpServerInput
 	EnvironmentRef  ResourceRef
+	Computer        sessionv1.Computer
 }
 
 // EnvVarDeclarationInput is the SDK input type for EnvVarDeclaration.
@@ -318,6 +319,7 @@ func (i *AgentInput) toProto() (*agentv1.Agent, error) {
 		ref.Kind = apiresourcekind.ApiResourceKind_environment
 		resource.Spec.EnvironmentRef = ref
 	}
+	resource.Spec.Computer = i.Computer
 	return resource, nil
 }
 
@@ -434,6 +436,7 @@ func AgentInputFromProto(p *agentv1.Agent) *AgentInput {
 			input.McpServers = append(input.McpServers, agentMcpServerInputFromProto(item))
 		}
 		input.EnvironmentRef = resourceRefFromProto(s.GetEnvironmentRef())
+		input.Computer = s.GetComputer()
 	}
 	return input
 }

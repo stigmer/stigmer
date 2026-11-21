@@ -141,8 +141,19 @@ type AgentSpec struct {
 	// changes only new conversations. A conversation on the person's own
 	// machine (the desktop app, the CLI) ignores it.
 	EnvironmentRef *apiresource.ApiResourceReference `protobuf:"bytes,19,opt,name=environment_ref,json=environmentRef,proto3" json:"environment_ref,omitempty"`
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
+	// Whether this agent's conversations have a computer. With
+	// COMPUTER_NONE, the agent runs no commands: saving refuses a Bash tool,
+	// hooks, an Environment, a plugin with hooks or local MCP servers, and a
+	// subagent that has a computer; its conversations and routines refuse
+	// repositories, folders, an Environment and the Claude harness.
+	//
+	// Unset reads as having a computer. A new agent left unset gets
+	// COMPUTER_REQUIRED; the Claude harness always has a computer, and
+	// COMPUTER_NONE on it is refused. An update that leaves this unset keeps
+	// the stored value. A conversation keeps the computer it started with.
+	Computer      v12.Computer `protobuf:"varint,20,opt,name=computer,proto3,enum=ai.stigmer.agentic.session.v1.Computer" json:"computer,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *AgentSpec) Reset() {
@@ -271,6 +282,13 @@ func (x *AgentSpec) GetEnvironmentRef() *apiresource.ApiResourceReference {
 		return x.EnvironmentRef
 	}
 	return nil
+}
+
+func (x *AgentSpec) GetComputer() v12.Computer {
+	if x != nil {
+		return x.Computer
+	}
+	return v12.Computer(0)
 }
 
 // AgentMcpServer is an MCP server written in an agent, reached over HTTP.
@@ -412,7 +430,7 @@ var File_ai_stigmer_agentic_agent_v1_spec_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_agent_v1_spec_proto_rawDesc = "" +
 	"\n" +
-	"&ai/stigmer/agentic/agent/v1/spec.proto\x12\x1bai.stigmer.agentic.agent.v1\x1a(ai/stigmer/agentic/plugin/v1/hooks.proto\x1a*ai/stigmer/agentic/run/v1/invocation.proto\x1a(ai/stigmer/agentic/session/v1/enum.proto\x1a-ai/stigmer/agentic/vault/v1/declaration.proto\x1a2ai/stigmer/commons/apiresource/field_options.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a\x1bbuf/validate/validate.proto\"\xad\n" +
+	"&ai/stigmer/agentic/agent/v1/spec.proto\x12\x1bai.stigmer.agentic.agent.v1\x1a(ai/stigmer/agentic/plugin/v1/hooks.proto\x1a*ai/stigmer/agentic/run/v1/invocation.proto\x1a(ai/stigmer/agentic/session/v1/enum.proto\x1a-ai/stigmer/agentic/vault/v1/declaration.proto\x1a2ai/stigmer/commons/apiresource/field_options.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a\x1bbuf/validate/validate.proto\"\xfc\n" +
 	"\n" +
 	"\tAgentSpec\x12 \n" +
 	"\vdescription\x18\x01 \x01(\tR\vdescription\x12\x19\n" +
@@ -433,7 +451,8 @@ const file_ai_stigmer_agentic_agent_v1_spec_proto_rawDesc = "" +
 	"\tsubagents\x18\x11 \x03(\v24.ai.stigmer.commons.apiresource.ApiResourceReferenceB\f\xbaH\x05\x92\x01\x02\x10\x14\xe0\x85,(R\tsubagents\x12V\n" +
 	"\vmcp_servers\x18\x12 \x03(\v2+.ai.stigmer.agentic.agent.v1.AgentMcpServerB\b\xbaH\x05\x92\x01\x02\x10\x14R\n" +
 	"mcpServers\x12c\n" +
-	"\x0fenvironment_ref\x18\x13 \x01(\v24.ai.stigmer.commons.apiresource.ApiResourceReferenceB\x04\xe0\x85,CR\x0eenvironmentRef\x1af\n" +
+	"\x0fenvironment_ref\x18\x13 \x01(\v24.ai.stigmer.commons.apiresource.ApiResourceReferenceB\x04\xe0\x85,CR\x0eenvironmentRef\x12M\n" +
+	"\bcomputer\x18\x14 \x01(\x0e2'.ai.stigmer.agentic.session.v1.ComputerB\b\xbaH\x05\x82\x01\x02\x10\x01R\bcomputer\x1af\n" +
 	"\bEnvEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12D\n" +
 	"\x05value\x18\x02 \x01(\v2..ai.stigmer.agentic.vault.v1.EnvVarDeclarationR\x05value:\x028\x01\"\xae\x02\n" +
@@ -473,8 +492,9 @@ var file_ai_stigmer_agentic_agent_v1_spec_proto_goTypes = []any{
 	(*apiresource.ApiResourceReference)(nil), // 5: ai.stigmer.commons.apiresource.ApiResourceReference
 	(*v11.RunConfig)(nil),                    // 6: ai.stigmer.agentic.run.v1.RunConfig
 	(v12.Harness)(0),                         // 7: ai.stigmer.agentic.session.v1.Harness
-	(*v13.HookConfig)(nil),                   // 8: ai.stigmer.agentic.plugin.v1.HookConfig
-	(*v1.EnvVarDeclaration)(nil),             // 9: ai.stigmer.agentic.vault.v1.EnvVarDeclaration
+	(v12.Computer)(0),                        // 8: ai.stigmer.agentic.session.v1.Computer
+	(*v13.HookConfig)(nil),                   // 9: ai.stigmer.agentic.plugin.v1.HookConfig
+	(*v1.EnvVarDeclaration)(nil),             // 10: ai.stigmer.agentic.vault.v1.EnvVarDeclaration
 }
 var file_ai_stigmer_agentic_agent_v1_spec_proto_depIdxs = []int32{
 	5,  // 0: ai.stigmer.agentic.agent.v1.AgentSpec.skill_refs:type_name -> ai.stigmer.commons.apiresource.ApiResourceReference
@@ -486,14 +506,15 @@ var file_ai_stigmer_agentic_agent_v1_spec_proto_depIdxs = []int32{
 	5,  // 6: ai.stigmer.agentic.agent.v1.AgentSpec.subagents:type_name -> ai.stigmer.commons.apiresource.ApiResourceReference
 	1,  // 7: ai.stigmer.agentic.agent.v1.AgentSpec.mcp_servers:type_name -> ai.stigmer.agentic.agent.v1.AgentMcpServer
 	5,  // 8: ai.stigmer.agentic.agent.v1.AgentSpec.environment_ref:type_name -> ai.stigmer.commons.apiresource.ApiResourceReference
-	4,  // 9: ai.stigmer.agentic.agent.v1.AgentMcpServer.headers:type_name -> ai.stigmer.agentic.agent.v1.AgentMcpServer.HeadersEntry
-	8,  // 10: ai.stigmer.agentic.agent.v1.HookSource.inline:type_name -> ai.stigmer.agentic.plugin.v1.HookConfig
-	9,  // 11: ai.stigmer.agentic.agent.v1.AgentSpec.EnvEntry.value:type_name -> ai.stigmer.agentic.vault.v1.EnvVarDeclaration
-	12, // [12:12] is the sub-list for method output_type
-	12, // [12:12] is the sub-list for method input_type
-	12, // [12:12] is the sub-list for extension type_name
-	12, // [12:12] is the sub-list for extension extendee
-	0,  // [0:12] is the sub-list for field type_name
+	8,  // 9: ai.stigmer.agentic.agent.v1.AgentSpec.computer:type_name -> ai.stigmer.agentic.session.v1.Computer
+	4,  // 10: ai.stigmer.agentic.agent.v1.AgentMcpServer.headers:type_name -> ai.stigmer.agentic.agent.v1.AgentMcpServer.HeadersEntry
+	9,  // 11: ai.stigmer.agentic.agent.v1.HookSource.inline:type_name -> ai.stigmer.agentic.plugin.v1.HookConfig
+	10, // 12: ai.stigmer.agentic.agent.v1.AgentSpec.EnvEntry.value:type_name -> ai.stigmer.agentic.vault.v1.EnvVarDeclaration
+	13, // [13:13] is the sub-list for method output_type
+	13, // [13:13] is the sub-list for method input_type
+	13, // [13:13] is the sub-list for extension type_name
+	13, // [13:13] is the sub-list for extension extendee
+	0,  // [0:13] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_agentic_agent_v1_spec_proto_init() }

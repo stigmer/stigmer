@@ -57,6 +57,7 @@ vi.mock("../facets/SetupTab", () => ({ SetupTab: () => null, RunConfigSection: (
 const flow = {
   harness: "stigmer" as const,
   setHarness: vi.fn(),
+  agentHasComputer: true,
   modelId: undefined as string | undefined,
   setModelId: vi.fn(),
   clearModelPick: vi.fn(),

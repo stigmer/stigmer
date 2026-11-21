@@ -56,8 +56,12 @@ type SessionStatus struct {
 	Environment *apiresource.ApiResourceReference `protobuf:"bytes,8,opt,name=environment,proto3" json:"environment,omitempty"`
 	// Which choice environment came from.
 	EnvironmentSource EnvironmentSource `protobuf:"varint,9,opt,name=environment_source,json=environmentSource,proto3,enum=ai.stigmer.agentic.session.v1.EnvironmentSource" json:"environment_source,omitempty"`
-	unknownFields     protoimpl.UnknownFields
-	sizeCache         protoimpl.SizeCache
+	// Whether this conversation has a computer, from its agent's version
+	// (AgentSpec.computer). Unset reads as having one: a conversation from
+	// before the setting, or one with no agent.
+	Computer      Computer `protobuf:"varint,10,opt,name=computer,proto3,enum=ai.stigmer.agentic.session.v1.Computer" json:"computer,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *SessionStatus) Reset() {
@@ -146,11 +150,18 @@ func (x *SessionStatus) GetEnvironmentSource() EnvironmentSource {
 	return EnvironmentSource_ENVIRONMENT_SOURCE_UNSPECIFIED
 }
 
+func (x *SessionStatus) GetComputer() Computer {
+	if x != nil {
+		return x.Computer
+	}
+	return Computer_COMPUTER_UNSPECIFIED
+}
+
 var File_ai_stigmer_agentic_session_v1_status_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_session_v1_status_proto_rawDesc = "" +
 	"\n" +
-	"*ai/stigmer/agentic/session/v1/status.proto\x12\x1dai.stigmer.agentic.session.v1\x1a(ai/stigmer/agentic/session/v1/enum.proto\x1a2ai/stigmer/commons/apiresource/field_options.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a+ai/stigmer/commons/apiresource/status.proto\"\xc2\x04\n" +
+	"*ai/stigmer/agentic/session/v1/status.proto\x12\x1dai.stigmer.agentic.session.v1\x1a(ai/stigmer/agentic/session/v1/enum.proto\x1a2ai/stigmer/commons/apiresource/field_options.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a+ai/stigmer/commons/apiresource/status.proto\"\x87\x05\n" +
 	"\rSessionStatus\x12F\n" +
 	"\x05audit\x18c \x01(\v20.ai.stigmer.commons.apiresource.ApiResourceAuditR\x05audit\x12\x19\n" +
 	"\bagent_id\x18\x01 \x01(\tR\aagentId\x12,\n" +
@@ -160,7 +171,9 @@ const file_ai_stigmer_agentic_session_v1_status_proto_rawDesc = "" +
 	"\n" +
 	"routine_id\x18\a \x01(\tR\troutineId\x12\\\n" +
 	"\venvironment\x18\b \x01(\v24.ai.stigmer.commons.apiresource.ApiResourceReferenceB\x04\xe0\x85,CR\venvironment\x12_\n" +
-	"\x12environment_source\x18\t \x01(\x0e20.ai.stigmer.agentic.session.v1.EnvironmentSourceR\x11environmentSource\x1aA\n" +
+	"\x12environment_source\x18\t \x01(\x0e20.ai.stigmer.agentic.session.v1.EnvironmentSourceR\x11environmentSource\x12C\n" +
+	"\bcomputer\x18\n" +
+	" \x01(\x0e2'.ai.stigmer.agentic.session.v1.ComputerR\bcomputer\x1aA\n" +
 	"\x13VaultAttachersEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01B\x8a\x02\n" +
@@ -185,17 +198,19 @@ var file_ai_stigmer_agentic_session_v1_status_proto_goTypes = []any{
 	(*apiresource.ApiResourceAudit)(nil),     // 2: ai.stigmer.commons.apiresource.ApiResourceAudit
 	(*apiresource.ApiResourceReference)(nil), // 3: ai.stigmer.commons.apiresource.ApiResourceReference
 	(EnvironmentSource)(0),                   // 4: ai.stigmer.agentic.session.v1.EnvironmentSource
+	(Computer)(0),                            // 5: ai.stigmer.agentic.session.v1.Computer
 }
 var file_ai_stigmer_agentic_session_v1_status_proto_depIdxs = []int32{
 	2, // 0: ai.stigmer.agentic.session.v1.SessionStatus.audit:type_name -> ai.stigmer.commons.apiresource.ApiResourceAudit
 	1, // 1: ai.stigmer.agentic.session.v1.SessionStatus.vault_attachers:type_name -> ai.stigmer.agentic.session.v1.SessionStatus.VaultAttachersEntry
 	3, // 2: ai.stigmer.agentic.session.v1.SessionStatus.environment:type_name -> ai.stigmer.commons.apiresource.ApiResourceReference
 	4, // 3: ai.stigmer.agentic.session.v1.SessionStatus.environment_source:type_name -> ai.stigmer.agentic.session.v1.EnvironmentSource
-	4, // [4:4] is the sub-list for method output_type
-	4, // [4:4] is the sub-list for method input_type
-	4, // [4:4] is the sub-list for extension type_name
-	4, // [4:4] is the sub-list for extension extendee
-	0, // [0:4] is the sub-list for field type_name
+	5, // 4: ai.stigmer.agentic.session.v1.SessionStatus.computer:type_name -> ai.stigmer.agentic.session.v1.Computer
+	5, // [5:5] is the sub-list for method output_type
+	5, // [5:5] is the sub-list for method input_type
+	5, // [5:5] is the sub-list for extension type_name
+	5, // [5:5] is the sub-list for extension extendee
+	0, // [0:5] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_agentic_session_v1_status_proto_init() }

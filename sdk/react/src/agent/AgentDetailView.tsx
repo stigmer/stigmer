@@ -38,6 +38,7 @@ import { AgentSubagentsSection } from "./AgentSubagentsSection.js";
 import { AgentMcpServersSection } from "./AgentMcpServersSection.js";
 import { AgentRunDefaultsSection, type AgentRunDefaultsSave } from "./AgentRunDefaultsSection.js";
 import { AgentEnvironmentSection } from "./AgentEnvironmentSection.js";
+import { AgentComputerSection } from "./AgentComputerSection.js";
 import type { DependencyNode } from "../dependency-graph/types.js";
 import { InlineEditTextarea } from "../inline-edit/InlineEditTextarea.js";
 import { InlineEditImage } from "../inline-edit/InlineEditImage.js";
@@ -925,6 +926,14 @@ function AgentOverview({
           )}
         </Section>
       )}
+
+      <AgentComputerSection
+        spec={spec}
+        editable={!!editable && saveField !== undefined}
+        error={errorFor("computer")}
+        onSave={(computer) => saveField?.("computer", computer) ?? Promise.resolve(false)}
+        onEditStart={clearSaveError}
+      />
 
       <AgentRunDefaultsSection
         spec={spec}

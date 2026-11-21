@@ -37,6 +37,7 @@ private static final long serialVersionUID = 0L;
     state_ = "";
     routineId_ = "";
     environmentSource_ = 0;
+    computer_ = 0;
   }
 
   public static final com.google.protobuf.Descriptors.Descriptor
@@ -490,6 +491,36 @@ java.lang.String defaultValue) {
     return result == null ? ai.stigmer.agentic.session.v1.EnvironmentSource.UNRECOGNIZED : result;
   }
 
+  public static final int COMPUTER_FIELD_NUMBER = 10;
+  private int computer_ = 0;
+  /**
+   * <pre>
+   * Whether this conversation has a computer, from its agent's version
+   * (AgentSpec.computer). Unset reads as having one: a conversation from
+   * before the setting, or one with no agent.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.session.v1.Computer computer = 10 [json_name = "computer"];</code>
+   * @return The enum numeric value on the wire for computer.
+   */
+  @java.lang.Override public int getComputerValue() {
+    return computer_;
+  }
+  /**
+   * <pre>
+   * Whether this conversation has a computer, from its agent's version
+   * (AgentSpec.computer). Unset reads as having one: a conversation from
+   * before the setting, or one with no agent.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.session.v1.Computer computer = 10 [json_name = "computer"];</code>
+   * @return The computer.
+   */
+  @java.lang.Override public ai.stigmer.agentic.session.v1.Computer getComputer() {
+    ai.stigmer.agentic.session.v1.Computer result = ai.stigmer.agentic.session.v1.Computer.forNumber(computer_);
+    return result == null ? ai.stigmer.agentic.session.v1.Computer.UNRECOGNIZED : result;
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -527,6 +558,9 @@ java.lang.String defaultValue) {
     }
     if (environmentSource_ != ai.stigmer.agentic.session.v1.EnvironmentSource.ENVIRONMENT_SOURCE_UNSPECIFIED.getNumber()) {
       output.writeEnum(9, environmentSource_);
+    }
+    if (computer_ != ai.stigmer.agentic.session.v1.Computer.COMPUTER_UNSPECIFIED.getNumber()) {
+      output.writeEnum(10, computer_);
     }
     if (((bitField0_ & 0x00000001) != 0)) {
       output.writeMessage(99, getAudit());
@@ -570,6 +604,10 @@ java.lang.String defaultValue) {
       size += com.google.protobuf.CodedOutputStream
         .computeEnumSize(9, environmentSource_);
     }
+    if (computer_ != ai.stigmer.agentic.session.v1.Computer.COMPUTER_UNSPECIFIED.getNumber()) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeEnumSize(10, computer_);
+    }
     if (((bitField0_ & 0x00000001) != 0)) {
       size += com.google.protobuf.CodedOutputStream
         .computeMessageSize(99, getAudit());
@@ -610,6 +648,7 @@ java.lang.String defaultValue) {
           .equals(other.getEnvironment())) return false;
     }
     if (environmentSource_ != other.environmentSource_) return false;
+    if (computer_ != other.computer_) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -643,6 +682,8 @@ java.lang.String defaultValue) {
     }
     hash = (37 * hash) + ENVIRONMENT_SOURCE_FIELD_NUMBER;
     hash = (53 * hash) + environmentSource_;
+    hash = (37 * hash) + COMPUTER_FIELD_NUMBER;
+    hash = (53 * hash) + computer_;
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -823,6 +864,7 @@ java.lang.String defaultValue) {
         environmentBuilder_ = null;
       }
       environmentSource_ = 0;
+      computer_ = 0;
       return this;
     }
 
@@ -888,6 +930,9 @@ java.lang.String defaultValue) {
       if (((from_bitField0_ & 0x00000080) != 0)) {
         result.environmentSource_ = environmentSource_;
       }
+      if (((from_bitField0_ & 0x00000100) != 0)) {
+        result.computer_ = computer_;
+      }
       result.bitField0_ |= to_bitField0_;
     }
 
@@ -934,6 +979,9 @@ java.lang.String defaultValue) {
       }
       if (other.environmentSource_ != 0) {
         setEnvironmentSourceValue(other.getEnvironmentSourceValue());
+      }
+      if (other.computer_ != 0) {
+        setComputerValue(other.getComputerValue());
       }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
@@ -1002,6 +1050,11 @@ java.lang.String defaultValue) {
               bitField0_ |= 0x00000080;
               break;
             } // case 72
+            case 80: {
+              computer_ = input.readEnum();
+              bitField0_ |= 0x00000100;
+              break;
+            } // case 80
             case 794: {
               input.readMessage(
                   internalGetAuditFieldBuilder().getBuilder(),
@@ -2014,6 +2067,88 @@ java.lang.String defaultValue) {
     public Builder clearEnvironmentSource() {
       bitField0_ = (bitField0_ & ~0x00000080);
       environmentSource_ = 0;
+      onChanged();
+      return this;
+    }
+
+    private int computer_ = 0;
+    /**
+     * <pre>
+     * Whether this conversation has a computer, from its agent's version
+     * (AgentSpec.computer). Unset reads as having one: a conversation from
+     * before the setting, or one with no agent.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.Computer computer = 10 [json_name = "computer"];</code>
+     * @return The enum numeric value on the wire for computer.
+     */
+    @java.lang.Override public int getComputerValue() {
+      return computer_;
+    }
+    /**
+     * <pre>
+     * Whether this conversation has a computer, from its agent's version
+     * (AgentSpec.computer). Unset reads as having one: a conversation from
+     * before the setting, or one with no agent.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.Computer computer = 10 [json_name = "computer"];</code>
+     * @param value The enum numeric value on the wire for computer to set.
+     * @throws IllegalArgumentException if UNRECOGNIZED is provided.
+     * @return This builder for chaining.
+     */
+    public Builder setComputerValue(int value) {
+      computer_ = value;
+      bitField0_ |= 0x00000100;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Whether this conversation has a computer, from its agent's version
+     * (AgentSpec.computer). Unset reads as having one: a conversation from
+     * before the setting, or one with no agent.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.Computer computer = 10 [json_name = "computer"];</code>
+     * @return The computer.
+     */
+    @java.lang.Override
+    public ai.stigmer.agentic.session.v1.Computer getComputer() {
+      ai.stigmer.agentic.session.v1.Computer result = ai.stigmer.agentic.session.v1.Computer.forNumber(computer_);
+      return result == null ? ai.stigmer.agentic.session.v1.Computer.UNRECOGNIZED : result;
+    }
+    /**
+     * <pre>
+     * Whether this conversation has a computer, from its agent's version
+     * (AgentSpec.computer). Unset reads as having one: a conversation from
+     * before the setting, or one with no agent.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.Computer computer = 10 [json_name = "computer"];</code>
+     * @param value The computer to set.
+     * @return This builder for chaining.
+     */
+    public Builder setComputer(ai.stigmer.agentic.session.v1.Computer value) {
+      if (value == null) { throw new NullPointerException(); }
+      bitField0_ |= 0x00000100;
+      computer_ = value.getNumber();
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Whether this conversation has a computer, from its agent's version
+     * (AgentSpec.computer). Unset reads as having one: a conversation from
+     * before the setting, or one with no agent.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.Computer computer = 10 [json_name = "computer"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearComputer() {
+      bitField0_ = (bitField0_ & ~0x00000100);
+      computer_ = 0;
       onChanged();
       return this;
     }
