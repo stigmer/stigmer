@@ -2,6 +2,7 @@ import type { ToolUse } from "@stigmer/client";
 import { resolveToolCategoryFromCall } from "@stigmer/react-core";
 import type { ToolCategory } from "@stigmer/react-core";
 import { resolveRunGroupable } from "./tool-presenter.js";
+import { NO_TOOL_CARD, type HasToolCard } from "./tool-card.js";
 
 /**
  * Minimum number of consecutive same-category groupable calls before they fold
@@ -48,7 +49,9 @@ function rowKey(toolUse: ToolUse): string {
  * Pure and dependency-light so it can be unit-tested exhaustively and memoized
  * by the caller; groupability is resolved through {@link resolveRunGroupable},
  * so a consumer's registry override is honoured here exactly as in the
- * component layer.
+ * component layer. A call with a host's card (`hasCard`, from the provider's
+ * `toolCards`) is never grouped, whatever the registry says: the card is the
+ * host saying the person should see it.
  *
  * @example
  * ```ts
@@ -59,6 +62,7 @@ function rowKey(toolUse: ToolUse): string {
  */
 export function segmentToolCalls(
   toolUses: readonly ToolUse[],
+  hasCard: HasToolCard = NO_TOOL_CARD,
 ): ToolSegment[] {
   const segments: ToolSegment[] = [];
 
@@ -67,7 +71,7 @@ export function segmentToolCalls(
   const categories = toolUses.map(
     (tu) => resolveToolCategoryFromCall(tu).category,
   );
-  const groupable = toolUses.map((tu) => resolveRunGroupable(tu));
+  const groupable = toolUses.map((tu) => !hasCard(tu) && resolveRunGroupable(tu));
 
   let i = 0;
   while (i < toolUses.length) {

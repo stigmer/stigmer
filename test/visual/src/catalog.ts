@@ -129,6 +129,8 @@ export type SceneId =
   | `session-${SessionSceneName}`
   | `story-${StorySceneName}`
   | "agent-chat-page"
+  | "host-tool-card"
+  | "host-message-actions"
   | `routine-${RoutineSceneName}`
   | `library-${LibrarySceneName}`
   | `conversations-${ConversationsSceneName}`
@@ -1633,6 +1635,18 @@ const LISTED: readonly Scene[] = [
     id: "agent-chat-page",
     title: "AgentChat: a whole page of its own, on a finished turn",
     widths: ["desktop", "narrow"],
+  },
+  {
+    id: "host-tool-card",
+    title: "Host customization: a connected app's finished turn with the host's own card for its tool, its step opened inside How it got there",
+    widths: ["desktop", "narrow"],
+    opens: ["How it got there"],
+  },
+  {
+    id: "host-message-actions",
+    title: "Host customization: the host's own actions on the answer, two as icons and the rest in the More actions menu, opened",
+    widths: ["desktop", "narrow"],
+    opens: ["More actions"],
   },
   {
     id: "agent-chat-panel",

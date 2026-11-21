@@ -20,6 +20,8 @@ import { IconButton } from "../button/IconButton.js";
 import { SpinnerIcon } from "../internal/SpinnerIcon.js";
 import { ThreadCardBody, ThreadCardHeader, ThreadCardShell } from "../internal/thread-card/ThreadCardShell.js";
 import { useCopyFeedback } from "../internal/useCopyFeedback.js";
+import { MessageActionBar } from "./MessageActionBar.js";
+import type { MessageAction, MessageInfo } from "./message-actions.js";
 
 export type { ThreadMessage, UserMessageItem } from "@stigmer/react-core";
 
@@ -79,6 +81,23 @@ export interface MessageEntryProps {
    * message types.
    */
   readonly actions?: ReactNode;
+  /**
+   * What the thread knows about this message: whose it is, whether it is
+   * its turn's final answer, its run and session. Set on a person's
+   * message in the session's log and on every settled agent message; absent
+   * on thinking, notes, a plan document, a message still streaming, and a
+   * message not in the log yet (queued, sending or unsent). A slot that
+   * draws its own bubble reads it, for example to build its own right-click
+   * menu.
+   */
+  readonly messageInfo?: MessageInfo;
+  /**
+   * The host's actions for this message (`messageActions` on the thread),
+   * as data. The built-in entry draws them after Copy (and the scores, and
+   * Edit); a slot that wraps the built-in passes them on, and one that
+   * draws its own bubble draws them its own way.
+   */
+  readonly messageActions?: readonly MessageAction[];
 }
 
 /**
@@ -115,6 +134,7 @@ export const MessageEntry = memo(function MessageEntry({
   files,
   runId: executionId,
   actions,
+  messageActions = NO_ACTIONS,
 }: MessageEntryProps) {
   useRenderTracer("MessageEntry", {
     messageType: message.kind,
@@ -132,6 +152,7 @@ export const MessageEntry = memo(function MessageEntry({
           interactionMode={interactionMode}
           files={files}
           executionId={executionId}
+          messageActions={messageActions}
         />
       );
     case "message":
@@ -148,6 +169,7 @@ export const MessageEntry = memo(function MessageEntry({
           isStreaming={message.live}
           className={className}
           actions={actions}
+          messageActions={messageActions}
         />
       );
     case "thinking":
@@ -170,6 +192,7 @@ function HumanMessage({
   interactionMode,
   files,
   executionId,
+  messageActions,
 }: {
   content: string;
   className?: string;
@@ -177,6 +200,7 @@ function HumanMessage({
   interactionMode?: InteractionMode;
   files?: readonly MessageFileView[];
   executionId?: string;
+  messageActions: readonly MessageAction[];
 }) {
   return (
     <div
@@ -205,7 +229,7 @@ function HumanMessage({
       </p>
       {/* The hover-revealed action cluster on the bubble's shoulder: copy is
           always offered (the message text is the content), edit only when the
-          host wired the callback. */}
+          host wired the callback, then the host's own actions. */}
       <div className="stg:absolute stg:-top-2.5 stg:-right-2.5 stg:flex stg:gap-1">
         <CopyMessageButton text={content} variant="bubble" />
         {onEdit && (
@@ -218,6 +242,7 @@ function HumanMessage({
             className={BUBBLE_ACTION_CLASSES}
           />
         )}
+        <MessageActionBar actions={messageActions} variant="bubble" controlClassName={BUBBLE_ACTION_CLASSES} />
       </div>
     </div>
   );
@@ -254,11 +279,13 @@ function AiMessage({
   isStreaming,
   className,
   actions,
+  messageActions,
 }: {
   content: string;
   isStreaming: boolean;
   className?: string;
   actions?: ReactNode;
+  messageActions: readonly MessageAction[];
 }) {
   useRenderTracer("AiMessage", { contentLength: content.length, isStreaming });
 
@@ -293,11 +320,15 @@ function AiMessage({
           where there is no hover (a touch screen). They appear only once the
           message settles — a streaming message's text is still changing, so
           a copy would race the content. Copies the display markdown
-          (fence-unwrapped), i.e. what the reader sees. */}
+          (fence-unwrapped), i.e. what the reader sees. The host's own
+          actions follow Copy and the scores; while one of the row's menus
+          is open (its trigger marked open), the row stays shown, since the
+          menu takes the focus out of the row. */}
       {!isStreaming && markdown.trim().length > 0 && (
-        <div className="stg:absolute stg:-bottom-3 stg:left-0 stg:flex stg:h-6 stg:items-center stg:gap-1 stg:opacity-0 stg:transition-opacity stg:group-hover:opacity-100 stg:focus-within:opacity-100 stg:[@media(hover:none)]:opacity-100">
+        <div className={QUIET_ROW_CLASSES}>
           <CopyMessageButton text={markdown} variant="quiet" />
           {actions}
+          <MessageActionBar actions={messageActions} variant="quiet" controlClassName={QUIET_ACTION_CLASSES} />
         </div>
       )}
     </div>
@@ -308,13 +339,24 @@ function AiMessage({
 // Per-message copy affordance (issue #278)
 // ---------------------------------------------------------------------------
 
+/** No host actions: one shared empty list, so an entry without them keeps its memo. */
+const NO_ACTIONS: readonly MessageAction[] = [];
+
+// The agent message's quiet row: revealed on hover, on keyboard focus, while
+// one of its menus is open, and always where there is no hover.
+const QUIET_ROW_CLASSES = cn(
+  "stg:absolute stg:-bottom-3 stg:left-0 stg:flex stg:h-6 stg:items-center stg:gap-1 stg:opacity-0 stg:transition-opacity",
+  "stg:group-hover:opacity-100 stg:focus-within:opacity-100 stg:has-[[data-popup-open]]:opacity-100 stg:[@media(hover:none)]:opacity-100",
+);
+
 // The floating circular action on a human bubble's shoulder — shared by the
-// copy and edit buttons so the cluster reads as one control family. An
-// outlined IconButton, round and lifted, revealed on hover or focus.
+// copy and edit buttons and the host's actions so the cluster reads as one
+// control family. An outlined IconButton, round and lifted, revealed on
+// hover or focus, and while the cluster's menu is open.
 const BUBBLE_ACTION_CLASSES = cn(
   "stg:rounded-full stg:text-muted-foreground stg:shadow-sm stg:transition",
   "stg:hover:text-foreground",
-  "stg:opacity-0 stg:group-hover:opacity-100 stg:focus-visible:opacity-100",
+  "stg:opacity-0 stg:group-hover:opacity-100 stg:focus-visible:opacity-100 stg:group-has-[[data-popup-open]]:opacity-100",
 );
 
 // The quiet in-flow variant for AI prose: a ghost IconButton one contrast

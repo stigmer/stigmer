@@ -16,6 +16,7 @@ import type { SessionInspectorProps } from "./inspector/SessionInspector.js";
 import type { SessionStreamingPlan } from "./inspector/SessionInspectorRegion.js";
 import { isTerminalPhase } from "@stigmer/react-core/internal";
 import { MessageThread, type MessageThreadSlots } from "../run/MessageThread.js";
+import type { MessageAction, MessageInfo } from "../run/message-actions.js";
 import { THREAD_GUTTER_CLASS } from "../internal/thread-gutter.js";
 import { useIsNarrowerThan } from "../internal/useIsNarrowerThan.js";
 import { FileChangeProgressBar } from "../run/FileChangeProgressBar.js";
@@ -282,6 +283,11 @@ export interface SessionViewerProps {
    * re-render guarantees.
    */
   readonly threadSlots?: MessageThreadSlots;
+  /**
+   * The host's own actions for a message, drawn after Copy — forwarded to
+   * the inner {@link MessageThread} (see its `messageActions`).
+   */
+  readonly messageActions?: (message: MessageInfo) => readonly MessageAction[];
   /** Additional CSS classes for the root container. */
   readonly className?: string;
 }
@@ -341,6 +347,7 @@ export function SessionViewer({
   nextStep,
   onApplied,
   threadSlots,
+  messageActions,
   className,
 }: SessionViewerProps) {
   // What this reader may do in a shared conversation, asked of the server
@@ -829,6 +836,7 @@ export function SessionViewer({
           modelSelectorVisible={modelSelectorVisible}
           modePickerVisible={modePickerVisible}
           threadSlots={threadSlots}
+          messageActions={messageActions}
           files={files}
           onOpenOutputFile={handleOpenOutputFile}
           canOpenTurnChange={canOpenTurnChange}
@@ -962,6 +970,7 @@ interface ConversationColumnProps {
   /** Whether the composer offers the mode toggle: the host's `showInteractionModePicker`, never for a guest. */
   readonly modePickerVisible: boolean;
   readonly threadSlots?: MessageThreadSlots;
+  readonly messageActions?: (message: MessageInfo) => readonly MessageAction[];
   readonly files: readonly StigmerFile[];
   /** Opens a File a turn returned, in place. */
   readonly onOpenOutputFile: (file: StigmerFile) => void;
@@ -1020,6 +1029,7 @@ const ConversationColumn = memo(function ConversationColumn({
   modelSelectorVisible,
   modePickerVisible,
   threadSlots,
+  messageActions,
   files,
   onOpenOutputFile,
   canOpenTurnChange,
@@ -1278,6 +1288,8 @@ const ConversationColumn = memo(function ConversationColumn({
         contentColumn="center"
         slots={threadSlots}
         runScores={runScores}
+        sessionId={sessionId}
+        messageActions={messageActions}
         turnOutcome={renderTurnOutcome}
         // The header's pill and the plan say what the turn does; the
         // thread's tail speaks only for the background commands a turn

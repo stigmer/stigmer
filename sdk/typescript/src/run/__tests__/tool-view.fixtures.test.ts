@@ -17,6 +17,7 @@ import {
   SHELL_INTENT_ARG_FIELD,
   isSecretArgKey,
   redactSecretArgs,
+  toolPublicName,
 } from "../tool-view";
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -181,6 +182,22 @@ describe("secret-args fixtures", () => {
     const clean = { repo: "acme/x" };
     expect(redactSecretArgs(clean)).toBe(clean);
   });
+});
+
+describe("public-name fixtures", () => {
+  const { cases } = loadFixture<{
+    cases: { name: string; tool: string; mcpServerSlug: string; publicName: string | null }[];
+  }>("public-names.json");
+
+  it("loads the fixture", () => {
+    expect(cases.length).toBeGreaterThan(0);
+  });
+
+  for (const c of cases) {
+    it(c.name, () => {
+      expect(toolPublicName({ name: c.tool, mcpServerName: c.mcpServerSlug })).toBe(c.publicName ?? undefined);
+    });
+  }
 });
 
 describe("resolveToolKind reads the name", () => {

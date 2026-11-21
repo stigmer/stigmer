@@ -8,6 +8,7 @@ import { ToolCallItem } from "./ToolCallItem.js";
 import { ToolRunGroup } from "./ToolRunGroup.js";
 import { segmentToolCalls } from "./segment-tool-calls.js";
 import { StepPlaceContext, useStepPlace } from "./step-place.js";
+import { useHasToolCard } from "./tool-card.js";
 
 /** Props for {@link ToolCallGroup}. */
 export interface ToolCallGroupProps {
@@ -97,7 +98,8 @@ export const ToolCallGroup = memo(function ToolCallGroup({
 }: ToolCallGroupProps) {
   useRenderTracer("ToolCallGroup", { toolCallCount: toolUses.length });
 
-  const segments = useMemo(() => segmentToolCalls(toolUses), [toolUses]);
+  const hasCard = useHasToolCard();
+  const segments = useMemo(() => segmentToolCalls(toolUses, hasCard), [toolUses, hasCard]);
   const outer = useStepPlace();
   const rows = divided ? "card" : "rail";
   const place = useMemo(() => ({ rows, inHelper: outer.inHelper }) as const, [rows, outer.inHelper]);
