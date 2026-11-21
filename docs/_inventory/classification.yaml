@@ -360,8 +360,10 @@ pages:
     fate: keep
     diataxis: how-to
     teaches:
-      Register the hosted Stigmer MCP endpoint in Claude Desktop, Claude Code,
-      or Cursor and verify the connection.
+      Pick the way in for an AI tool, which is Stigmer's plugin for a coding
+      agent with a terminal (Claude Code, Codex, Cursor) on any Stigmer, the
+      hosted connector for an app without one (Claude Desktop), or an API key
+      in a header.
     medium: none
 
   concepts/approval-flows:
