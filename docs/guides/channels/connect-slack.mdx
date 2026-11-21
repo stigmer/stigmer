@@ -21,11 +21,16 @@ manage the connection afterward.
 
 You need three things:
 
-- An Agent in your Organization, and permission to edit it. The Agent's
-  visibility doesn't matter — private, organization-visible and child-org-shared
-  Agents can all serve a channel.
-- Permission to install apps in the Slack workspace. If your workspace restricts
-  app installs, a Slack admin has to approve the install.
+- The **Admin** role in the Organization that owns the Agent. A channel runs the
+  Agent on the Organization's provider keys for everyone who reaches it, so
+  adding one is an admin's act
+  ([Who creates a channel](/docs/concepts/channels#who-creates-a-channel)). The
+  Agent's visibility doesn't matter — private, organization-visible and
+  child-org-shared Agents can all serve a channel.
+- Permission to install apps in the Slack workspace. If your workspace requires
+  approval for app installs, have a Slack admin approve the app before you
+  start: the connection waits 10 minutes for Slack's consent, so an approval
+  that arrives later can't complete it.
 - A [model provider key](/docs/guides/integrations/model-provider-keys) in your
   Organization for the Agent's model — conversations from Slack run on it.
 
@@ -129,6 +134,33 @@ before it starts, naming the key.
    channel card's actions menu. You can attach a vault only if you may use it,
    and each conversation checks again that you still may.
 
+## A customer's own workspace
+
+When your customers should chat with your Agent from their own Slack, each
+customer's workspace gets its own channel on the Agent: one channel serves one
+workspace, and one Slack app, the platform's or your own, serves any number of
+workspaces. Give each customer's channel a vault holding that customer's
+credentials, so their conversations use only their keys
+([Give the Agent its tool credentials](#give-the-agent-its-tool-credentials)).
+
+Stigmer has no link a customer opens to install the bot on their own. Slack's
+consent and the connection are finished by one person, in one sitting, who:
+
+- may install apps in the customer's workspace, and
+- is signed in to the Stigmer console as an admin of your Organization (or is
+  the channel's owner),
+
+within the 10 minutes the connection waits after **Connect to Slack**. A
+customer's Slack admin who is not an admin of your Organization can't finish it
+alone. In practice, the customer's Slack admin approves your app ahead of time
+or lets one of your admins install apps in their workspace, and your admin
+connects it. To have the bot answer under your product's name rather than
+**Stigmer**, connect through
+[your own Slack app](/docs/guides/channels/bring-your-own-slack-app). Slack
+installs an app outside the workspace it was made in only once its public
+distribution is turned on, under **Manage Distribution** in the app's Slack
+settings; that needs no Slack Marketplace listing.
+
 ## One workspace, one agent per app
 
 A Slack workspace hosts **one Agent per Slack app**. If the workspace already
@@ -155,19 +187,23 @@ answers that it isn't set up to answer yet, and nothing runs.
 
 ## Review conversations from the console
 
-You can read what people ask the bot without leaving Stigmer. Open the channel
-card's actions menu (⋯) and pick **Conversations** — each entry is one person's
-conversation, newest activity first. Click one to read the full transcript,
-including the tools the Agent used.
+You can read what people ask the bot without leaving Stigmer. **Conversations**
+in the console sidebar lists every conversation across your Organization's
+channels, newest activity first; open one to read it. The channel card's actions
+menu (⋯) has **Sessions**, the runs that served the channel, each with its full
+transcript, including the tools the Agent used.
 
 Two things to know:
 
-- **Reading is limited to the people responsible for the channel** — whoever
-  connected it, plus your Organization's admins. Other members cannot see these
-  conversations, and they never appear in anyone's home-page recents.
-- **Reading is all you can do.** The transcript has no message box — replies
-  belong to the person in Slack, so you cannot answer on the Agent's behalf from
-  the console.
+- **Reading takes a role on the channel.** Whoever connected it and your
+  Organization's admins read its conversations; others read them once the
+  channel's owner grants them **Viewer** or **Participant** under **Manage
+  access** on the channel card. Other members cannot see these conversations,
+  and they never appear in anyone's home-page recents.
+- **Reading is all you can do on Slack.** Replies belong to the person in Slack,
+  so you cannot answer on the Agent's behalf from the console.
+  [Taking over a conversation](/docs/guides/channels/take-over-conversations)
+  works on WhatsApp channels today.
 
 ## Pause, disconnect, or reconnect
 

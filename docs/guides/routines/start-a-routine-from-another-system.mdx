@@ -12,9 +12,11 @@ receives with the routine's message. This guide sets up an alerting tool to
 start a triage routine: a service account for the tool, Participant on the
 routine for that account, and the call itself.
 
-The run acts as the routine's owner, the person who created it, whoever calls
-it. [Routines](/docs/concepts/routines) explains why, and what a note can and
-cannot change.
+The run acts as the routine's owner, whoever created it, a person or a service
+account, whoever calls it. [Routines](/docs/concepts/routines) explains why, and
+what a note can and cannot change. This guide has a person own the routine and
+lets the tool start it; to have no person behind its runs, let the service
+account own it instead: [A routine no person owns](#a-routine-no-person-owns).
 
 You need a routine to start. A routine meant only for calls like this needs no
 schedule: make it from a manifest with no `cron`, as
@@ -98,16 +100,46 @@ Open the run from the history to read the conversation.
 
 A paused routine still accepts calls: the pause stops only its schedule.
 
+## A routine no person owns
+
+A routine a person created acts as that person, so it stops working when they
+leave, and every run spends their access. To have a service account own the
+routine, let the account create it:
+
+1. Give the service account **Editor** on the routine's Agent: on the Agent,
+   open **Manage access**, choose the account and give it **Editor**. Making a
+   routine of an Agent takes the right to edit it. The Agent's owner or an
+   Organization admin grants it.
+2. Apply the routine's manifest with the account's key, so the account is its
+   owner:
+
+   ```bash
+   STIGMER_API_KEY="$ALERTING_KEY" stigmer apply -f routine.yaml
+   ```
+
+   `STIGMER_API_KEY` signs the command in as the account, ahead of your own
+   sign-in; here the key is read from a variable you set, so it stays out of
+   your shell history.
+
+3. Call it with the same key, as in [Call it](#call-it). An owner starts its own
+   routine, so the account needs no Participant grant.
+
+Every run then acts as the service account, with its access: any vault the
+routine names must be one the account may use. Only the owner changes what the
+routine runs, so later changes to its message or schedule are applied with the
+same key.
+
 ## On open source
 
 Open source grants roles on an Organization, not on one routine, so only a
-routine's owner starts it. Create a service account that may edit the routine's
-Agent (on open source, one that created the Agent itself, or one with the
-**Admin** role), and apply the routine's manifest with its key
-(`stigmer apply -f routine.yaml --api-key <key>`), so the service account is its
-owner. The same key then starts it. The **API** tab says which key to use. A
-server that signs nobody in, such as `stigmer up` on a laptop, checks no keys:
-call it without the `Authorization` line.
+routine's owner starts it, and the routine no person owns above is the way. The
+service account must be able to edit the routine's Agent: on open source, one
+that created the Agent itself, or one with the **Admin** role. Apply the
+routine's manifest with its key
+(`STIGMER_API_KEY="$ALERTING_KEY" stigmer apply -f routine.yaml`), so the
+service account is its owner. The same key then starts it. The **API** tab says
+which key to use. A server that signs nobody in, such as `stigmer up` on a
+laptop, checks no keys: call it without the `Authorization` line.
 
 ## What's next
 

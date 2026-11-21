@@ -28,9 +28,12 @@ You need four things:
 - The **phone number ID** of the WhatsApp Business number the Agent should
   answer. It is on your Meta app's **API Setup** panel — the numeric ID next to
   the number, not the phone number itself.
-- An Agent in your Organization, and permission to edit it. The Agent's
-  visibility doesn't matter — private, organization-visible and child-org-shared
-  Agents can all serve a channel.
+- The **Admin** role in the Organization that owns the Agent. A channel runs the
+  Agent on the Organization's provider keys for everyone who reaches it, so
+  adding one is an admin's act
+  ([Who creates a channel](/docs/concepts/channels#who-creates-a-channel)). The
+  Agent's visibility doesn't matter — private, organization-visible and
+  child-org-shared Agents can all serve a channel.
 - A [model provider key](/docs/guides/integrations/model-provider-keys) in your
   Organization for the Agent's model — conversations from WhatsApp run on it.
 
@@ -180,19 +183,23 @@ answers that it isn't set up to answer yet, and nothing runs.
 
 ## Review conversations from the console
 
-You can read what people ask the Agent without leaving Stigmer. Open the channel
-card's actions menu (⋯) and pick **Conversations** — each entry is one person's
-conversation with the number, newest activity first. Click one to read the full
-transcript, including the tools the Agent used.
+You can read what people ask the Agent without leaving Stigmer.
+**Conversations** in the console sidebar lists every conversation across your
+Organization's channels, newest activity first, each person's conversation with
+the number on its own row. The channel card's actions menu (⋯) has **Sessions**,
+the runs that served the channel, each with its full transcript, including the
+tools the Agent used.
 
 Two things to know:
 
-- **Reading is limited to the people responsible for the channel** — whoever
-  connected it, plus your Organization's admins. Other members cannot see these
-  conversations, and they never appear in anyone's home-page recents.
-- **Reading is all you can do.** The transcript has no message box — replies
-  belong to the person on WhatsApp, so you cannot answer on the Agent's behalf
-  from the console.
+- **Reading takes a role on the channel.** Whoever connected it and your
+  Organization's admins read its conversations; others read them once the
+  channel's owner grants them **Viewer** or **Participant** under **Manage
+  access** on the channel card. Other members cannot see these conversations,
+  and they never appear in anyone's home-page recents.
+- **Replying takes Participant.** A Participant can take a conversation over,
+  reply through the same number and hand it back to the Agent:
+  [Take over conversations from your Agent](/docs/guides/channels/take-over-conversations).
 
 ## Pause, disconnect, or reconnect
 
@@ -252,8 +259,10 @@ See the [Channel reference](/docs/sdk/resources/channel) for every field.
 
 ## Limitations
 
-- The Agent never starts a conversation — it only answers messages people send
-  to the number. Outbound campaigns and message templates are not supported.
+- By default the Agent only answers messages people send to the number. To have
+  it start a conversation, such as a reminder, with a message template WhatsApp
+  approved, turn on proactive messaging:
+  [Send proactive messages with templates](/docs/guides/channels/send-proactive-messages-with-templates).
 - Text only: images, voice notes, documents, and reactions are ignored.
 - A number serves one Agent per Meta app. To serve several Agents, use a
   different number for each.
