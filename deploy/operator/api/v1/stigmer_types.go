@@ -180,8 +180,8 @@ type ServerSpec struct {
 // ServerEgressSpec fences the server's outbound calls.
 type ServerEgressSpec struct {
 	// Fenced lets the server reach only DNS, the Kubernetes API, what the
-	// install runs (its database, Temporal, the bundled sign-in), the
-	// bucket, the public internet and AllowCIDRs.
+	// install runs (its database, Temporal, the bundled sign-in, Agent
+	// Substrate), the bucket, the public internet and AllowCIDRs.
 	// +optional
 	Fenced bool `json:"fenced,omitempty"`
 
@@ -680,7 +680,7 @@ type EnterpriseSpec struct {
 
 // SandboxDriver is where an agent's session runs.
 //
-// +kubebuilder:validation:Enum=shared;agentSandbox
+// +kubebuilder:validation:Enum=shared;agentSandbox;substrate
 type SandboxDriver string
 
 const (
@@ -690,15 +690,21 @@ const (
 	// SandboxDriverAgentSandbox runs each session in a pod of its own through
 	// agent-sandbox (agents.x-k8s.io), with its files on its own volumes.
 	SandboxDriverAgentSandbox SandboxDriver = "agentSandbox"
+	// SandboxDriverSubstrate runs each session in an Agent Substrate actor, a
+	// gVisor sandbox on a pool of workers, snapshotted to the bucket while it
+	// sleeps and woken on any worker.
+	SandboxDriverSubstrate SandboxDriver = "substrate"
 )
 
 // SandboxesSpec says where engineers' agents run.
 //
 // +kubebuilder:validation:XValidation:rule="!has(self.agentSandbox) || (has(self.driver) && self.driver == 'agentSandbox')",message="spec.sandboxes.agentSandbox tunes the agentSandbox driver: set spec.sandboxes.driver to agentSandbox, or remove it"
+// +kubebuilder:validation:XValidation:rule="!has(self.substrate) || (has(self.driver) && self.driver == 'substrate')",message="spec.sandboxes.substrate tunes the substrate driver: set spec.sandboxes.driver to substrate, or remove it"
 type SandboxesSpec struct {
 	// Driver is where each session runs: shared (the shared runner beside
-	// the server) or agentSandbox (a pod per session). A per-session driver
-	// needs spec.objectStore, and the operator installs what it runs on.
+	// the server), agentSandbox (a pod per session) or substrate (an Agent
+	// Substrate actor per session). Both per-session drivers need
+	// spec.objectStore, and the operator installs what they run on.
 	// +kubebuilder:default=shared
 	// +optional
 	Driver SandboxDriver `json:"driver,omitempty"`
@@ -713,6 +719,79 @@ type SandboxesSpec struct {
 	// AgentSandbox tunes the agentSandbox driver.
 	// +optional
 	AgentSandbox *AgentSandboxSpec `json:"agentSandbox,omitempty"`
+
+	// Substrate tunes the substrate driver.
+	// +optional
+	Substrate *SubstrateSpec `json:"substrate,omitempty"`
+}
+
+// SubstrateSpec tunes sessions that run as Agent Substrate actors.
+type SubstrateSpec struct {
+	// Workers is how many gVisor workers the pool keeps. Sessions beyond
+	// what they hold wait for room and start when a seat frees. The
+	// operator never sizes the pool from demand: Agent Substrate's own
+	// autoscaler does that once it ships.
+	// +kubebuilder:validation:Minimum=1
+	// +kubebuilder:default=1
+	// +optional
+	Workers int32 `json:"workers,omitempty"`
+
+	// Worker shapes each worker pod. Its limits are the room every sandbox
+	// on it shares.
+	// +optional
+	Worker SubstrateWorkerSpec `json:"worker,omitempty"`
+
+	// Sandbox sizes each session's sandbox.
+	// +optional
+	Sandbox SubstrateSandboxSpec `json:"sandbox,omitempty"`
+
+	// Egress names the extra cleartext addresses a sandbox may reach.
+	// +optional
+	Egress SubstrateEgressSpec `json:"egress,omitempty"`
+}
+
+// SubstrateWorkerSpec shapes the pool's worker pods.
+type SubstrateWorkerSpec struct {
+	// Resources overrides each worker's requests and limits.
+	// +optional
+	Resources *corev1.ResourceRequirements `json:"resources,omitempty"`
+
+	// NodeSelector places the workers on matching nodes.
+	// +optional
+	NodeSelector map[string]string `json:"nodeSelector,omitempty"`
+
+	// Tolerations let the workers run on tainted nodes.
+	// +optional
+	Tolerations []corev1.Toleration `json:"tolerations,omitempty"`
+}
+
+// SubstrateSandboxSpec sizes one session's sandbox.
+type SubstrateSandboxSpec struct {
+	// CPUMillicores is each sandbox's processor ceiling. Absent keeps the
+	// server's default of 2000.
+	// +kubebuilder:validation:Minimum=1
+	// +kubebuilder:validation:Maximum=999999
+	// +optional
+	CPUMillicores *int32 `json:"cpuMillicores,omitempty"`
+
+	// MemoryMiB is each sandbox's memory ceiling. Absent keeps the server's
+	// default of 2048.
+	// +kubebuilder:validation:Minimum=1
+	// +optional
+	MemoryMiB *int32 `json:"memoryMiB,omitempty"`
+}
+
+// SubstrateEgressSpec names cleartext lanes out of a Substrate sandbox.
+type SubstrateEgressSpec struct {
+	// HTTP lists host:port addresses a sandbox may reach over plain HTTP,
+	// such as an in-cluster model gateway (models.ai.svc.cluster.local:8080).
+	// Each host is a DNS name of at least two labels, never an address. The
+	// server and the bucket are added by the operator.
+	// +kubebuilder:validation:XValidation:rule="self.all(h, h.matches('^[a-z0-9]([a-z0-9-]*[a-z0-9])?([.][a-z0-9]([a-z0-9-]*[a-z0-9])?)+:[0-9]{1,5}$') && !h.matches('^[0-9.]+:[0-9]+$'))",message="spec.sandboxes.substrate.egress.http holds host:port addresses whose host is a DNS name of two or more labels, such as models.ai.svc.cluster.local:8080"
+	// +kubebuilder:validation:MaxItems=64
+	// +kubebuilder:validation:items:MaxLength=259
+	// +optional
+	HTTP []string `json:"http,omitempty"`
 }
 
 // AgentSandboxSpec tunes sessions that run in agent-sandbox pods.
@@ -769,6 +848,12 @@ type PrerequisitesSpec struct {
 	// +kubebuilder:default=auto
 	// +optional
 	AgentSandbox PrerequisiteMode `json:"agentSandbox,omitempty"`
+
+	// Substrate is Agent Substrate's control plane, which runs the
+	// substrate driver's actors.
+	// +kubebuilder:default=auto
+	// +optional
+	Substrate PrerequisiteMode `json:"substrate,omitempty"`
 }
 
 // Phase is where the install, or one component of it, stands.

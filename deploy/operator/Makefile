@@ -21,13 +21,17 @@ STIGMER_VERSION ?= compose-dev
 
 # Third-party pieces embedded in the binary, at the versions it is tested
 # against. Bump with `make vendor-cloudnative-pg vendor-barman-cloud-plugin
-# vendor-temporal-chart vendor-agent-sandbox`. AGENT_SANDBOX_VERSION is the
-# release the server's agent-sandbox driver is tested against
-# (scripts/agent-sandbox-live.mjs).
+# vendor-temporal-chart vendor-agent-sandbox vendor-substrate`.
+# AGENT_SANDBOX_VERSION is the release the server's agent-sandbox driver is
+# tested against (scripts/agent-sandbox-live.mjs). SUBSTRATE_VERSION shares its
+# major and minor with the server's Substrate driver
+# (backend/services/stigmer-server/src/sandbox/substrate/release.ts), which a
+# test holds.
 CLOUDNATIVE_PG_VERSION := 1.30.2
 BARMAN_CLOUD_PLUGIN_VERSION := 0.16.0
 TEMPORAL_CHART_VERSION := 1.8.0
 AGENT_SANDBOX_VERSION := v1.0.5
+SUBSTRATE_VERSION := v1.0.1
 
 OPERATOR_CHART := ../helm/stigmer-operator
 VERSION_FLAG := -X github.com/stigmer/stigmer/deploy/operator/internal/version.Stigmer=$(STIGMER_VERSION)
@@ -98,6 +102,10 @@ vendor-temporal-chart: ## Fetch Temporal's Helm chart at the pinned version
 	find internal/manifests/temporal -name 'temporal-*.tgz' -delete
 	curl -fsSL -o internal/manifests/temporal/temporal-$(TEMPORAL_CHART_VERSION).tgz \
 		https://github.com/temporalio/helm-charts/releases/download/temporal-$(TEMPORAL_CHART_VERSION)/temporal-$(TEMPORAL_CHART_VERSION).tgz
+
+.PHONY: vendor-substrate
+vendor-substrate: ## Fetch Agent Substrate's install files and image pins at the pinned version
+	hack/vendor-substrate.sh $(SUBSTRATE_VERSION) internal/manifests/substrate
 
 .PHONY: vendor-agent-sandbox
 vendor-agent-sandbox: ## Fetch agent-sandbox's core manifest at the pinned version

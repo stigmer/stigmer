@@ -1,7 +1,8 @@
 // Third-party pieces embedded in the operator binary at the versions it is
 // tested against: CloudNativePG's release manifest, its Barman Cloud backup
-// plugin's release manifest, Temporal's Helm chart, and agent-sandbox's core
-// manifest.
+// plugin's release manifest, Temporal's Helm chart, agent-sandbox's core
+// manifest, and Agent Substrate's install files with the digests of the
+// images they run.
 //
 // Embedding them means an install needs no network path to GitHub or a
 // chart repository, and an operator version always installs the same
@@ -32,6 +33,9 @@ var temporalChart embed.FS
 
 //go:embed agent-sandbox/sandbox.yaml
 var agentSandboxRelease []byte
+
+//go:embed substrate
+var substrateRelease embed.FS
 
 // CloudNativePGNamespace is where CloudNativePG's release installs itself.
 const CloudNativePGNamespace = "cnpg-system"
@@ -87,4 +91,16 @@ func TemporalChart() ([]byte, string, error) {
 		}
 	}
 	return nil, "", fmt.Errorf("no Temporal chart is embedded: run make vendor-temporal-chart")
+}
+
+// SubstrateRelease is Agent Substrate's install files and image pins, rooted
+// at the release directory. internal/substrate/install reads and patches
+// them; nothing else does.
+func SubstrateRelease() fs.FS {
+	sub, err := fs.Sub(substrateRelease, "substrate")
+	if err != nil {
+		// fs.Sub fails only on an invalid path, and this one is a constant.
+		panic(err)
+	}
+	return sub
 }
