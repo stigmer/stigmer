@@ -26,6 +26,11 @@
 // is no finalizer on the Stigmer, and the janitor sweeps again while
 // anything is draining.
 //
+// Within one prerequisite, objects of the kinds its own definitions declare
+// (Substrate's gVisor SandboxConfig) go first, and the rest only once they
+// are gone: their controller may hold a finalizer on them, and it must
+// still be running to lift it.
+//
 // Every object is checked for the operator's stamp before it is deleted. A
 // prerequisite whose definition someone else installed is theirs, and is
 // left whole. Each sweep reports one verdict per prerequisite: removed, kept
@@ -248,8 +253,53 @@ func sweepPrerequisite(ctx context.Context, c Client, p prerequisite) (Outcome, 
 	if err != nil {
 		return out, err
 	}
+	own, rest := splitOwnResources(objs)
+	if n, err := deleteStamped(ctx, c, own); err != nil || n > 0 {
+		if n > 0 {
+			out.Verdict = Draining
+			out.Detail = fmt.Sprintf("%d of its own objects deleting, before its controller", n)
+		}
+		return out, err
+	}
+	remaining, err := deleteStamped(ctx, c, removalOrder(rest))
+	if err != nil {
+		return out, err
+	}
+	if remaining > 0 {
+		out.Verdict = Draining
+		out.Detail = fmt.Sprintf("%d objects deleting", remaining)
+		return out, nil
+	}
+	out.Verdict = Removed
+	return out, nil
+}
+
+// splitOwnResources separates the objects of the kinds a release's own
+// definitions declare from everything else in it.
+func splitOwnResources(objs []*unstructured.Unstructured) (own, rest []*unstructured.Unstructured) {
+	groups := map[string]bool{}
+	for _, u := range objs {
+		if u.GetKind() == "CustomResourceDefinition" {
+			if g, _, _ := unstructured.NestedString(u.Object, "spec", "group"); g != "" {
+				groups[g] = true
+			}
+		}
+	}
+	for _, u := range objs {
+		if u.GetKind() != "CustomResourceDefinition" && groups[u.GroupVersionKind().Group] {
+			own = append(own, u)
+		} else {
+			rest = append(rest, u)
+		}
+	}
+	return own, rest
+}
+
+// deleteStamped deletes each stamped object of objs that still exists and
+// returns how many remain (deleted, not yet gone).
+func deleteStamped(ctx context.Context, c Client, objs []*unstructured.Unstructured) (int, error) {
 	remaining := 0
-	for _, u := range removalOrder(objs) {
+	for _, u := range objs {
 		obj := &metav1.PartialObjectMetadata{}
 		obj.SetGroupVersionKind(u.GroupVersionKind())
 		err := c.Get(ctx, client.ObjectKey{Namespace: u.GetNamespace(), Name: u.GetName()}, obj)
@@ -257,7 +307,7 @@ func sweepPrerequisite(ctx context.Context, c Client, p prerequisite) (Outcome, 
 			continue
 		}
 		if err != nil {
-			return out, fmt.Errorf("reading %s %s: %w", u.GetKind(), u.GetName(), err)
+			return remaining, fmt.Errorf("reading %s %s: %w", u.GetKind(), u.GetName(), err)
 		}
 		if !stamped(obj) {
 			// Shared with someone else's install (a namespace both use).
@@ -268,16 +318,10 @@ func sweepPrerequisite(ctx context.Context, c Client, p prerequisite) (Outcome, 
 			continue
 		}
 		if err := c.Delete(ctx, obj, client.PropagationPolicy(metav1.DeletePropagationBackground)); err != nil && !apierrors.IsNotFound(err) {
-			return out, fmt.Errorf("deleting %s %s: %w", u.GetKind(), u.GetName(), err)
+			return remaining, fmt.Errorf("deleting %s %s: %w", u.GetKind(), u.GetName(), err)
 		}
 	}
-	if remaining > 0 {
-		out.Verdict = Draining
-		out.Detail = fmt.Sprintf("%d objects deleting", remaining)
-		return out, nil
-	}
-	out.Verdict = Removed
-	return out, nil
+	return remaining, nil
 }
 
 // stamped reports whether this operator applied the object.

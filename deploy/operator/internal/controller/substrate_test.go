@@ -15,8 +15,9 @@
 //   - the runner component holds the install out of Ready until the server
 //     says the sandbox image exists, and only under the substrate driver;
 //   - the janitor keeps the operator's Substrate while a WorkerPool remains,
-//     removes it once none does, and withdraws the API access label only
-//     where its own field manager set it.
+//     removes it once none does, deleting its own SandboxConfig before the
+//     namespace that runs the controller holding it, and withdraws the API
+//     access label only where its own field manager set it.
 
 package controller
 
@@ -256,4 +257,61 @@ func TestTheJanitorRemovesSubstrateAndWithdrawsItsLabel(t *testing.T) {
 		t.Errorf("Substrate, unused: %+v", o)
 	}
 	waitGone(t, workerPoolCRD(nil))
+}
+
+// TestTheJanitorLetsSubstratesControllerFinishItsOwnObjects pins the order
+// within one prerequisite: Substrate's own SandboxConfig, which its
+// controller holds with a finalizer while a pool used it, is deleted first,
+// and nothing else of Substrate's (its namespace, and with it the
+// controller) goes until it is gone.
+func TestTheJanitorLetsSubstratesControllerFinishItsOwnObjects(t *testing.T) {
+	ctx := context.Background()
+	deleteStigmersElsewhere(t)
+	direct := janitor.Direct{Reader: k8s, Writer: k8s}
+	stamp := map[string]string{render.ManagedByLabel: render.ManagedByValue}
+
+	if err := k8s.Delete(ctx, workerPoolCRD(nil)); err != nil && !apierrors.IsNotFound(err) {
+		t.Fatal(err)
+	}
+	waitGone(t, workerPoolCRD(nil))
+	createIgnoringExisting(t, workerPoolCRD(stamp))
+	configs := stubCRD("ate.dev", "sandboxconfigs", "SandboxConfig", stamp)
+	_ = unstructured.SetNestedField(configs.Object, "Cluster", "spec", "scope")
+	createIgnoringExisting(t, configs)
+	waitEstablished(t, substrate.WorkerPoolCRD)
+	waitEstablished(t, "sandboxconfigs.ate.dev")
+	createIgnoringExisting(t, &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: substrate.Namespace, Labels: stamp}})
+	held := &unstructured.Unstructured{}
+	held.SetAPIVersion("ate.dev/v1")
+	held.SetKind("SandboxConfig")
+	held.SetName("gvisor-default")
+	held.SetLabels(stamp)
+	held.SetFinalizers([]string{"sandboxconfig.ate.dev/workerpool-protection"})
+	if err := k8s.Create(ctx, held); err != nil {
+		t.Fatal(err)
+	}
+
+	out := sweep(t, direct)
+	if o := outcome(out, "Agent Substrate"); o.Verdict != janitor.Draining || !strings.Contains(o.Detail, "its own objects") {
+		t.Errorf("Substrate with its SandboxConfig held: %+v", o)
+	}
+	var ns corev1.Namespace
+	if err := k8s.Get(ctx, client.ObjectKey{Name: substrate.Namespace}, &ns); err != nil || ns.DeletionTimestamp != nil {
+		t.Fatalf("Substrate's namespace, and so its controller, went before its SandboxConfig: %v %v", err, ns.DeletionTimestamp)
+	}
+
+	// Its controller lifts the finalizer; the rest goes.
+	if err := k8s.Get(ctx, client.ObjectKey{Name: "gvisor-default"}, held); err != nil {
+		t.Fatal(err)
+	}
+	held.SetFinalizers(nil)
+	if err := k8s.Update(ctx, held); err != nil {
+		t.Fatal(err)
+	}
+	waitGone(t, held)
+	sweep(t, direct)
+	if err := k8s.Get(ctx, client.ObjectKey{Name: substrate.Namespace}, &ns); err == nil && ns.DeletionTimestamp == nil {
+		t.Error("Substrate's namespace was not deleted once its SandboxConfig was gone")
+	}
+	unstamp(t, substrate.Namespace)
 }
