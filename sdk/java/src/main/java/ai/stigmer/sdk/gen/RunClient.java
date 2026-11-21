@@ -15,6 +15,7 @@ import ai.stigmer.agentic.run.v1.GetRunUsageReportInput;
 import ai.stigmer.agentic.run.v1.GetRunUsageReportOutput;
 import ai.stigmer.agentic.run.v1.GetSessionUsageReportInput;
 import ai.stigmer.agentic.run.v1.GetSessionUsageReportOutput;
+import ai.stigmer.agentic.run.v1.ListRunsByAgentRequest;
 import ai.stigmer.agentic.run.v1.ListRunsBySessionRequest;
 import ai.stigmer.agentic.run.v1.ListRunsRequest;
 import ai.stigmer.agentic.run.v1.PauseRunInput;
@@ -143,6 +144,25 @@ public final class RunClient {
         return Pages.<RunList, Run>iterate(
             input.getPageToken(),
             token -> listBySession(input.toBuilder().setPageToken(token).build()),
+            RunList::getEntriesList,
+            RunList::getNextPageToken);
+    }
+
+    public RunList listByAgent(ListRunsByAgentRequest input) {
+        try {
+            return query.listByAgent(input);
+        } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
+    }
+
+    /**
+     * Every entry of {@code listByAgent}, page after page: follows next_page_token
+     * from the token the input names until the list ends. Each page is read
+     * as the iteration reaches it.
+     */
+    public Iterable<Run> listByAgentAll(ListRunsByAgentRequest input) {
+        return Pages.<RunList, Run>iterate(
+            input.getPageToken(),
+            token -> listByAgent(input.toBuilder().setPageToken(token).build()),
             RunList::getEntriesList,
             RunList::getNextPageToken);
     }

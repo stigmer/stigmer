@@ -133,9 +133,13 @@ Claude Code's names, say otherwise: `tools` keeps only the entries listed, and
 `disallowed_tools` removes entries first. `mcp__plugin_<plugin>_<server>` names
 every tool of one server and `mcp__plugin_<plugin>_<server>__<tool>` one tool; a
 server added with `stigmer mcp add` has the plugin's name, so `neon` above is
-both. This Agent can read files and use the Neon server, but never `run_sql`,
-and cannot run shell commands or write files. See
-[Approval Flows](/docs/concepts/approval-flows) for everything the lists cover.
+both. A hyphen in the name stays as it is, and any other character outside
+letters, digits and `_`, such as a dot, is written as `_`: a server added as
+`ledger-api` is `mcp__plugin_ledger-api_ledger-api`, and one added as
+`ledger.v2` is `mcp__plugin_ledger_v2_ledger_v2`. This Agent can read files and
+use the Neon server, but never `run_sql`, and cannot run shell commands or write
+files. See [Approval Flows](/docs/concepts/approval-flows) for everything the
+lists cover.
 
 For a first Agent to give these tools to, see
 [Your first agent job](/docs/getting-started/quickstart).

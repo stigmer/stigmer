@@ -1,6 +1,7 @@
 package transport
 
 import (
+	"context"
 	"crypto/tls"
 	"fmt"
 
@@ -12,8 +13,11 @@ import (
 
 // Config holds the settings needed to establish a gRPC connection.
 type Config struct {
-	Target          string
-	BearerToken     string
+	Target      string
+	BearerToken string
+	// TokenFunc, when set, is asked for the bearer token on every call, in
+	// place of BearerToken (the client refuses both).
+	TokenFunc       func(ctx context.Context) (string, error)
 	Insecure        bool
 	KeepaliveParams *keepalive.ClientParameters
 	DialOptions     []grpc.DialOption
@@ -46,10 +50,16 @@ func Dial(cfg Config) (*grpc.ClientConn, error) {
 		opts = append(opts, grpc.WithTransportCredentials(credentials.NewTLS(&tls.Config{})))
 	}
 
-	if cfg.BearerToken != "" {
+	if cfg.TokenFunc != nil {
 		opts = append(opts,
-			grpc.WithUnaryInterceptor(unaryAuthInterceptor(cfg.BearerToken)),
-			grpc.WithStreamInterceptor(streamAuthInterceptor(cfg.BearerToken)),
+			grpc.WithUnaryInterceptor(unaryAuthInterceptor(cfg.TokenFunc)),
+			grpc.WithStreamInterceptor(streamAuthInterceptor(cfg.TokenFunc)),
+		)
+	} else if cfg.BearerToken != "" {
+		fixed := fixedToken(cfg.BearerToken)
+		opts = append(opts,
+			grpc.WithUnaryInterceptor(unaryAuthInterceptor(fixed)),
+			grpc.WithStreamInterceptor(streamAuthInterceptor(fixed)),
 		)
 	}
 

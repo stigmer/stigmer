@@ -4,7 +4,9 @@
  * takes room within 15 s of it appearing; a wait that ran out carries the
  * person's sentence with the limit in their units; a sandbox that cannot
  * be carried to the server's runner ends the turn with its own sentence
- * (stigmer#1843); and the wire constants (the patch ids, the kind, the
+ * (stigmer#1843); a sandbox killed for its memory ends the turn with a
+ * sentence that says so and what it means for the files (stigmer#3347);
+ * and the wire constants (the patch ids, the kind, the
  * phase text) are the bytes histories and clients read.
  */
 import { describe, expect, it } from "vitest";
@@ -13,11 +15,16 @@ import {
   DEFAULT_SANDBOX_WAIT_SECONDS,
   SANDBOX_NOT_CARRIED_COPY,
   SANDBOX_NOT_CARRIED_PATCH_ID,
+  SANDBOX_OUT_OF_MEMORY_COPY,
+  SANDBOX_OUT_OF_MEMORY_PATCH_ID,
+  SANDBOX_OUT_OF_MEMORY_STOP_CAUSE,
+  SANDBOX_OUT_OF_MEMORY_STOP_KIND,
   SANDBOX_WAIT_PATCH_ID,
   SANDBOX_WAIT_STOP_CAUSE,
   SANDBOX_WAIT_STOP_KIND,
   SANDBOX_WAITING_PHASE_TEXT,
   SandboxNotCarried,
+  SandboxOutOfMemory,
   SandboxWaitRanOut,
   sandboxWaitBackoffMs,
   sandboxWaitRanOutCopy,
@@ -57,9 +64,20 @@ describe("the wait for a sandbox with room", () => {
     );
   });
 
+  it("carries the person's sentence for a sandbox that ran out of memory: what happened, why, and the files", () => {
+    const killed = new SandboxOutOfMemory();
+    expect(killed.name).toBe("SandboxOutOfMemory");
+    expect(killed.message).toBe(SANDBOX_OUT_OF_MEMORY_COPY);
+    expect(SANDBOX_OUT_OF_MEMORY_COPY).toBe(
+      "The sandbox ran out of memory, so this turn stopped. A command needed more memory than this sandbox has. Its files went back to their last saved state, so recent changes may be gone.",
+    );
+  });
+
   it("keeps the bytes histories and clients read", () => {
     expect(SANDBOX_WAIT_PATCH_ID).toBe("ensure-sandbox-in-workflow");
     expect(SANDBOX_NOT_CARRIED_PATCH_ID).toBe("end-turn-on-sandbox-not-carried");
+    expect(SANDBOX_OUT_OF_MEMORY_PATCH_ID).toBe("end-turn-on-sandbox-out-of-memory");
+    expect([SANDBOX_OUT_OF_MEMORY_STOP_CAUSE, SANDBOX_OUT_OF_MEMORY_STOP_KIND]).toEqual(["failed", "sandbox_out_of_memory"]);
     expect([SANDBOX_WAIT_STOP_CAUSE, SANDBOX_WAIT_STOP_KIND]).toEqual(["infrastructure", "no_sandbox_room"]);
     expect(SANDBOX_WAITING_PHASE_TEXT).toBe("Waiting for a sandbox");
     expect(DEFAULT_SANDBOX_WAIT_SECONDS).toBe(900);

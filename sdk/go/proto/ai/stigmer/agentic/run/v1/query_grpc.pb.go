@@ -22,6 +22,7 @@ const (
 	RunQueryController_Get_FullMethodName                    = "/ai.stigmer.agentic.run.v1.RunQueryController/get"
 	RunQueryController_List_FullMethodName                   = "/ai.stigmer.agentic.run.v1.RunQueryController/list"
 	RunQueryController_ListBySession_FullMethodName          = "/ai.stigmer.agentic.run.v1.RunQueryController/listBySession"
+	RunQueryController_ListByAgent_FullMethodName            = "/ai.stigmer.agentic.run.v1.RunQueryController/listByAgent"
 	RunQueryController_GetArtifactDownloadUrl_FullMethodName = "/ai.stigmer.agentic.run.v1.RunQueryController/getArtifactDownloadUrl"
 	RunQueryController_GetArtifactContent_FullMethodName     = "/ai.stigmer.agentic.run.v1.RunQueryController/getArtifactContent"
 	RunQueryController_GetRunUsageReport_FullMethodName      = "/ai.stigmer.agentic.run.v1.RunQueryController/getRunUsageReport"
@@ -43,6 +44,12 @@ type RunQueryControllerClient interface {
 	List(ctx context.Context, in *ListRunsRequest, opts ...grpc.CallOption) (*RunList, error)
 	// List all runs in a specific session.
 	ListBySession(ctx context.Context, in *ListRunsBySessionRequest, opts ...grpc.CallOption) (*RunList, error)
+	// List the runs of one agent, newest first, across its conversations.
+	//
+	// Results are filtered to the runs the caller can view. An eval run's
+	// tries are left out, as SessionQueryController.listByAgent leaves out
+	// their conversations.
+	ListByAgent(ctx context.Context, in *ListRunsByAgentRequest, opts ...grpc.CallOption) (*RunList, error)
 	// Get a presigned download URL for a run's stored content.
 	//
 	// Returns a time-limited URL for downloading one stored object of the
@@ -122,6 +129,16 @@ func (c *runQueryControllerClient) ListBySession(ctx context.Context, in *ListRu
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(RunList)
 	err := c.cc.Invoke(ctx, RunQueryController_ListBySession_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *runQueryControllerClient) ListByAgent(ctx context.Context, in *ListRunsByAgentRequest, opts ...grpc.CallOption) (*RunList, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(RunList)
+	err := c.cc.Invoke(ctx, RunQueryController_ListByAgent_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -210,6 +227,12 @@ type RunQueryControllerServer interface {
 	List(context.Context, *ListRunsRequest) (*RunList, error)
 	// List all runs in a specific session.
 	ListBySession(context.Context, *ListRunsBySessionRequest) (*RunList, error)
+	// List the runs of one agent, newest first, across its conversations.
+	//
+	// Results are filtered to the runs the caller can view. An eval run's
+	// tries are left out, as SessionQueryController.listByAgent leaves out
+	// their conversations.
+	ListByAgent(context.Context, *ListRunsByAgentRequest) (*RunList, error)
 	// Get a presigned download URL for a run's stored content.
 	//
 	// Returns a time-limited URL for downloading one stored object of the
@@ -272,6 +295,9 @@ func (UnimplementedRunQueryControllerServer) List(context.Context, *ListRunsRequ
 }
 func (UnimplementedRunQueryControllerServer) ListBySession(context.Context, *ListRunsBySessionRequest) (*RunList, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ListBySession not implemented")
+}
+func (UnimplementedRunQueryControllerServer) ListByAgent(context.Context, *ListRunsByAgentRequest) (*RunList, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ListByAgent not implemented")
 }
 func (UnimplementedRunQueryControllerServer) GetArtifactDownloadUrl(context.Context, *GetArtifactDownloadUrlRequest) (*GetArtifactDownloadUrlResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetArtifactDownloadUrl not implemented")
@@ -364,6 +390,24 @@ func _RunQueryController_ListBySession_Handler(srv interface{}, ctx context.Cont
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(RunQueryControllerServer).ListBySession(ctx, req.(*ListRunsBySessionRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RunQueryController_ListByAgent_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListRunsByAgentRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RunQueryControllerServer).ListByAgent(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RunQueryController_ListByAgent_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RunQueryControllerServer).ListByAgent(ctx, req.(*ListRunsByAgentRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -512,6 +556,10 @@ var RunQueryController_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "listBySession",
 			Handler:    _RunQueryController_ListBySession_Handler,
+		},
+		{
+			MethodName: "listByAgent",
+			Handler:    _RunQueryController_ListByAgent_Handler,
 		},
 		{
 			MethodName: "getArtifactDownloadUrl",

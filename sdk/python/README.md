@@ -174,6 +174,19 @@ with StigmerClient(os.environ["STIGMER_API_KEY"]) as client:
     print(result.access_token, result.expires_at)
 ```
 
+The backend can also act as the person itself, so what it starts (a session,
+a run, an upload) is theirs: keep the mint in a `TokenCache` and build a
+client on it. The cache mints once, serves the token until a minute before it
+expires, shares one mint between threads and does not keep a failed one:
+
+```python
+from stigmer import StigmerClient, TokenCache
+
+admin = StigmerClient(os.environ["STIGMER_API_KEY"])
+tokens = TokenCache(lambda: admin.tokens.mint_user_token(org="acme", user_id=user.id))
+as_user = StigmerClient(get_access_token=tokens.get_access_token)
+```
+
 ## Billing
 
 An organization's billing account (its Stripe customer), the Stripe portal

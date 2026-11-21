@@ -82,6 +82,27 @@ message ListRunsBySessionRequest {
   map<string, string> labels = 4;
 }
 
+// ListRunsByAgentRequest lists the runs of one agent, newest first, one page
+// at a time.
+message ListRunsByAgentRequest {
+  // ID of the agent whose runs to list: the runs whose status.agent_id names
+  // it, whichever version and conversation each ran in.
+  string agent_id = 1 [(buf.validate.field).required = true];
+
+  // The most entries to return: 0 asks for the default page of 50, and a
+  // size above 100 is read as 100.
+  int32 page_size = 2 [(buf.validate.field).int32.gte = 0];
+
+  // The previous response's next_page_token, to continue that list; every
+  // other field must equal that request's, or the call is refused.
+  string page_token = 3 [(buf.validate.field).string.max_len = 1024];
+
+  // Only resources carrying every label given, each matched exactly (AND).
+  // A selective filter may answer short pages, even empty ones, that still
+  // carry a token.
+  map<string, string> labels = 4;
+}
+
 // Input message for updateStatus RPC.
 // Contains only the run ID and the status fields to be updated.
 // This avoids validation errors on incomplete metadata/spec fields and makes the API contract clearer.

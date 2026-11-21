@@ -535,8 +535,12 @@ The case holds:
   those beside the run's, since a case's file replaces its suite's;
 - `graders/criteria.md`: an `llm` grader whose FAIL line names what went wrong,
   from the AI judge's failing reason, else an eval run's failing check, else the
-  comment you left with a thumbs-down; you write the PASS line, since only you
-  know what a correct reply holds;
+  comment you left with your own thumbs-down; you write the PASS line, since
+  only you know what a correct reply holds. When none of those says what went
+  wrong (the run was never graded, or your thumbs-down carried no comment), the
+  FAIL line is a placeholder too,
+  `FAIL if <what a wrong or missing response looks like>.`, and you write both
+  lines;
 - `graders/skill-fired.md` with `--skill`: a `tool_used: Skill` grader that
   passes when the try used that Skill.
 

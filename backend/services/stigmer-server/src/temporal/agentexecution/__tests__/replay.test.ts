@@ -44,8 +44,13 @@ describe("invoke-agent-execution replay determinism", () => {
     // And a CLOUD turn whose ensure answered `not_carried` (stigmer#1843):
     // ended past the third marker (sandbox-not-carried), and gone on to the
     // runner on the workflow before that end existed
-    // (sandbox-not-carried-went-on).
-    expect(historyFiles.length).toBeGreaterThanOrEqual(15);
+    // (sandbox-not-carried-went-on). And a CLOUD turn whose sandbox was
+    // killed for its memory (stigmer#3347): ended at its recovery's ask
+    // past the fourth marker (sandbox-out-of-memory), asked again at its
+    // first ask (sandbox-out-of-memory-asked-again), and gone on to the
+    // runner on the workflow before that end existed
+    // (sandbox-out-of-memory-went-on).
+    expect(historyFiles.length).toBeGreaterThanOrEqual(18);
   });
 
   it("replays every committed history deterministically", async () => {

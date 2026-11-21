@@ -6,11 +6,15 @@ description: >
   Stigmer for the person. Use whenever the person asks what Stigmer is,
   whether it fits, open source or paid editions, pricing and who pays the
   model bill, how an Agent, Session, File, Vault, Skill, plugin, tool,
-  approval, Channel, Routine, Organization or runner works, how to do
-  something with the CLI or SDKs, or why something in Stigmer fails or
-  hangs; and before deleting, cancelling or approving anything in their
-  Stigmer. To set Stigmer up in this project, use the stigmer-setup skill
-  instead.
+  approval, Channel, Routine, Organization or runner works, how Stigmer
+  compares with an agent SDK or framework or with Claude Managed Agents,
+  how to do something with the CLI or SDKs, or why something in Stigmer
+  fails, hangs or won't start; and before deleting, cancelling or
+  approving anything in their Stigmer. To set Stigmer up in this project,
+  use the stigmer-setup skill; to run their agents or read their runs, the
+  stigmer-run skill; to put their agent in their own product (backend
+  calls, the chat and its look, their users' sign-in, an organization per
+  customer, approvals in their screens), the stigmer-integrate skill.
 ---
 
 # Stigmer
@@ -48,11 +52,19 @@ about what the docs don't cover.
 
 ## Which skill for which job
 
-- Questions about Stigmer, and acting on their Stigmer agents, skills and
-  runs: this skill.
+- Questions about Stigmer, and acting on their Stigmer agents and skills:
+  this skill.
 - Setting Stigmer up in this project, from signing in to the agent's chat
   in their own app: the stigmer-setup skill. Load it when the person wants
   to start.
+- Running their agents and reading their runs (an agent on a file, the last
+  run, its output files, why it failed, approvals, follow-ups, scores and
+  evals): the stigmer-run skill.
+- Putting their agent in their own product, whatever the stack (calling it
+  from their backend, streaming its reply, the chat in their app and its
+  look, their users' sign-in, an organization per customer, approvals in
+  their own screens, moving from Claude Managed Agents): the
+  stigmer-integrate skill.
 
 ## What Stigmer is
 

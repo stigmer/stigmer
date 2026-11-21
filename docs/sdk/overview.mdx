@@ -62,7 +62,12 @@ The SDK supports three authentication methods:
   per user with an admin service account's API key. Use this to embed Stigmer in
   your product without OIDC setup.
   [Sign your product's users in](/docs/guides/authentication/product-users) to
-  enable this.
+  enable this. Your backend can also act as one of those users itself, with a
+  token provider over a token cache: `getAccessToken` with `createTokenCache`
+  in TypeScript, `get_access_token` with `TokenCache` in Python,
+  `WithTokenFunc` with `NewTokenCache` in Go, and `tokenProvider` with
+  `TokenCache` in Java
+  ([From your backend, as the user](/docs/guides/authentication/product-users#from-your-backend-as-the-user)).
 
 Both `getAccessToken` paths produce the same result: a JWT that the SDK sends as
 `Authorization: Bearer`. The difference is where the token comes from. See the
@@ -82,8 +87,9 @@ stigmer apikey create --service-account ci-deploy --name github-actions --expire
 ```
 
 Store the key as the job's `STIGMER_API_KEY` secret. A service account's key
-works only in its own Organization and keeps working after the admin who created
-it leaves.
+works in its own Organization and in that Organization's
+[child organizations](/docs/getting-started/one-organization-per-customer), and
+keeps working after the admin who created it leaves.
 
 <Callout type="warn">
   API keys start with `stk_`. Store them in environment variables. Never commit
@@ -216,6 +222,7 @@ client, err := stigmer.NewClient(
 | Option | Description |
 |--------|-------------|
 | `WithAPIKey(key)` | API key. Required unless the connection is insecure. |
+| `WithTokenFunc(fn)` | Bearer token asked for on every call, in place of a key: a `TokenCache`'s `Token` for one of your product's users. |
 | `WithBaseURL(target)` | gRPC target address (`host:port`). Default: `api.stigmer.ai:443`. |
 | `WithInsecure()` | Disable TLS. Use only for local development. |
 | `WithDialOptions(opts...)` | Append additional gRPC dial options. |
@@ -239,6 +246,7 @@ client = StigmerClient(
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
 | `api_key` | `str \| None` | `None` | API key. Required unless `insecure` is set. |
+| `get_access_token` | `Callable[[], str] \| None` | `None` | Bearer token asked for on every call, in place of `api_key`: a `TokenCache`'s `get_access_token` for one of your product's users. |
 | `base_url` | `str` | `api.stigmer.ai:443` | gRPC target address (`host:port`). |
 | `insecure` | `bool` | `False` | Disable TLS. Use only for local development. |
 
@@ -257,7 +265,8 @@ var client = StigmerClient.builder(System.getenv("STIGMER_API_KEY"))
 | Method | Description |
 |--------|-------------|
 | `builder(apiKey)` | Starts a client with an API key. |
-| `builder()` | Starts a client with no key; `build()` refuses it unless `.insecure()` was called. |
+| `builder()` | Starts a client with no key; `build()` refuses it unless `.tokenProvider(…)` or `.insecure()` was called. |
+| `.tokenProvider(supplier)` | Bearer token asked for on every call, in place of a key: a `TokenCache` for one of your product's users. |
 | `.baseUrl(target)` | gRPC target address (`host:port`). Default: `api.stigmer.ai:443`. |
 | `.insecure()` | Disable TLS. Use only for local development. |
 

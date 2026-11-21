@@ -62,9 +62,11 @@ describe("the front door", () => {
 
   it("names only the skills the plugin has", () => {
     const skills = readdirSync(join(root, "plugin", "skills")).sort();
-    expect(skills).toEqual(["stigmer", "stigmer-setup"]);
+    expect(skills).toEqual(["stigmer", "stigmer-integrate", "stigmer-run", "stigmer-setup"]);
     const named = new Set([...frontDoor.matchAll(/\bstigmer-[a-z]+ skill\b/g)].map((m) => m[0].replace(/ skill$/, "")));
     expect([...named].filter((name) => !skills.includes(name))).toEqual([]);
     expect(named.has("stigmer-setup")).toBe(true);
+    expect(named.has("stigmer-run")).toBe(true);
+    expect(named.has("stigmer-integrate")).toBe(true);
   });
 });

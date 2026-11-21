@@ -114,6 +114,8 @@ describe("instructions", () => {
     expect(instructions).toBe(SERVER_INSTRUCTIONS);
     expect(SERVER_INSTRUCTIONS).toContain(AGENT_RULES);
     expect(SERVER_INSTRUCTIONS).toContain("search_docs, then read_doc the page whole");
+    // Skills reach an agent only when it loads them; the instructions always arrive (stigmer#3333).
+    expect(SERVER_INSTRUCTIONS).toContain("If Stigmer's skills are installed, load the one for the job before answering.");
   });
 
   it("stay under 2,000 characters, since every session's prompt carries them", () => {

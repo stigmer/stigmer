@@ -16,13 +16,18 @@
  *     closed). Under the trusted-local posture (no accounts port) the
  *     caller, the one operator, is minted for;
  *   - the ensure answers in one word (ready, no_room, not_carried,
- *     skipped, failed), and the fleet's "no room" (SandboxNoRoomError) is
+ *     out_of_memory, skipped, failed), and the fleet's "no room" (SandboxNoRoomError) is
  *     not a failure: nothing is stamped, so a turn that waits and then
  *     starts carries no false root cause;
  *   - a sandbox whose files cannot be carried to this server's runner
  *     (SandboxNotCarriedError, through a wrapping driver's cause too)
  *     answers not_carried and pre-stamps the person's line itself, never
  *     the driver's words (stigmer#1843);
+ *   - a sandbox killed for its memory (SandboxOutOfMemoryError, through a
+ *     wrapping driver's cause too) answers out_of_memory and stamps
+ *     nothing, since the request's and the recover's ensures run this same
+ *     body and may meet the kill before the turn that ran the command
+ *     (stigmer#3347);
  *   - only a caller that says the runner is idle (the workflow's ensure,
  *     right before it invokes the runner) hands `runnerIdle` to the
  *     driver: the request's and the recover's ensures never do;
@@ -67,6 +72,7 @@ import { MAKE_ROOM_RETRY_DELAYS_MS } from "../make-room.js";
 import {
   SandboxNoRoomError,
   SandboxNotCarriedError,
+  SandboxOutOfMemoryError,
   type SandboxFacts,
   type SandboxProvisioner,
 } from "../provisioner.js";
@@ -701,6 +707,24 @@ describe("what an ensure came to", () => {
     });
     const execution = await seeded("old2", ExecutionTarget.CLOUD);
     expect(await ensureWith(fakeProvisioner({ ensureError: wrapped }), execution)).toBe("not_carried");
+  });
+
+  it("answers out_of_memory for a sandbox killed for its memory, stamping nothing (stigmer#3347)", async () => {
+    const execution = await seeded("oom", ExecutionTarget.CLOUD);
+    const killed = new SandboxOutOfMemoryError(
+      "Substrate killed sandbox sbx-ses-1 for exceeding its memory limit: killed for exceeding its memory limit",
+    );
+    expect(await ensureWith(fakeProvisioner({ ensureError: killed }), execution)).toBe("out_of_memory");
+    expect((await store.getResource(ApiResourceKind.run, "axr_oom", RunSchema)).status?.error ?? "").toBe("");
+  });
+
+  it("reads out_of_memory through a wrapping driver's cause", async () => {
+    const wrapped = new Error("Failed to wake session sandbox for ses_oom2", {
+      cause: new SandboxOutOfMemoryError("killed"),
+    });
+    const execution = await seeded("oom2", ExecutionTarget.CLOUD);
+    expect(await ensureWith(fakeProvisioner({ ensureError: wrapped }), execution)).toBe("out_of_memory");
+    expect((await store.getResource(ApiResourceKind.run, "axr_oom2", RunSchema)).status?.error ?? "").toBe("");
   });
 
   it("hands runnerIdle to the driver only when its caller says the runner is idle", async () => {

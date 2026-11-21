@@ -1,8 +1,8 @@
 /**
  * The substrate sandbox driver: every sandbox is an Agent Substrate actor,
- * a gVisor sandbox that can be suspended (stopped, its workspace kept on
- * its node and copied to storage in the background) and resumed with its
- * files, from its node or, once the node is gone, from storage. A
+ * a gVisor sandbox that can be suspended (stopped, its workspace and the
+ * agent's home kept on its node and copied to storage in the background;
+ * template.ts) and resumed with its files, from its node or, once the node is gone, from storage. A
  * session's sandbox therefore sleeps while the session is idle and wakes
  * when the next turn arrives.
  *
@@ -40,7 +40,13 @@
  *     rollback a sandbox may move back and forth between turns, its files
  *     kept each time. Substrate's templates carry no release a server
  *     could read, so there is no "only forward".
- *   - crashed: revert, then from the state that leaves.
+ *   - crashed: revert, then from the state that leaves. A sandbox
+ *     Substrate killed for exceeding its memory limit (the gateway's
+ *     `crash.cause`, gateway.ts) is reverted and left asleep, and the
+ *     ensure throws SandboxOutOfMemoryError: waking it would hand the
+ *     turn's recovery the same command to run again, killed again each
+ *     time (stigmer#3347). The revert clears the reason, so the next
+ *     ensure wakes it as any sleeping sandbox.
  *   - resuming, suspending, reverting: wait for it to settle.
  *   - deleting: refused.
  *
@@ -161,6 +167,7 @@ import { RUNNER_SECRET_NAMES } from "../runner-secret-names.js";
 import {
   SandboxNoRoomError,
   SandboxNotCarriedError,
+  SandboxOutOfMemoryError,
   type SandboxDriverConfig,
   type SandboxFacts,
   type SandboxProbeState,
@@ -709,6 +716,16 @@ export function newSubstrateSandboxDriverOverGateway(
             }
             case "crashed":
               path ??= "crashed";
+              if (actor.crash?.cause === "memory") {
+                logger.warn(
+                  "Substrate sandbox was killed for exceeding its memory limit; reverting it and ending the turn",
+                  { scope, id, actor: name, crash: actor.crash.message },
+                );
+                await gateway.revertActor(name);
+                throw new SandboxOutOfMemoryError(
+                  `Substrate killed sandbox ${name} for exceeding its memory limit: ${actor.crash.message}`,
+                );
+              }
               logger.warn("Substrate sandbox crashed; reverting it", {
                 scope,
                 id,

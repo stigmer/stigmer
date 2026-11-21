@@ -44,6 +44,16 @@
  * (temporal/agentexecution/sandbox-wait.ts). `isSandboxNotCarried` reads
  * the cause chain as `isSandboxNoRoom` does.
  *
+ * "Out of memory" is the third. A driver that learns, at an ensure, that
+ * the sandbox was killed for exceeding its memory limit (Substrate's
+ * memory guard) restores the sandbox to its last saved state, leaves it
+ * asleep and throws SandboxOutOfMemoryError rather than wake it: the turn
+ * that ran the command ends with a person's line instead of running the
+ * same command again (stigmer#3347, temporal/agentexecution/sandbox-wait.ts).
+ * Restoring first makes the reason one-shot, so the next ask wakes the
+ * sandbox as any sleeping one. `isSandboxOutOfMemory` reads the cause
+ * chain as the other two do. Only the `substrate` driver throws it.
+ *
  * The probe is ensure-time LIVE-STATE inspection, never a boot-readiness
  * wait: the verified cloud design has NO readiness
  * probes — a sandbox that never polls its queue surfaces as the
@@ -225,6 +235,24 @@ export class SandboxNotCarriedError extends Error {
 /** Whether `error`, or any error in its `cause` chain, is SandboxNotCarriedError (module header). */
 export function isSandboxNotCarried(error: unknown): boolean {
   return causeChainHas(error, (e) => e instanceof SandboxNotCarriedError);
+}
+
+/**
+ * The sandbox was killed for exceeding its memory limit; the driver
+ * restored it to its last saved state and left it asleep (module header).
+ * Thrown by `ensureSessionSandbox`; the message names the sandbox and the
+ * fleet's own words, for the log, never for the person.
+ */
+export class SandboxOutOfMemoryError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "SandboxOutOfMemoryError";
+  }
+}
+
+/** Whether `error`, or any error in its `cause` chain, is SandboxOutOfMemoryError (module header). */
+export function isSandboxOutOfMemory(error: unknown): boolean {
+  return causeChainHas(error, (e) => e instanceof SandboxOutOfMemoryError);
 }
 
 /** Whether `error` or any error in its `cause` chain is one `is` names; a cycle ends the walk. */

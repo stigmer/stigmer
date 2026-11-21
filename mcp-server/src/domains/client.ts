@@ -41,6 +41,14 @@ export interface BackendTarget {
    * credential; a provider that throws fails that one call.
    */
   readonly getAccessToken?: TokenProvider;
+  /**
+   * Set only where the server runs on the person's own machine and shares
+   * their disk: the CLI's `stdio` roster (`stigmer mcp-server`). run_agent
+   * then reads the project files a call names, inside the folders the
+   * client lists as roots (runs/local-files.ts). The HTTP handler drops it,
+   * so no HTTP roster, hosted or local, ever reads a path.
+   */
+  readonly localFiles?: true;
 }
 
 /** The subset of the MCP request `extra` this layer reads to resolve a token. */

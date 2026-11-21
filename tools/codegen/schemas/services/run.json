@@ -112,6 +112,14 @@
           "description": "List all runs in a specific session."
         },
         {
+          "name": "ListByAgent",
+          "inputType": "ListRunsByAgentRequest",
+          "inputFullType": "ai.stigmer.agentic.run.v1.ListRunsByAgentRequest",
+          "outputType": "RunList",
+          "outputFullType": "ai.stigmer.agentic.run.v1.RunList",
+          "description": "List the runs of one agent, newest first, across its conversations.\n\n Results are filtered to the runs the caller can view. An eval run's\n tries are left out, as SessionQueryController.listByAgent leaves out\n their conversations."
+        },
+        {
           "name": "GetArtifactDownloadUrl",
           "inputType": "GetArtifactDownloadUrlRequest",
           "inputFullType": "ai.stigmer.agentic.run.v1.GetArtifactDownloadUrlRequest",
@@ -540,6 +548,66 @@
             "kind": "string"
           },
           "description": "Session ID to filter by.",
+          "required": true,
+          "validation": {
+            "required": true
+          }
+        },
+        {
+          "name": "PageSize",
+          "jsonName": "pageSize",
+          "protoField": "page_size",
+          "type": {
+            "kind": "int32"
+          },
+          "description": "The most entries to return: 0 asks for the default page of 50, and a\n size above 100 is read as 100.",
+          "required": false
+        },
+        {
+          "name": "PageToken",
+          "jsonName": "pageToken",
+          "protoField": "page_token",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The previous response's next_page_token, to continue that list; every\n other field must equal that request's, or the call is refused.",
+          "required": false,
+          "validation": {
+            "maxLength": 1024
+          }
+        },
+        {
+          "name": "Labels",
+          "jsonName": "labels",
+          "protoField": "labels",
+          "type": {
+            "kind": "map",
+            "keyType": {
+              "kind": "string"
+            },
+            "valueType": {
+              "kind": "string"
+            }
+          },
+          "description": "Only resources carrying every label given, each matched exactly (AND).\n A selective filter may answer short pages, even empty ones, that still\n carry a token.",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "ListRunsByAgentRequest",
+      "description": "ListRunsByAgentRequest lists the runs of one agent, newest first, one page\n at a time.",
+      "protoType": "ai.stigmer.agentic.run.v1.ListRunsByAgentRequest",
+      "protoFile": "apis/ai/stigmer/agentic/run/v1/io.proto",
+      "fields": [
+        {
+          "name": "AgentId",
+          "jsonName": "agentId",
+          "protoField": "agent_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "ID of the agent whose runs to list: the runs whose status.agent_id names\n it, whichever version and conversation each ran in.",
           "required": true,
           "validation": {
             "required": true
@@ -3742,7 +3810,7 @@
           "type": {
             "kind": "string"
           },
-          "description": "The kind of ending, under its stop cause. Under model_error:\n provider_key_rejected (the provider refused the key), provider_key_missing\n (no key for the model's provider), provider_out_of_credit,\n provider_rate_limited, provider_overloaded, model_unavailable (the key\n can't use this model), provider_unreachable (no connection to the\n provider) or request_rejected (the provider refused the request itself,\n such as one too long for the model). Under budget_reached: cost_cap or\n tool_call_limit. Under timeout: stalled (no progress), operation_limit (the\n turn's time limit) or workspace_busy (another turn held the workspace).\n Under failed: agent_setup (the agent can't run as configured),\n app_unreachable (a connected app wouldn't connect), app_needs_sign_in (a\n connected app needs a sign-in) or internal (a fault of the platform).\n Under infrastructure: runner_lost (the machine running the turn stopped)\n or no_sandbox_room (no sandbox had room for the turn within the server's\n wait, so it never started).",
+          "description": "The kind of ending, under its stop cause. Under model_error:\n provider_key_rejected (the provider refused the key), provider_key_missing\n (no key for the model's provider), provider_out_of_credit,\n provider_rate_limited, provider_overloaded, model_unavailable (the key\n can't use this model), provider_unreachable (no connection to the\n provider) or request_rejected (the provider refused the request itself,\n such as one too long for the model). Under budget_reached: cost_cap or\n tool_call_limit. Under timeout: stalled (no progress), operation_limit (the\n turn's time limit) or workspace_busy (another turn held the workspace).\n Under failed: agent_setup (the agent can't run as configured),\n app_unreachable (a connected app wouldn't connect), app_needs_sign_in (a\n connected app needs a sign-in), sandbox_out_of_memory (a command needed\n more memory than the sandbox has, so the sandbox was stopped) or internal\n (a fault of the platform).\n Under infrastructure: runner_lost (the machine running the turn stopped)\n or no_sandbox_room (no sandbox had room for the turn within the server's\n wait, so it never started).",
           "required": false,
           "validation": {
             "enum": [
@@ -3764,7 +3832,8 @@
               "app_needs_sign_in",
               "internal",
               "runner_lost",
-              "no_sandbox_room"
+              "no_sandbox_room",
+              "sandbox_out_of_memory"
             ]
           }
         },

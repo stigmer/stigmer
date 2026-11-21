@@ -1,6 +1,8 @@
 package stigmer
 
 import (
+	"context"
+
 	sessionv1 "go.stigmer.ai/sdk/proto/ai/stigmer/agentic/session/v1"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/keepalive"
@@ -13,6 +15,7 @@ type clientConfig struct {
 	target          string
 	apiKey          string
 	token           string
+	tokenFunc       func(ctx context.Context) (string, error)
 	insecure        bool
 	keepaliveParams *keepalive.ClientParameters
 	dialOptions     []grpc.DialOption
@@ -30,18 +33,41 @@ func defaultConfig() clientConfig {
 type ClientOption func(*clientConfig)
 
 // WithAPIKey authenticates using a Stigmer API key (they read "stk_…").
-// Mutually exclusive with WithToken.
+// Mutually exclusive with WithToken and WithTokenFunc.
 func WithAPIKey(key string) ClientOption {
 	return func(c *clientConfig) {
 		c.apiKey = key
 	}
 }
 
-// WithToken authenticates using a bearer token obtained from interactive login
-// (e.g. "stigmer auth login"). Mutually exclusive with WithAPIKey.
+// WithToken authenticates with a fixed bearer token: one from interactive
+// login ("stigmer auth login"), or a user token your backend minted. A minted
+// token expires (15 minutes); to keep a client working past that, use
+// WithTokenFunc over a TokenCache. Mutually exclusive with WithAPIKey and
+// WithTokenFunc.
 func WithToken(token string) ClientOption {
 	return func(c *clientConfig) {
 		c.token = token
+	}
+}
+
+// WithTokenFunc authenticates with a bearer token fetched on every call: a
+// backend acting as one of its product's signed-in users passes a
+// TokenCache's Token method, which mints the person a token once and keeps
+// it until a minute before it expires. What the client then starts is the
+// person's own (their Session, their run).
+//
+//	admin, _ := stigmer.NewClient(stigmer.WithAPIKey(os.Getenv("STIGMER_API_KEY")))
+//	tokens := stigmer.NewTokenCache(func(ctx context.Context) (*stigmer.MintUserTokenResult, error) {
+//	    return admin.Tokens.MintUserToken(ctx, &stigmer.MintUserTokenInput{Org: "acme", UserID: user.ID})
+//	})
+//	asUser, _ := stigmer.NewClient(stigmer.WithTokenFunc(tokens.Token))
+//
+// The call fails with the func's error, before any request is sent. An empty
+// token is refused. Mutually exclusive with WithAPIKey and WithToken.
+func WithTokenFunc(fn func(ctx context.Context) (string, error)) ClientOption {
+	return func(c *clientConfig) {
+		c.tokenFunc = fn
 	}
 }
 

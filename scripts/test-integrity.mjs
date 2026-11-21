@@ -150,6 +150,10 @@
  *   RPC-waiver: <Service>.<method> -- <why no conformance test pins it>
  *   Coverage-drop: <package dir> -- <why its floor falls>
  *
+ * The separator is ` -- ` (two hyphens, a space each side), and only that: the
+ * subject ends at the first one, so a long dash in a title or reason is part
+ * of it (`Skip: enforcement — who changes it -- not served here`).
+ *
  * A quarantine is a case that should run and cannot yet (flaky, blocked), so
  * it names an open issue. A skip is a case that does not apply in some place
  * it can run (a deployed endpoint with no operator credential, a smoke run
@@ -219,7 +223,7 @@ export const BY_CONSTRUCTION = [
 ];
 
 const QUARANTINE_COMMENT = /quarantined:\s*((?:[\w.-]+\/)?[\w.-]+)?#(\d+)/i;
-const DECLARATION = /^\s*(Test-removal|Quarantine|Skip|RPC-waiver|Coverage-drop)\s*:\s*(.+?)\s+(?:--|—|–)\s+(.+?)\s*$/gim;
+const DECLARATION = /^\s*(Test-removal|Quarantine|Skip|RPC-waiver|Coverage-drop)\s*:\s*(.+?)\s+--\s+(.+?)\s*$/gim;
 
 /** The conformance suite's RPC waivers, read by the change rule on weakened waivers. */
 export const RPC_WAIVERS = "test/conformance/inventory/rpc-waivers.yaml";

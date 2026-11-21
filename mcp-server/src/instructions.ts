@@ -30,7 +30,11 @@ export const AGENT_RULES = [
 export const SERVER_INSTRUCTIONS = [
   "Stigmer runs AI agents for the users of a developer's own product. These tools read and manage the person's Stigmer agents, skills and runs, and read Stigmer's docs.",
   "",
+  "If Stigmer's skills are installed, load the one for the job before answering.",
   "To answer a question about Stigmer: search_docs, then read_doc the page whole, answer from what it says today, and cite its Source URL. When the docs don't answer, say so and point to https://github.com/stigmer/stigmer/issues.",
+  "A question comparing Stigmer with an agent SDK or framework: read concepts/harnesses too. Why something fails or hangs: give the cause the page or the run names before the fix. A model provider's refusal (credit, key, model access) is about the account behind the key the run used (the organization's provider key, or a local runner's), not the agent.",
+  "",
+  "Runs: list_runs finds an agent's runs, newest first; get_run reads one (its error says why it failed); get_run_outputs reads what it saved; get_run_scores how it was graded.",
   "",
   "Acting on Stigmer for a person:",
   "",

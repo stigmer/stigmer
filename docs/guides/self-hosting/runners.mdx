@@ -515,17 +515,17 @@ holds none of them; a runner that cannot start that user stops with exit code 78
 rather than run the Agent's side as root. The default image creates the user; on
 your own base image the runner adds it at start. The Agent's home is where its
 session state persists: `/data/agent` on the chart's and compose's volume,
-`/home/stigmer-agent` under the drivers, which `agent-sandbox` mounts from the
-Session's home claim (a `STIGMER_AGENT_HOME` of your own moves it off that
-claim). If you set `STIGMER_AGENT_HOME`, keep it outside the runner's state and
-not above its home: a home above the runner's own, or inside its `.stigmer`,
-stops the runner with exit code 78. The Agent must reach its workspace: one
-inside the runner's own home, where the Agent cannot pass (the default workspace
-under `/root`), stops the runner with exit code 78, so set `WORKSPACE_ROOT_DIR`
-outside it. Agents install user-level packages (`pip install --user`, `npm` and
-`uv` into their own folders); a system package your Agents need goes into your
-own base image or, for the Agents that need it, an
-[Environment](#environments-on-your-sandboxes)'s `apt` packages. The Agent's
+`/home/stigmer-agent` under the drivers, which `agent-sandbox` and `substrate`
+keep on a volume of its own, the Session's home (a `STIGMER_AGENT_HOME` of your
+own moves it off that volume). If you set `STIGMER_AGENT_HOME`, keep it outside
+the runner's state and not above its home: a home above the runner's own, or
+inside its `.stigmer`, stops the runner with exit code 78. The Agent must reach
+its workspace: one inside the runner's own home, where the Agent cannot pass
+(the default workspace under `/root`), stops the runner with exit code 78, so
+set `WORKSPACE_ROOT_DIR` outside it. Agents install user-level packages
+(`pip install --user`, `npm` and `uv` into their own folders); a system package
+your Agents need goes into your own base image or, for the Agents that need it,
+an [Environment](#environments-on-your-sandboxes)'s `apt` packages. The Agent's
 environment is an allow-list: the path, locale and proxy settings, and Stigmer's
 and the harnesses' own settings. A cloud credential you give the runner as a
 variable stays with the runner, which signs the model calls itself; to pass
@@ -604,10 +604,10 @@ waits for it, so how often it runs depends on how long a runner's files last:
 - `docker` sets the Environment when it creates a Session's container. A
   restarted container keeps its files, and the runner skips a package set it
   already installed, so an edit reaches only a container created again.
-- `substrate` restores a sleeping Session whole, packages included, and the
-  runner skips the set it already installed. A later Environment edit reaches
-  only new Sessions
-  ([stigmer#2440](https://github.com/stigmer/stigmer/issues/2440)); a network
+- `substrate` keeps only a sleeping Session's two volumes, the workspace and the
+  Agent's home, neither of which holds an Environment's packages, so a Session's
+  packages install again at each wake
+  ([stigmer#3360](https://github.com/stigmer/stigmer/issues/3360)). A network
   edit reaches every Session at its next turn.
 
 **How long they take.** One command may run for 10 minutes and the whole install
@@ -622,18 +622,24 @@ registries and the network decide yours.
 On [Agent Substrate](https://github.com/agent-substrate/substrate), each
 Session's runner lives in a gVisor actor. After
 `STIGMER_SANDBOX_SUBSTRATE_SUSPEND_AFTER_SECONDS` idle (300 by default) the
-server suspends it: the sandbox stops and the Session's files stay on its node.
-Substrate's atelet copies them to storage 5 minutes later and lets the node go
-after 30 (atelet's `--snapshot-upload-delay` and `--snapshot-detach-delay`), so
-a node lost in those first 5 minutes loses what the Session wrote since its last
-copy. The next message wakes it with its files intact and a fresh runner, from
-its node when it wakes on the node that still holds them, and from storage when
-the node has let them go or Substrate places it on another node. A Session with
-a run in progress is never put to sleep. A run waiting for approval, or paused,
-needs no sandbox while it waits: its sandbox sleeps after the same idle time,
-counted from the run's start, and wakes with its files before the turn carries
-on, when the person answers or resumes. Connect sandboxes don't sleep; they end
-with their run.
+server suspends it: the sandbox stops and the Session's two durable volumes stay
+on its node, the workspace and the Agent's home (its conversation, approvals in
+flight, the files it saved to its outputs folder and the context it set aside),
+as `agent-sandbox` keeps its two claims. The home starts empty: the image's
+skeleton dotfiles are not copied onto it. Everything else in the sandbox,
+packages installed into the image's own folders among it, starts over from the
+image at each wake. Substrate's atelet copies the volumes to storage 5 minutes
+later and lets the node go after 30 (atelet's `--snapshot-upload-delay` and
+`--snapshot-detach-delay`), so a node lost in those first 5 minutes loses what
+the Session wrote since its last copy. The next message wakes it with its files
+and its conversation intact and a fresh runner, from its node when it wakes on
+the node that still holds them, and from storage when the node has let them go
+or Substrate places it on another node. A Session with a run in progress is
+never put to sleep. A run waiting for approval, or paused, needs no sandbox
+while it waits: its sandbox sleeps after the same idle time, counted from the
+run's start, and wakes with its files before the turn carries on, when the
+person answers or resumes. Connect sandboxes don't sleep; they end with their
+run.
 
 Two things put a Session to sleep before its idle time is up. When a run waits
 because no worker has room, the server puts the awake Session that has been idle
@@ -647,7 +653,8 @@ learned of it. And a Session that a routine's schedule started sleeps as soon as
 its run ends, rather than holding a seat for the idle time; when someone carries
 that conversation on, it sleeps again after each of their turns. Either way the
 owner of a Session put to sleep loses nothing: its next message wakes it with
-its files, a few seconds slower than an awake one answers (the figures below).
+its files and its conversation, a few seconds slower than an awake one answers
+(the figures below).
 
 On Stigmer Cloud, preprod (2026-10-31; Agent Substrate v0.6.0 on GKE, snapshots
 in Cloud Storage), a sleeping Session was working again, from the server
@@ -675,7 +682,13 @@ Every Session's actor comes from one template the server creates and names by
 its content, so a new runner image or setting makes a new template. Sleeping
 Sessions move to it when they next wake, an awake one at its next message, and
 the server deletes old templates nothing uses any more. A first wake after an
-upgrade waits for the new template to be prepared.
+upgrade waits for the new template to be prepared. Substrate moves a sandbox to
+a new template only when both keep the same volumes, so a sandbox made by a
+server from before the Agent's home had a volume of its own
+([stigmer#3349](https://github.com/stigmer/stigmer/issues/3349)) can't move:
+once, its next message ends with the line saying the conversation's sandbox is
+from another release, and the person starts a new conversation. A rollback to
+such a server ends the conversations made since the same way.
 
 **How many Sessions a worker holds.** Each sandbox books
 `STIGMER_SANDBOX_SUBSTRATE_CPU_MILLICORES` of CPU (2000, two cores, by default)
@@ -692,10 +705,15 @@ room to spare), 1000 against 2000 left a lone Session's start unchanged at about
 5 s, made five Sessions starting at once take about 1.9 s longer at the median
 (6.5 s against 4.6 s), and doubled the time of work spread across two processes
 (1.6 s against 0.8 s); work in one process took the same. A sandbox that reaches
-its memory ceiling is stopped whole by Substrate, not one command in it, and
-today the turn then resumes and runs the same command again, about every two
-minutes, until it fails after ten tries with an error that doesn't name memory
-(#3347); each try reverts the sandbox to its last snapshot. So lower the memory
+its memory ceiling is stopped whole by Substrate, not one command in it. The
+turn that ran the command then ends, about two minutes after the stop, with stop
+cause `failed`, stop detail `sandbox_out_of_memory` and an error that says the
+sandbox ran out of memory; it isn't run again, since the same command would be
+stopped the same way. The sandbox goes back to its last snapshot in storage. A
+sleep's snapshot is copied to storage in the background, so files changed since
+an earlier sleep, or since the sandbox started, may be gone, and with them the
+conversation's own history, which open source keeps in the agent's home. The
+conversation's next message wakes the sandbox as usual. So lower the memory
 setting only with room for the largest build or install your agents run.
 Changing either setting makes a new template: an awake Session on the old one
 sleeps as soon as it isn't busy, and wakes on the new one at its next message. A

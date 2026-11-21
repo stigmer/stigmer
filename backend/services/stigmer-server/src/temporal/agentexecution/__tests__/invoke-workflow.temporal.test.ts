@@ -63,6 +63,12 @@
  *     (the ensure answers `not_carried`, stigmer#1843) ends the turn at
  *     once, before its first runner activity or before a resumed one, as
  *     failed / internal with the person's line, running nothing more;
+ *   - a sandbox killed for its memory (the ensure answers `out_of_memory`,
+ *     stigmer#3347): at the ask before a recovery attempt or a
+ *     re-invocation after an approval, the turn ends as failed /
+ *     sandbox_out_of_memory with the person's line, recovering into
+ *     nothing; at the turn's first ask, the kill was an earlier turn's, so
+ *     it asks once more and runs, and a second such answer there ends it;
  *   - a turn asks for its sandbox again before every runner invocation
  *     after its first, since a parked turn's sandbox may have gone to
  *     sleep (stigmer#3122): after an approval (IN_PROGRESS written
@@ -107,7 +113,7 @@ import {
   SIGNAL_RESUME,
   START_QUEUED_TURN_ACTIVITY_NAME,
 } from "../names.js";
-import { SANDBOX_NOT_CARRIED_COPY } from "../sandbox-wait.js";
+import { SANDBOX_NOT_CARRIED_COPY, SANDBOX_OUT_OF_MEMORY_COPY } from "../sandbox-wait.js";
 import type { InvokeAgentExecutionWorkflowInput } from "../workflow-input.js";
 
 const TASK_QUEUE = "invoke-workflow-test";
@@ -1083,6 +1089,30 @@ describe("invoke-agent-execution workflow (TestWorkflowEnvironment)", () => {
       expect(script.queuedTurnCalls, "the session's queue still moves").toEqual(["ses_1"]);
     }, 60_000);
 
+    it("asks once more when the turn's first ask meets an earlier memory kill, then runs (stigmer#3347)", async (testCtx) => {    if (!envReady) return testCtx.skip();
+      script.sandboxAnswers = ["out_of_memory"];
+      script.executeBehaviors = [async () => slimResult(RunPhase.RUN_COMPLETED)];
+
+      await (await startWorkflow(cloud())).result();
+
+      expect(script.order, "asked again at once, then ran").toEqual(["close", "sandbox", "sandbox", "execute", "queued"]);
+      expect(persisted(RunPhase.RUN_FAILED), "a new turn is never blamed for an old kill").toEqual([]);
+    }, 60_000);
+
+    it("ends a turn whose first ask meets a memory kill twice, running nothing: failed / sandbox_out_of_memory", async (testCtx) => {    if (!envReady) return testCtx.skip();
+      script.sandboxAnswers = ["out_of_memory", "out_of_memory"];
+
+      await expect((await startWorkflow(cloud())).result()).rejects.toThrow(/Workflow execution failed/);
+
+      expect(script.sandboxCalls, "one ask again, never more").toHaveLength(2);
+      expect(script.executeCalls).toEqual([]);
+      const failed = persisted(RunPhase.RUN_FAILED);
+      expect(failed).toHaveLength(1);
+      expect(failed[0]!.status.stopCause).toBe("failed");
+      expect(failed[0]!.status.stopDetail?.kind).toBe("sandbox_out_of_memory");
+      expect(failed[0]!.status.error).toBe(SANDBOX_OUT_OF_MEMORY_COPY);
+    }, 60_000);
+
     it("goes on to the runner when the ensure fails or cannot run at all", async (testCtx) => {    if (!envReady) return testCtx.skip();
       script.executeBehaviors = [async () => slimResult(RunPhase.RUN_COMPLETED), async () => slimResult(RunPhase.RUN_COMPLETED)];
 
@@ -1209,6 +1239,47 @@ describe("invoke-agent-execution workflow (TestWorkflowEnvironment)", () => {
       expect(failed.at(-1)!.status.stopCause).toBe("failed");
       expect(failed.at(-1)!.status.stopDetail?.kind).toBe("internal");
       expect(failed.at(-1)!.status.error).toBe(SANDBOX_NOT_CARRIED_COPY);
+    }, 60_000);
+
+    it("a recovery whose ask meets a memory kill ends the turn as failed / sandbox_out_of_memory, recovering into nothing (stigmer#3347)", async (testCtx) => {    if (!envReady) return testCtx.skip();
+      const { ApplicationFailure } = await import("@temporalio/common");
+      // The runner the kill took stops heartbeating; any recoverable
+      // interruption reaches the same recovery ask.
+      script.executeBehaviors = [
+        async () => {
+          throw ApplicationFailure.create({
+            message: "Worker is shutting down and this activity did not complete in time",
+            nonRetryable: true,
+          });
+        },
+      ];
+      script.sandboxAnswers = ["ready", "out_of_memory"];
+
+      await expect((await startWorkflow(cloud())).result()).rejects.toThrow(/Workflow execution failed/);
+
+      expect(script.order, "one recovery ask, then the end").toEqual(["close", "sandbox", "execute", "sandbox", "queued"]);
+      const failed = script.persistedStatuses.filter((entry) => entry.status.phase === RunPhase.RUN_FAILED);
+      expect(failed).toHaveLength(1);
+      expect(failed[0]!.status.stopCause).toBe("failed");
+      expect(failed[0]!.status.stopDetail?.kind).toBe("sandbox_out_of_memory");
+      expect(failed[0]!.status.error).toBe(SANDBOX_OUT_OF_MEMORY_COPY);
+    }, 60_000);
+
+    it("a turn whose sandbox was killed for its memory while it waited on an approval ends, re-invoking nothing", async (testCtx) => {    if (!envReady) return testCtx.skip();
+      script.sandboxAnswers = ["ready", "out_of_memory"];
+      script.executeBehaviors = [async () => slimResult(RunPhase.RUN_WAITING_FOR_APPROVAL)];
+      script.openGateCounts = [1];
+
+      const handle = await startWorkflow(cloud());
+      await waitForPersistedPhase(RunPhase.RUN_WAITING_FOR_APPROVAL);
+      await handle.signal(SIGNAL_APPROVAL_GATE_RESOLVED);
+      await expect(handle.result()).rejects.toThrow(/Workflow execution failed/);
+
+      expect(script.executeCalls, "nothing re-invoked").toHaveLength(1);
+      expect(script.sandboxCalls, "no ask again in an attempt").toHaveLength(2);
+      const failed = script.persistedStatuses.filter((entry) => entry.status.phase === RunPhase.RUN_FAILED);
+      expect(failed.at(-1)!.status.stopDetail?.kind).toBe("sandbox_out_of_memory");
+      expect(failed.at(-1)!.status.error).toBe(SANDBOX_OUT_OF_MEMORY_COPY);
     }, 60_000);
 
     it("a full pool that never frees ends the resumed turn as no_sandbox_room", async (testCtx) => {    if (!envReady) return testCtx.skip();

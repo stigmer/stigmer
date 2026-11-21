@@ -337,6 +337,23 @@ describe("Run conformance — the engine gate", () => {
 });
 
 describe("Run conformance — zero-record read surfaces", () => {
+  it("[rpc:RunQueryController.listByAgent] listByAgent answers an agent that never ran with an empty list, and refuses an empty agent_id (InvalidArgument)", async () => {
+    const { org } = await target.provisionTenancy();
+    const agent = await clients.agentCommand.create(makeAgent({ org, name: uniqueName("agent-never-ran") }));
+    try {
+      const listed = await clients.agentExecutionQuery.listByAgent({ agentId: agent.metadata!.id });
+      expect(listed.entries).toHaveLength(0);
+      expect(listed.nextPageToken).toBe("");
+      await expectGrpcCode(
+        () => clients.agentExecutionQuery.listByAgent({ agentId: "" }),
+        Code.InvalidArgument,
+        "listByAgent empty agent_id",
+      );
+    } finally {
+      await clients.agentCommand.delete({ value: agent.metadata!.id });
+    }
+  });
+
   it("[rpc:RunQueryController.getRunSummary] getRunSummary answers the pinned zero shape — no cost fields by design", async () => {
     const { org } = await target.provisionTenancy();
     const summary = await clients.agentExecutionQuery.getRunSummary({ org });

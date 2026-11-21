@@ -91,15 +91,15 @@ import { execFileSync, spawn, spawnSync } from "node:child_process";
 import { randomUUID } from "node:crypto";
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
-import { createServer } from "node:net";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
 import { anthropicText, anthropicToolUse } from "../support/src/llm-wire.ts";
-import { DOOR_FILE, DOOR_REPLY, DOOR_REPORT, NPM_REGISTRY, USAGE, fetchPagePrompt, npmRegistryFlags, parseDoorArgs, runnerLogNotes, stopProcessGroup, streamDigest } from "./lib/coding-agent-door.mjs";
+import { DOOR_FILE, DOOR_REPLY, DOOR_REPORT, NPM_REGISTRY, USAGE, fetchPagePrompt, freePort, npmRegistryFlags, parseDoorArgs, runClaude, runnerLogNotes, stopProcessGroup, streamDigest } from "./lib/coding-agent-door.mjs";
 import { isTitleCall } from "./lib/fake-model.mjs";
 import { stageBuildPaths, startHermeticStage } from "./lib/hermetic-stage.mjs";
+import { writeLedgerly } from "./lib/scratch-apps.mjs";
 
 const repoRoot = fileURLToPath(new URL("../..", import.meta.url));
 const AUDIENCE = "https://door.stigmer.test/api";
@@ -112,121 +112,6 @@ const ANSWER = "Yes, go ahead with what you suggest. I'm happy with your choices
 
 function log(step) {
   process.stdout.write(`coding-agent-door: ${step}\n`);
-}
-
-/**
- * The scratch app: an invoicing product with its own stand-in sign-in. With
- * `npmrc`, the app routes the @stigmer scope in its own .npmrc, as a
- * consumer of a registry other than npm's does, so the coding agent's
- * installs read the walk's registry.
- */
-function writeApp(dir, npmrc) {
-  const files = {
-    "package.json": JSON.stringify(
-      {
-        name: "ledgerly",
-        private: true,
-        scripts: { dev: "next dev", build: "next build", start: "next start" },
-        dependencies: { next: "15.5.4", react: "19.1.1", "react-dom": "19.1.1" },
-        devDependencies: { typescript: "5.9.3", "@types/react": "19.1.13", "@types/node": "22.18.6" },
-      },
-      null,
-      2,
-    ),
-    "README.md":
-      "# Ledgerly\n\nInvoicing for small wholesalers. Customers upload purchase orders and supplier invoices; Ledgerly matches them and pays the ones that agree.\n\n- `app/invoices`: the invoices page, where a customer reviews what came in.\n- `lib/session.ts`: who is signed in (`getSession()`).\n",
-    ".gitignore": "node_modules\n.next\n.env*.local\n",
-    "tsconfig.json": JSON.stringify(
-      {
-        compilerOptions: {
-          target: "ES2022",
-          lib: ["dom", "dom.iterable", "esnext"],
-          strict: true,
-          module: "esnext",
-          moduleResolution: "bundler",
-          jsx: "preserve",
-          noEmit: true,
-          esModuleInterop: true,
-          skipLibCheck: true,
-          incremental: true,
-          resolveJsonModule: true,
-          isolatedModules: true,
-          plugins: [{ name: "next" }],
-          paths: { "@/*": ["./*"] },
-        },
-        include: ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
-        exclude: ["node_modules"],
-      },
-      null,
-      2,
-    ),
-    "lib/session.ts": `import { cookies } from "next/headers";
-
-/** Who is signed in to Ledgerly: the demo sign-in keeps the person in a cookie. */
-export interface Session {
-  readonly userId: string;
-  readonly email: string;
-  readonly name: string;
-}
-
-export async function getSession(): Promise<Session | null> {
-  const value = (await cookies()).get("ledgerly_user")?.value;
-  if (value === undefined || value === "") return null;
-  return { userId: \`user-\${value}\`, email: \`\${value}@ledgerly.test\`, name: value };
-}
-`,
-    "app/layout.tsx": `export default function RootLayout({ children }: { children: React.ReactNode }) {
-  return (
-    <html lang="en">
-      <body>{children}</body>
-    </html>
-  );
-}
-`,
-    "app/page.tsx": `import Link from "next/link";
-
-export default function Home() {
-  return (
-    <main>
-      <h1>Ledgerly</h1>
-      <p>
-        <Link href="/invoices">Invoices</Link>
-      </p>
-    </main>
-  );
-}
-`,
-    "app/invoices/page.tsx": `import { getSession } from "@/lib/session";
-
-export default async function InvoicesPage() {
-  const session = await getSession();
-  return (
-    <main>
-      <h1>Invoices</h1>
-      <p>{session === null ? "Sign in at /login?user=<name>." : \`Signed in as \${session.name}.\`}</p>
-    </main>
-  );
-}
-`,
-    "app/login/route.ts": `import { NextResponse, type NextRequest } from "next/server";
-
-/** The demo sign-in: /login?user=dana signs Dana in and goes to the invoices. */
-export function GET(request: NextRequest) {
-  const user = request.nextUrl.searchParams.get("user") ?? "";
-  const response = NextResponse.redirect(new URL("/invoices", request.url));
-  response.cookies.set("ledgerly_user", user);
-  return response;
-}
-`,
-  };
-  if (npmrc !== undefined) files[".npmrc"] = npmrc;
-  for (const [path, text] of Object.entries(files)) {
-    mkdirSync(join(dir, path, ".."), { recursive: true });
-    writeFileSync(join(dir, path), text);
-  }
-  execFileSync("git", ["init", "-q"], { cwd: dir });
-  execFileSync("git", ["add", "."], { cwd: dir });
-  execFileSync("git", ["-c", "user.name=door", "-c", "user.email=door@stigmer.test", "commit", "-qm", "Ledgerly"], { cwd: dir });
 }
 
 /** The model's script: the first run saves the example's answer (DOOR_REPORT); every turn after it answers DOOR_REPLY. */
@@ -242,106 +127,6 @@ function scriptFirstRun(fake) {
     }),
   });
   fake.enqueue({ kind: "anthropic", body: anthropicText(DOOR_REPLY), matches: turn });
-}
-
-/**
- * One `claude -p` turn, asynchronous: the issuer and the fake model live in
- * this process, so its event loop must keep answering while the coding agent
- * works. The stream is appended to `streamPath`; `signal` stops the turn.
- * The turn ends at its `result` event: a coding agent that started the app's
- * dev server in the background keeps its process alive after it, so that
- * process (and what it started) is ended then.
- */
-function runClaude(appDir, env, sessionId, message, first, streamPath, signal, bounds) {
-  const args = [
-    "-p",
-    message,
-    "--output-format",
-    "stream-json",
-    "--verbose",
-    "--setting-sources",
-    "project",
-    "--strict-mcp-config",
-    "--permission-mode",
-    "acceptEdits",
-    "--allowedTools",
-    "Bash(stigmer *)",
-    "Bash(printenv *)",
-    "Bash(npm *)",
-    "Bash(npx *)",
-    "Bash(git *)",
-    "Bash(ls *)",
-    "Bash(cat *)",
-    "Bash(mkdir *)",
-    // What a person setting up their app approves without a second look,
-    // and a coding agent chains onto the commands above (`which stigmer ||
-    // echo …`, `command -v stigmer`, `stigmer run … ; echo "exit=$?"`,
-    // `| head`, a curl of the app's own route): refused, the step's command
-    // was dropped with them, and whether the agent ran it again was chance
-    // (stigmer/stigmer#3160).
-    "Bash(echo *)",
-    "Bash(which *)",
-    "Bash(command *)",
-    "Bash(node *)",
-    "Bash(brew *)",
-    "Bash(head *)",
-    "Bash(tail *)",
-    "Bash(grep *)",
-    "Bash(wc *)",
-    "Bash(curl *)",
-    "Read",
-    "Write",
-    "Edit",
-    "Glob",
-    "Grep",
-    ...(bounds.model === "" ? [] : ["--model", bounds.model]),
-    ...(bounds.claudeMaxTurns === undefined ? [] : ["--max-turns", String(bounds.claudeMaxTurns)]),
-    ...(bounds.maxBudgetUsd === undefined ? [] : ["--max-budget-usd", String(bounds.maxBudgetUsd)]),
-    ...(first ? ["--session-id", sessionId] : ["--resume", sessionId]),
-  ];
-  return new Promise((resolve, reject) => {
-    const child = spawn("claude", args, { cwd: appDir, env, stdio: ["ignore", "pipe", "pipe"], signal, detached: true });
-    let stdout = "";
-    let stderr = "";
-    child.stdout.setEncoding("utf8").on("data", (chunk) => {
-      stdout += chunk;
-      writeFileSync(streamPath, chunk, { flag: "a" });
-      if (/"type":"result"/.test(chunk)) {
-        try {
-          process.kill(-child.pid, "SIGTERM");
-        } catch {
-          // Already gone.
-        }
-      }
-    });
-    child.stderr.setEncoding("utf8").on("data", (chunk) => (stderr += chunk));
-    child.once("error", reject);
-    child.once("close", (status) => {
-      const lines = stdout.split("\n").filter((line) => line.trim() !== "");
-      let result = "";
-      for (const line of lines) {
-        try {
-          const event = JSON.parse(line);
-          if (event.type === "result" && typeof event.result === "string") result = event.result;
-        } catch {
-          // A partial line; the stream file keeps it.
-        }
-      }
-      resolve({ status, result, stderr });
-    });
-  });
-}
-
-/** A free loopback port: bound once on port 0 to learn the number, then closed. */
-function freePort() {
-  return new Promise((resolve, reject) => {
-    const probe = createServer();
-    probe.once("error", reject);
-    probe.listen(0, "127.0.0.1", () => {
-      const { port } = probe.address();
-      probe.close(() => resolve(port));
-    });
-  });
 }
 
 function check(condition, message) {
@@ -462,7 +247,7 @@ async function main() {
       check(header.startsWith(`Stigmer CLI ${args.version}:`), `the published CLI's guide does not name ${args.version}: ${header}`);
       log(`the published CLI prints its guide: ${header}`);
     }
-    writeApp(appDir, args.published ? `registry=${NPM_REGISTRY}\n@stigmer:registry=${args.registry}\n` : undefined);
+    writeLedgerly(appDir, args.published ? `registry=${NPM_REGISTRY}\n@stigmer:registry=${args.registry}\n` : undefined);
 
     const env = { ...stage.env(process.env, [join(npmPrefix, "bin")]), npm_config_prefix: npmPrefix };
     const claudeKey = process.env.DOOR_ANTHROPIC_API_KEY ?? "";

@@ -194,6 +194,15 @@ the reason, and JSON on its standard output can allow, ask or refuse. A handler
 that fails, times out or prints nothing makes no decision, and the call keeps
 the default. `condition` is Claude Code's `if`.
 
+A hook runs in the sandbox, in the Agent's workspace, with `CLAUDE_PROJECT_DIR`
+set to the workspace's absolute path; `${CLAUDE_PROJECT_DIR}` in a hook's
+command is replaced with it, as in Claude Code. The paths a hook reads in a call
+are absolute paths in the sandbox, so a rule about a folder is written against
+that variable: to keep writes inside `reports/`, compare a `Write` call's
+`file_path` with `$CLAUDE_PROJECT_DIR/reports/`, not with `/reports`. A path in
+`condition`, such as `Write(/reports/**)`, starts at the workspace (`//` starts
+an absolute one).
+
 A script in the workspace is a convenience, not a boundary: the Agent can edit
 its workspace, the script included. A plugin's own hooks run from its installed
 files, which Stigmer restores before every hook run, so a policy that must hold

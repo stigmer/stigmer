@@ -4,6 +4,8 @@
 // package's version (a release's is stamped at publish, where
 // scripts/publish-libs.test.mjs proves it); its front door
 // (skills/stigmer/SKILL.md), its setup guide (skills/stigmer-setup/SKILL.md),
+// its runs skill (skills/stigmer-run/SKILL.md), its integration skill
+// (skills/stigmer-integrate/SKILL.md),
 // the bundled `stigmer mcp-server` and Claude Code's guard hook read with no
 // warning by `@stigmer/plugin-package`, which knows all three dialects; each tool's marketplace file offering that
 // one plugin at the repository's root; and dist/index.js exporting the guide
@@ -57,13 +59,13 @@ describe("the plugin", () => {
     }
   });
 
-  it("reads with no error or warning: the front door, the setup guide, the bundled MCP server and the guard", () => {
+  it("reads with no error or warning: the front door, the setup guide, the runs and integration skills, the bundled MCP server and the guard", () => {
     const outcome = readPluginPackage(inMemoryPluginFiles(files));
     expect(outcome.warnings).toEqual([]);
     expect(outcome.ok).toBe(true);
     if (!outcome.ok) return;
     expect(outcome.plugin.name).toBe("stigmer");
-    expect(outcome.plugin.skills.map((skill) => skill.name).sort()).toEqual(["stigmer", "stigmer-setup"]);
+    expect(outcome.plugin.skills.map((skill) => skill.name).sort()).toEqual(["stigmer", "stigmer-integrate", "stigmer-run", "stigmer-setup"]);
     expect(JSON.parse(files.get(".mcp.json") ?? "{}")).toEqual({
       mcpServers: { stigmer: { command: "stigmer", args: ["mcp-server"] } },
     });

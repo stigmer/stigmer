@@ -56,10 +56,14 @@ type Client struct {
 //	// Token authentication (interactive login)
 //	client, err := stigmer.NewClient(stigmer.WithToken(loginToken))
 //
+//	// As one of your product's signed-in users (a minted token, kept fresh)
+//	client, err := stigmer.NewClient(stigmer.WithTokenFunc(tokens.Token))
+//
 //	// Local development (no credentials required)
 //	client, err := stigmer.NewClient(stigmer.WithBaseURL("localhost:7234"), stigmer.WithInsecure())
 //
-// For non-insecure targets, either WithAPIKey or WithToken must be provided.
+// For non-insecure targets, one of WithAPIKey, WithToken or WithTokenFunc
+// must be provided.
 // The connection is established lazily; call [Client.Connect] to eagerly
 // verify connectivity.
 func NewClient(opts ...ClientOption) (*Client, error) {
@@ -71,19 +75,23 @@ func NewClient(opts ...ClientOption) (*Client, error) {
 	if cfg.apiKey != "" && cfg.token != "" {
 		return nil, fmt.Errorf("stigmer: WithAPIKey and WithToken are mutually exclusive — use one or the other")
 	}
+	if cfg.tokenFunc != nil && (cfg.apiKey != "" || cfg.token != "") {
+		return nil, fmt.Errorf("stigmer: WithTokenFunc is mutually exclusive with WithAPIKey and WithToken — use one credential")
+	}
 
 	bearerToken := cfg.apiKey
 	if bearerToken == "" {
 		bearerToken = cfg.token
 	}
 
-	if bearerToken == "" && !cfg.insecure {
-		return nil, fmt.Errorf("stigmer: credentials required — use WithAPIKey or WithToken (or WithInsecure for local development)")
+	if bearerToken == "" && cfg.tokenFunc == nil && !cfg.insecure {
+		return nil, fmt.Errorf("stigmer: credentials required — use WithAPIKey, WithToken or WithTokenFunc (or WithInsecure for local development)")
 	}
 
 	conn, err := transport.Dial(transport.Config{
 		Target:          cfg.target,
 		BearerToken:     bearerToken,
+		TokenFunc:       cfg.tokenFunc,
 		Insecure:        cfg.insecure,
 		KeepaliveParams: cfg.keepaliveParams,
 		DialOptions:     cfg.dialOptions,

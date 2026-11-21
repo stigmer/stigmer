@@ -82,7 +82,8 @@ conversation before it as `history.jsonl` when there was one, each MCP tool's
 answer as a mock beside the tool's description and input schema as the run
 offered them to the model, and `graders/criteria.md`, whose FAIL line names what
 went wrong (the AI judge's reason, else an eval run's failing check, else your
-thumbs-down comment); write its PASS line yourself. What the case leaves out is
+thumbs-down comment); write its PASS line yourself. When none of those says what
+went wrong, the FAIL line is left for you to write too. What the case leaves out is
 printed beside it. An existing case directory is never overwritten, and an eval
 refuses a case name it already holds. See
 [Test agents and plugins with evals](/docs/guides/evals/test-with-evals#turn-a-conversation-into-a-case).
@@ -99,6 +100,33 @@ stigmer runs approve run_01xyz789 --tool-call run_01xyz789.toolu_abc --action de
 # Allow it and every waiting call of its kind for the rest of the turn
 stigmer runs approve run_01xyz789 --tool-call run_01xyz789.toolu_abc --action allow-all
 ```
+
+## When a run fails
+
+Read the run before changing anything: the failure is on it, in the words of
+whatever refused it.
+
+```bash
+# Find the run: the agent's runs, newest first, across its conversations
+stigmer list runs --agent reconciler
+
+# Its events, the error among them, as the provider or the platform worded it
+stigmer runs logs run_01abc123
+
+# Its record: status.error holds the failure
+stigmer get run run_01abc123
+```
+
+The failures met most often:
+
+| The error says | What it means | Where it is fixed |
+| -------------- | ------------- | ----------------- |
+| The provider refused the call: a credit balance too low, an invalid key, a model the key cannot use, a rate limit | The model provider refused the key the run used: your organization's own key, or on your own machine the runner's | In that provider account, or with a new key ([Model provider keys](/docs/guides/integrations/model-provider-keys)); then run it again |
+| The run ended without a step it needed: a tool call denied, or skipped because no one could answer | A call that needed approval was refused, or the run had no one to ask | [Approval flows](/docs/concepts/approval-flows); a script answers with `stigmer run --approve-default` |
+| Terminated: the agent stalled, or used its tool-call budget | The platform stopped the turn | Send a follow-up in the same conversation (`stigmer resume <session-id>`) |
+
+A failure on your key is never retried on another key: fix the account or the
+key, then run the agent again.
 
 {/* AUTO_SUBCOMMANDS */}
 

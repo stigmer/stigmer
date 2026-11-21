@@ -15,6 +15,10 @@
  *   - the atespace is read first and created only when it is missing, so
  *     an atespace granted to the server needs no global owner;
  *   - an actor's state is Substrate's, whatever snapshot it holds;
+ *   - a crash reads as `memory` only when Substrate's message ends with
+ *     the memory guard's words (v1.0.0's workers), bare or behind the
+ *     control plane's "<operation> failed: " prefix; any other crash is
+ *     `other`, and an actor with no crash has none;
  *   - a suspend asks for Substrate's asynchronous mode, a durable one for
  *     the synchronous mode under a deadline long enough for the upload, and
  *     a delete sends the actor's reference alone;
@@ -85,7 +89,9 @@ import {
   bearerFromFile,
   newSubstrateClientGateway,
   newSubstrateGatewayOverTransport,
+  crashOf,
   stateOf,
+  SUBSTRATE_MEMORY_KILL_WORDS,
   subjectOfTokenFile,
   tokenSubject,
   transportFollowingCa,
@@ -602,6 +608,60 @@ describe("an actor's state", () => {
     expect(stateOf(undefined)).toBe("unknown");
     // A state only another release sends (the stubs are this release's).
     expect(stateOfActor(42 as ActorState)).toBe("unknown");
+  });
+});
+
+describe("why an actor crashed", () => {
+  const crashed = (message: string) =>
+    create(ActorSchema, {
+      metadata: { atespace: "stigmer", name: "a", uid: "uid-a", version: 4n },
+      actorTemplate: { atespace: "stigmer", name: "stigmer-runner-old" },
+      status: { state: ActorState.CRASHED, crash: { message } },
+    });
+
+  it("reads the memory guard's words as a memory kill, bare or behind an operation", () => {
+    // Substrate v1.0.0's workers, verbatim (the constant cites both files).
+    expect(SUBSTRATE_MEMORY_KILL_WORDS).toBe(
+      "killed for exceeding its memory limit",
+    );
+    expect(crashOf(crashed("killed for exceeding its memory limit").status)).toEqual({
+      cause: "memory",
+      message: "killed for exceeding its memory limit",
+    });
+    expect(
+      crashOf(crashed("resume failed: killed for exceeding its memory limit").status),
+    ).toEqual({
+      cause: "memory",
+      message: "resume failed: killed for exceeding its memory limit",
+    });
+  });
+
+  it("reads every other crash as other, and no crash as none", () => {
+    expect(crashOf(crashed("gVisor sandbox exited").status)?.cause).toBe("other");
+    expect(crashOf(crashed("worker lost: node-1 stopped heartbeating").status)?.cause).toBe(
+      "other",
+    );
+    // The words somewhere else in the message are not the guard's report.
+    expect(
+      crashOf(crashed("killed for exceeding its memory limit; then exited").status)?.cause,
+    ).toBe("other");
+    expect(crashOf(crashed("").status)?.cause).toBe("other");
+    expect(crashOf(actor("a", ActorState.SUSPENDED).status)).toBeUndefined();
+    expect(crashOf(undefined)).toBeUndefined();
+  });
+
+  it("carries the reason on the actor the driver reads", async () => {
+    const gateway = gatewayOver({
+      getActor: () => crashed("killed for exceeding its memory limit"),
+    });
+    expect((await gateway.getActor("a"))?.crash).toEqual({
+      cause: "memory",
+      message: "killed for exceeding its memory limit",
+    });
+    const healthy = gatewayOver({
+      getActor: () => actor("a", ActorState.SUSPENDED),
+    });
+    expect(await healthy.getActor("a")).not.toHaveProperty("crash");
   });
 });
 

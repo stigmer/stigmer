@@ -23,6 +23,7 @@ import { applyConfigEnv, applyFlagsEnv, registerMcpServer } from "../mcp-server.
 // and the options the command passed beside it.
 interface StartOptions {
   readonly getAccessToken?: () => Promise<string | null> | string | null;
+  readonly localFiles?: boolean;
 }
 const started = vi.hoisted(() => ({
   env: [] as NodeJS.ProcessEnv[],
@@ -227,6 +228,9 @@ describe("stigmer mcp-server", () => {
     expect(started.env[0]?.STIGMER_SERVER_ADDRESS).toBe("localhost:7234");
     expect(started.env[0]?.STIGMER_API_KEY).toBeUndefined();
     expect(started.options[0]?.getAccessToken).toBeUndefined();
+    // The server runs on the person's machine: it may read the files a tool
+    // call names, inside the client's roots (the server applies it to stdio alone).
+    expect(started.options[0]?.localFiles).toBe(true);
   });
 
   it("starts the server on the signed-in backend with a provider over its sign-in", async () => {

@@ -8,14 +8,18 @@
 // with the commands' own suites and the scripted door
 // (test/install/coding-agent-door.mjs).
 //
-// The plugin's front door (skills/stigmer/SKILL.md) is held the same way, and
-// so is its Claude Code guard (plugin/hooks/decide.mjs): its list of commands
+// Every skill the plugin carries (skills/*/SKILL.md: the front door, the
+// setup guide, the runs skill) is held the same way, and more tightly: a
+// command line that goes past a group must go on to one of its commands, so a
+// group followed by a word it does not have fails (`stigmer runs list` names
+// the `runs` group and a word it lacks); a group named alone, in prose, is
+// fine. So is its Claude Code guard (plugin/hooks/decide.mjs): its list of commands
 // whose force flag skips a question or overwrites is exactly every command
 // here with a `--force` option, each with the flags that mean force on it, and
 // the approval command it asks before is this CLI's, answering allow unless
 // told otherwise.
 
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import type { Command, Option } from "commander";
 import { GUIDE } from "@stigmer/coding-agent-plugin";
@@ -113,6 +117,33 @@ describe("the plugin's front door names only commands and flags this CLI has", (
   });
 
   it.each(lines)("%s", (line) => checkLine(program, line));
+});
+
+describe("every skill the plugin carries names only commands that run, with flags they declare", () => {
+  const program = buildProgram();
+  const runnable = new Set(runnableCommands(program));
+  const skills = readdirSync(fileURLToPath(new URL("skills/", pluginRoot)));
+  const lines = skills.flatMap((skill) =>
+    commandLines(readFileSync(fileURLToPath(new URL(`skills/${skill}/SKILL.md`, pluginRoot)), "utf8")).map(
+      (line) => [skill, line] as const,
+    ),
+  );
+
+  it("reads every skill, the runs and integration skills' commands among them", () => {
+    expect(skills.sort()).toEqual(["stigmer", "stigmer-integrate", "stigmer-run", "stigmer-setup"]);
+    expect(lines.map(([, line]) => line)).toContain("stigmer list runs --agent invoice-checker --limit 5");
+    expect(lines.map(([, line]) => line)).toContain("stigmer app-handover --stack <nextjs|node|python|go|java> --agent <agent> --write .");
+  });
+
+  it.each(lines)("%s: %s", (_skill, line) => {
+    checkLine(program, line);
+    const command = resolveLine(program, line).command as Command;
+    const pathWords = commandPath(command).split(" ").length;
+    const words = line.split(/\s+/).filter((word) => !word.startsWith("-")).length;
+    if (words > pathWords) {
+      expect(runnable.has(command), `"${line}" goes past \`${commandPath(command)}\`, a group, with a word it has no command for`).toBe(true);
+    }
+  });
 });
 
 interface Guard {

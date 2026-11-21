@@ -21,7 +21,7 @@ import {
   serveStdio,
   stdioServer,
 } from "./server.js";
-import type { BackendTarget } from "./domains/client.js";
+import { backendTargetOf } from "./target.js";
 
 export type { Config, OAuthConfig, Roster, Transport } from "./config.js";
 export { loadConfigFromEnv, validateConfig } from "./config.js";
@@ -57,6 +57,13 @@ export interface RunOptions {
    * When set, `cfg.apiKey` is not used. `null` means no credential.
    */
   readonly getAccessToken?: TokenProvider;
+  /**
+   * True only when the server runs on the person's machine as their coding
+   * agent's child: the stdio roster may then hand a run the project files a
+   * tool call names, inside the folders the client lists as roots. The HTTP
+   * rosters never read a path, whatever this says.
+   */
+  readonly localFiles?: boolean;
 }
 
 /** Returns a Config populated from environment variables (no validation). */
@@ -88,11 +95,7 @@ export async function run(
 
   log.info("mcp-server-stigmer starting", { transport: cfg.transport });
 
-  const target: BackendTarget = {
-    serverAddress: cfg.stigmerServerAddress,
-    apiKey: cfg.apiKey,
-    ...(options.getAccessToken === undefined ? {} : { getAccessToken: options.getAccessToken }),
-  };
+  const target = backendTargetOf(cfg, options);
 
   try {
     switch (cfg.transport) {

@@ -25,8 +25,16 @@
  * run, so without them a red in CI says only which check failed, not what
  * the coding agent or the run did.
  *
+ * One `claude -p` turn (runClaude) and a free port (freePort) live here too,
+ * shared with the app walk (test/install/coding-agent-app.mjs), which walks
+ * the same coding agent with Stigmer's plugin.
+ *
  * Plain node, no dependencies, like its neighbours.
  */
+
+import { spawn } from "node:child_process";
+import { writeFileSync } from "node:fs";
+import { createServer } from "node:net";
 
 /** The page a person copies the prompt from (docs/getting-started/coding-agent.mdx). */
 export const PROMPT_PAGE = "https://stigmer.ai/docs/getting-started/coding-agent";
@@ -338,3 +346,108 @@ export const DOOR_REPLY =
   "I checked invoice-4471 against po-2210 and saved mismatches.md: 940.00 is at stake on three lines. " +
   "SRV-01 (assembly and delivery, 450.00) was never ordered; CHR-310 is billed at 235.00 against the agreed 210.00, 300.00 over; " +
   "and DSK-121 bills 12 desk tops where 10 were ordered, 190.00 over.";
+
+/**
+ * One `claude -p` turn, asynchronous: the issuer and the fake model live in
+ * this process, so its event loop must keep answering while the coding agent
+ * works. The stream is appended to `streamPath`; `signal` stops the turn.
+ * The turn ends at its `result` event: a coding agent that started the app's
+ * dev server in the background keeps its process alive after it, so that
+ * process (and what it started) is ended then. The app walk passes the
+ * plugin it walks (`pluginDir`) and the tools its stack needs beside the
+ * door's (`allowedTools`).
+ */
+export function runClaude(appDir, env, sessionId, message, first, streamPath, signal, bounds, { pluginDir, allowedTools = [] } = {}) {
+  const args = [
+    "-p",
+    message,
+    "--output-format",
+    "stream-json",
+    "--verbose",
+    "--setting-sources",
+    "project",
+    // A plugin's MCP server is the plugin's own; with none, every MCP server
+    // but the person's is left out.
+    ...(pluginDir === undefined ? ["--strict-mcp-config"] : ["--plugin-dir", pluginDir]),
+    "--permission-mode",
+    "acceptEdits",
+    "--allowedTools",
+    "Bash(stigmer *)",
+    "Bash(printenv *)",
+    "Bash(npm *)",
+    "Bash(npx *)",
+    "Bash(git *)",
+    "Bash(ls *)",
+    "Bash(cat *)",
+    "Bash(mkdir *)",
+    // What a person setting up their app approves without a second look,
+    // and a coding agent chains onto the commands above (`which stigmer ||
+    // echo …`, `command -v stigmer`, `stigmer run … ; echo "exit=$?"`,
+    // `| head`, a curl of the app's own route): refused, the step's command
+    // was dropped with them, and whether the agent ran it again was chance
+    // (stigmer/stigmer#3160).
+    "Bash(echo *)",
+    "Bash(which *)",
+    "Bash(command *)",
+    "Bash(node *)",
+    "Bash(brew *)",
+    "Bash(head *)",
+    "Bash(tail *)",
+    "Bash(grep *)",
+    "Bash(wc *)",
+    "Bash(curl *)",
+    "Read",
+    "Write",
+    "Edit",
+    "Glob",
+    "Grep",
+    ...allowedTools,
+    ...(bounds.model === "" ? [] : ["--model", bounds.model]),
+    ...(bounds.claudeMaxTurns === undefined ? [] : ["--max-turns", String(bounds.claudeMaxTurns)]),
+    ...(bounds.maxBudgetUsd === undefined ? [] : ["--max-budget-usd", String(bounds.maxBudgetUsd)]),
+    ...(first ? ["--session-id", sessionId] : ["--resume", sessionId]),
+  ];
+  return new Promise((resolve, reject) => {
+    const child = spawn("claude", args, { cwd: appDir, env, stdio: ["ignore", "pipe", "pipe"], signal, detached: true });
+    let stdout = "";
+    let stderr = "";
+    child.stdout.setEncoding("utf8").on("data", (chunk) => {
+      stdout += chunk;
+      writeFileSync(streamPath, chunk, { flag: "a" });
+      if (/"type":"result"/.test(chunk)) {
+        try {
+          process.kill(-child.pid, "SIGTERM");
+        } catch {
+          // Already gone.
+        }
+      }
+    });
+    child.stderr.setEncoding("utf8").on("data", (chunk) => (stderr += chunk));
+    child.once("error", reject);
+    child.once("close", (status) => {
+      const lines = stdout.split("\n").filter((line) => line.trim() !== "");
+      let result = "";
+      for (const line of lines) {
+        try {
+          const event = JSON.parse(line);
+          if (event.type === "result" && typeof event.result === "string") result = event.result;
+        } catch {
+          // A partial line; the stream file keeps it.
+        }
+      }
+      resolve({ status, result, stderr });
+    });
+  });
+}
+
+/** A free loopback port: bound once on port 0 to learn the number, then closed. */
+export function freePort() {
+  return new Promise((resolve, reject) => {
+    const probe = createServer();
+    probe.once("error", reject);
+    probe.listen(0, "127.0.0.1", () => {
+      const { port } = probe.address();
+      probe.close(() => resolve(port));
+    });
+  });
+}

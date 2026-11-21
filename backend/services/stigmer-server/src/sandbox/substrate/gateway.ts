@@ -33,7 +33,14 @@
  * call, so an unknown one means the control plane runs another release.
  * Every call has a deadline.
  *
- * An actor's state is Substrate's, read as an enum. A suspend asks for
+ * An actor's state is Substrate's, read as an enum. A crashed actor's
+ * reason is Substrate's free text (`ActorCrash.message`, no field a program
+ * can switch on), so the gateway reads one fact from it, in the driver's
+ * words: whether the sandbox was killed for its memory (`crashOf`). It
+ * matches the words Substrate's workers write at the end of the message,
+ * because the control plane may put the failed operation's name in front.
+ *
+ * A suspend asks for
  * Substrate's asynchronous mode: the call returns once the snapshot is
  * captured on the actor's node, so a quick wake restores from there, and
  * Substrate copies it to storage in the background. Nothing here waits for
@@ -166,7 +173,32 @@ export interface SubstrateActorView {
   readonly updateTime: Date | undefined;
   /** The worker hosting it; absent while it has none (suspended, crashed). */
   readonly worker?: string;
+  /** Why it crashed; present only while it is crashed (a revert clears it). */
+  readonly crash?: SubstrateCrashView;
 }
+
+/** Why an actor crashed, in the platform's words (`crashOf`). */
+export interface SubstrateCrashView {
+  /**
+   * `memory` when Substrate killed the sandbox for exceeding its memory
+   * limit; `other` for every other crash (the sandbox exited, its worker
+   * was lost).
+   */
+  readonly cause: "memory" | "other";
+  /** Substrate's own words, for the log only. */
+  readonly message: string;
+}
+
+/**
+ * The words Substrate's workers write when the memory guard killed the
+ * sandbox: `cmd/ateworker-gvisor/crash.go:62` and
+ * `cmd/ateworker-microvm/crash.go:57` at v1.0.0 (the same at v1.0.1). A
+ * release that rewords them makes a memory kill read as `other`, which
+ * reverts and wakes the sandbox as any crash does: safe, but the turn's
+ * recovery then runs the same command again.
+ */
+export const SUBSTRATE_MEMORY_KILL_WORDS =
+  "killed for exceeding its memory limit";
 
 /** A worker's state, in the platform's words: Substrate's (module header). */
 export type SubstrateWorkerState =
@@ -905,6 +937,34 @@ function actorView(actor: Actor): SubstrateActorView {
     ...(actor.status?.workerAssignment?.worker?.name
       ? { worker: actor.status.workerAssignment.worker.name }
       : {}),
+    ...withCrash(crashOf(actor.status)),
+  };
+}
+
+function withCrash(
+  crash: SubstrateCrashView | undefined,
+): { crash?: SubstrateCrashView } {
+  return crash === undefined ? {} : { crash };
+}
+
+/**
+ * Why an actor crashed, in the driver's words (module header): undefined
+ * unless Substrate recorded a crash. The memory words are matched at the
+ * end of the message, which survives the control plane's
+ * "<operation> failed: " prefix, and nowhere else.
+ */
+export function crashOf(
+  status: ActorStatus | undefined,
+): SubstrateCrashView | undefined {
+  const crash = status?.crash;
+  if (crash === undefined) {
+    return undefined;
+  }
+  return {
+    cause: crash.message.endsWith(SUBSTRATE_MEMORY_KILL_WORDS)
+      ? "memory"
+      : "other",
+    message: crash.message,
   };
 }
 

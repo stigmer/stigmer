@@ -19,7 +19,9 @@
 //   agent and the runner answers on its one built-in prompt with the tools the
 //   session itself carries, so the run reaches COMPLETED like any other — the
 //   arm pinned below and in the CRUD suite's session create.
-// - Runs are listed by conversation through listBySession (filter by spec.session_id).
+// - Runs are listed by conversation through listBySession (filter by spec.session_id),
+//   and by agent through listByAgent (status.agent_id), newest first across the
+//   agent's conversations.
 //
 // One-call session bootstrap (stigmer/stigmer#249): create may carry
 // spec.session_spec — the full shape of the session to auto-create (its
@@ -398,6 +400,35 @@ describe("Run conformance — queries", () => {
       Code.InvalidArgument,
       "listBySession empty session_id",
     ));
+
+  it("[rpc:RunQueryController.listByAgent] listByAgent lists one agent's runs newest first across its conversations: a follow-up in the older one comes first", async () => {
+    const { org } = await target.provisionTenancy();
+    const agent = await provisionAgent(org);
+
+    const first = await createExecution(org, agent);
+    await awaitTerminal(clients, first.metadata!.id);
+    const second = await createExecution(org, agent);
+    await awaitTerminal(clients, second.metadata!.id);
+    expect(sessionIdOf(second), "two conversations").not.toBe(sessionIdOf(first));
+
+    mock.enqueue(anthropicText("Done."));
+    const followUp = await clients.agentExecutionCommand.create(
+      makeAgentExecution({ org, name: uniqueName("aex"), sessionId: sessionIdOf(first) }),
+    );
+    fixtures.defer(() => clients.agentExecutionCommand.delete({ value: followUp.metadata!.id }));
+    await awaitTerminal(clients, followUp.metadata!.id);
+
+    const otherAgent = await provisionAgent(org);
+    const other = await createExecution(org, otherAgent);
+    await awaitTerminal(clients, other.metadata!.id);
+
+    const listed = await clients.agentExecutionQuery.listByAgent({ agentId: agent.metadata!.id });
+    expect(listed.entries.map((e) => e.metadata?.id)).toEqual([
+      followUp.metadata!.id,
+      second.metadata!.id,
+      first.metadata!.id,
+    ]);
+  });
 });
 
 describe("Run conformance — a turn belongs to its session and its session's organization (#1580, #1588)", () => {
