@@ -94,7 +94,6 @@ import type { Store } from "../../../store/interface.js";
 import { ResourceNotFoundError } from "../../../store/interface.js";
 
 import type { RunValuePlannerDeps } from "../plan-run-values-step.js";
-import { newConfigFromEnv } from "../temporal/config.js";
 import type {
   ConnectedExecutionEngine,
   ExecutionEngineState,
@@ -392,11 +391,6 @@ function lifecycleDeps(engineState: ExecutionEngineState): LifecycleDeps {
     runValuePlanner: stubPlannerDeps(),
     gateSteps: new Map(),
     statusObservers: [],
-    // The OSS default sandbox posture: lane disabled — the
-    // recover chain's EnsureSessionSandbox step short-circuits.
-    sandboxLane: { enabled: false },
-    temporalConfig: newConfigFromEnv(),
-    personAccounts: undefined,
   };
 }
 
@@ -853,9 +847,6 @@ describe("lifecycle pipelines", () => {
         sessionEventBroker: new SessionEventBroker(silentLogger),
       gateSteps: new Map(),
       statusObservers: [],
-      sandboxLane: { enabled: false },
-      temporalConfig: newConfigFromEnv(),
-      personAccounts: undefined,
       engineState: () =>
         connected(
           stubConnectedEngine({
@@ -952,9 +943,6 @@ describe("lifecycle pipelines", () => {
         sessionEventBroker: new SessionEventBroker(silentLogger),
       gateSteps: new Map(),
       statusObservers: [],
-      sandboxLane: { enabled: false },
-      temporalConfig: newConfigFromEnv(),
-      personAccounts: undefined,
       engineState: () =>
         connected(
           stubConnectedEngine({
@@ -998,9 +986,6 @@ describe("lifecycle pipelines", () => {
         sessionEventBroker: new SessionEventBroker(silentLogger),
       gateSteps: new Map(),
       statusObservers: [],
-      sandboxLane: { enabled: false },
-      temporalConfig: newConfigFromEnv(),
-      personAccounts: undefined,
       engineState: () =>
         connected(
           stubConnectedEngine({
@@ -1051,9 +1036,6 @@ describe("lifecycle pipelines", () => {
         sessionEventBroker: new SessionEventBroker(silentLogger),
       gateSteps: new Map(),
       statusObservers: [],
-      sandboxLane: { enabled: false },
-      temporalConfig: newConfigFromEnv(),
-      personAccounts: undefined,
       engineState: () =>
         connected(
           stubConnectedEngine({
@@ -1287,9 +1269,6 @@ describe("lifecycle pipelines", () => {
         sessionEventBroker: new SessionEventBroker(silentLogger),
       gateSteps: new Map(),
       statusObservers: [],
-      sandboxLane: { enabled: false },
-      temporalConfig: newConfigFromEnv(),
-      personAccounts: undefined,
       engineState: () => connected(stubConnectedEngine()),
       runValuePlanner: {
         ...plannerDeps,
@@ -1763,9 +1742,6 @@ describe("lifecycle persist uses the atomic row-locked write", () => {
         runValuePlanner: stubPlannerDeps(),
         gateSteps: new Map(),
         statusObservers: [],
-        sandboxLane: { enabled: false },
-        temporalConfig: newConfigFromEnv(),
-        personAccounts: undefined,
       };
 
       // Seed through the RAW store so the seed write is not counted.

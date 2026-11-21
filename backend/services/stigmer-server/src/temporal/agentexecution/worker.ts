@@ -47,7 +47,7 @@ export interface AgentExecutionWorkerDeps {
   readonly temporalConfig: AgentExecutionTemporalConfig;
   /** The sandbox lane the EnsureSessionSandbox activity provisions through. */
   readonly sandboxLane: SandboxLane;
-  /** Resolves a session's creator for its sandbox's runner credential; undefined under the trusted-local posture (sandbox/steps.ts). */
+  /** Resolves a session's creator for its sandbox's runner credential; undefined under the trusted-local posture (sandbox/session-sandbox.ts). */
   readonly personAccounts: AccountsByCaller | undefined;
 }
 

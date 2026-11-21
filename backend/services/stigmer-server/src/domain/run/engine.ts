@@ -26,7 +26,7 @@ import type { PipelineStep } from "../../pipeline/pipeline.js";
 import { unavailableError } from "../../pipeline/errors.js";
 import type { RunSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 
-import type { SandboxCaller } from "../../sandbox/steps.js";
+import type { SandboxCaller } from "../../sandbox/session-sandbox.js";
 import { ENGINE_UNAVAILABLE_MESSAGE } from "./constants.js";
 
 /**
@@ -95,7 +95,7 @@ export interface StartInvokeWorkflowInput {
   /**
    * The caller whose request starts the run: the workflow's sandbox
    * ensure hands its class, and a routine's fire its routine, to the
-   * driver as the request's own ensure does (sandbox/steps.ts). Required,
+   * driver (sandbox/session-sandbox.ts). Required,
    * so a start site that forgets it fails to compile.
    */
   readonly caller: SandboxCaller;

@@ -136,8 +136,6 @@ import {
   newSetInitialPhaseStep,
   newStartWorkflowStep,
 } from "./create-steps.js";
-import type { SandboxLane } from "../../sandbox/lane.js";
-import { newEnsureSessionSandboxStep } from "../../sandbox/steps.js";
 import type { RunValuePlannerDeps } from "./plan-run-values-step.js";
 import {
   newPlanRunValuesStep,
@@ -148,7 +146,6 @@ import type { QueuedTurnStarter } from "./queued-turn.js";
 import { createTurn, sendMessage } from "./send-message.js";
 import type { TurnChain } from "./send-message.js";
 import { newRequireApprovalAuthorityStep } from "./approval-authority.js";
-import type { AgentExecutionTemporalConfig } from "./temporal/config.js";
 import type { ExecutionEngineStateProvider } from "./engine.js";
 import { newEnsureEngineAvailableStep } from "./engine.js";
 import {
@@ -294,14 +291,6 @@ export interface AgentExecutionControllerDeps {
   /** Removes a run's scores before its row (delete). */
   readonly runScores: RunScoreCascade;
   /**
-   * The sandbox lane: disabled on the OSS default; the create
-   * and recover chains ensure the session sandbox through it after their
-   * workflow starts.
-   */
-  readonly sandboxLane: SandboxLane;
-  /** Dispatch config — the sandbox ensure resolves target/queue through it. */
-  readonly temporalConfig: AgentExecutionTemporalConfig;
-  /**
    * Starts the turn a session's queued messages wait for (queued-turn.ts):
    * sendMessage calls it for a message queued with nothing working, and a
    * stop's drop leaves it nothing to start.
@@ -326,9 +315,6 @@ export function registerAgentExecutionServices(
     runValuePlanner: deps.runValuePlanner,
     gateSteps: deps.gateSteps,
     statusObservers: deps.statusObservers,
-    sandboxLane: deps.sandboxLane,
-    temporalConfig: deps.temporalConfig,
-    personAccounts: deps.personAccounts,
   };
   const artifactDeps = {
     store: deps.store,
@@ -597,20 +583,9 @@ function runStartChain(deps: AgentExecutionControllerDeps): PipelineBuilder<type
         statusObservers: deps.statusObservers,
         sessionEventBroker: deps.sessionEventBroker,
       }),
-    )
-    // The session-lane sandbox ensure: after StartWorkflow,
-    // NON-critical — a provisioning failure pre-stamps status.error and
-    // never fails the create (sandbox/steps.ts carries the posture's
-    // full rationale). Skips instantly when no provisioner is composed.
-    .addStep(
-      newEnsureSessionSandboxStep({
-        store: deps.store,
-        logger: deps.logger,
-        lane: deps.sandboxLane,
-        temporalConfig: deps.temporalConfig,
-        accounts: deps.personAccounts,
-      }),
     );
+  // The chain ends at the start: the turn's workflow asks for its sandbox
+  // (temporal/agentexecution/sandbox-wait.ts).
 }
 
 function kindOf(ctx: HandlerContext): ApiResourceKind {

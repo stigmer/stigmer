@@ -19,7 +19,7 @@
  *     message is not in the log, a previous turn since deleted, and one
  *     the log shows a person decided close nothing; a store fault reading
  *     the previous turn fails the activity;
- *   - EnsureSessionSandbox runs the request's ensure with the caller's
+ *   - EnsureSessionSandbox runs the turn's sandbox ensure with the caller's
  *     facts from the input, saying the runner is idle (it runs right
  *     before the workflow invokes the runner, so a driver may restart a
  *     sandbox started under another configuration, stigmer#1843), and
@@ -616,7 +616,7 @@ describe("EnsureSessionSandbox activity", () => {
     return { ensure, sent, store: temp.store };
   }
 
-  it("runs the request's ensure with the caller's facts and answers ready, telling no stream when the turn never waited", async () => {
+  it("runs the turn's sandbox ensure with the caller's facts and answers ready, telling no stream when the turn never waited", async () => {
     const { provisioner, facts } = scriptedProvisioner(["ready"]);
     const { ensure, sent } = await sandboxFixture(provisioner, () => undefined);
     expect(await ensure({ execution_id: "run_wait", caller_class: "user", routine_id: "rtn_1", caller_identity_id: "ida_1" })).toBe("ready");

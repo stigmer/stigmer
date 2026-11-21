@@ -1,5 +1,6 @@
 /**
- * Pins the sandbox invocation surface's postures:
+ * Pins the postures of the turn's sandbox ensure and the session
+ * delete's teardown (sandbox/session-sandbox.ts):
  *
  *   - the session lane fires ONLY on resolved CLOUD target with
  *     per-session routing, is NON-critical (a provisioning failure never
@@ -25,14 +26,11 @@
  *     the driver's words (stigmer#1843);
  *   - a sandbox killed for its memory (SandboxOutOfMemoryError, through a
  *     wrapping driver's cause too) answers out_of_memory and stamps
- *     nothing, since the request's and the recover's ensures run this same
- *     body and may meet the kill before the turn that ran the command
- *     (stigmer#3347);
- *   - only a caller that says the runner is idle (the workflow's ensure,
- *     right before it invokes the runner) hands `runnerIdle` to the
- *     driver: the request's and the recover's ensures never do;
- *   - only a caller that says its run is waiting (the workflow's ensure)
- *     asks the driver to make room on "no room": once per ask, then asks
+ *     nothing, since the workflow decides which turn the kill ends and
+ *     writes the sentence itself (stigmer#3347);
+ *   - every ensure hands `runnerIdle` to the driver: the server makes it
+ *     right before it invokes the runner;
+ *   - every ensure asks the driver to make room on "no room": once per ask, then asks
  *     for the sandbox again on the short schedule with the same facts (one
  *     mint), starting when the freed seat is seen and waiting as before
  *     when it is not; no room made, a makeRoom that throws (logged, read
@@ -81,9 +79,8 @@ import {
   deprovisionSessionSandboxBestEffort,
   ensureSessionSandboxForExecution,
   SANDBOX_PROVISIONING_FAILED_PREFIX,
-  type EnsureSessionSandboxOptions,
   type SandboxCaller,
-} from "../steps.js";
+} from "../session-sandbox.js";
 
 /**
  * The caller the ensure bodies split two ways: the identity id into the
@@ -180,7 +177,7 @@ const disabledCredentials: RunnerCredentialProvider = {
 /**
  * A provider with the mintSandboxCredential capability: records the
  * full provisioning context it received and returns a distinguishable
- * token — proving the ensure steps delegate the WHOLE mint decision
+ * token — proving the ensure delegates the WHOLE mint decision
  * (the primitives must never be consulted on this path).
  */
 function capabilityCredentials(): RunnerCredentialProvider & {
@@ -289,6 +286,7 @@ describe("the session lane (ensureSessionSandboxForExecution)", () => {
           stigmerToken: `tok-${execution.metadata?.id ?? ""}`,
           callerClass: "user",
           executionId: execution.metadata?.id ?? "",
+          runnerIdle: true,
         },
       },
     ]);
@@ -643,7 +641,6 @@ describe("what an ensure came to", () => {
     provisioner: SandboxProvisioner,
     execution: Run,
     enabled = true,
-    options?: { readonly runnerIdle?: boolean },
   ) {
     return ensureSessionSandboxForExecution(
       {
@@ -655,7 +652,6 @@ describe("what an ensure came to", () => {
       },
       execution,
       TEST_CALLER,
-      options,
     );
   }
 
@@ -727,11 +723,11 @@ describe("what an ensure came to", () => {
     expect((await store.getResource(ApiResourceKind.run, "axr_oom2", RunSchema)).status?.error ?? "").toBe("");
   });
 
-  it("hands runnerIdle to the driver only when its caller says the runner is idle", async () => {
+  it("every ensure tells the driver the runner is idle", async () => {
     const provisioner = fakeProvisioner();
-    await ensureWith(provisioner, await seeded("idle", ExecutionTarget.CLOUD), true, { runnerIdle: true });
-    await ensureWith(provisioner, await seeded("busy", ExecutionTarget.CLOUD));
-    expect(provisioner.ensured.map((call) => call.facts.runnerIdle)).toEqual([true, undefined]);
+    await ensureWith(provisioner, await seeded("idle", ExecutionTarget.CLOUD));
+    await ensureWith(provisioner, await seeded("idle2", ExecutionTarget.CLOUD));
+    expect(provisioner.ensured.map((call) => call.facts.runnerIdle)).toEqual([true, true]);
   });
 });
 
@@ -789,7 +785,6 @@ describe("making room for a waiting run", () => {
   function ensure(
     provisioner: SandboxProvisioner,
     execution: Run,
-    options: EnsureSessionSandboxOptions | undefined,
     logger = silentLogger,
     slept: number[] = [],
   ) {
@@ -806,22 +801,14 @@ describe("making room for a waiting run", () => {
       },
       execution,
       TEST_CALLER,
-      options,
     );
   }
-
-  it("without the option, never asks: the request's ensure stays as it was", async () => {
-    const { provisioner, forSessions } = roomy([noRoom()], async () => true);
-    expect(await ensure(provisioner, await seeded("request"), { runnerIdle: false })).toBe("no_room");
-    expect(await ensure(provisioner, await seeded("request2"), undefined)).toBe("ready");
-    expect(forSessions).toEqual([]);
-  });
 
   it("asks once for the waiting session, then asks for its sandbox again with the same facts and starts", async () => {
     const { provisioner, forSessions } = roomy([noRoom(), noRoom()], async () => true);
     const slept: number[] = [];
     const { entries, logger } = capture();
-    expect(await ensure(provisioner, await seeded("made"), { runnerIdle: true, makeRoom: true }, logger, slept)).toBe("ready");
+    expect(await ensure(provisioner, await seeded("made"), logger, slept)).toBe("ready");
     expect(forSessions).toEqual(["ses_made"]);
     expect(slept).toEqual(MAKE_ROOM_RETRY_DELAYS_MS.slice(0, 2));
     expect(provisioner.asked).toHaveLength(3);
@@ -837,7 +824,7 @@ describe("making room for a waiting run", () => {
     );
     const slept: number[] = [];
     const { entries, logger } = capture();
-    expect(await ensure(provisioner, await seeded("unseen"), { makeRoom: true }, logger, slept)).toBe("no_room");
+    expect(await ensure(provisioner, await seeded("unseen"), logger, slept)).toBe("no_room");
     expect(forSessions).toEqual(["ses_unseen"]);
     expect(slept).toEqual([...MAKE_ROOM_RETRY_DELAYS_MS]);
     const lines = entries.filter((entry) => entry.message === "No sandbox has room for the session now");
@@ -848,7 +835,7 @@ describe("making room for a waiting run", () => {
     const { provisioner } = roomy([noRoom()], async () => false);
     const slept: number[] = [];
     const { entries, logger } = capture();
-    expect(await ensure(provisioner, await seeded("none"), { makeRoom: true }, logger, slept)).toBe("no_room");
+    expect(await ensure(provisioner, await seeded("none"), logger, slept)).toBe("no_room");
     expect(slept).toEqual([]);
     expect(provisioner.asked).toHaveLength(1);
     const lines = entries.filter((entry) => entry.message === "No sandbox has room for the session now");
@@ -858,7 +845,7 @@ describe("making room for a waiting run", () => {
   it("a makeRoom that throws is logged once and read as false: the turn waits as it would have", async () => {
     const { provisioner } = roomy([noRoom()], () => Promise.reject(new Error("store unavailable")));
     const { entries, logger } = capture();
-    expect(await ensure(provisioner, await seeded("threw"), { makeRoom: true }, logger)).toBe("no_room");
+    expect(await ensure(provisioner, await seeded("threw"), logger)).toBe("no_room");
     expect(
       entries.filter((entry) => entry.message.startsWith("Could not put an idle sandbox to sleep")).map((e) => e.fields?.error),
     ).toEqual(["store unavailable"]);
@@ -867,14 +854,14 @@ describe("making room for a waiting run", () => {
 
   it("a retry that fails otherwise is a provisioning failure, as any ensure's is", async () => {
     const { provisioner } = roomy([noRoom(), new Error("quota")], async () => true);
-    expect(await ensure(provisioner, await seeded("broke"), { makeRoom: true })).toBe("failed");
+    expect(await ensure(provisioner, await seeded("broke"))).toBe("failed");
   });
 
   it("asks nothing of a provisioner that offers no makeRoom, and nothing on any other failure", async () => {
     const plain = fakeProvisioner({ ensureError: noRoom() });
-    expect(await ensure(plain, await seeded("plain"), { makeRoom: true })).toBe("no_room");
+    expect(await ensure(plain, await seeded("plain"))).toBe("no_room");
     const { provisioner, forSessions } = roomy([new Error("quota")], async () => true);
-    expect(await ensure(provisioner, await seeded("quota"), { makeRoom: true })).toBe("failed");
+    expect(await ensure(provisioner, await seeded("quota"))).toBe("failed");
     expect(forSessions).toEqual([]);
   });
 });
