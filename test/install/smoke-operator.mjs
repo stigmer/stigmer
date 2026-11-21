@@ -109,10 +109,11 @@
  * upgrade: two builds of this checkout's operator stamped as consecutive
  *   versions (smoke-1, smoke-2), with the source images tagged at both. A
  *   bucket-backed Stigmer under smoke-1 runs an agent; `helm upgrade` moves
- *   the operator to smoke-2; the backup named for smoke-2 completes before
- *   the new server pod starts, status.version reads smoke-2, the server
- *   says what the upgrade did, and the run is still there. It runs last:
- *   it leaves the operator at smoke-2.
+ *   the operator to smoke-2, and the Stigmer definition with it (the chart
+ *   renders it as a template, so an upgrade applies it); the backup named
+ *   for smoke-2 completes before the new server pod starts, status.version
+ *   reads smoke-2, the server says what the upgrade did, and the run is
+ *   still there. It runs last: it leaves the operator at smoke-2.
  *
  * Every profile ends with zero ERROR lines in the operator's log.
  *
@@ -1285,6 +1286,19 @@ function tagSourceImages(version) {
   }
 }
 
+/**
+ * The Stigmer definition in the cluster is the one the chart at `version`
+ * rendered, and survives an uninstall: `helm upgrade` moves it with the
+ * operator that reads it.
+ */
+function assertDefinitionFrom(version) {
+  const crd = cluster.kubectlJson(["get", "customresourcedefinition", "stigmers.stigmer.ai"]);
+  const labelled = crd.metadata.labels?.["app.kubernetes.io/version"];
+  if (labelled !== version) throw new Error(`the Stigmer definition is the one ${labelled} installed, not ${version}'s`);
+  if (crd.metadata.annotations?.["helm.sh/resource-policy"] !== "keep") throw new Error("the Stigmer definition would go with `helm uninstall`");
+  log(`the Stigmer definition is ${version}'s, kept on uninstall`);
+}
+
 async function runUpgrade(fake, modelBaseUrl) {
   const namespace = "smoke-upgrade";
   log(`=== profile upgrade (namespace ${namespace}) ===`);
@@ -1294,6 +1308,7 @@ async function runUpgrade(fake, modelBaseUrl) {
     operator.buildAndLoad({ version });
   }
   operator.install({ tag: "smoke-1" });
+  assertDefinitionFrom("smoke-1");
   log("the operator runs smoke-1");
   prepareNamespace(namespace, modelBaseUrl);
   objectStore.writeCredentials(namespace);
@@ -1307,6 +1322,7 @@ async function runUpgrade(fake, modelBaseUrl) {
 
   log("helm upgrade: the operator to smoke-2");
   operator.install({ tag: "smoke-2" });
+  assertDefinitionFrom("smoke-2");
   const backup = await waitBackup(namespace, "stigmer-before-smoke-2");
   await pollUntil("the server to roll to smoke-2", READY_TIMEOUT_MS, () => stigmer.images().server.endsWith(":smoke-2"));
   await stigmer.waitReady(READY_TIMEOUT_MS);

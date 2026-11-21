@@ -34,7 +34,6 @@ it names are the truth.
 
 - Generated files are never edited by hand: `api/v1/zz_generated.deepcopy.go`,
   `config/crd/bases/`, `config/rbac/role.yaml`, and their copies in
-  `deploy/helm/stigmer-operator/crds/` and
   `deploy/helm/stigmer-operator/files/`. Run `make manifests generate` here;
   `make generated-check` fails a stale copy.
 - A reason is a constant in `api/v1/component_reason.go` with a sentence in

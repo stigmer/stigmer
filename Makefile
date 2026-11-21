@@ -844,6 +844,9 @@ test-docker-sandbox: build-server ## Run the Docker driver's live test alone: a 
 # prove the chart as the release packages it.
 OPERATOR_DIR := deploy/operator
 OPERATOR_CHART_DIR := deploy/helm/stigmer-operator
+# The floor the chart's Chart.yaml declares (kubeVersion), its render
+# validated against that release's schemas.
+OPERATOR_KUBE_VERSION := 1.30.0
 PROFILE ?= bundled
 
 .PHONY: build-operator test-operator lint-operator smoke-operator
@@ -853,10 +856,16 @@ build-operator: ## Build the Stigmer operator's binary (deploy/operator)
 test-operator: ## Run the operator's unit and envtest suites, the Compose parity contract included
 	$(MAKE) -C $(OPERATOR_DIR) test
 
-lint-operator: ## gofmt, go vet, go mod tidy and generated files for the operator; helm lint of its chart (needs helm)
+lint-operator: ## gofmt, go vet, go mod tidy and generated files for the operator; its chart linted and its render validated against the Kubernetes schemas, on default values and on every value set (needs helm, kubeconform)
 	$(MAKE) -C $(OPERATOR_DIR) lint
 	@command -v helm >/dev/null 2>&1 || { echo "error: helm not found"; exit 1; }
-	helm lint --strict $(OPERATOR_CHART_DIR)
+	@command -v kubeconform >/dev/null 2>&1 || { echo "error: kubeconform not found — https://github.com/yannh/kubeconform"; exit 1; }
+	@for values in "" "-f $(OPERATOR_CHART_DIR)/ci/values-every-setting.yaml"; do \
+		echo "helm lint --strict $(OPERATOR_CHART_DIR) $$values"; \
+		helm lint --strict $(OPERATOR_CHART_DIR) $$values --quiet || exit 1; \
+		helm template stigmer-operator $(OPERATOR_CHART_DIR) --namespace stigmer-system $$values \
+			| kubeconform -strict -kubernetes-version $(OPERATOR_KUBE_VERSION) -summary || exit 1; \
+	done
 
 smoke-operator: build-server build-web stage-compose-runner-cli ## Build the images and the operator from source and run the operator's install test on kind, PROFILE=bundled|byo|bucket|exposed|agent-sandbox|substrate|upgrade|enterprise; CHART=<dir|.tgz> installs a packaged chart (needs Docker, kind, helm, kubectl)
 	@for tool in docker kind helm kubectl; do command -v $$tool >/dev/null 2>&1 || { echo "error: $$tool not found — the operator's install test needs it"; exit 1; }; done

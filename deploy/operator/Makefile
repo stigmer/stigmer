@@ -49,8 +49,8 @@ help: ## List the targets
 manifests: $(CONTROLLER_GEN) ## Generate the CRD and RBAC, and copy them into the operator chart
 	$(CONTROLLER_GEN) rbac:roleName=stigmer-operator crd paths="./..." \
 		output:crd:artifacts:config=config/crd/bases output:rbac:artifacts:config=config/rbac
-	mkdir -p $(OPERATOR_CHART)/crds $(OPERATOR_CHART)/files
-	cp config/crd/bases/stigmer.ai_stigmers.yaml $(OPERATOR_CHART)/crds/stigmer.ai_stigmers.yaml
+	mkdir -p $(OPERATOR_CHART)/files
+	cp config/crd/bases/stigmer.ai_stigmers.yaml $(OPERATOR_CHART)/files/stigmer.ai_stigmers.yaml
 	cp config/rbac/role.yaml $(OPERATOR_CHART)/files/role.yaml
 
 .PHONY: generate
@@ -59,7 +59,7 @@ generate: $(CONTROLLER_GEN) ## Generate the API types' deepcopy methods
 
 .PHONY: generated-check
 generated-check: manifests generate ## Fail when a generated file is stale
-	@git diff --exit-code -- api config $(OPERATOR_CHART)/crds $(OPERATOR_CHART)/files \
+	@git diff --exit-code -- api config $(OPERATOR_CHART)/files \
 		|| { echo "generated files are stale: run make manifests generate in deploy/operator" >&2; exit 1; }
 
 .PHONY: fmt-check

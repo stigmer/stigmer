@@ -1,16 +1,29 @@
 # The Stigmer operator: its Deployment, its role, and the Stigmer definition.
 #
-# The definition lives in crds/, copied there from the operator's generated
-# one by `make manifests` in deploy/operator (never edited here): Helm
-# installs it before the operator and leaves it in place on uninstall, so
-# uninstalling the operator never deletes an install's Stigmer resource.
+# The definition is rendered by templates/crd.yaml from files/, where
+# `make manifests` in deploy/operator copies the operator's generated one
+# (never edited here). A template rather than crds/, which Helm installs once
+# and never upgrades: `helm upgrade` moves the definition with the operator
+# that reads it, and its keep policy leaves it, and every Stigmer resource,
+# in place on uninstall.
 #
 # version == appVersion == the Stigmer version the operator runs. The
 # operator's image is tagged v{{ appVersion }}, and that image pulls every
-# Stigmer image at the same tag: one version line.
+# Stigmer image at the same tag: one version line. This file is a release
+# pin: `make release-pins version=X.Y.Z` bumps both lines and `make release`
+# refuses to tag until they name the new version, so the chart the release
+# publishes always runs the images the same release pushed.
+#
+# `sources` is load-bearing, not decorative: `helm push` writes it as the
+# OCI manifest's org.opencontainers.image.source annotation, which links the
+# GHCR package to this repository so the repository's GITHUB_TOKEN keeps
+# write access to it.
+#
+# The description and the README's opening are held to Stigmer's one
+# sentence by brand/__tests__/positioning.test.ts.
 apiVersion: v2
 name: stigmer-operator
-description: The Stigmer operator — install and run Stigmer on Kubernetes from one Stigmer resource, with Postgres, Temporal, the server and its runner managed for you.
+description: The Stigmer operator runs Stigmer, the open-source backend for the agents in your product, on Kubernetes from one Stigmer resource, with its database, Temporal, sign-in, backups and per-session sandboxes run for you.
 type: application
 version: 0.2.0
 appVersion: "0.2.0"
@@ -22,3 +35,4 @@ keywords:
   - stigmer
   - operator
   - agents
+  - kubernetes
