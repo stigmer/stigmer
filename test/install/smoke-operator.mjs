@@ -796,8 +796,10 @@ async function runAgentSandbox(fake, modelBaseUrl) {
  * What a sandbox lets through, probed by the agent itself (a Substrate actor
  * takes no exec): an HTTP GET to each HTTP target, and for the database and
  * Temporal the first bytes their own protocol answers (Postgres's reply to
- * an SSLRequest, an HTTP/2 SETTINGS frame), so a reply from a gateway in
- * between is never mistaken for theirs. It prints one line, FENCE=<base64
+ * an SSLRequest, the HTTP/2 server preface). Substrate's egress gateway is
+ * itself an HTTP/2 server and answers a preface with its own, so Temporal
+ * counts as reached only when the bytes match the ones Temporal sends the
+ * same probe from the server's pod. It prints one line, FENCE=<base64
  * JSON>, which the fake model reads back from the tool's output.
  */
 const PROTOCOL_PROBE = `
@@ -832,7 +834,8 @@ const reached = {
   bucket: (r) => (r.body ?? "").includes("<?xml"),
   model: (r) => (r.body ?? "").includes("FakeLlmUpstream"),
   postgres: (r) => r.first === "53" || r.first === "4e",
-  temporal: (r) => typeof r.first === "string" && r.first.length >= 18 && r.first.slice(6, 8) === "04",
+  /** Temporal's own server preface, as `control` (the probe from the server's pod) received it. */
+  temporal: (r, control) => typeof r.first === "string" && r.first.length >= 18 && r.first === control.first,
 };
 
 /** The probe's results, from the last FENCE= line any model call carried. */
@@ -957,22 +960,24 @@ async function runSubstrate(fake, modelBaseUrl) {
     });
     log(`session two: run ${second.runId} COMPLETED`);
     const probed = fenceResults(fake);
-    const want = { server: true, bucket: true, model: true, unlisted: false, database: false, temporal: false };
-    for (const [name, open] of Object.entries(want)) {
-      const kind = targets.find((t) => t.name === name).kind;
-      const check = kind === "http" ? reached[name === "unlisted" ? "model" : name] : reached[kind];
-      const got = check(probed[name] ?? {});
-      if (got !== open) throw new Error(`from an actor, ${name} ${got ? "answered" : "did not answer"} (${JSON.stringify(probed[name])}); want ${open ? "an answer" : "it fenced off"}`);
-    }
-    log("from an actor: server, bucket and model answer; the unlisted name, the database and Temporal do not");
+    // The control: the same probe from the server's pod, which its fence
+    // lets reach the database and Temporal.
     const serverPod = cluster.kubectlJson(["-n", namespace, "get", "pods", "-l", "app.kubernetes.io/component=server"]).items[0]?.metadata?.name;
     if (serverPod === undefined) throw new Error("no server pod to probe from");
     const control = kubectl(["-n", namespace, "exec", serverPod, "-c", "server", "--", "node", "-e", PROTOCOL_PROBE, Buffer.from(JSON.stringify(targets.slice(4))).toString("base64")]);
     const controlResults = JSON.parse(Buffer.from(/FENCE=([A-Za-z0-9+/=]+)/.exec(control)[1], "base64").toString());
-    if (!reached.postgres(controlResults.database) || !reached.temporal(controlResults.temporal)) {
+    if (!reached.postgres(controlResults.database) || (controlResults.temporal?.first ?? "").slice(6, 8) !== "04") {
       throw new Error(`from the server's pod the probe did not reach the database and Temporal (${JSON.stringify(controlResults)}), so it cannot tell them fenced off`);
     }
-    log("from the server's pod the same probe reaches the database and Temporal");
+    log(`from the server's pod the same probe reaches the database and Temporal (${controlResults.temporal.first})`);
+    const want = { server: true, bucket: true, model: true, unlisted: false, database: false, temporal: false };
+    for (const [name, open] of Object.entries(want)) {
+      const kind = targets.find((t) => t.name === name).kind;
+      const check = kind === "http" ? reached[name === "unlisted" ? "model" : name] : reached[kind];
+      const got = check(probed[name] ?? {}, controlResults[name] ?? {});
+      if (got !== open) throw new Error(`from an actor, ${name} ${got ? "answered" : "did not answer"} (${JSON.stringify(probed[name])}); want ${open ? "an answer" : "it fenced off"}`);
+    }
+    log(`from an actor: server, bucket and model answer; the unlisted name, the database and Temporal do not (${JSON.stringify({ database: probed.database, temporal: probed.temporal })})`);
 
     const actors = reader.actors();
     if (actors.length !== 2) throw new Error(`two sessions made ${actors.length} actors: ${JSON.stringify(actors)}`);
