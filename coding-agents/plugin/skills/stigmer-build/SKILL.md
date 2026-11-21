@@ -219,7 +219,11 @@ When the person asks you to make the change, not only to explain it:
   apply it with `stigmer apply -f <file>`. For an Agent that already
   exists, start from `stigmer get agent <agent> -o yaml`, change only what
   they asked, show the change, and say it replaces the live version before
-  applying it (`stigmer apply -f <file> --dry-run` checks it first).
+  applying it. `stigmer apply -f <file> --dry-run` checks the file's
+  shape on this machine only; the server may still refuse what it can't
+  serve (an Environment's packages where its sandboxes can't install
+  them). Say what it refused, in its words, and never drop part of the
+  ask to get past it.
 - A secret is saved by the person (`stigmer vault set-secret`, which asks
   for it) or from a variable they set (`--from-env`); its value never
   appears in this chat or in a file you write.
