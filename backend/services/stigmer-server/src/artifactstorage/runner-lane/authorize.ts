@@ -20,7 +20,13 @@
  *    the composed authorizer allows it to edit the run (an upload) or view
  *    it (a download). That is the check every other read and write of the
  *    run meets, so a URL never reaches someone the run's own API would
- *    refuse.
+ *    refuse. A caller the composed visitor classifier names a visitor (an
+ *    edition's shared-agent guest or channel sender) is refused before the
+ *    authorizer is asked: a URL on a run's folder is a runner's question,
+ *    and a visitor is never a runner, though its own lane account may own
+ *    the runs it started. The folder holds what the run's tools returned in
+ *    full, which a visitor's conversation never shows it. A classifier that
+ *    throws counts as a visitor (extensions/visitor-classifier.ts).
  *
  * The answer separates a missing or unrecognized credential (401) from a
  * refusal (403) and from an authorization or identity backend that could
@@ -36,7 +42,8 @@ import { IamPermission } from "@stigmer/apis/ai/stigmer/iam/v1/enum_pb";
 
 import type { Logger } from "../../boot/logger.js";
 import type { Authorizer } from "../../extensions/authorizer.js";
-import type { IdentityVerifier } from "../../extensions/identity.js";
+import type { CallerIdentity, IdentityVerifier } from "../../extensions/identity.js";
+import type { VisitorClassifier } from "../../extensions/visitor-classifier.js";
 import { authenticateBearerToken } from "../../pipeline/interceptors/auth.js";
 import {
   loadBoundExecution,
@@ -52,6 +59,8 @@ export interface RunnerArtifactAccessDeps {
   readonly store: BoundExecutionStore;
   readonly identityVerifiers: ReadonlyArray<IdentityVerifier>;
   readonly authorizer: Authorizer;
+  /** Which callers are visitors; absent, nobody is (open source). */
+  readonly visitorClassifier?: VisitorClassifier;
   /** Unix milliseconds; the wall clock when absent. */
   readonly now?: () => number;
 }
@@ -150,6 +159,10 @@ async function identityDecision(
   if (caller === undefined) {
     return { kind: "unauthenticated" };
   }
+  if (isVisitor(deps, caller)) {
+    deps.logger.warn("A visitor asked for an artifact URL; refusing", { identityId: caller.identityId, runId });
+    return { kind: "deny" };
+  }
   const decision = await deps.authorizer.authorize(caller, {
     permission: write ? IamPermission.can_edit : IamPermission.can_view,
     resourceKind: ApiResourceKind.run,
@@ -167,6 +180,22 @@ async function identityDecision(
       const exhaustive: never = decision;
       throw new Error(`unknown authorization decision ${String(exhaustive)}`);
     }
+  }
+}
+
+/** Whether the composed classifier names `caller` a visitor; a throw counts as one. */
+function isVisitor(deps: RunnerArtifactAccessDeps, caller: CallerIdentity): boolean {
+  if (deps.visitorClassifier === undefined) {
+    return false;
+  }
+  try {
+    return deps.visitorClassifier.isVisitor(caller);
+  } catch (error) {
+    deps.logger.error("Visitor classifier failed; refusing the artifact URL (fail-closed contract)", {
+      identityId: caller.identityId,
+      error: errorText(error),
+    });
+    return true;
   }
 }
 

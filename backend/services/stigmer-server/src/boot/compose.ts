@@ -2636,6 +2636,9 @@ export async function composeServer(
         store,
         identityVerifiers,
         authorizer,
+        ...(extensions.drivers.visitorClassifier === undefined
+          ? {}
+          : { visitorClassifier: extensions.drivers.visitorClassifier }),
       })
     : undefined;
 

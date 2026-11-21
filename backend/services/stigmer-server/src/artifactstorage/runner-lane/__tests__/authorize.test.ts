@@ -13,6 +13,8 @@
  *   - an identity is admitted by the authorizer's allow on the run, with
  *     edit for an upload and view for a download; deny and not-found
  *     refuse, unavailable is unavailable;
+ *   - a caller the composed classifier names a visitor, or one it throws
+ *     on, is refused before the authorizer is asked;
  *   - no credential, or one no verifier claims, is unauthenticated, and a
  *     verifier that throws a non-authentication fault is unavailable.
  */
@@ -76,6 +78,7 @@ function depsOf(opts: {
   decide?: (check: AuthzCheck) => AuthzDecision;
   verifier?: (token: string) => Promise<CallerIdentity | null>;
   authorizeRunnerForRun?: (token: string, runId: string) => Promise<boolean>;
+  isVisitor?: (caller: CallerIdentity) => boolean;
 }): RunnerArtifactAccessDeps & { checks: AuthzCheck[] } {
   const checks: AuthzCheck[] = [];
   const authorizer: Authorizer = {
@@ -107,6 +110,7 @@ function depsOf(opts: {
     },
     identityVerifiers: [verifier],
     authorizer,
+    ...(opts.isVisitor === undefined ? {} : { visitorClassifier: { isVisitor: opts.isVisitor } }),
   };
 }
 
@@ -165,6 +169,22 @@ describe("decideArtifactAccess: an identity", () => {
     expect(await decideArtifactAccess(depsOf({}), "stranger", "run_1", false)).toEqual({ kind: "unauthenticated" });
     const refusing = depsOf({ verifier: () => Promise.reject(new ConnectError("expired", Code.Unauthenticated)) });
     expect(await decideArtifactAccess(refusing, "person", "run_1", false)).toEqual({ kind: "unauthenticated" });
+  });
+
+  it("refuses a caller the composed classifier names a visitor, and one it cannot classify, without asking the authorizer", async () => {
+    const visitor = depsOf({ decide: () => ({ kind: "allow" }), isVisitor: () => true });
+    expect(await decideArtifactAccess(visitor, "person", "run_1", false)).toEqual({ kind: "deny" });
+    expect(visitor.checks).toEqual([]);
+    const broken = depsOf({
+      decide: () => ({ kind: "allow" }),
+      isVisitor: () => {
+        throw new Error("classifier down");
+      },
+    });
+    expect(await decideArtifactAccess(broken, "person", "run_1", true)).toEqual({ kind: "deny" });
+    expect(broken.checks).toEqual([]);
+    const member = depsOf({ decide: () => ({ kind: "allow" }), isVisitor: () => false });
+    expect(await decideArtifactAccess(member, "person", "run_1", false)).toEqual({ kind: "allow", by: "ida_person" });
   });
 
   it("is unavailable when a verifier cannot answer", async () => {
