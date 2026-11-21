@@ -159,16 +159,20 @@ Pages: https://stigmer.ai/docs/guides/channels/connect-slack, https://stigmer.ai
 
 - There is no self-install link a customer opens alone, no Slack App
   Directory listing, and no CLI command that installs Slack.
-- The channel's tools take keys only from the vaults attached to it, never
-  anyone's own vault.
+- Tell the person why each customer's channel needs its own vault: a
+  channel's conversations have no signed-in person, so its tools take keys
+  only from the vaults attached to that channel, never anyone's own vault.
 
 ### WhatsApp, with reminders
 
 Their own Meta app, registered in Stigmer, and a WhatsApp channel on the
-Agent: replies first. A message outside the 24 hours after the person last
-wrote needs a template approved in WhatsApp Manager, and the channel's
-proactive messaging switched on; a reminder sweep is a scheduled routine
-whose message sends the template. Stigmer Cloud only.
+Agent: replies first. For a reminder, tell the person both rules and why:
+WhatsApp delivers free-form text only within 24 hours of the person's last
+message, so a reminder is a template approved in WhatsApp Manager, sent
+once the channel's proactive messaging is on; and the sweep is a scheduled
+routine whose message finds who is due and sends the template, because a
+routine's run may message anyone while a member's own conversation only
+answers them. Stigmer Cloud only.
 Pages: https://stigmer.ai/docs/guides/channels/set-up-your-meta-app, https://stigmer.ai/docs/guides/channels/connect-whatsapp,
 https://stigmer.ai/docs/guides/channels/send-proactive-messages-with-templates.
 
