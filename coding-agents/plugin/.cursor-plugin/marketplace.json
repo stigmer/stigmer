@@ -1,11 +1,13 @@
 {
   "name": "stigmer",
-  "owner": { "name": "Stigmer" },
+  "owner": {
+    "name": "Stigmer"
+  },
   "plugins": [
     {
       "name": "stigmer",
       "source": "./",
-      "description": "Stigmer for your coding agent: answers questions about Stigmer from its live docs, and sets Stigmer up for your project, from signing in to your agent's chat in your own app, then makes, runs and reads agents."
+      "description": "Stigmer in your coding agent: answers any question about Stigmer from its live docs, citing the page; sets Stigmer up for your project; designs, runs and fixes agents and reads their results; puts them in your own product; and runs your own server and organization. It asks you before anything that can't be undone."
     }
   ]
 }
