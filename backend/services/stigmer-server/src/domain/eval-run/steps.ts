@@ -729,7 +729,7 @@ export function newRefuseTargetsWithoutComputerStep(store: Store): PipelineStep<
       const version = await loadVersion(store, agentVersionBinding, agentId, spec.agentVersion);
       const computer = version.resource.spec?.computer;
       for (const target of spec.targets) {
-        refuseClaudeWithoutComputer(computer, target.harness, subject.row.metadata?.slug ?? "");
+        refuseClaudeWithoutComputer(computer, target.harness, subject.row.metadata?.name || subject.row.metadata?.slug || "");
       }
     },
   };

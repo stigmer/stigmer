@@ -27,6 +27,7 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 
 import { create } from "@bufbuild/protobuf";
+import type { MessageInitShape } from "@bufbuild/protobuf";
 import { Code, ConnectError, createClient } from "@connectrpc/connect";
 import type { Client, Transport } from "@connectrpc/connect";
 import { createGrpcTransport } from "@connectrpc/connect-node";
@@ -36,14 +37,13 @@ import { AgentSchema } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb";
 import type { Agent } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb";
 import { AgentCommandController } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/command_pb";
 import { AgentSpecSchema } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/spec_pb";
-import type { AgentSpec } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/spec_pb";
 import { PluginSchema } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/api_pb";
 import { RunSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 import { RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 import type { Session } from "@stigmer/apis/ai/stigmer/agentic/session/v1/api_pb";
 import { SessionCommandController } from "@stigmer/apis/ai/stigmer/agentic/session/v1/command_pb";
 import { Computer, Harness } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
-import type { SessionSpec } from "@stigmer/apis/ai/stigmer/agentic/session/v1/spec_pb";
+import type { SessionSpecSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/spec_pb";
 import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiResourceVisibility } from "@stigmer/apis/ai/stigmer/commons/apiresource/enum_pb";
 
@@ -129,7 +129,7 @@ async function seedPlugin(slug: string, carries: "hooks" | "stdio" | "http"): Pr
   );
 }
 
-function agentInput(name: string, spec: Partial<Omit<AgentSpec, "$typeName">>) {
+function agentInput(name: string, spec: MessageInitShape<typeof AgentSpecSchema>) {
   return {
     apiVersion: API_VERSION,
     kind: "Agent",
@@ -138,11 +138,11 @@ function agentInput(name: string, spec: Partial<Omit<AgentSpec, "$typeName">>) {
   };
 }
 
-async function createAgent(spec: Partial<Omit<AgentSpec, "$typeName">>, name = uniqueName("agent")): Promise<Agent> {
+async function createAgent(spec: MessageInitShape<typeof AgentSpecSchema>, name = uniqueName("agent")): Promise<Agent> {
   return agents.create(agentInput(name, spec));
 }
 
-function updateOf(agent: Agent, spec: Partial<Omit<AgentSpec, "$typeName">>, paths: string[]) {
+function updateOf(agent: Agent, spec: MessageInitShape<typeof AgentSpecSchema>, paths: string[]) {
   return {
     resource: {
       apiVersion: API_VERSION,
@@ -257,7 +257,7 @@ describe("an agent's computer on save", () => {
 });
 
 let sessionCounter = 0;
-async function createSession(spec: Partial<Omit<SessionSpec, "$typeName">>): Promise<Session> {
+async function createSession(spec: MessageInitShape<typeof SessionSpecSchema>): Promise<Session> {
   sessionCounter += 1;
   return sessions.create({
     apiVersion: API_VERSION,
@@ -267,7 +267,7 @@ async function createSession(spec: Partial<Omit<SessionSpec, "$typeName">>): Pro
   });
 }
 
-function sessionUpdate(session: Session, spec: Partial<Omit<SessionSpec, "$typeName">>) {
+function sessionUpdate(session: Session, spec: MessageInitShape<typeof SessionSpecSchema>) {
   return {
     resource: {
       apiVersion: API_VERSION,

@@ -648,7 +648,8 @@ describe("ValidateEvalRunTargets on an agent", () => {
 
 describe("RefuseTargetsWithoutComputer on an agent", () => {
   async function refuseOver(computer: Computer, harness: Harness): Promise<void> {
-    const agent = create(AgentSchema, { ...AGENT, spec: { ...AGENT.spec, computer } });
+    const agent = clone(AgentSchema, AGENT);
+    agent.spec!.computer = computer;
     await temp.store.saveResource(ApiResourceKind.agent, AGENT_ID, AgentSchema, agent);
     const row = evalRow("", EvalRunPhase.unspecified);
     row.spec!.agentVersion = AGENT_HASH;

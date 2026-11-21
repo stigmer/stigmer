@@ -27,17 +27,22 @@
  * reads, and before ResolveSessionEnvironment, which skips every default
  * Environment for a conversation without a computer.
  *
- * Tests: __tests__/resolve-session-computer.test.ts.
+ * Tests: domain/agent/__tests__/agent-computer.test.ts (over the composed
+ * server) and domain/routine/__tests__/admit-run.test.ts.
  */
 import { create } from "@bufbuild/protobuf";
 
+import { AgentSchema } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb";
 import type { Session, SessionSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/api_pb";
 import { Computer } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
 import { SessionStatusSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/status_pb";
+import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
+import { internalError } from "../../pipeline/errors.js";
 import type { PipelineStep } from "../../pipeline/pipeline.js";
 import type { RequestContext } from "../../pipeline/request-context.js";
 import { EXISTING_RESOURCE_KEY } from "../../pipeline/steps/load-existing.js";
+import { ResourceNotFoundError } from "../../store/interface.js";
 import type { Store } from "../../store/interface.js";
 import { readRunAgentSpec } from "../agent/run-defaults.js";
 import { agentComputer, hasComputer, refuseConversationWithoutComputer } from "../run/computer.js";
@@ -66,7 +71,28 @@ export async function refuseSessionWithoutComputer(store: Store, session: Sessio
   }
   const org = session.metadata?.org ?? "";
   const plugins = await loadRunPlugins(store, runPluginReferences(undefined, session, org), org);
-  refuseConversationWithoutComputer(session, session.spec?.agentRef?.slug ?? "", plugins);
+  refuseConversationWithoutComputer(session, await agentNameOf(store, session.status?.agentId ?? ""), plugins);
+}
+
+/**
+ * The agent's name as a refusal names it, the way a turn's refusals do
+ * (its display name, else its slug); "" when it cannot be read, and the
+ * sentence then says "this conversation's agent". A stored reference holds
+ * only the agent's id, so the name is read from the agent as it is now.
+ */
+async function agentNameOf(store: Store, agentId: string): Promise<string> {
+  if (agentId === "") {
+    return "";
+  }
+  try {
+    const agent = await store.getResource(ApiResourceKind.agent, agentId, AgentSchema);
+    return agent.metadata?.name || agent.metadata?.slug || "";
+  } catch (error) {
+    if (error instanceof ResourceNotFoundError) {
+      return "";
+    }
+    throw internalError(error, "failed to read the conversation's agent");
+  }
 }
 
 /** Stamps `session`'s computer from its pinned agent version, then refuses what it may not add. */

@@ -44,11 +44,19 @@ export const agentView: KindView = {
   },
 };
 
-// Whether the agent's conversations have a computer. Only COMPUTER_NONE
-// means none: an agent saved before the setting (unset) has one
-// (session/v1/enum.proto, Computer).
-function computerWord(computer: JsonValue | undefined): string {
-  return computer === "COMPUTER_NONE" ? "no" : "yes";
+// Whether the agent's conversations have a computer, as the agent records
+// it. Only COMPUTER_NONE means none (session/v1/enum.proto, Computer); an
+// agent saved before the setting records nothing, and the row is left out
+// as every view leaves out what a resource does not carry.
+function computerWord(computer: JsonValue | undefined): string | undefined {
+  switch (computer) {
+    case "COMPUTER_NONE":
+      return "no";
+    case "COMPUTER_REQUIRED":
+      return "yes";
+    default:
+      return undefined;
+  }
 }
 
 // The values an agent declares, by name, each marked secret or optional

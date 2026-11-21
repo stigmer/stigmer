@@ -17,6 +17,7 @@
  *     a turn with one is not.
  */
 import { create } from "@bufbuild/protobuf";
+import type { MessageInitShape } from "@bufbuild/protobuf";
 import { Code, ConnectError } from "@connectrpc/connect";
 import { describe, expect, it } from "vitest";
 
@@ -26,6 +27,7 @@ import { PluginStatusSchema } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/s
 import { SessionSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/api_pb";
 import type { Session } from "@stigmer/apis/ai/stigmer/agentic/session/v1/api_pb";
 import { Computer, Harness } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
+import type { SessionSpecSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/spec_pb";
 
 import type { RunPlugin } from "../../vault/resolve.js";
 import {
@@ -49,7 +51,7 @@ function refusal(run: () => void): ConnectError {
   throw new Error("expected a refusal");
 }
 
-function noComputer(fields: Partial<Omit<AgentSpec, "$typeName">> = {}): AgentSpec {
+function noComputer(fields: Omit<MessageInitShape<typeof AgentSpecSchema>, "$typeName"> = {}): AgentSpec {
   return create(AgentSpecSchema, { computer: Computer.NONE, ...fields });
 }
 
@@ -74,7 +76,7 @@ function subagent(name: string, computer: Computer): RunSubagent {
   return { id: `agt_${name}`, name, versionHash: "a".repeat(64), org: "acme", spec: create(AgentSpecSchema, { computer }) };
 }
 
-function conversation(computer: Computer, spec: Partial<Omit<Session["spec"] & object, "$typeName">> = {}): Session {
+function conversation(computer: Computer, spec: MessageInitShape<typeof SessionSpecSchema> = {}): Session {
   return create(SessionSchema, { spec, status: { computer } });
 }
 
