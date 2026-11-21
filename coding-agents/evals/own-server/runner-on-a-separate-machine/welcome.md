@@ -1,7 +1,7 @@
 What a good answer may also say. Never graded: leaving any of it out fails nothing.
 
 - Each sandboxed runner reaches the server only, never Temporal.
-- The Helm chart on a cluster with bigger nodes.
+- Kubernetes with the Stigmer operator on a cluster with bigger nodes, where a bucket and a sandbox driver also give each Session a runner of its own, on any node.
 - Environments for the packages a sandbox installs, such as pandas.
 - The desktop app's own runner, which takes work only when the server routes runs per conversation (`STIGMER_ACTIVITY_ROUTING=session`).
 - The LLM key lives with the runner, never the server.

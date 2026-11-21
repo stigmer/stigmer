@@ -4,4 +4,4 @@ type: llm
 
 PASS if the answer makes this point, in substance (in its own words):
 
-Says a Secret holding the server's keys and the Postgres password (for example `STIGMER_ENCRYPTION_KEY`) is created before the install, because the chart refuses to install without it.
+Says the one Secret they write is their model provider's key, which the `Stigmer` resource names for the runner (`spec.runner.llm.secretName`); the operator mints the server's own keys itself.
