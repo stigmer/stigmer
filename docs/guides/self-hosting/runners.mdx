@@ -583,11 +583,14 @@ waits for it, so how often it runs depends on how long a runner's files last:
 - `docker` sets the Environment when it creates a Session's container. A
   restarted container keeps its files, and the runner skips a package set it
   already installed, so an edit reaches only a container created again.
-- `substrate` keeps only a sleeping Session's two volumes, the workspace and the
-  Agent's home, neither of which holds an Environment's packages, so a Session's
-  packages install again at each wake
-  ([stigmer#3360](https://github.com/stigmer/stigmer/issues/3360)). A network
-  edit reaches every Session at its next turn.
+- `substrate` keeps a sleeping Session's disk as well as its two volumes, so its
+  packages are still there when it wakes and the runner skips them. After an
+  upgrade a Session installs them once more at its next wake, and keeps them
+  again from its next sleep (below). An Environment edit reaches a sleeping
+  Session at its next wake: a changed set installs over the one it kept, and a
+  package removed from the Environment stays installed. A Session that is awake
+  keeps its set until it next sleeps. A network edit reaches every Session at
+  its next turn.
 
 **How long they take.** One command may run for 10 minutes and the whole install
 for 15; a failed command is tried once more after two seconds. On one machine
@@ -605,20 +608,21 @@ server suspends it: the sandbox stops and the Session's two durable volumes stay
 on its node, the workspace and the Agent's home (its conversation, approvals in
 flight, the files it saved to its outputs folder and the context it set aside),
 as `agent-sandbox` keeps its two claims. The home starts empty: the image's
-skeleton dotfiles are not copied onto it. Everything else in the sandbox,
-packages installed into the image's own folders among it, starts over from the
-image at each wake. Substrate's atelet copies the volumes to storage 5 minutes
-later and lets the node go after 30 (atelet's `--snapshot-upload-delay` and
-`--snapshot-detach-delay`), so a node lost in those first 5 minutes loses what
-the Session wrote since its last copy. The next message wakes it with its files
-and its conversation intact and a fresh runner, from its node when it wakes on
-the node that still holds them, and from storage when the node has let them go
-or Substrate places it on another node. A Session with a run in progress is
-never put to sleep. A run waiting for approval, or paused, needs no sandbox
-while it waits: its sandbox sleeps after the same idle time, counted from the
-run's start, and wakes with its files before the turn carries on, when the
-person answers or resumes. Connect sandboxes don't sleep; they end with their
-run.
+skeleton dotfiles are not copied onto it. A sleep keeps the rest of the
+sandbox's disk too: the packages an Environment installed, and anything else the
+agent or the runner left there, files in `/tmp` among them. Only its processes
+start over. Substrate's atelet copies the volumes and the disk's changes to
+storage 5 minutes later and lets the node go after 30 (atelet's
+`--snapshot-upload-delay` and `--snapshot-detach-delay`), so a node lost in
+those first 5 minutes loses what the Session wrote since its last copy. The next
+message wakes it with its files, its packages and its conversation intact and a
+fresh runner, from its node when it wakes on the node that still holds them, and
+from storage when the node has let them go or Substrate places it on another
+node. A Session with a run in progress is never put to sleep. A run waiting for
+approval, or paused, needs no sandbox while it waits: its sandbox sleeps after
+the same idle time, counted from the run's start, and wakes with its files
+before the turn carries on, when the person answers or resumes. Connect
+sandboxes don't sleep; they end with their run.
 
 Two things put a Session to sleep before its idle time is up. When a run waits
 because no worker has room, the server puts the awake Session that has been idle
@@ -649,7 +653,10 @@ A worker lost under an awake Session leaves its actor crashed, and the next
 message reverts it to its last snapshot and wakes it, so it loses what the
 Session wrote since then. The sweep runs every
 `STIGMER_SANDBOX_SUBSTRATE_SWEEP_INTERVAL_SECONDS` (30), so a Session sleeps up
-to that long after its window.
+to that long after its window. The server never puts a Session to sleep while
+its Environment installs. A Session you suspend by hand (`kubectl ate suspend`)
+in the middle of an install can wake with `apt` refusing every install until its
+interrupted run is repaired; start a new conversation for it.
 
 A new value for one of the runner's secrets, a model key for one, takes effect
 when the server restarts with it, and reaches each sandbox at its next wake: at
@@ -667,7 +674,11 @@ server from before the Agent's home had a volume of its own
 ([stigmer#3349](https://github.com/stigmer/stigmer/issues/3349)) can't move:
 once, its next message ends with the line saying the conversation's sandbox is
 from another release, and the person starts a new conversation. A rollback to
-such a server ends the conversations made since the same way.
+such a server ends the conversations made since the same way. A Session's disk
+belongs to the image it was written over, so when a sleeping Session moves to a
+new template, by an upgrade or a rollback, its two volumes move with it and the
+rest of its disk starts over from the new image: its Environment's packages
+install once more at its next wake, and are kept again from its next sleep.
 
 **How many Sessions a worker holds.** Each sandbox books
 `STIGMER_SANDBOX_SUBSTRATE_CPU_MILLICORES` of CPU (2000, two cores, by default)
@@ -774,11 +785,13 @@ What the driver needs:
   (`STIGMER_SANDBOX_SUBSTRATE_WORKER_SELECTOR`, as `key=value,…`, matching the
   pool's own labels; the pool's `sandboxClasses` entry is `gvisor`, and it
   chooses the sandbox's configuration, the class default unless it names a
-  `configRef`). Where their files are committed is Substrate's own setting, its
-  API server's `--snapshot-location`: from v1.0 a template may not name one, so
-  the server names none, and a server that still sets
-  `STIGMER_SANDBOX_SUBSTRATE_STORAGE_LOCATION` refuses to start, saying to
-  remove it.
+  `configRef`). Every worker the selector matches must have the same CPU
+  architecture: a sleeping Session keeps the programs its Environment installed,
+  built for one architecture, and may wake on any of them. Where their files are
+  committed is Substrate's own setting, its API server's `--snapshot-location`:
+  from v1.0 a template may not name one, so the server names none, and a server
+  that still sets `STIGMER_SANDBOX_SUBSTRATE_STORAGE_LOCATION` refuses to start,
+  saying to remove it.
 - **Grants.** Substrate always enforces authorization, and names the server by
   its token's subject, `system:serviceaccount:<namespace>:<name>`. The server
   needs `editor` on its atespace and nothing else; atelet, Substrate's process

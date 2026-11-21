@@ -7,9 +7,12 @@
  *     set; the start script refuses one that is not root), mounts
  *     the workspace and the actor's own name, names no sandbox class or
  *     configuration (the WorkerPool chooses both), limits the runner to the
- *     settings' CPU and memory in Substrate's integer units, and snapshots
- *     volumes only, its golden snapshot on (a suspend keeps the workspace,
- *     never the runner's memory);
+ *     settings' CPU and memory in Substrate's integer units, and keeps its
+ *     golden snapshot on;
+ *   - a snapshot keeps the volumes and the disk's changes, never memory: a
+ *     woken sandbox finds the packages its Environment installed, so the
+ *     install skips them (stigmer#3360), and starts a fresh runner, so no
+ *     runner comes back with the secrets it slept with;
  *   - the agent's home is a durable volume of its own, named as the
  *     agent-sandbox driver names its claim, so a sleep keeps the agent's
  *     conversation and outputs as well as its workspace (stigmer#3349);
@@ -213,9 +216,8 @@ describe("the template", () => {
     // Substrate 1.0 refuses a template that names its own snapshot
     // location; its API server's --snapshot-location is the store.
     expect(template.snapshotConfig?.storageLocation).toBe("");
-    expect(template.snapshotConfig).toMatchObject({
-      preferredFidelity: SnapshotFidelity.VOLUMES,
-      goldenSnapshotConfig: { mode: GoldenSnapshotMode.ENABLED },
+    expect(template.snapshotConfig?.goldenSnapshotConfig).toMatchObject({
+      mode: GoldenSnapshotMode.ENABLED,
     });
     expect(template.workerSelector?.matchLabels).toEqual({
       workload: "stigmer",
@@ -224,6 +226,21 @@ describe("the template", () => {
       cpuMillicores: 2000n,
       memoryBytes: 2147483648n,
     });
+  });
+
+  it("snapshots the disk but never memory: a woken sandbox keeps its packages and starts a fresh runner", () => {
+    // VOLUMES drops the root filesystem, so every wake installs the
+    // Environment's packages again (stigmer#3360); MEMORY brings a runner
+    // back with the secrets it slept with (driver.ts). ROOTFS keeps the
+    // disk and cold-boots the waiter.
+    const template = buildRunnerTemplate({
+      config,
+      settings,
+      runnerMode: "local",
+    });
+    expect(template.snapshotConfig?.preferredFidelity).toBe(
+      SnapshotFidelity.ROOTFS,
+    );
   });
 
   it("keeps the agent's home on a durable volume of its own, at the agent's home", () => {

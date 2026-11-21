@@ -14,14 +14,27 @@
  * `/readyz` is the template's only wakeup probe, so Substrate takes the
  * snapshot the moment the waiter listens.
  *
- * The template captures volumes only (`preferred_fidelity: VOLUMES`): a
- * suspend keeps its two durable volumes on the actor's node and Substrate
- * copies them to storage in the background, and the next wake, from the
- * node or from storage, boots the waiter fresh from the image over them.
- * Memory would bring a suspended runner back with the secrets it slept
- * with (driver.ts); the golden snapshot is always memory, so a new actor
- * still starts from the waiter's. Everything else the image holds starts
- * over at each wake.
+ * The template captures the disk but never memory (`preferred_fidelity:
+ * ROOTFS`): a suspend keeps its two durable volumes and the changes made to
+ * the sandbox's root filesystem since its boot, on the actor's node, and
+ * Substrate copies them to storage in the background; the next wake, from
+ * the node or from storage, puts both back and boots the waiter fresh from
+ * the image over them. So a woken sandbox finds everything its agent and
+ * its runner left on disk, the packages an Environment installed among it,
+ * and the install skips a set it finds in place (the runner's
+ * src/environment/install.ts) instead of taking up to a minute at every
+ * wake (stigmer#3360). Its processes still start over: memory would bring
+ * a suspended runner back with the secrets it slept with (driver.ts), so
+ * every wake starts a new waiter and the driver's next push hands it this
+ * configuration's credentials. The golden snapshot is taken at the same
+ * fidelity, so a new actor's first wake is a cold boot of the waiter too.
+ * A kept disk belongs to the image it was written over: when a sleeping
+ * actor moves to a new template (an upgrade, a re-created template),
+ * Substrate restores only its volumes and the disk starts over from the new
+ * image, so an Environment installs once more after each such move and is
+ * kept again from its next sleep. A disk holds programs built for one CPU,
+ * so the workers this server's sandboxes run on must share one architecture
+ * (Substrate's API guide, the snapshot fields).
  *
  * The two kept volumes are the agent-sandbox driver's two claims
  * (agent-sandbox/manifest.ts): `workspace` at `/workspace`, and
@@ -247,9 +260,10 @@ export function buildRunnerTemplate(input: RunnerTemplateInput): ActorTemplate {
       },
     },
     snapshotConfig: {
-      // The durable volumes only (module header). No storage location: Substrate
-      // stores every snapshot under its API server's --snapshot-location.
-      preferredFidelity: SnapshotFidelity.VOLUMES,
+      // The durable volumes and the disk's changes, never memory (module
+      // header). No storage location: Substrate stores every snapshot under
+      // its API server's --snapshot-location.
+      preferredFidelity: SnapshotFidelity.ROOTFS,
       goldenSnapshotConfig: { mode: GoldenSnapshotMode.ENABLED },
     },
   });
