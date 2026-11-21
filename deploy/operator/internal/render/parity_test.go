@@ -2,14 +2,17 @@
 // canonical topology, name for name.
 //
 // Compose's value forms decide what the operator must render: `${X:?...}`
-// (required) must be a Secret reference; `${X:-}` (optional, empty default)
-// may be absent, a reference or a value; `${X:-default}` and plain values
-// must equal the operator's after the address table, which maps each Compose
-// address to where the same thing lives in a cluster. A name the operator
-// renders that Compose does not carry fails unless it is declared below,
-// with the reason. The images are held to Compose's too: the server's and
-// runner's repositories, Temporal's server image (through a render of the
-// embedded chart), Postgres's exact release, and the default namespace's
+// (required) must be a Secret reference, and one the operator mints is read
+// from its keys Secret under Compose's own name X; `${X:-}` (optional, empty
+// default) may be absent, a reference or a value; `${X:-default}` and plain
+// values must equal the operator's after the address table, which maps each
+// Compose address to where the same thing lives in a cluster. A name the
+// operator renders that Compose does not carry fails unless it is declared
+// below, with the reason and the profiles that render it: each of those
+// must, and no other may. The images are held to Compose's too: the server's
+// and runner's repositories, every Temporal image the embedded chart renders
+// (containers and init containers) at Compose's one Temporal release,
+// Postgres's release, each an exact release; and the default namespace's
 // retention. A pull request that adds a Compose setting the operator does
 // not render fails here.
 
@@ -104,34 +107,48 @@ func profiles() map[string]*stigmerv1.Stigmer {
 		TLS:      &stigmerv1.IngressTLSSpec{Issuer: &stigmerv1.IssuerReference{Name: "letsencrypt", Kind: "ClusterIssuer"}},
 	}
 	exposed.Spec.Identity = &stigmerv1.IdentitySpec{Bundled: &stigmerv1.BundledIdentitySpec{}}
-	return map[string]*stigmerv1.Stigmer{"bundled": bundled, "byo": byo, "oidc": oidc, "enterprise": enterprise, "bucket": bucket, "exposed": exposed}
+	fenced := base()
+	fenced.Spec.Server.Egress = &stigmerv1.ServerEgressSpec{Fenced: true}
+	return map[string]*stigmerv1.Stigmer{
+		"bundled": bundled, "byo": byo, "oidc": oidc, "enterprise": enterprise, "bucket": bucket, "exposed": exposed, "fenced": fenced,
+	}
 }
 
 // operatorOnly are names the operator renders that Compose does not carry,
-// each with its reason.
-var operatorOnly = map[string]string{
-	"PGSSLMODE":                                "the external database's declared sslmode; Compose's Postgres is on its own network",
-	"STIGMER_TEMPORAL_TLS":                     "TLS to an external Temporal; Compose's Temporal is on its own network",
-	"STIGMER_TEMPORAL_TLS_SERVER_NAME":         "as above",
-	"STIGMER_TEMPORAL_TLS_SERVER_CA_CERT_DATA": "as above",
-	"STIGMER_TEMPORAL_TLS_CLIENT_CERT_DATA":    "as above",
-	"STIGMER_TEMPORAL_TLS_CLIENT_KEY_DATA":     "as above",
-	"STIGMER_TEMPORAL_API_KEY":                 "an external Temporal's API key",
-	"STIGMER_LICENSE_KEY":                      "Stigmer Enterprise; Compose runs the open-source server",
-	"STIGMER_OUTBOUND_EGRESS":                  "Stigmer Enterprise",
-	"STIGMER_ORGANIZATION_CREATORS":            "Stigmer Enterprise",
-	"STIGMER_ACCESS_HISTORY_RETENTION_DAYS":    "Stigmer Enterprise",
-	"SKILL_ARTIFACT_STORAGE_TYPE":              "a declared bucket; Compose keeps artifacts and Skills on its volumes",
-	"S3_BUCKET":                                "as above",
-	"S3_REGION":                                "as above",
-	"S3_ENDPOINT":                              "as above",
-	"S3_RUNNER_ENDPOINT":                       "as above",
-	"S3_ACCESS_KEY_ID":                         "as above",
-	"S3_SECRET_ACCESS_KEY":                     "as above",
-	"STIGMER_ARTIFACT_PROXY_ENDPOINT":          "as above: the runner reaches the bucket through the server's artifact lane",
-	"OPENAI_API_KEY":                           "the runner's other model providers, read from the same Secret",
-	"ANTHROPIC_FOUNDRY_API_KEY":                "as above",
-	"AWS_BEARER_TOKEN_BEDROCK":                 "as above",
+// each with its reason and the profiles that render it, in either container.
+type operatorOnlyName struct {
+	reason   string
+	profiles []string
+}
+
+// runnerProfiles are the profiles that run the shared runner with a model
+// Secret: every one but the licensed.
+var runnerProfiles = []string{"bundled", "byo", "oidc", "bucket", "exposed", "fenced"}
+
+var operatorOnly = map[string]operatorOnlyName{
+	"PGSSLMODE":                                {"the external database's declared sslmode; Compose's Postgres is on its own network", []string{"byo"}},
+	"STIGMER_TEMPORAL_TLS":                     {"TLS to an external Temporal; Compose's Temporal is on its own network", []string{"byo"}},
+	"STIGMER_TEMPORAL_TLS_SERVER_NAME":         {"as above", []string{"byo"}},
+	"STIGMER_TEMPORAL_TLS_SERVER_CA_CERT_DATA": {"as above", []string{"byo"}},
+	"STIGMER_TEMPORAL_TLS_CLIENT_CERT_DATA":    {"as above", []string{"byo"}},
+	"STIGMER_TEMPORAL_TLS_CLIENT_KEY_DATA":     {"as above", []string{"byo"}},
+	"STIGMER_TEMPORAL_API_KEY":                 {"an external Temporal's API key", []string{"byo"}},
+	"STIGMER_LICENSE_KEY":                      {"Stigmer Enterprise; Compose runs the open-source server", []string{"enterprise"}},
+	"STIGMER_OUTBOUND_EGRESS":                  {"Stigmer Enterprise", []string{"enterprise"}},
+	"STIGMER_ORGANIZATION_CREATORS":            {"Stigmer Enterprise", []string{"enterprise"}},
+	"STIGMER_ACCESS_HISTORY_RETENTION_DAYS":    {"Stigmer Enterprise", []string{"enterprise"}},
+	"SKILL_ARTIFACT_STORAGE_TYPE":              {"a declared bucket; Compose keeps artifacts and Skills on its volumes", []string{"bucket"}},
+	"S3_BUCKET":                                {"as above", []string{"bucket"}},
+	"S3_REGION":                                {"as above", []string{"bucket"}},
+	"S3_ENDPOINT":                              {"as above", []string{"bucket"}},
+	"S3_RUNNER_ENDPOINT":                       {"as above", []string{"bucket"}},
+	"S3_ACCESS_KEY_ID":                         {"as above", []string{"bucket"}},
+	"S3_SECRET_ACCESS_KEY":                     {"as above", []string{"bucket"}},
+	"STIGMER_ARTIFACT_PROXY_ENDPOINT":          {"as above: the runner reaches the bucket through the server's artifact lane", []string{"bucket"}},
+	"STIGMER_WEB_FETCH_ALLOW_PRIVATE":          {"the server's egress fence; Compose's runner is not fenced", []string{"fenced"}},
+	"OPENAI_API_KEY":                           {"the runner's other model providers, read from the same Secret", runnerProfiles},
+	"ANTHROPIC_FOUNDRY_API_KEY":                {"as above", runnerProfiles},
+	"AWS_BEARER_TOKEN_BEDROCK":                 {"as above", runnerProfiles},
 }
 
 // onVolumeOnly are Compose's names for files on a shared volume, which an
@@ -205,6 +222,13 @@ func checkParity(t *testing.T, profile, role string, st *stigmerv1.Stigmer, comp
 		case m != nil && strings.HasPrefix(m[2], ":?"):
 			if !present || e.ValueFrom == nil || e.ValueFrom.SecretKeyRef == nil {
 				t.Errorf("%s/%s: %s is required in Compose; the operator must reference it from a Secret", profile, role, name)
+				continue
+			}
+			// A key the operator mints lives in its keys Secret under
+			// Compose's own name; the database's password is the database's
+			// Secret's (CloudNativePG's, or the adopter's), named by them.
+			if ref := e.ValueFrom.SecretKeyRef; ref.Name == KeysSecret(st) && ref.Key != m[1] {
+				t.Errorf("%s/%s: %s reads key %q of the keys Secret; Compose names it %s", profile, role, name, ref.Key, m[1])
 			}
 		case m != nil && m[2] == ":-":
 			// Optional: absent, a reference, or a value.
@@ -224,8 +248,12 @@ func checkParity(t *testing.T, profile, role string, st *stigmerv1.Stigmer, comp
 		if _, inCompose := compose[name]; inCompose {
 			continue
 		}
-		if _, declared := operatorOnly[name]; !declared {
+		extra, declared := operatorOnly[name]
+		switch {
+		case !declared:
 			t.Errorf("%s/%s: %s is rendered but Compose has no such setting; add it to docker-compose.yml, or declare why in operatorOnly", profile, role, name)
+		case !slices.Contains(extra.profiles, profile):
+			t.Errorf("%s/%s: %s is rendered, but operatorOnly declares it for %v only", profile, role, name, extra.profiles)
 		}
 	}
 }
@@ -268,9 +296,17 @@ func repository(image string) string {
 
 func tag(image string) string { return strings.TrimPrefix(image, repository(image)+":") }
 
+// release is an exact release tag: X.Y or X.Y.Z, never a moving name.
+var release = regexp.MustCompile(`^\d+\.\d+(\.\d+)?$`)
+
 func TestImagesMatchCompose(t *testing.T) {
 	c := readCompose(t)
 	st := profiles()["bundled"]
+	for _, image := range []string{PostgresImage, c.Services["postgres"].Image} {
+		if !release.MatchString(tag(image)) {
+			t.Errorf("%s is not pinned to an exact release", image)
+		}
+	}
 	if got, want := repository(ServerImage(st)), repository(c.Services["stigmer-server"].Image); got != want {
 		t.Errorf("server image %s, Compose's %s", got, want)
 	}
@@ -289,16 +325,27 @@ func TestImagesMatchCompose(t *testing.T) {
 	if err != nil {
 		t.Fatalf("rendering Temporal: %v", err)
 	}
+	// Compose runs one Temporal release across its server and admin tools.
 	wantTemporal := tag(c.Services["temporal"].Image)
+	if !release.MatchString(wantTemporal) {
+		t.Errorf("Compose's Temporal %s is not an exact release", wantTemporal)
+	}
+	for name, svc := range c.Services {
+		if strings.HasPrefix(svc.Image, "temporalio/") && tag(svc.Image) != wantTemporal {
+			t.Errorf("Compose's %s runs %s; its Temporal is %s", name, svc.Image, wantTemporal)
+		}
+	}
 	seen := 0
 	for _, o := range objs {
-		containers, _, _ := unstructured.NestedSlice(o.Object, "spec", "template", "spec", "containers")
-		for _, ct := range containers {
-			image, _ := ct.(map[string]any)["image"].(string)
-			if strings.HasPrefix(image, "temporalio/") {
-				seen++
-				if tag(image) != wantTemporal {
-					t.Errorf("%s %s runs %s; Compose runs Temporal %s", o.GetKind(), o.GetName(), image, wantTemporal)
+		for _, field := range []string{"containers", "initContainers"} {
+			containers, _, _ := unstructured.NestedSlice(o.Object, "spec", "template", "spec", field)
+			for _, ct := range containers {
+				image, _ := ct.(map[string]any)["image"].(string)
+				if strings.HasPrefix(image, "temporalio/") {
+					seen++
+					if tag(image) != wantTemporal {
+						t.Errorf("%s %s runs %s; Compose runs Temporal %s", o.GetKind(), o.GetName(), image, wantTemporal)
+					}
 				}
 			}
 		}
@@ -316,16 +363,22 @@ func TestTemporalRetentionMatchesCompose(t *testing.T) {
 	}
 }
 
-func TestOperatorOnlyNamesAreRendered(t *testing.T) {
-	var all []string
-	for _, st := range profiles() {
-		for _, e := range append(ServerEnv(st, nil), RunnerEnv(st)...) {
-			all = append(all, e.Name)
-		}
-	}
-	for name := range operatorOnly {
-		if !slices.Contains(all, name) {
-			t.Errorf("operatorOnly declares %s, which no profile renders; remove it", name)
+func TestOperatorOnlyNamesAreRenderedWhereDeclared(t *testing.T) {
+	all := profiles()
+	for name, extra := range operatorOnly {
+		for _, profile := range extra.profiles {
+			st, known := all[profile]
+			if !known {
+				t.Errorf("operatorOnly declares %s for profile %q, which does not exist", name, profile)
+				continue
+			}
+			env := ServerEnv(st, nil)
+			if RunnerEnabled(st) {
+				env = append(env, RunnerEnv(st)...)
+			}
+			if !slices.ContainsFunc(env, func(e corev1.EnvVar) bool { return e.Name == name }) {
+				t.Errorf("operatorOnly declares %s for %s, which does not render it", name, profile)
+			}
 		}
 	}
 }

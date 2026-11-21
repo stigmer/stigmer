@@ -25,8 +25,9 @@ import (
 // TemporalRetention is the default namespace's retention, Compose's value.
 const TemporalRetention = "24h"
 
-// TemporalHistoryShards is Compose's shard count; it never changes after the
-// first boot.
+// TemporalHistoryShards is the shard count Compose runs with: it sets none,
+// so its Temporal takes the server image's default, NUM_HISTORY_SHARDS 4. It
+// never changes after the first boot.
 const TemporalHistoryShards = 4
 
 // TemporalServices are the chart's server services, each sized alike.

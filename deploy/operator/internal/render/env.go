@@ -367,6 +367,13 @@ func RunnerEnv(st *stigmerv1.Stigmer) []corev1.EnvVar {
 		value("TEMPORAL_NAMESPACE", t.Namespace),
 	}
 	env = append(env, temporalConnectionEnv(t)...)
+	if ServerFenced(st) {
+		// The fence refuses the pod private addresses, so the fetch tool
+		// refuses them too, with a sentence rather than a timeout. It stays
+		// strict for the fence's allowed ranges: those let the install's own
+		// infrastructure through, not URLs people write.
+		env = append(env, value("STIGMER_WEB_FETCH_ALLOW_PRIVATE", "false"))
+	}
 	env = append(env,
 		value("STIGMER_TASK_QUEUE", RunnerTaskQueue),
 		value("WORKSPACE_ROOT_DIR", "/data/.stigmer/data/workspace"),

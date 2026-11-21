@@ -2,12 +2,14 @@
 // the operator sets, in any declaration; the runner is held back under
 // sign-in; secrets are always referenced, never copied in; a database user
 // is escaped into the URL; sizing refuses what cannot run, in words naming
-// the field; and a declared bucket replaces the artifacts volume, the runner
-// reaching it through the server's lane and never holding its keys.
+// the field; a declared bucket replaces the artifacts volume, the runner
+// reaching it through the server's lane and never holding its keys; and a
+// fenced runner's fetch tool refuses private addresses in words.
 
 package render
 
 import (
+	"slices"
 	"strings"
 	"testing"
 
@@ -54,6 +56,18 @@ func TestRunnerStartsSignedInUnderSignIn(t *testing.T) {
 	}
 	if _, ok := envMap(ServerEnv(licensed, nil))["STIGMER_RUNNER_API_KEY"]; ok {
 		t.Error("a licensed server is handed the shared runner's key")
+	}
+}
+
+func TestAFencedRunnerRefusesPrivateAddressesInWords(t *testing.T) {
+	if e, ok := envMap(RunnerEnv(profiles()["fenced"]))["STIGMER_WEB_FETCH_ALLOW_PRIVATE"]; !ok || e.Value != "false" {
+		t.Errorf("a fenced runner's fetch tool may still try private addresses: %+v", e)
+	}
+	if _, ok := envMap(RunnerEnv(profiles()["bundled"]))["STIGMER_WEB_FETCH_ALLOW_PRIVATE"]; ok {
+		t.Error("an unfenced runner's fetch tool is held to the fence it does not have")
+	}
+	if !slices.Contains(OwnedEnvNames("runner"), "STIGMER_WEB_FETCH_ALLOW_PRIVATE") {
+		t.Error("spec.runner.extraEnv may set the fetch tool's posture under the fence")
 	}
 }
 
