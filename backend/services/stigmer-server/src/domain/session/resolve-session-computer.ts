@@ -76,14 +76,13 @@ export async function refuseSessionWithoutComputer(store: Store, session: Sessio
 
 /**
  * The agent's name as a refusal names it, the way a turn's refusals do
- * (its display name, else its slug); "" when it cannot be read, and the
- * sentence then says "this conversation's agent". A stored reference holds
+ * (its display name, else its slug); "" when the agent is gone, and the
+ * sentence then says "this conversation's agent". Only a conversation
+ * with an agent reaches here: one with none (the built-in assistant) has
+ * a computer. A stored reference holds
  * only the agent's id, so the name is read from the agent as it is now.
  */
 async function agentNameOf(store: Store, agentId: string): Promise<string> {
-  if (agentId === "") {
-    return "";
-  }
   try {
     const agent = await store.getResource(ApiResourceKind.agent, agentId, AgentSchema);
     return agent.metadata?.name || agent.metadata?.slug || "";

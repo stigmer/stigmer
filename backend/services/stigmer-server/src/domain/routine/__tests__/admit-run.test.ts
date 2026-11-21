@@ -625,11 +625,12 @@ describe("the AdmitRoutineRun step", () => {
     );
   });
 
-  it("asks an update that changes only the harness", async () => {
+  it("asks a harness-only update the computer question alone: Claude is refused without a computer, Stigmer passes", async () => {
     const bare = { agent: "agt_bare", agentSlug: "bare" };
     const error = await refusal(run(routine({ ...bare, harness: Harness.CLAUDE }), routine(bare)));
     expect(error.code).toBe(Code.FailedPrecondition);
     expect(error.rawMessage).toContain("can't run on the Claude engine");
+    await run(routine({ ...bare, harness: Harness.STIGMER }), routine(bare));
   });
 
   it("asks an update that turns a routine back on", async () => {
