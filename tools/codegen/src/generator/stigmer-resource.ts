@@ -293,7 +293,9 @@ function kubernetesType(n: SchemaNode): string | undefined {
 
 /**
  * Prose safe in MDX: a Go doc comment's lines joined, and braces and angle
- * brackets escaped outside inline code, which MDX shows as written.
+ * brackets escaped outside inline code, which MDX shows as written. A bare
+ * URL in a comment is an example address (http://minio.storage.svc:9000),
+ * never a page to visit, so it is shown as code rather than linked.
  */
 function prose(text: string): string {
   return text
@@ -303,7 +305,14 @@ function prose(text: string): string {
     .join("\n\n")
     .split(/(`[^`]*`)/)
     .map((part) =>
-      part.startsWith("`") ? part : part.replace(/\{/g, "\\{").replace(/\}/g, "\\}").replace(/</g, "&lt;").replace(/>/g, "&gt;"),
+      part.startsWith("`")
+        ? part
+        : part
+            .replace(/\{/g, "\\{")
+            .replace(/\}/g, "\\}")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/https?:\/\/[^\s)]*[^\s).,;:]/g, (url) => `\`${url}\``),
     )
     .join("");
 }

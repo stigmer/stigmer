@@ -339,7 +339,7 @@ referenced object inside the same namespace.
 - **`name`** (string): `name` of the referent. This field is effectively
   required, but due to backwards compatibility is allowed to be empty. Instances
   of this type with an empty value here are almost certainly wrong. More info:
-  https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+  `https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names`
   Default: `""`.
 
 ### `spec.ingress`
@@ -434,8 +434,8 @@ Storage through its S3 API.
   [`spec.objectStore.s3.credentialsSecret`](#specobjectstores3credentialssecret).
   Required.
 - **`endpoint`** (string): `endpoint` is the store's URL, such as
-  https://&lt;account&gt;.r2.cloudflarestorage.com or
-  http://minio.storage.svc:9000. Absent means AWS S3 itself. Rule:
+  `https://&lt;account&gt;.r2.cloudflarestorage.com` or
+  `http://minio.storage.svc:9000`. Absent means AWS S3 itself. Rule:
   spec.objectStore.s3.endpoint must be an http or https URL.
 - **`region`** (string): `region` is the bucket's region; R2 also accepts
   us-east-1. Default: `"us-east-1"`.
@@ -453,7 +453,7 @@ backups read it; no runner ever does.
 - **`name`** (string): `name` of the referent. This field is effectively
   required, but due to backwards compatibility is allowed to be empty. Instances
   of this type with an empty value here are almost certainly wrong. More info:
-  https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+  `https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names`
   Default: `""`.
 
 ### `spec.owner`

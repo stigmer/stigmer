@@ -112,6 +112,11 @@ describe("the reference page", () => {
     expect(page).toContain("Kubernetes [environment variables]");
   });
 
+  it("shows an example address as code, never as a link", () => {
+    expect(page).toContain("`http://minio.storage.svc:9000`");
+    expect(page.replace(/`[^`]*`/g, "")).not.toMatch(/\bhttps?:\/\/(?!stigmer\.ai|kubernetes\.io)/);
+  });
+
   it("escapes MDX expressions outside inline code, and renders the same bytes twice", () => {
     const outsideCode = page
       .split("\n")

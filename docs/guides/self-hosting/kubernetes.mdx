@@ -55,9 +55,9 @@ helm install stigmer-operator oci://ghcr.io/stigmer/charts/stigmer-operator \
 The chart installs the operator and the `Stigmer` definition. It holds
 cluster-wide rights because it installs what an install needs when the cluster
 has none: CloudNativePG for the database, and later its backup plugin,
-agent-sandbox or Agent Substrate. It removes only what it installed. The chart's
-[README](https://github.com/stigmer/stigmer/blob/main/deploy/helm/stigmer-operator/README.md)
-lists its values and the rights it holds.
+agent-sandbox or Agent Substrate. It removes only what it installed.
+`helm show readme oci://ghcr.io/stigmer/charts/stigmer-operator` lists the
+chart's values and the rights it holds.
 
 ### Give it your model key
 
