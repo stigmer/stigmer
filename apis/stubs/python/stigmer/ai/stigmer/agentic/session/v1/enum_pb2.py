@@ -24,7 +24,7 @@ _sym_db = _symbol_database.Default()
 
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n(ai/stigmer/agentic/session/v1/enum.proto\x12\x1d\x61i.stigmer.agentic.session.v1*Y\n\x10GitWriteBackMode\x12#\n\x1fGIT_WRITE_BACK_MODE_UNSPECIFIED\x10\x00\x12 \n\x1cGIT_WRITE_BACK_BRANCH_AND_PR\x10\x01*K\n\x07Harness\x12\x17\n\x13HARNESS_UNSPECIFIED\x10\x00\x12\x13\n\x0fHARNESS_STIGMER\x10\x01\x12\x12\n\x0eHARNESS_CLAUDE\x10\x03*\xba\x01\n\x11\x45nvironmentSource\x12\"\n\x1e\x45NVIRONMENT_SOURCE_UNSPECIFIED\x10\x00\x12\x1e\n\x1a\x45NVIRONMENT_SOURCE_SESSION\x10\x01\x12\x1e\n\x1a\x45NVIRONMENT_SOURCE_ROUTINE\x10\x02\x12\x1c\n\x18\x45NVIRONMENT_SOURCE_AGENT\x10\x03\x12#\n\x1f\x45NVIRONMENT_SOURCE_ORGANIZATION\x10\x04*k\n\x0f\x45xecutionTarget\x12 \n\x1c\x45XECUTION_TARGET_UNSPECIFIED\x10\x00\x12\x1a\n\x16\x45XECUTION_TARGET_LOCAL\x10\x01\x12\x1a\n\x16\x45XECUTION_TARGET_CLOUD\x10\x02\x42\xc7\x01\n!com.ai.stigmer.agentic.session.v1B\tEnumProtoP\x01\xa2\x02\x04\x41SAS\xaa\x02\x1d\x41i.Stigmer.Agentic.Session.V1\xca\x02\x1d\x41i\\Stigmer\\Agentic\\Session\\V1\xe2\x02)Ai\\Stigmer\\Agentic\\Session\\V1\\GPBMetadata\xea\x02!Ai::Stigmer::Agentic::Session::V1b\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n(ai/stigmer/agentic/session/v1/enum.proto\x12\x1d\x61i.stigmer.agentic.session.v1*Y\n\x10GitWriteBackMode\x12#\n\x1fGIT_WRITE_BACK_MODE_UNSPECIFIED\x10\x00\x12 \n\x1cGIT_WRITE_BACK_BRANCH_AND_PR\x10\x01*K\n\x07Harness\x12\x17\n\x13HARNESS_UNSPECIFIED\x10\x00\x12\x13\n\x0fHARNESS_STIGMER\x10\x01\x12\x12\n\x0eHARNESS_CLAUDE\x10\x03*N\n\x08\x43omputer\x12\x18\n\x14\x43OMPUTER_UNSPECIFIED\x10\x00\x12\x11\n\rCOMPUTER_NONE\x10\x01\x12\x15\n\x11\x43OMPUTER_REQUIRED\x10\x02*\xba\x01\n\x11\x45nvironmentSource\x12\"\n\x1e\x45NVIRONMENT_SOURCE_UNSPECIFIED\x10\x00\x12\x1e\n\x1a\x45NVIRONMENT_SOURCE_SESSION\x10\x01\x12\x1e\n\x1a\x45NVIRONMENT_SOURCE_ROUTINE\x10\x02\x12\x1c\n\x18\x45NVIRONMENT_SOURCE_AGENT\x10\x03\x12#\n\x1f\x45NVIRONMENT_SOURCE_ORGANIZATION\x10\x04*k\n\x0f\x45xecutionTarget\x12 \n\x1c\x45XECUTION_TARGET_UNSPECIFIED\x10\x00\x12\x1a\n\x16\x45XECUTION_TARGET_LOCAL\x10\x01\x12\x1a\n\x16\x45XECUTION_TARGET_CLOUD\x10\x02\x42\xc7\x01\n!com.ai.stigmer.agentic.session.v1B\tEnumProtoP\x01\xa2\x02\x04\x41SAS\xaa\x02\x1d\x41i.Stigmer.Agentic.Session.V1\xca\x02\x1d\x41i\\Stigmer\\Agentic\\Session\\V1\xe2\x02)Ai\\Stigmer\\Agentic\\Session\\V1\\GPBMetadata\xea\x02!Ai::Stigmer::Agentic::Session::V1b\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -36,8 +36,10 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_GITWRITEBACKMODE']._serialized_end=164
   _globals['_HARNESS']._serialized_start=166
   _globals['_HARNESS']._serialized_end=241
-  _globals['_ENVIRONMENTSOURCE']._serialized_start=244
-  _globals['_ENVIRONMENTSOURCE']._serialized_end=430
-  _globals['_EXECUTIONTARGET']._serialized_start=432
-  _globals['_EXECUTIONTARGET']._serialized_end=539
+  _globals['_COMPUTER']._serialized_start=243
+  _globals['_COMPUTER']._serialized_end=321
+  _globals['_ENVIRONMENTSOURCE']._serialized_start=324
+  _globals['_ENVIRONMENTSOURCE']._serialized_end=510
+  _globals['_EXECUTIONTARGET']._serialized_start=512
+  _globals['_EXECUTIONTARGET']._serialized_end=619
 # @@protoc_insertion_point(module_scope)

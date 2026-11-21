@@ -55,6 +55,7 @@ const stubEmptyFlow = {
   setSkillRefs: vi.fn(),
   workspace: emptyWorkspace,
   sessionVariables: { entries: [], isEmpty: true, clear: vi.fn(), nextPageToken: "" },
+  agentHasComputer: true,
   autoApproveAll: false,
   setAutoApproveAll,
   isSubmitting: false,
@@ -88,6 +89,10 @@ const stubPopulatedFlow = {
 // is why Vitest permits referencing it inside the hoisted factory); tests
 // reassign it before render and `beforeEach` resets it to the empty flow.
 let mockFlow: typeof stubEmptyFlow | typeof stubPopulatedFlow = stubEmptyFlow;
+
+// A flow whose selected agent has no computer (`AgentSpec.computer`
+// COMPUTER_NONE): the flow has fixed the harness to Stigmer.
+const stubNoComputerFlow = { ...stubPopulatedFlow, agentHasComputer: false };
 
 vi.mock("../useNewSessionFlow", () => ({
   useNewSessionFlow: () => mockFlow,
@@ -135,6 +140,7 @@ vi.mock("../../models/hub/ModelsHub", async (importOriginal) => {
 });
 
 import { NewSessionViewer } from "../NewSessionViewer";
+import { claudeNotOfferedCopy } from "../../agent/computer";
 import { SessionInspector } from "../inspector/SessionInspector";
 
 beforeEach(() => {
@@ -311,5 +317,26 @@ describe("NewSessionViewer — a refused first message stays in the box (his rul
     };
     rerender(<NewSessionViewer org="acme" onSessionCreated={vi.fn()} />);
     await waitFor(() => expect(setMessage).toHaveBeenCalledWith("Fix invoice rounding"));
+  });
+});
+
+describe("NewSessionViewer — an agent without a computer", () => {
+  it("offers no workspace, fixes the harness and says why", () => {
+    mockFlow = stubNoComputerFlow;
+    render(<NewSessionViewer org="acme" audience="integrator" onSessionCreated={vi.fn()} />);
+    const props = composerProps.at(-1)!;
+    expect(props.workspace, "no repositories or folders").toBeUndefined();
+    expect(props.showHarnessSelector, "the harness is fixed").toBe(false);
+    expect(props.harnessNote).toBe(claudeNotOfferedCopy());
+    expect(props.harness).toBe("stigmer");
+  });
+
+  it("keeps the workspace and the harness choice for an agent with a computer", () => {
+    mockFlow = stubPopulatedFlow;
+    render(<NewSessionViewer org="acme" audience="integrator" onSessionCreated={vi.fn()} />);
+    const props = composerProps.at(-1)!;
+    expect(props.workspace).toBe(stubPopulatedFlow.workspace);
+    expect(props.showHarnessSelector).toBe(true);
+    expect(props.harnessNote).toBeUndefined();
   });
 });

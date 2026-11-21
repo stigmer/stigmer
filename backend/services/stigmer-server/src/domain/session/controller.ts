@@ -136,6 +136,7 @@ import { deprovisionSessionSandboxBestEffort } from "../../sandbox/session-sandb
 import type { RunScoreCascade } from "../score/cascade.js";
 import { newResolveSessionAgentStep } from "./resolve-session-agent.js";
 import { newAdmitSessionEnvironmentStep } from "./admit-session-environment.js";
+import { newResolveSessionComputerStep } from "./resolve-session-computer.js";
 import {
   newResolveSessionEnvironmentStep,
   newValidateEnvironmentImmutabilityStep,
@@ -355,6 +356,7 @@ async function createSession(
     .addStep(
       newResolveSessionAgentStep(deps.store, deps.logger, deps.authorizer),
     )
+    .addStep(newResolveSessionComputerStep(deps.store))
     .addStep(newResolveSessionEnvironmentStep(deps.store, deps.environmentPolicy))
     .addStep(newRefuseUnofferedHarnessStep(sessionHarnesses))
     .addStep(newAuthorizeRunTargetStep(deps.authorizer, sessionRunTarget))
@@ -463,6 +465,7 @@ async function update(
       .addStep(
         newResolveSessionAgentStep(deps.store, deps.logger, deps.authorizer),
       )
+      .addStep(newResolveSessionComputerStep(deps.store))
       .addStep(newResolveSessionEnvironmentStep(deps.store, deps.environmentPolicy))
       .addStep(newAuthorizeRunTargetStep(deps.authorizer, sessionRunTarget))
       .addStep(newResolveSessionResourcesStep(instances))

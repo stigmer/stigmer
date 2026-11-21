@@ -38,8 +38,9 @@ Plugins
   acme/ledger-kit
 
 Environment
-  Sandbox:  acme/finance-build
-  Values:   GITHUB_TOKEN (secret), REGION, REPORT_CURRENCY (optional)
+  Computer:  yes
+  Sandbox:   acme/finance-build
+  Values:    GITHUB_TOKEN (secret), REGION, REPORT_CURRENCY (optional)
 
 Run settings
   Harness:   claude

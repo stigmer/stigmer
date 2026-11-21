@@ -38,6 +38,16 @@ export { useAgent } from "./useAgent.js";
 export type { UseAgentReturn } from "./useAgent.js";
 
 export { agentHarnessOf, agentRunDefaultsFor } from "./run-defaults.js";
+export {
+  agentHasComputer,
+  claudeNotOfferedCopy,
+  computerLocked,
+  COMPUTER_COPY,
+  harnessesFor,
+  routineNotApplyingCopy,
+} from "./computer.js";
+export { AgentComputerSection } from "./AgentComputerSection.js";
+export type { AgentComputerSectionProps } from "./AgentComputerSection.js";
 export type { AgentRunDefaults } from "./run-defaults.js";
 
 export { useRunAgentSpec } from "./useRunAgentSpec.js";

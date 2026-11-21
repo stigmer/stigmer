@@ -36,6 +36,7 @@ import { FIELD_HINT_CLASSES, FIELD_LABEL_CLASSES, FieldError, TextArea, TextInpu
 import { useAgent } from "../agent/useAgent.js";
 import { useCheckPermissions } from "../grant/useCheckPermissions.js";
 import { ErrorMessage } from "../error/ErrorMessage.js";
+import { agentHasComputer, claudeNotOfferedCopy, routineNotApplyingCopy } from "../agent/computer.js";
 
 // ---------------------------------------------------------------------------
 // Public API
@@ -72,6 +73,11 @@ const MESSAGE_COUNTER_THRESHOLD = 500;
  * so the interactive and scheduled surfaces cannot drift, minus only
  * what unattended makes impossible (no local folders, no file uploads,
  * no approval-mode choice).
+ *
+ * For an agent without a computer (`AgentSpec.computer`), the workspace
+ * and Environment fields are left out with one line saying why, and the
+ * model picker is fixed to the Stigmer harness: the server would refuse a
+ * repository, an Environment or the Claude harness for it.
  *
  * Enabled defaults to OFF, deliberately: it matches the proto/YAML
  * default (an omitted `enabled` is false) and the platform's
@@ -182,6 +188,10 @@ export function RoutineForm({
     refetch: refetchPickedAgent,
   } = useAgent(agentRef?.org ?? null, agentRef?.slug ?? null);
   const pickedAgentId = pickedAgent?.metadata?.id ?? "";
+  // An agent without a computer takes no repositories and no Environment,
+  // and runs on Stigmer alone: those fields are left out, saying why.
+  const pickedHasComputer = agentHasComputer(pickedAgent?.spec);
+  const pickedAgentName = agentName ?? agentRef?.slug;
   const agentEdit = useCheckPermissions(
     pickedAgentId === "" ? null : { kind: "agent", id: pickedAgentId },
     ["can_edit"],
@@ -226,18 +236,18 @@ export function RoutineForm({
             // The harness travels with the model it was picked under;
             // no model means no harness — the platform defaults apply.
             ...(modelName !== ""
-              ? { harness: toProtoHarness(modelHarness) }
+              ? { harness: toProtoHarness(pickedHasComputer ? modelHarness : "stigmer") }
               : {}),
-            ...(workspace.hasEntries || fileIds.length > 0
+            ...((pickedHasComputer && workspace.hasEntries) || fileIds.length > 0
               ? {
                   resources: [
-                    ...workspace.toInput(),
+                    ...(pickedHasComputer ? workspace.toInput() : []),
                     ...fileIds.map((fileId) => ({ file: { fileId } })),
                   ],
                 }
               : {}),
             ...(vaults.length > 0 ? { vaults } : {}),
-            ...(environmentRef ? { environmentRef } : {}),
+            ...(pickedHasComputer && environmentRef ? { environmentRef } : {}),
             ...(runConfig ? { runConfig } : {}),
           },
         });
@@ -259,6 +269,7 @@ export function RoutineForm({
       trimmedMessage,
       vaults,
       environmentRef,
+      pickedHasComputer,
       modelName,
       modelHarness,
       serviceTier,
@@ -389,10 +400,15 @@ export function RoutineForm({
           sandbox, its model, its spend and its clock. */}
       <div className="stg:flex stg:flex-col stg:gap-5 stg:border-t stg:border-border-muted stg:pt-5">
         <h2 className="stg:m-0 stg:text-sm stg:font-semibold stg:text-foreground">Optional</h2>
+      {!pickedHasComputer && (
+        <p className={hintClasses}>{routineNotApplyingCopy(pickedAgentName)}</p>
+      )}
+
       {/* Workspace — what each fire's fresh session operates on.
           Git sources only; the server refuses local
           folders at write time because no client is connected when a
           schedule fires. */}
+      {pickedHasComputer && (
       <div className="stg:space-y-1">
         <span className={labelClasses}>
           Workspace{" "}
@@ -411,6 +427,7 @@ export function RoutineForm({
           this routine&rsquo;s vaults.
         </p>
       </div>
+      )}
 
       {/* Files — Library Files each run is handed, found under
           .stigmer/uploads/ by name. */}
@@ -448,6 +465,7 @@ export function RoutineForm({
 
       {/* Environment — the packages and network every fire's sandbox
           gets. Empty takes the agent's default, else the organization's. */}
+      {pickedHasComputer && (
       <div className="stg:space-y-1">
         <span className={labelClasses}>
           Environment <span className="stg:font-normal stg:text-muted-foreground">(optional)</span>
@@ -463,6 +481,7 @@ export function RoutineForm({
           The packages and network every run&rsquo;s sandbox gets.
         </p>
       </div>
+      )}
 
       {/* Engine & model — the composer's own picker,
           replacing the free-text model box whose typos surfaced as
@@ -476,8 +495,9 @@ export function RoutineForm({
           <ModelSelector
             value={modelName}
             onValueChange={setModelName}
-            initialHarness={modelHarness}
-            onHarnessChange={setModelHarness}
+            {...(pickedHasComputer
+              ? { initialHarness: modelHarness, onHarnessChange: setModelHarness }
+              : { harness: "stigmer" as const, harnessNote: claudeNotOfferedCopy(pickedAgentName) })}
             serviceTier={serviceTier}
             onServiceTierChange={setServiceTier}
             thinkingMode={thinkingMode}

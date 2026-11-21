@@ -158,6 +158,7 @@ class AgentInput:
     subagents: list[ResourceRef] = field(default_factory=list)
     mcp_servers: list[AgentMcpServerInput] = field(default_factory=list)
     environment_ref: ResourceRef | None = None
+    computer: int = 0
 
     def _to_proto(self) -> api_pb2.Agent:
         spec = spec_pb2.AgentSpec(
@@ -165,6 +166,7 @@ class AgentInput:
             icon_url=self.icon_url,
             instructions=self.instructions,
             harness=self.harness,
+            computer=self.computer,
         )
         for ref in self.skill_refs:
             _ref = ref._to_proto()

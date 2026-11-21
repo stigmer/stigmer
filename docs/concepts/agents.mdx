@@ -326,6 +326,50 @@ thinking off for it, without changing the Agent.
   fast tier or thinking also names the model it is for. Only a message may set
   them alone, to adjust the model it is given.
 
+## A computer, or none
+
+By default an Agent's conversations have a computer: somewhere its commands run,
+and where the repositories, folders and Environment a conversation brings live.
+An Agent that only talks and calls online tools, such as one that answers
+questions about a customer's ledger through the ledger's own service, needs
+none. Its author says so with `computer`:
+
+```yaml
+apiVersion: agentic.stigmer.ai/v1
+kind: Agent
+metadata:
+  name: ledger-answers
+spec:
+  instructions: |
+    You answer questions about a customer's ledger. Look each account up
+    with the ledger tools before you reply, and quote the figures you used.
+  computer: COMPUTER_NONE
+  mcp_servers:
+    - name: ledger
+      url: https://ledger.example.com/mcp
+```
+
+An Agent without a computer runs no commands: none of its conversations is
+offered a shell, its subagents included. Stigmer refuses anything that would
+need one when it is set up, not partway through a conversation, and each refusal
+names the thing to remove:
+
+- **Saving the Agent** with `Bash` in `tools`, its own `hooks`, an
+  `environment_ref`, a Plugin that runs hooks or starts a local MCP server, or a
+  subagent that has a computer.
+- **Starting a conversation or a routine** on it with a git repository or a
+  folder attached, an Environment, or the Claude harness. Uploaded files still
+  work.
+- **Each message**, when a Plugin it uses has since gained a hook or a local
+  program.
+
+A new Agent that doesn't name `computer` gets one (`COMPUTER_REQUIRED`), and an
+Agent saved before the setting existed keeps the one it had. Saving an Agent
+again without the field keeps what it has, so a YAML file written before the
+setting changes nothing. The [Claude harness](/docs/concepts/harnesses) always
+has a computer, so `COMPUTER_NONE` on it is refused. A conversation keeps the
+computer it started with: changing the setting changes only new conversations.
+
 ## The built-in assistant
 
 A Session that names no Agent runs the **built-in assistant**. It is what the

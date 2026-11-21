@@ -55,6 +55,7 @@ import { SessionSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/api_p
 import { ApiResourceReferenceSchema } from "@stigmer/apis/ai/stigmer/commons/apiresource/io_pb";
 import { SessionSpecSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/spec_pb";
 import {
+  Computer,
   Harness,
   ExecutionTarget,
   GitWriteBackMode,
@@ -233,6 +234,7 @@ describe("toAgentInput", () => {
         disallowedTools: ["mcp__plugin_github_github__delete_repo"],
         runConfig: RUN_CONFIG,
         harness: Harness.STIGMER,
+        computer: Computer.NONE,
         environmentRef: { org: "acme", slug: "data-science", kind: ApiResourceKind.environment },
         mcpServers: [
           {

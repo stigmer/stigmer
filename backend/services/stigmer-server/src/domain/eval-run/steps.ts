@@ -102,6 +102,7 @@ import { loadByReferenceWithVersion, loadVersion, resolveVersionHash } from "../
 import { ResourceNotFoundError } from "../../store/interface.js";
 import type { Store } from "../../store/interface.js";
 import { agentVersionBinding } from "../agent/versions.js";
+import { refuseClaudeWithoutComputer } from "../run/computer.js";
 import { evalVersionBinding } from "../eval/versions.js";
 import { loadPluginByReference } from "../plugin/versions.js";
 import { checkAllowTools } from "./allow-tools.js";
@@ -701,6 +702,35 @@ export function newValidateEvalRunTargetsStep(catalog: ModelCatalogProvider): Pi
           throw invalidArgumentError(refusal);
         }
       });
+    },
+  };
+}
+
+/**
+ * RefuseTargetsWithoutComputer: an eval run of an agent without a computer
+ * (AgentSpec.computer at the version ResolveEvalRunDefaults stamped) is
+ * refused a Claude-engine target when it is created, with the sentence a
+ * conversation on that agent is refused with (domain/run/computer.ts):
+ * every try creates such a conversation, so each would fail at its create.
+ * An eval run of a plugin runs the built-in assistant, which has a
+ * computer, and no target list runs each case on the agent's own harness,
+ * which its save already held to the rule.
+ */
+export function newRefuseTargetsWithoutComputerStep(store: Store): PipelineStep<typeof EvalRunSchema> {
+  return {
+    name: "RefuseTargetsWithoutComputer",
+    async execute(ctx: RequestContext<typeof EvalRunSchema>): Promise<void> {
+      const subject = stashed<LoadedSubject>(ctx, EVAL_RUN_SUBJECT_KEY, "eval run subject");
+      const spec = ctx.newState.spec;
+      if (subject.kind !== "agent" || spec === undefined || spec.targets.length === 0) {
+        return;
+      }
+      const agentId = subject.row.metadata?.id ?? "";
+      const version = await loadVersion(store, agentVersionBinding, agentId, spec.agentVersion);
+      const computer = version.resource.spec?.computer;
+      for (const target of spec.targets) {
+        refuseClaudeWithoutComputer(computer, target.harness, subject.row.metadata?.name || subject.row.metadata?.slug || "");
+      }
     },
   };
 }

@@ -50,7 +50,7 @@ Every example on this page calls a client created as the [SDK overview](/docs/sd
 <SDKTabs>
 <Tab value="TypeScript">
 ```typescript prelude
-import { Harness } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
+import { Computer, Harness } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
 import { ApiResourceVisibility } from "@stigmer/apis/ai/stigmer/commons/apiresource/enum_pb";
 ```
 ```typescript
@@ -91,6 +91,7 @@ import ai.stigmer.agentic.agent.v1.ListAgentVersionsInput;
 import ai.stigmer.agentic.agent.v1.ListAgentVersionsResponse;
 import ai.stigmer.agentic.agent.v1.ListAgentsRequest;
 import ai.stigmer.agentic.agent.v1.TagAgentVersionInput;
+import ai.stigmer.agentic.session.v1.Computer;
 import ai.stigmer.agentic.session.v1.Harness;
 import ai.stigmer.commons.apiresource.ApiResourceVisibility;
 import ai.stigmer.commons.apiresource.RenameInput;
@@ -368,6 +369,7 @@ const agent = await stigmer.agent.apply({
   subagents: [],
   mcpServers: [],
   environmentRef: { org: "acme", slug: "..." },
+  computer: Computer.NONE,
 });
 ```
 </Tab>
@@ -392,6 +394,7 @@ agent, err := client.Agent.Apply(ctx, &stigmer.AgentInput{
   Subagents:       []stigmer.ResourceRef{},
   McpServers:      []*stigmer.AgentMcpServerInput{},
   EnvironmentRef:  stigmer.ResourceRef{Org: "acme", Slug: "..."},
+  Computer:        sessionv1.Computer_COMPUTER_NONE,
 })
 ```
 </Tab>
@@ -416,6 +419,7 @@ agent = client.agents.apply(AgentInput(
     subagents=[],
     mcp_servers=[],
     environment_ref=ResourceRef(org="acme", slug="..."),
+    computer=session_enum_pb2.COMPUTER_NONE,
 ))
 ```
 </Tab>
@@ -440,6 +444,7 @@ Agent agent = client.agent.apply(AgentInput.builder()
     .subagents(List.of())
     .mcpServers(List.of())
     .environmentRef(ResourceRef.of("acme", "..."))
+    .computer(Computer.COMPUTER_NONE)
     .build());
 ```
 </Tab>
@@ -479,6 +484,7 @@ const agent = await stigmer.agent.create({
   subagents: [],
   mcpServers: [],
   environmentRef: { org: "acme", slug: "..." },
+  computer: Computer.NONE,
 });
 ```
 </Tab>
@@ -503,6 +509,7 @@ agent, err := client.Agent.Create(ctx, &stigmer.AgentInput{
   Subagents:       []stigmer.ResourceRef{},
   McpServers:      []*stigmer.AgentMcpServerInput{},
   EnvironmentRef:  stigmer.ResourceRef{Org: "acme", Slug: "..."},
+  Computer:        sessionv1.Computer_COMPUTER_NONE,
 })
 ```
 </Tab>
@@ -527,6 +534,7 @@ agent = client.agents.create(AgentInput(
     subagents=[],
     mcp_servers=[],
     environment_ref=ResourceRef(org="acme", slug="..."),
+    computer=session_enum_pb2.COMPUTER_NONE,
 ))
 ```
 </Tab>
@@ -551,6 +559,7 @@ Agent agent = client.agent.create(AgentInput.builder()
     .subagents(List.of())
     .mcpServers(List.of())
     .environmentRef(ResourceRef.of("acme", "..."))
+    .computer(Computer.COMPUTER_NONE)
     .build());
 ```
 </Tab>
@@ -817,6 +826,7 @@ Input for creating or updating an Agent.
     subagents: { type: "ResourceRef[]", description: "Saved agents this agent may hand work to, each running its own instructions, model, tools, plugins, skills, hooks and values.", typeDescriptionLink: "#resourceref" },
     mcpServers: { type: "AgentMcpServerInput[]", description: "MCP servers written in this agent itself, reached over HTTP, beside the servers of the plugins it lists.", typeDescriptionLink: "#agentmcpserverinput" },
     environmentRef: { type: "ResourceRef", description: "The Environment a new conversation on this agent runs in when neither the conversation nor its routine names one: the packages its sandboxes get and the websites they may reach.", typeDescriptionLink: "#resourceref" },
+    computer: { type: "Computer", description: "Whether this agent's conversations have a computer.", typeDescriptionLink: "#computer" },
   }}
 />
 
@@ -1074,6 +1084,15 @@ Harness identifies the harness, the agent loop that processes a session's turns.
 |-------|-------------|
 | `HARNESS_STIGMER` | Stigmer: Stigmer's own harness. |
 | `HARNESS_CLAUDE` | Claude Agent: Anthropic's Claude Agent SDK. |
+
+### Computer
+
+Computer says whether an agent's conversations have a computer: a machine where its commands, repositories, folders, Environment, hooks and local programs run.
+
+| Value | Description |
+|-------|-------------|
+| `COMPUTER_NONE` | No computer: no shell, repositories, folders, Environment, hooks or local programs. |
+| `COMPUTER_REQUIRED` | Needs a computer: a sandbox where the server runs one, or the person's own machine in the desktop app or the CLI. |
 
 ### HookFormat
 

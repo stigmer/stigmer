@@ -152,6 +152,8 @@ import type { Store } from "../../store/interface.js";
 import { agentSearchExtractor } from "./search-extractor.js";
 import { newGuardMcpServersStep } from "./guard-mcp-servers.js";
 import {
+  newRefuseWhatNeedsAComputerStep,
+  newResolveAgentComputerStep,
   newValidateHooksStep,
   newValidateMcpServersStep,
   newValidatePluginListStep,
@@ -288,6 +290,8 @@ async function createAgent(
     .addStep(newValidatePluginListStep(deps.store))
     .addStep(newValidateSubagentNamesStep(deps.store))
     .addStep(newPinSubagentsStep(deps.store, deps.authorizer))
+    .addStep(newResolveAgentComputerStep())
+    .addStep(newRefuseWhatNeedsAComputerStep(deps.store))
     .addStep(newRefuseUnofferedHarnessStep(agentHarnesses))
     .addStep(newValidateAgentRunConfigStep(deps.modelRegistry))
     .addStep(newComputeAgentVersionHashStep())
@@ -349,6 +353,8 @@ async function update(
       .addStep(newValidatePluginListStep(deps.store))
       .addStep(newValidateSubagentNamesStep(deps.store))
       .addStep(newPinSubagentsStep(deps.store, deps.authorizer))
+      .addStep(newResolveAgentComputerStep())
+      .addStep(newRefuseWhatNeedsAComputerStep(deps.store))
       .addStep(newRefuseUnofferedHarnessStep(agentHarnesses))
       .addStep(newValidateAgentRunConfigStep(deps.modelRegistry))
       .addStep(newComputeAgentVersionHashStep())

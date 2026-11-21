@@ -62,6 +62,36 @@ enum Harness {
   HARNESS_CLAUDE = 3;
 }
 
+// Computer says whether an agent's conversations have a computer: a machine
+// where its commands, repositories, folders, Environment, hooks and local
+// programs run.
+//
+// Only COMPUTER_NONE means no computer. An unset value reads as having one,
+// so an agent or conversation saved before this setting existed keeps its
+// computer.
+//
+// @internal
+// The reading rule is "computer != COMPUTER_NONE". The server's one home for
+// it is domain/run/computer.ts (hasComputer); the runner and the console kit
+// each make that single comparison against this comment. An agent's create
+// fills an unset value (COMPUTER_REQUIRED on the Claude harness, else the
+// new-agent default); an update that leaves it unset keeps the stored value,
+// so a version saved before the setting keeps its hash.
+enum Computer {
+  // Unset: has a computer. A new agent's create fills it in.
+  COMPUTER_UNSPECIFIED = 0;
+
+  // No computer: no shell, repositories, folders, Environment, hooks or
+  // local programs. Saving such an agent, and starting its conversations or
+  // routines, refuses each of them, naming the one to remove.
+  COMPUTER_NONE = 1;
+
+  // Needs a computer: a sandbox where the server runs one, or the person's
+  // own machine in the desktop app or the CLI. The Claude harness always
+  // has one.
+  COMPUTER_REQUIRED = 2;
+}
+
 // EnvironmentSource names whose choice a conversation's Environment was.
 enum EnvironmentSource {
   // No Environment applies.

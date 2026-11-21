@@ -822,4 +822,41 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue);
    * <code>.ai.stigmer.commons.apiresource.ApiResourceReference environment_ref = 19 [json_name = "environmentRef", (.ai.stigmer.commons.apiresource.reference_kind) = environment];</code>
    */
   ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder getEnvironmentRefOrBuilder();
+
+  /**
+   * <pre>
+   * Whether this agent's conversations have a computer. With
+   * COMPUTER_NONE, the agent runs no commands: saving refuses a Bash tool,
+   * hooks, an Environment, a plugin with hooks or local MCP servers, and a
+   * subagent that has a computer; its conversations and routines refuse
+   * repositories, folders, an Environment and the Claude harness.
+   *
+   * Unset reads as having a computer. A new agent left unset gets
+   * COMPUTER_REQUIRED; the Claude harness always has a computer, and
+   * COMPUTER_NONE on it is refused. An update that leaves this unset keeps
+   * the stored value. A conversation keeps the computer it started with.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.session.v1.Computer computer = 20 [json_name = "computer", (.buf.validate.field) = { ... }</code>
+   * @return The enum numeric value on the wire for computer.
+   */
+  int getComputerValue();
+  /**
+   * <pre>
+   * Whether this agent's conversations have a computer. With
+   * COMPUTER_NONE, the agent runs no commands: saving refuses a Bash tool,
+   * hooks, an Environment, a plugin with hooks or local MCP servers, and a
+   * subagent that has a computer; its conversations and routines refuse
+   * repositories, folders, an Environment and the Claude harness.
+   *
+   * Unset reads as having a computer. A new agent left unset gets
+   * COMPUTER_REQUIRED; the Claude harness always has a computer, and
+   * COMPUTER_NONE on it is refused. An update that leaves this unset keeps
+   * the stored value. A conversation keeps the computer it started with.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.session.v1.Computer computer = 20 [json_name = "computer", (.buf.validate.field) = { ... }</code>
+   * @return The computer.
+   */
+  ai.stigmer.agentic.session.v1.Computer getComputer();
 }

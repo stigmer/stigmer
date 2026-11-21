@@ -45,6 +45,7 @@ private static final long serialVersionUID = 0L;
     plugins_ = java.util.Collections.emptyList();
     subagents_ = java.util.Collections.emptyList();
     mcpServers_ = java.util.Collections.emptyList();
+    computer_ = 0;
   }
 
   public static final com.google.protobuf.Descriptors.Descriptor
@@ -1148,6 +1149,50 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
     return environmentRef_ == null ? ai.stigmer.commons.apiresource.ApiResourceReference.getDefaultInstance() : environmentRef_;
   }
 
+  public static final int COMPUTER_FIELD_NUMBER = 20;
+  private int computer_ = 0;
+  /**
+   * <pre>
+   * Whether this agent's conversations have a computer. With
+   * COMPUTER_NONE, the agent runs no commands: saving refuses a Bash tool,
+   * hooks, an Environment, a plugin with hooks or local MCP servers, and a
+   * subagent that has a computer; its conversations and routines refuse
+   * repositories, folders, an Environment and the Claude harness.
+   *
+   * Unset reads as having a computer. A new agent left unset gets
+   * COMPUTER_REQUIRED; the Claude harness always has a computer, and
+   * COMPUTER_NONE on it is refused. An update that leaves this unset keeps
+   * the stored value. A conversation keeps the computer it started with.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.session.v1.Computer computer = 20 [json_name = "computer", (.buf.validate.field) = { ... }</code>
+   * @return The enum numeric value on the wire for computer.
+   */
+  @java.lang.Override public int getComputerValue() {
+    return computer_;
+  }
+  /**
+   * <pre>
+   * Whether this agent's conversations have a computer. With
+   * COMPUTER_NONE, the agent runs no commands: saving refuses a Bash tool,
+   * hooks, an Environment, a plugin with hooks or local MCP servers, and a
+   * subagent that has a computer; its conversations and routines refuse
+   * repositories, folders, an Environment and the Claude harness.
+   *
+   * Unset reads as having a computer. A new agent left unset gets
+   * COMPUTER_REQUIRED; the Claude harness always has a computer, and
+   * COMPUTER_NONE on it is refused. An update that leaves this unset keeps
+   * the stored value. A conversation keeps the computer it started with.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.session.v1.Computer computer = 20 [json_name = "computer", (.buf.validate.field) = { ... }</code>
+   * @return The computer.
+   */
+  @java.lang.Override public ai.stigmer.agentic.session.v1.Computer getComputer() {
+    ai.stigmer.agentic.session.v1.Computer result = ai.stigmer.agentic.session.v1.Computer.forNumber(computer_);
+    return result == null ? ai.stigmer.agentic.session.v1.Computer.UNRECOGNIZED : result;
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -1206,6 +1251,9 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
     }
     if (((bitField0_ & 0x00000002) != 0)) {
       output.writeMessage(19, getEnvironmentRef());
+    }
+    if (computer_ != ai.stigmer.agentic.session.v1.Computer.COMPUTER_UNSPECIFIED.getNumber()) {
+      output.writeEnum(20, computer_);
     }
     getUnknownFields().writeTo(output);
   }
@@ -1308,6 +1356,10 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
       size += com.google.protobuf.CodedOutputStream
         .computeMessageSize(19, getEnvironmentRef());
     }
+    if (computer_ != ai.stigmer.agentic.session.v1.Computer.COMPUTER_UNSPECIFIED.getNumber()) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeEnumSize(20, computer_);
+    }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
     return size;
@@ -1356,6 +1408,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
       if (!getEnvironmentRef()
           .equals(other.getEnvironmentRef())) return false;
     }
+    if (computer_ != other.computer_) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -1415,6 +1468,8 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
       hash = (37 * hash) + ENVIRONMENT_REF_FIELD_NUMBER;
       hash = (53 * hash) + getEnvironmentRef().hashCode();
     }
+    hash = (37 * hash) + COMPUTER_FIELD_NUMBER;
+    hash = (53 * hash) + computer_;
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -1638,6 +1693,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
         environmentRefBuilder_.dispose();
         environmentRefBuilder_ = null;
       }
+      computer_ = 0;
       return this;
     }
 
@@ -1755,6 +1811,9 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
             ? environmentRef_
             : environmentRefBuilder_.build();
         to_bitField0_ |= 0x00000002;
+      }
+      if (((from_bitField0_ & 0x00004000) != 0)) {
+        result.computer_ = computer_;
       }
       result.bitField0_ |= to_bitField0_;
     }
@@ -1948,6 +2007,9 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
       if (other.hasEnvironmentRef()) {
         mergeEnvironmentRef(other.getEnvironmentRef());
       }
+      if (other.computer_ != 0) {
+        setComputerValue(other.getComputerValue());
+      }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
       return this;
@@ -2092,6 +2154,11 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
               bitField0_ |= 0x00002000;
               break;
             } // case 154
+            case 160: {
+              computer_ = input.readEnum();
+              bitField0_ |= 0x00004000;
+              break;
+            } // case 160
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -5766,6 +5833,123 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
         environmentRef_ = null;
       }
       return environmentRefBuilder_;
+    }
+
+    private int computer_ = 0;
+    /**
+     * <pre>
+     * Whether this agent's conversations have a computer. With
+     * COMPUTER_NONE, the agent runs no commands: saving refuses a Bash tool,
+     * hooks, an Environment, a plugin with hooks or local MCP servers, and a
+     * subagent that has a computer; its conversations and routines refuse
+     * repositories, folders, an Environment and the Claude harness.
+     *
+     * Unset reads as having a computer. A new agent left unset gets
+     * COMPUTER_REQUIRED; the Claude harness always has a computer, and
+     * COMPUTER_NONE on it is refused. An update that leaves this unset keeps
+     * the stored value. A conversation keeps the computer it started with.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.Computer computer = 20 [json_name = "computer", (.buf.validate.field) = { ... }</code>
+     * @return The enum numeric value on the wire for computer.
+     */
+    @java.lang.Override public int getComputerValue() {
+      return computer_;
+    }
+    /**
+     * <pre>
+     * Whether this agent's conversations have a computer. With
+     * COMPUTER_NONE, the agent runs no commands: saving refuses a Bash tool,
+     * hooks, an Environment, a plugin with hooks or local MCP servers, and a
+     * subagent that has a computer; its conversations and routines refuse
+     * repositories, folders, an Environment and the Claude harness.
+     *
+     * Unset reads as having a computer. A new agent left unset gets
+     * COMPUTER_REQUIRED; the Claude harness always has a computer, and
+     * COMPUTER_NONE on it is refused. An update that leaves this unset keeps
+     * the stored value. A conversation keeps the computer it started with.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.Computer computer = 20 [json_name = "computer", (.buf.validate.field) = { ... }</code>
+     * @param value The enum numeric value on the wire for computer to set.
+     * @throws IllegalArgumentException if UNRECOGNIZED is provided.
+     * @return This builder for chaining.
+     */
+    public Builder setComputerValue(int value) {
+      computer_ = value;
+      bitField0_ |= 0x00004000;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Whether this agent's conversations have a computer. With
+     * COMPUTER_NONE, the agent runs no commands: saving refuses a Bash tool,
+     * hooks, an Environment, a plugin with hooks or local MCP servers, and a
+     * subagent that has a computer; its conversations and routines refuse
+     * repositories, folders, an Environment and the Claude harness.
+     *
+     * Unset reads as having a computer. A new agent left unset gets
+     * COMPUTER_REQUIRED; the Claude harness always has a computer, and
+     * COMPUTER_NONE on it is refused. An update that leaves this unset keeps
+     * the stored value. A conversation keeps the computer it started with.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.Computer computer = 20 [json_name = "computer", (.buf.validate.field) = { ... }</code>
+     * @return The computer.
+     */
+    @java.lang.Override
+    public ai.stigmer.agentic.session.v1.Computer getComputer() {
+      ai.stigmer.agentic.session.v1.Computer result = ai.stigmer.agentic.session.v1.Computer.forNumber(computer_);
+      return result == null ? ai.stigmer.agentic.session.v1.Computer.UNRECOGNIZED : result;
+    }
+    /**
+     * <pre>
+     * Whether this agent's conversations have a computer. With
+     * COMPUTER_NONE, the agent runs no commands: saving refuses a Bash tool,
+     * hooks, an Environment, a plugin with hooks or local MCP servers, and a
+     * subagent that has a computer; its conversations and routines refuse
+     * repositories, folders, an Environment and the Claude harness.
+     *
+     * Unset reads as having a computer. A new agent left unset gets
+     * COMPUTER_REQUIRED; the Claude harness always has a computer, and
+     * COMPUTER_NONE on it is refused. An update that leaves this unset keeps
+     * the stored value. A conversation keeps the computer it started with.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.Computer computer = 20 [json_name = "computer", (.buf.validate.field) = { ... }</code>
+     * @param value The computer to set.
+     * @return This builder for chaining.
+     */
+    public Builder setComputer(ai.stigmer.agentic.session.v1.Computer value) {
+      if (value == null) { throw new NullPointerException(); }
+      bitField0_ |= 0x00004000;
+      computer_ = value.getNumber();
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Whether this agent's conversations have a computer. With
+     * COMPUTER_NONE, the agent runs no commands: saving refuses a Bash tool,
+     * hooks, an Environment, a plugin with hooks or local MCP servers, and a
+     * subagent that has a computer; its conversations and routines refuse
+     * repositories, folders, an Environment and the Claude harness.
+     *
+     * Unset reads as having a computer. A new agent left unset gets
+     * COMPUTER_REQUIRED; the Claude harness always has a computer, and
+     * COMPUTER_NONE on it is refused. An update that leaves this unset keeps
+     * the stored value. A conversation keeps the computer it started with.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.Computer computer = 20 [json_name = "computer", (.buf.validate.field) = { ... }</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearComputer() {
+      bitField0_ = (bitField0_ & ~0x00004000);
+      computer_ = 0;
+      onChanged();
+      return this;
     }
 
     // @@protoc_insertion_point(builder_scope:ai.stigmer.agentic.agent.v1.AgentSpec)

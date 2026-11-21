@@ -1,6 +1,6 @@
 /**
  * Agent domain-local pipeline steps. Shared steps stay in src/pipeline/steps/; these exist because they
- * embody agent-specific contracts: the cascade rules and the agent's hooks.
+ * embody agent-specific contracts: the cascade rules, the agent's hooks and its computer.
  *
  * The agent's tool lists (spec.tools, spec.disallowed_tools and each
  * sub-agent's pair) have no step here on purpose: their shape is the
@@ -22,6 +22,7 @@ import {
   isValidMatcher,
 } from "@stigmer/plugin-package";
 import { isReservedMcpServerName } from "@stigmer/tool-vocabulary";
+import { Computer } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
 
 import type {
   Agent,
@@ -44,6 +45,9 @@ import { EXISTING_RESOURCE_KEY } from "../../pipeline/steps/load-existing.js";
 import type { Store } from "../../store/interface.js";
 import { releaseNamesOfDeleted } from "../../pipeline/steps/names.js";
 import { referenceDisplayNames } from "../../pipeline/steps/references.js";
+import { refuseAgentWithoutComputer } from "../run/computer.js";
+import { loadRunPlugins, runPluginReferences } from "../run/run-plugins.js";
+import { runSubagents } from "../run/run-subagents.js";
 type AgentDesc = typeof AgentSchema;
 
 // ---------------------------------------------------------------------------
@@ -139,6 +143,70 @@ export function newValidateMcpServersStep(): PipelineStep<AgentDesc> {
           }
         }
       }
+    },
+  };
+}
+
+// ---------------------------------------------------------------------------
+// ResolveAgentComputer — fills spec.computer where the write leaves it
+// unset, so what is hashed is what the agent runs with. On create, unset
+// becomes NEW_AGENT_COMPUTER. On update (apply's update arm included, which
+// masks every path), unset keeps the stored value, as a conversation's
+// update that names no engine keeps the stored one: a YAML file written
+// before the setting, or an SDK that leaves it out, never changes it. An
+// agent saved before the setting stays unset, so its version hash is the
+// one it had.
+//
+// Pipeline position: directly before RefuseWhatNeedsAComputer, after
+// PinSubagents, and before the version hash.
+// ---------------------------------------------------------------------------
+
+/**
+ * What a new agent that names no computer gets: one, for now. The Claude
+ * harness always has one whatever this says; COMPUTER_NONE on it is
+ * refused (domain/run/computer.ts).
+ */
+export const NEW_AGENT_COMPUTER = Computer.REQUIRED;
+
+export function newResolveAgentComputerStep(): PipelineStep<AgentDesc> {
+  return {
+    name: "ResolveAgentComputer",
+    execute(ctx: RequestContext<AgentDesc>): void {
+      const spec = ctx.newState.spec;
+      if (spec === undefined || spec.computer !== Computer.UNSPECIFIED) {
+        return;
+      }
+      const stored = ctx.get(EXISTING_RESOURCE_KEY) as Agent | undefined;
+      spec.computer = stored === undefined ? NEW_AGENT_COMPUTER : (stored.spec?.computer ?? Computer.UNSPECIFIED);
+    },
+  };
+}
+
+// ---------------------------------------------------------------------------
+// RefuseWhatNeedsAComputer — an agent without a computer may not name
+// anything that needs one (domain/run/computer.ts): the Claude harness, a
+// Bash tool, its own hooks, an Environment, a plugin with hooks or a local
+// MCP server, or a subagent whose pinned version has a computer. The
+// plugins are read at the version a turn reads them (run-plugins.ts), the
+// subagents at their pins (run-subagents.ts), so saving and a turn judge
+// the same things. An agent with a computer reads nothing here.
+//
+// Pipeline position: after ResolveAgentComputer and PinSubagents, whose
+// pins it reads, and before the version hash.
+// ---------------------------------------------------------------------------
+
+export function newRefuseWhatNeedsAComputerStep(store: Store): PipelineStep<AgentDesc> {
+  return {
+    name: "RefuseWhatNeedsAComputer",
+    async execute(ctx: RequestContext<AgentDesc>): Promise<void> {
+      const spec = ctx.newState.spec;
+      if (spec === undefined || spec.computer !== Computer.NONE) {
+        return;
+      }
+      const org = ctx.newState.metadata?.org ?? "";
+      const subagents = await runSubagents(store, spec, org);
+      const plugins = await loadRunPlugins(store, runPluginReferences(spec, undefined, org), org);
+      refuseAgentWithoutComputer(spec, plugins, subagents);
     },
   };
 }

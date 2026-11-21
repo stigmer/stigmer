@@ -15,9 +15,12 @@ import { EnvironmentQueryController } from "@stigmer/apis/ai/stigmer/agentic/env
 import { VaultQueryController } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/query_pb";
 import { PlatformQueryController } from "@stigmer/apis/ai/stigmer/platform/v1/server_info_pb";
 import { AgentQueryController } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/query_pb";
+import { AgentCommandController } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/command_pb";
+import { Computer, Harness } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
 import { GrantQueryController } from "@stigmer/apis/ai/stigmer/iam/grant/v1/query_pb";
 import { PrincipalAccessSchema, type PrincipalAccess } from "@stigmer/apis/ai/stigmer/iam/grant/v1/io_pb";
-import { create } from "@bufbuild/protobuf";
+import { clone, create } from "@bufbuild/protobuf";
+import { AgentSchema } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb";
 import { IdentityAccountQueryController } from "@stigmer/apis/ai/stigmer/iam/identityaccount/v1/query_pb";
 import { OrganizationQueryController } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/query_pb";
 import type { Agent } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb";
@@ -115,6 +118,43 @@ export function agentProfileScene(viewer: AgentViewer): Drawing {
   return {
     inOrganization: true,
     routes: agentRoutes(viewer),
+    render: () => (
+      <div style={{ maxWidth: "56rem", margin: "0 auto", padding: "2rem 1.5rem" }}>
+        <AgentDetailView headingLevel={1} org={org} slug={slug} editable primaryAction={START_SESSION} actions={MENU} />
+      </div>
+    ),
+  };
+}
+
+/**
+ * The ledger agent's page with its computer off, as its owner sees it: the
+ * Computer switch off with what that means, the Environment section saying
+ * it doesn't apply, and no subagent (one with a computer couldn't be
+ * listed). `refused` is the owner turning the computer off on an agent
+ * whose save the server refuses: the switch springs back on, the server's
+ * sentence under it.
+ */
+export function agentComputerScene(state: "off" | "refused"): Drawing {
+  const agent = clone(AgentSchema, LEDGER_AGENT);
+  agent.spec!.subagents = [];
+  agent.spec!.harness = Harness.STIGMER;
+  agent.spec!.computer = state === "off" ? Computer.NONE : Computer.REQUIRED;
+  const org = ORGANIZATION.metadata?.slug ?? "";
+  const slug = LEDGER_AGENT.metadata?.slug ?? "";
+  const routes = agentRoutes("owner", { agent });
+  return {
+    inOrganization: true,
+    routes: (router) => {
+      routes(router);
+      router.service(AgentCommandController, {
+        update: () => {
+          throw new ConnectError(
+            "this agent has no computer, so it can't use plugin 'code-style', which runs hooks; remove the plugin, or give the agent a computer",
+            Code.FailedPrecondition,
+          );
+        },
+      });
+    },
     render: () => (
       <div style={{ maxWidth: "56rem", margin: "0 auto", padding: "2rem 1.5rem" }}>
         <AgentDetailView headingLevel={1} org={org} slug={slug} editable primaryAction={START_SESSION} actions={MENU} />
