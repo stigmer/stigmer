@@ -67,6 +67,12 @@ export interface ModelSelectorProps {
    * When omitted, shows every harness the platform runs (`HARNESS_OPTIONS`).
    */
   readonly availableHarnesses?: readonly HarnessOption[];
+  /**
+   * One line under the harness row saying why the harness is fixed or a
+   * harness is missing ("Claude Agent isn't offered: support-desk has no
+   * computer"); nothing when omitted.
+   */
+  readonly harnessNote?: string;
   /** Override the curated (featured) list for the current harness. */
   readonly curatedModels?: readonly string[];
   /** Grouping in the "Show All" expanded view. Default: "provider". */
@@ -216,6 +222,7 @@ export function ModelSelector({
   initialHarness,
   onHarnessChange,
   availableHarnesses,
+  harnessNote,
   curatedModels,
   groupBy = "provider",
   showSpeedBadge = true,
@@ -617,6 +624,12 @@ export function ModelSelector({
                 </div>
               )}
             </div>
+
+            {harnessNote !== undefined && (
+              <p className="stg:border-b stg:border-border stg:px-3 stg:py-1.5 stg:text-2xs stg:text-muted-foreground">
+                {harnessNote}
+              </p>
+            )}
 
             {/* Options area — the Cursor options-panel convention: settings
                 of the CURRENT selection sit at the top of the popover, the

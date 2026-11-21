@@ -51,6 +51,8 @@ export interface ComposerToolbarProps {
 
   readonly showHarnessSelector: boolean;
   readonly harness?: HarnessOption;
+  /** One line under the model picker's harness row saying why the harness is fixed. */
+  readonly harnessNote?: string;
   readonly onHarnessChange: (harness: HarnessOption) => void;
 
   readonly showInteractionModePicker: boolean;
@@ -143,6 +145,7 @@ export function ComposerToolbar({
   onConfigActivePanelChange,
   renderConfigPanel,
   showHarnessSelector,
+  harnessNote,
   harness,
   onHarnessChange,
   showInteractionModePicker,
@@ -174,6 +177,7 @@ export function ComposerToolbar({
             harness={showHarnessSelector ? undefined : harness}
             initialHarness={showHarnessSelector ? harness : undefined}
             onHarnessChange={showHarnessSelector ? onHarnessChange : undefined}
+            harnessNote={harnessNote}
             serviceTier={serviceTier}
             onServiceTierChange={onServiceTierChange}
             thinkingMode={thinkingMode}

@@ -26,6 +26,7 @@ vi.mock("../useNewSessionFlow", () => ({
   useNewSessionFlow: () => ({
     harness: "stigmer" as const,
     setHarness: () => {},
+    agentHasComputer: true,
     modelId: undefined,
     setModelId: () => {},
     clearModelPick: () => {},

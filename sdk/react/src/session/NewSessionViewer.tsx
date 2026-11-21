@@ -33,6 +33,7 @@ import { useFirstQuestionGate } from "./first-question/useFirstQuestionGate.js";
 import type { SessionLaunch } from "./launch.js";
 import type { JourneyLinks } from "../journey/links.js";
 import { useStartFromExample, type FirstChoice } from "./first-question/useStartFromExample.js";
+import { claudeNotOfferedCopy } from "../agent/computer.js";
 // The first question and its chosen bar, with the example list they carry,
 // load only when a launcher shows them: an embed or a returning person never
 // downloads them.
@@ -592,7 +593,8 @@ export function NewSessionViewer({
       onSubmit: submitKeepingMessage,
       isSubmitting: flow.isSubmitting,
       org,
-      workspace: isGuest ? undefined : flow.workspace,
+      // An agent without a computer takes no repositories or folders.
+      workspace: isGuest || !flow.agentHasComputer ? undefined : flow.workspace,
       gitHubConnection: enableGitHub && !isGuest ? gitHubConnection : undefined,
       enableGitHub: enableGitHub && !isGuest,
       enableLocal: enableLocal && !isGuest,
@@ -621,7 +623,10 @@ export function NewSessionViewer({
       onPluginRefsChange: isCurated ? undefined : flow.setPluginRefs,
       skillRefs: isCurated ? undefined : flow.skillRefs,
       onSkillRefsChange: isCurated ? undefined : flow.setSkillRefs,
-      showHarnessSelector: audience === "integrator",
+      // An agent without a computer runs on Stigmer alone: the harness is
+      // fixed, and the model picker says why.
+      showHarnessSelector: audience === "integrator" && flow.agentHasComputer,
+      harnessNote: flow.agentHasComputer ? undefined : claudeNotOfferedCopy(),
       harness: flow.harness,
       onHarnessChange: flow.setHarness,
       interactionMode,

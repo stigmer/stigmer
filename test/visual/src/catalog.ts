@@ -100,6 +100,8 @@ export type SceneId =
   | "skill-upload-refused"
   | "agent-profile-manage-access"
   | "agent-profile-viewer"
+  | "agent-profile-no-computer"
+  | "agent-profile-computer-refused"
   | "agent-profile-variance-reporter"
   | "agent-make-it-yours"
   | "agent-make-it-yours-member"
@@ -1490,6 +1492,17 @@ const LISTED: readonly Scene[] = [
   ...SETTINGS_SCENES,
   { id: "agent-profile-owner", title: "Agent page: the ledger agent, as its owner sees it", widths: ["desktop", "narrow"] },
   { id: "agent-profile-viewer", title: "Agent page: the ledger agent, as a person who may only read it sees it", widths: ["desktop"] },
+  {
+    id: "agent-profile-no-computer",
+    title: "Agent page: an agent without a computer, its Environment not applying",
+    widths: ["desktop", "narrow"],
+  },
+  {
+    id: "agent-profile-computer-refused",
+    title: "Agent page: turning the computer off refused, the server's sentence under the switch",
+    widths: ["desktop"],
+    opens: [{ press: "Give this agent a computer", role: "switch" }],
+  },
   {
     id: "agent-profile-channels",
     title: "Agent page, Channels: the ledger agent with no channel yet, offering to connect one",
