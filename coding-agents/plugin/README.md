@@ -56,9 +56,10 @@ hosted server instead: https://stigmer.ai/docs/guides/editors/connect-mcp
   (`*.stigmer.ai`), your own server at its own address, or `stigmer up` on your
   machine. They use that sign-in; the plugin holds no credential.
 - **stigmer.ai**, for the docs it reads and cites.
-- **A Node script** (`hooks/guard.mjs`, in Claude Code) that reads the call your
-  coding agent is about to make and, for the acts above, asks you first. It reads
-  nothing else, writes nothing and reaches no network.
+- **A Node script** (`hooks/guard.mjs` in Claude Code, `hooks/cursor-guard.mjs` in
+  Cursor) that reads the call your coding agent is about to make and, for the acts
+  above, asks you first. It reads nothing else, writes nothing and reaches no
+  network. Codex asks from the tools' own marks.
 - **Skills**: Markdown instructions your coding agent reads.
 
 Nothing else. The manifest's `network.hosts` names stigmer.ai; your own server's

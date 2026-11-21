@@ -10,7 +10,7 @@
 // (skills/stigmer-operate/SKILL.md), each description within the 1,024
 // characters a tool reads of it,
 // the bundled `stigmer mcp-server` and Claude Code's guard hook read with no
-// warning by `@stigmer/plugin-package`, which knows all three dialects; each tool's marketplace file offering that
+// warning but that Cursor's guard is not run there, by `@stigmer/plugin-package`, which knows all three dialects; each tool's marketplace file offering that
 // one plugin at the repository's root; what the plugin directories show (one
 // image inside the plugin, the name Stigmer, https links only, one
 // description everywhere, the hosts it reaches); and dist/index.js exporting the guide
@@ -91,9 +91,11 @@ describe("the plugin", () => {
     }
   });
 
-  it("reads with no error or warning: the front door, the setup guide, the runs, integration, build and operate skills, the bundled MCP server and the guard", () => {
+  // Stigmer runs one format's hooks, Claude Code's here, and says so about
+  // Cursor's: the plugin carries both on purpose, one guard per tool.
+  it("reads with no error and one warning, that Cursor's guard is not Stigmer's to run: the front door, the setup guide, the runs, integration, build and operate skills, the bundled MCP server and the guard", () => {
     const outcome = readPluginPackage(inMemoryPluginFiles(files));
-    expect(outcome.warnings).toEqual([]);
+    expect(outcome.warnings.map((warning) => [warning.kind, warning.path])).toEqual([["hooks-format-not-run", "hooks/cursor-hooks.json"]]);
     expect(outcome.ok).toBe(true);
     if (!outcome.ok) return;
     expect(outcome.plugin.name).toBe("stigmer");
