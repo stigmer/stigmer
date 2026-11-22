@@ -16,6 +16,7 @@ import {
   MAX_INPUT_READ_BYTES,
   newInputCache,
   newTurnInputs,
+  NO_TURN_INPUTS,
   type InputFetch,
   type RunFileSets,
 } from "../inputs-reader.js";
@@ -94,5 +95,32 @@ describe("the turn's inputs reader", () => {
     const reader = newTurnInputs({ org: "org_1", sets: SETS, refetch: async () => SETS, fetch: served({}) });
     reader.replace({ entries: [...SETS.entries, mount("file_b", "late.png", 3)], outputs: SETS.outputs });
     expect((await reader.list()).map((file) => file.path)).toContain("uploads/late.png");
+  });
+
+  it("answers a cached File from the cache, and names a refused fetch without its link", async () => {
+    const cache = newInputCache(1024);
+    const first = served({ file_a: "hello" });
+    const reader = newTurnInputs({ org: "org_1", sets: SETS, refetch: async () => SETS, fetch: first, cache });
+    await reader.read("uploads/brief.txt");
+    await reader.read("uploads/brief.txt");
+    expect(first.urls, "the second read is the cache's").toHaveLength(1);
+    const failing = newTurnInputs({ org: "org_1", sets: SETS, refetch: async () => SETS, fetch: served({}, () => 500), cache });
+    const err = (await failing.read("outputs/reply.md").then(() => undefined, (e: unknown) => e)) as Error;
+    expect(err.message).toMatch(/HTTP 500/);
+    expect(err.message).not.toContain("sig=secret");
+  });
+
+  it("finds a File gone when the fresh links no longer hold it", async () => {
+    const fetch = served({ file_a: "hello" }, () => 403);
+    const reader = newTurnInputs({ org: "org_1", sets: SETS, refetch: async () => ({ entries: [], outputs: [] }), fetch, cache: newInputCache(1024) });
+    await expect(reader.read("uploads/brief.txt")).rejects.toBeInstanceOf(InputFileNotFoundError);
+  });
+
+  it("lists no File whose mount path would leave its folder", async () => {
+    const odd: RunFileSets = { entries: [mount("file_x", "../escape.txt", 1), mount("file_y", ".", 1), mount("file_z", "ok.txt", 1)], outputs: [] };
+    const reader = newTurnInputs({ org: "org_1", sets: odd, refetch: async () => odd, fetch: served({}) });
+    expect((await reader.list()).map((file) => file.path)).toEqual(["uploads/ok.txt"]);
+    expect(await NO_TURN_INPUTS.list()).toEqual([]);
+    await expect(NO_TURN_INPUTS.read("uploads/a")).rejects.toBeInstanceOf(InputFileNotFoundError);
   });
 });

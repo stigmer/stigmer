@@ -16,7 +16,7 @@
  */
 import { HumanMessage, isToolMessage, type BaseMessage } from "@langchain/core/messages";
 import { MemorySaver } from "@langchain/langgraph";
-import { createDeepAgent } from "deepagents";
+import { createDeepAgent, StateBackend } from "deepagents";
 import { describe, expect, it } from "vitest";
 
 import { InputFileNotFoundError, NO_TURN_INPUTS, type InputFileInfo, type TurnInputFiles } from "../../../shared/inputs-reader.js";
@@ -25,7 +25,7 @@ import type { TurnHookSource, TurnInput } from "../../../harness/types.js";
 import { buildHookEvaluator, HookSetupError } from "../hooks-setup.js";
 import { newOutputsBuffer } from "../../../shared/outputs-buffer.js";
 import type { TurnOffloads } from "../../../shared/offload-store.js";
-import { computerlessFileBackend, MAX_NOTE_BYTES, OFFLOAD_KEYS_ROOT } from "../computerless-files.js";
+import { computerlessFileBackend, MAX_NOTE_BYTES, NotesBackend, OFFLOAD_KEYS_ROOT } from "../computerless-files.js";
 import { routesOffloads } from "../platform-route.js";
 import { ScriptedModel, type ScriptedToolCall } from "../__test-utils__/scripted-model.js";
 
@@ -241,5 +241,31 @@ describe("the engine's hooks without a computer", () => {
     expect(await buildHookEvaluator(noComputer(), sink, 1_000)).toBeNull();
     const hooked = noComputer({ sources: [{ format: "claude" } as unknown as TurnHookSource], serverNames: new Map() });
     await expect(buildHookEvaluator(hooked, sink, 1_000)).rejects.toBeInstanceOf(HookSetupError);
+  });
+});
+
+describe("the notes, read directly over a saved state", () => {
+  const fileData = (content: string) => ({ content, mimeType: "text/plain", created_at: "", modified_at: "" });
+  const notesOver = (files: Record<string, unknown>) => new NotesBackend(new StateBackend({ state: { files } } as never));
+
+  it("never shows, reads, edits or deletes a set-aside key, and refuses a path that is no note's", async () => {
+    const notes = notesOver({
+      "/plan.md": fileData("step one\nstep two\n"),
+      [`${OFFLOAD_KEYS_ROOT}large_tool_results/call_1.txt`]: fileData("artifacts/run_1/offloads/ses_1/abc\n4"),
+    });
+    expect((await notes.ls("/")).files?.map((file) => file.path)).toEqual(["/plan.md"]);
+    expect((await notes.glob("**")).files?.map((file) => file.path)).toEqual(["/plan.md"]);
+    expect((await notes.grep("artifacts")).matches).toEqual([]);
+    expect((await notes.grep("step")).matches?.map((match) => match.line)).toEqual([1, 2]);
+    const key = `${OFFLOAD_KEYS_ROOT}large_tool_results/call_1.txt`;
+    expect((await notes.read(key)).error).toMatch(/not found/);
+    expect((await notes.readRaw(key)).error).toMatch(/not found/);
+    expect((await notes.edit(key, "a", "b")).error).toMatch(/not found/);
+    expect((await notes.delete(key)).error).toMatch(/not found/);
+    expect((await notes.write(key, "x")).error).toMatch(/not a path for a note/);
+    expect((await notes.write("relative.md", "x")).error).toMatch(/not a path for a note/);
+    expect((await notes.read("/plan.md")).content).toContain("step one");
+    expect((await notes.downloadFiles(["/plan.md", key, "/missing.md"])).map((answer) => answer.error)).toEqual([null, "file_not_found", "file_not_found"]);
+    expect((await notes.uploadFiles([["/up.bin", new Uint8Array([1])]]))[0]?.error).toBe("permission_denied");
   });
 });
