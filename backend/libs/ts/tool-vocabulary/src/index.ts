@@ -1,6 +1,7 @@
-// The package entry: re-exports the tool vocabulary (vocabulary.ts) and the
-// MCP server names (mcp-servers.ts) that the runner, the control plane and
-// the browser kits read, so none reaches into a file path. Nothing else
+// The package entry: re-exports the tool vocabulary (vocabulary.ts), the
+// MCP server names (mcp-servers.ts) and the secret argument names
+// (secret-args.ts) that the runner, the control plane and the browser kits
+// read, so none reaches into a file path. Nothing else
 // lives here; the tables and their trade-offs are documented and pinned
 // beside them. The custom-tool check is its own entry,
 // `@stigmer/tool-vocabulary/custom-tools`: it runs a JSON Schema validator
@@ -29,3 +30,4 @@ export {
   accessTokenVariable,
   isReservedMcpServerName,
 } from "./mcp-servers.js";
+export { SECRET_ARG_KEYS, isSecretArgKey } from "./secret-args.js";

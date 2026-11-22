@@ -1,6 +1,6 @@
 "use client";
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState, type ReactElement, type ReactNode } from "react";
-import type { ResourceRef } from "@stigmer/client";
+import type { CustomToolInput, ResourceRef } from "@stigmer/client";
 import type { UseGitHubConnectionReturn } from "../github/useGitHubConnection.js";
 import type { InteractionModeOption } from "../composer/index.js";
 import { SessionComposer, type SessionComposerHandle, type SessionComposerProps } from "../composer/index.js";
@@ -97,6 +97,18 @@ export interface NewSessionViewerProps {
    * `"endUser"` and `"guest"` (see `useNewSessionFlow`'s `fileReview`).
    */
   readonly fileReview?: boolean;
+
+  /**
+   * The app's own tools the created conversation offers its agent (the
+   * session's `custom_tools`; make each with `defineCustomTool` from
+   * `@stigmer/client`). A call of one waits for the app's answer: a tool
+   * card registered under the tool's name draws it, and the session
+   * viewer's `onCustomToolUse` hears it. Read once, when the conversation
+   * is created: the tools are fixed once a turn has run. The server refuses
+   * a declaration it cannot offer, naming the rule, and the refusal reaches
+   * `onError`.
+   */
+  readonly customTools?: readonly CustomToolInput[];
 
   /**
    * Shared vaults the conversation uses, in order (the first holding a
@@ -334,6 +346,7 @@ export function NewSessionViewer({
   onBrowseLocalFolder,
   includeMyVault,
   fileReview,
+  customTools,
   vaults,
   audience = "integrator",
   runConfig,
@@ -391,6 +404,7 @@ export function NewSessionViewer({
     onError,
     includeMyVault: includesMyVault,
     fileReview,
+    customTools,
     vaults,
     defaultHarness,
     accountDefaults,

@@ -2,7 +2,8 @@
  * Proves <AgentChat> (../AgentChat.tsx): the launcher until a conversation
  * exists, then the conversation, in every frame; the agent named by
  * "org/slug" and its organization by default; the first message's refusal
- * shown under its box; a controlled conversation; the panel's header, new
+ * shown under its box; the app's own tools declared on the first message's
+ * view and heard on the conversation's; a controlled conversation; the panel's header, new
  * conversation and host-owned close; and the popup's corner button, which
  * opens a non-modal chat, takes focus into it, closes on Escape only from
  * inside, returns focus to the button, and says while closed what the
@@ -195,6 +196,18 @@ describe("AgentChat, the page", () => {
 });
 
 describe("AgentChat, the panel", () => {
+  it("declares the app's own tools on the first message's view and hands the conversation its callback", async () => {
+    const tools = [{ name: "register_cloud_account", description: "Show the account form.", inputSchema: { type: "object" as const } }];
+    const heard = vi.fn();
+    const { rerender } = render(<AgentChat agent="acme/billing-agent" customTools={tools} onCustomToolUse={heard} />);
+    expect(newSessionViewerProps.at(-1)).toMatchObject({ customTools: tools });
+
+    rerender(<AgentChat agent="acme/billing-agent" sessionId="ses_1" customTools={tools} onCustomToolUse={heard} />);
+    await screen.findByTestId("session-probe");
+    expect(sessionViewerProps.at(-1)).toMatchObject({ onCustomToolUse: heard });
+    expect(sessionViewerProps.at(-1)).not.toHaveProperty("customTools");
+  });
+
   it("names the agent in its header, from its own name, else its slug, else the title given", () => {
     const { rerender } = render(<AgentChat agent="acme/billing-agent" variant="panel" />);
     expect(screen.getByRole("heading", { name: "Billing agent" })).toBeTruthy();

@@ -393,6 +393,12 @@ describe("NewSessionViewer — audience wiring", () => {
     expect(mockUseNewSessionFlow).toHaveBeenLastCalledWith(expect.objectContaining({ fileReview: undefined }));
   });
 
+  it("forwards the host's own tools to the flow that creates the conversation", () => {
+    const tools = [{ name: "register_cloud_account", description: "Show the account form, filled in.", inputSchema: { type: "object", properties: { account_name: { type: "string" } } } }];
+    render(<NewSessionViewer org="acme" onSessionCreated={vi.fn()} audience="endUser" initialAgentRef={AGENT_REF} customTools={tools} />);
+    expect(mockUseNewSessionFlow).toHaveBeenLastCalledWith(expect.objectContaining({ customTools: tools }));
+  });
+
   it("guest: pure chat — every picker hidden, file uploads and workspace off", () => {
     render(
       <NewSessionViewer

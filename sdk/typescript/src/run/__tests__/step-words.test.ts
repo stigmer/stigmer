@@ -7,13 +7,14 @@
 // a call its turn stopped reads as one that couldn't, one waiting for a yes
 // as what the agent wants to do; a connected app's tool
 // and a tool the kit does not know read as their own
-// names, humanized, with the app beside them; and the one word table the
-// working phrase and the settled roll-up also read.
+// names, humanized, with the app beside them; the one word table the
+// working phrase and the settled roll-up also read; and a call waits on an
+// answer while a person's approval or the app's answer is due.
 
 import { describe, it, expect } from "vitest";
 import type { JsonObject } from "@bufbuild/protobuf";
 import type { ToolUse } from "@stigmer/session-log";
-import { humanizeToolName, KIND_WORDS, stepPhrase, stepTense } from "../step-words";
+import { awaitsAnswer, humanizeToolName, KIND_WORDS, stepPhrase, stepTense } from "../step-words";
 
 type Outcome = "running" | "returned" | "failed" | "denied" | "stopped" | "waiting";
 
@@ -135,5 +136,15 @@ describe("KIND_WORDS", () => {
     }
     const counted = Object.entries(KIND_WORDS).filter(([, words]) => words.counted !== undefined).map(([kind]) => kind);
     expect(counted.sort()).toEqual(["fetch", "file_delete", "file_edit", "file_read", "file_write", "list", "mcp", "search", "shell", "skill", "unknown", "web_search"]);
+  });
+});
+
+describe("awaitsAnswer", () => {
+  it("waits for a person's approval or the app's answer, and for nothing once settled", () => {
+    expect(awaitsAnswer({ state: "waiting" })).toBe(true);
+    expect(awaitsAnswer({ state: "waiting_on_host" })).toBe(true);
+    for (const state of ["running", "completed", "failed", "denied", "stopped"] as const) {
+      expect(awaitsAnswer({ state })).toBe(false);
+    }
   });
 });

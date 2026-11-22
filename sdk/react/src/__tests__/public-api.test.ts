@@ -4,6 +4,12 @@ import { Feature } from "@stigmer/apis/ai/stigmer/platform/v1/entitlement_pb";
 import {
   ENTERPRISE_CLOUD_PLAN,
   FEATURE_COPY,
+  defineCustomTool,
+  useAnswerCustomToolUse,
+  type CustomToolAnswer,
+  type CustomToolInput,
+  type OnCustomToolUse,
+  type UseAnswerCustomToolUseReturn,
   type MessageAction,
   type MessageInfo,
   type NamedFeature,
@@ -49,6 +55,27 @@ describe("public API surface", () => {
     expect(fromChat).toHaveLength(6);
     expect(slots).toEqual({});
     expect(entry.messageActions).toHaveLength(1);
+  });
+
+  // A host declares its own tools with the client's helper (re-exported at
+  // the root), answers them through a card or its callback, and a host
+  // drawing its own screen answers with the hook. The light chat entry
+  // names the types, never the client's values.
+  it("the app's own tools are declared, heard and answered from the root and the chat entry", async () => {
+    const tool: CustomToolInput = defineCustomTool({
+      name: "register_cloud_account",
+      description: "Show the account form, filled in.",
+      inputSchema: { type: "object", properties: { account_name: { type: "string" } } },
+    });
+    expect(tool.name).toBe("register_cloud_account");
+    expect(typeof useAnswerCustomToolUse).toBe("function");
+    const answer: CustomToolAnswer = async () => undefined;
+    const heard: OnCustomToolUse = (call, reply) => void reply(call.tool, { isError: false });
+    const fromChat: [Chat.CustomToolAnswer, Chat.OnCustomToolUse] = [answer, heard];
+    const returned: Pick<UseAnswerCustomToolUseReturn, "submittingIds"> = { submittingIds: new Set() };
+    await expect(answer("ok")).resolves.toBeUndefined();
+    expect(fromChat).toHaveLength(2);
+    expect(returned.submittingIds.size).toBe(0);
   });
 
   // stigmer.ai's pricing page renders plan features through these, so the

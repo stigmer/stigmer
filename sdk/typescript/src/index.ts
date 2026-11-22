@@ -470,6 +470,7 @@ export {
   searchCountWords,
   stepPhrase,
   stepTense,
+  awaitsAnswer,
   type StepPhrase,
   type StepPhraseOptions,
   type StepTense,

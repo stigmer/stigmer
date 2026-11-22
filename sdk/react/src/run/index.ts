@@ -191,7 +191,8 @@ export type {
 export { RunErrorNotice } from "./RunErrorNotice.js";
 export type { RunErrorNoticeProps, RunErrorNoticeLink } from "./RunErrorNotice.js";
 export type { TurnEndingAction, TurnEndingWiring } from "./ThreadPresentationContext.js";
-export type { ToolCallInfo, ToolCallState, ToolCardProps, ToolCards } from "./tool-cards-context.js";
+export type { CustomToolAnswer, ToolCallInfo, ToolCallState, ToolCardProps, ToolCards } from "./tool-cards-context.js";
+export type { AnswerCustomToolUse } from "./CustomToolAnswerContext.js";
 export type { MessageAction, MessageInfo } from "./message-actions.js";
 
 export { ThreadSkeleton } from "./ThreadSkeleton.js";
@@ -212,6 +213,8 @@ export type { TodoCardProps } from "./TodoCard.js";
 
 export { useAnswerToolUse } from "@stigmer/react-core";
 export type { UseAnswerToolUseReturn, ToolUseAnswer } from "@stigmer/react-core";
+export { useAnswerCustomToolUse } from "@stigmer/react-core";
+export type { UseAnswerCustomToolUseReturn, CustomToolAnswerOptions } from "@stigmer/react-core";
 export { useStopBackgroundCommand } from "@stigmer/react-core";
 export type { UseStopBackgroundCommandReturn } from "@stigmer/react-core";
 

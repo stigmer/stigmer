@@ -165,6 +165,13 @@
         "$TURBO_ROOT$/docs/sdk/managed-agents.mdx"
       ]
     },
+    // The tool vocabulary's suite holds its secret argument keys to the
+    // tool-view fixture the runner and the client are held to.
+    "@stigmer/tool-vocabulary#test": {
+      "dependsOn": ["^build"],
+      "outputs": [],
+      "inputs": ["$TURBO_DEFAULT$", "$TURBO_ROOT$/test/fixtures/tool-view/**"]
+    },
     // outbound's suite holds its engines to the runner's floor, reading the
     // runner's manifest, which no workspace's hash covers.
     "@stigmer/outbound#test": {

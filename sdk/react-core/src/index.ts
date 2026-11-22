@@ -81,6 +81,8 @@ export {
 export type { ToolDisclosure } from "./run/tool-categories.js";
 export { useAnswerToolUse } from "./run/useAnswerToolUse.js";
 export type { ToolUseAnswer, UseAnswerToolUseReturn } from "./run/useAnswerToolUse.js";
+export { useAnswerCustomToolUse } from "./run/useAnswerCustomToolUse.js";
+export type { CustomToolAnswerOptions, UseAnswerCustomToolUseReturn } from "./run/useAnswerCustomToolUse.js";
 export { useArtifactContent } from "./run/useArtifactContent.js";
 export type { UseArtifactContentReturn } from "./run/useArtifactContent.js";
 export { useArtifactDownloadUrl } from "./run/useArtifactDownloadUrl.js";

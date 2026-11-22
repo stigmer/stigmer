@@ -36,6 +36,7 @@ import { useConversationStoreRef } from "../internal/store/conversation-store.js
 import { useCreateRun, type SharedRunFields } from "../run/useCreateRun.js";
 import { useRunActions } from "../run/useRunActions.js";
 import { useAnswerToolUse, type ToolUseAnswer } from "../run/useAnswerToolUse.js";
+import { useAnswerCustomToolUse, type CustomToolAnswerOptions } from "../run/useAnswerCustomToolUse.js";
 import { useStopBackgroundCommand } from "../run/useStopBackgroundCommand.js";
 import {
   useReviewFileChanges,
@@ -452,6 +453,29 @@ export interface UseSessionConversationReturn {
   readonly clearAnswerError: () => void;
 
   /**
+   * The live turn's calls of the app's own tools (the session's
+   * `custom_tools`) that wait for the app's answer (`waiting_on_host`), in
+   * log order; empty when none. An answered call leaves the list, and an
+   * ended turn's unanswered calls read `stopped`, so a replayed
+   * conversation lists only what still waits.
+   */
+  readonly customToolUses: readonly ToolUse[];
+  /**
+   * Answer a call of the app's own tools: the text is what the agent reads
+   * as the tool's result, and `isError` tells it the tool failed. The
+   * session id is managed internally. Rejects with the server's error.
+   */
+  readonly answerCustomToolUse: (
+    customToolUseId: string,
+    text: string,
+    options?: CustomToolAnswerOptions,
+  ) => Promise<void>;
+  /** The custom tool calls whose answer is in flight, by id. */
+  readonly answeringCustomToolUseIds: ReadonlySet<string>;
+  /** Each custom tool call's last failed answer, keyed by its id. */
+  readonly customToolAnswerErrors: ReadonlyMap<string, Error>;
+
+  /**
    * Stop one command the agent runs in the background, by the tool use that
    * started it (`ToolUse.background`); the turn goes on, and the agent is
    * told a person stopped it. The session id is managed internally.
@@ -646,6 +670,11 @@ export function useSessionConversation(
     error: answerError,
     clearError: clearAnswerError,
   } = useAnswerToolUse();
+  const {
+    answerCustomToolUse: rawAnswerCustomToolUse,
+    submittingIds: answeringCustomToolUseIds,
+    errorsById: customToolAnswerErrors,
+  } = useAnswerCustomToolUse();
   const {
     stopBackgroundCommand: rawStopBackgroundCommand,
     stoppingToolUseIds: stoppingBackgroundToolUseIds,
@@ -986,6 +1015,15 @@ export function useSessionConversation(
   }, [sessionId, updatePendingSend, clearCreateError]);
 
   const asks = liveTurn?.asks ?? EMPTY_ASKS;
+  const customToolUses = liveTurn?.customToolUses ?? EMPTY_ASKS;
+
+  const answerCustomToolUse = useCallback(
+    async (customToolUseId: string, text: string, options?: CustomToolAnswerOptions): Promise<void> => {
+      if (!sessionId) return;
+      await rawAnswerCustomToolUse(sessionId, customToolUseId, text, options);
+    },
+    [sessionId, rawAnswerCustomToolUse],
+  );
 
   const answerToolUse = useCallback(
     async (toolUseId: string, answer: ToolUseAnswer, denyMessage?: string): Promise<void> => {
@@ -1119,6 +1157,11 @@ export function useSessionConversation(
     answerErrors: errorsByToolUseId,
     answerError,
     clearAnswerError,
+
+    customToolUses,
+    answerCustomToolUse,
+    answeringCustomToolUseIds,
+    customToolAnswerErrors,
 
     stopBackgroundCommand,
     stoppingBackgroundToolUseIds,

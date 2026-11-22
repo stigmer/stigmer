@@ -28,7 +28,7 @@ export const NO_TOOL_CARD: HasToolCard = () => false;
 export const CardsLiftedContext = createContext(false);
 
 /** The host's card for a call: its public name's own entry in the map, never an inherited one (`constructor`). */
-export function hostCardOf(cards: ToolCards | null, tool: Pick<ToolUse, "name" | "mcpServerName">): ComponentType<ToolCardProps> | undefined {
+export function hostCardOf(cards: ToolCards | null, tool: Pick<ToolUse, "name" | "mcpServerName" | "custom">): ComponentType<ToolCardProps> | undefined {
   if (cards === null) return undefined;
   const name = toolPublicName(tool);
   return name !== undefined && Object.hasOwn(cards, name) ? cards[name] : undefined;

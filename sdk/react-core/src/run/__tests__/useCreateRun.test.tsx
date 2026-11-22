@@ -181,6 +181,20 @@ describe("useCreateRun — one-call session bootstrap (sessionSpec)", () => {
     expect(mockCreate.mock.calls[1][0].sessionSpec.fileReview).toBeUndefined();
   });
 
+  it("forwards the app's own tools the conversation declares, and none when it declares none", async () => {
+    const { result } = renderHook(() => useCreateRun(), { wrapper: createWrapper(makeMockClient()) });
+    const tool = { name: "register_cloud_account", description: "Show the account form, filled in.", inputSchema: { type: "object", properties: { account_name: { type: "string" } } } };
+    await act(async () => {
+      await result.current.create({ org: "acme", message: "Connect it", sessionSpec: { customTools: [tool] } });
+    });
+    await act(async () => {
+      await result.current.create({ org: "acme", message: "Connect it", sessionSpec: {} });
+    });
+
+    expect(mockCreate.mock.calls[0][0].sessionSpec.customTools).toEqual([tool]);
+    expect(mockCreate.mock.calls[1][0].sessionSpec.customTools).toBeUndefined();
+  });
+
   it("forwards the conversation's Environment, and names none when none was picked", async () => {
     const { result } = renderHook(() => useCreateRun(), {
       wrapper: createWrapper(makeMockClient()),

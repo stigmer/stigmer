@@ -59,6 +59,8 @@ import { useSessionWriteBacks } from "./useSessionWriteBacks.js";
 import { useSessionOutputs, outputKey } from "./useSessionOutputs.js";
 import { OutputFileContext, underOutputs, type OutputFileOpener } from "../run/OutputFileContext.js";
 import { useSessionGivenFiles } from "./useSessionGivenFiles.js";
+import { useCustomToolUseCallback, type OnCustomToolUse } from "./useCustomToolUseCallback.js";
+import { useCustomToolAnswers } from "../run/CustomToolAnswerContext.js";
 import { RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 import type { SessionAudience } from "./audience.js";
 import { showsRunScores } from "./audience.js";
@@ -288,6 +290,26 @@ export interface SessionViewerProps {
    * the inner {@link MessageThread} (see its `messageActions`).
    */
   readonly messageActions?: (message: MessageInfo) => readonly MessageAction[];
+  /**
+   * Hears each call of the app's own tools (the session's `custom_tools`)
+   * that waits for the app's answer, for a host that answers it outside the
+   * chat, in its own panel: `call` is the view a tool card gets, and
+   * `answer` answers it (`answer(text)`, or `answer(text, { isError: true })`
+   * when the tool failed or the person cancelled).
+   *
+   * Called once for each waiting call while this viewer is mounted, and
+   * again for a call still waiting when the conversation is opened again,
+   * so the panel comes back after a reload. A call already answered never
+   * fires. Called only for a viewer that may answer (the conversation's
+   * owner, as for an approval), never for someone only watching.
+   *
+   * Two open tabs each fire: make the handler safe to run twice. The server
+   * accepts the same answer twice and refuses a different second one. A
+   * handler that throws is reported once and the chat goes on; the call
+   * still waits. Declare the tools where the conversation is created
+   * (`AgentChat`'s or `NewSessionViewer`'s `customTools`).
+   */
+  readonly onCustomToolUse?: OnCustomToolUse;
   /** Additional CSS classes for the root container. */
   readonly className?: string;
 }
@@ -348,6 +370,7 @@ export function SessionViewer({
   onApplied,
   threadSlots,
   messageActions,
+  onCustomToolUse,
   className,
 }: SessionViewerProps) {
   // What this reader may do in a shared conversation, asked of the server
@@ -401,6 +424,19 @@ export function SessionViewer({
   const readsOnly = !isObserver && !canSend;
   const isReader = isObserver || readsOnly;
   const isParticipant = !isReader && !canDecide;
+  // Who may answer a call of the app's own tools: whoever may answer an
+  // approval, by the same rule (the thread's `onAnswerToolUse` below).
+  const answersCustomTools = !isReader && !isGuest && !isParticipant;
+  const customToolAnswerFor = useCustomToolAnswers(answersCustomTools ? conv.answerCustomToolUse : undefined, sessionId);
+  // The host is told once per call, so the telling waits for the server's
+  // own yes (the access checks fail open for what they draw).
+  const tellsHost = answersCustomTools && access.decisionConfirmed;
+  useCustomToolUseCallback({
+    calls: conv.customToolUses,
+    sessionId,
+    answerFor: tellsHost ? customToolAnswerFor : undefined,
+    onCustomToolUse,
+  });
   const creatorName = creatorDisplayName(conv.session);
   // Curated audiences (endUser, guest, observer) lock the agent and hide the
   // integrator configuration; guest and observer add their own restrictions.
@@ -1258,6 +1294,9 @@ const ConversationColumn = memo(function ConversationColumn({
         approverName={approverName}
         answeringToolUseIds={conv.answeringToolUseIds}
         answerErrors={conv.answerErrors}
+        // A call of the app's own tools is answered by whoever may answer
+        // an approval, through the host's card.
+        onAnswerCustomToolUse={isObserver || isGuest || isParticipant ? undefined : conv.answerCustomToolUse}
         // Stopping one background command follows the session Stop's rule:
         // the owners' act, never an observer's or a participant's.
         onStopBackgroundCommand={isObserver || isParticipant ? undefined : conv.stopBackgroundCommand}

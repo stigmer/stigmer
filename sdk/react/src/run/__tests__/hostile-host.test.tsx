@@ -16,6 +16,11 @@
  * thread drawn. A presenter whose label or summary fails leaves the kit's
  * words whole: the counts, and "Created" on a write that made its file.
  *
+ * A call of the app's own tools waits in a third thread: a card that
+ * throws leaves the kit's row saying it waits for the app, a card that
+ * draws nothing leaves the row's line, and a card that floods and answers
+ * into a refusal leaves the thread drawn with no unhandled rejection.
+ *
  * The slots are typed `Required<MessageThreadSlots>`, so a new slot fails to
  * compile here until the hostile hosts replace it too; a new mechanism joins
  * the list by hand.
@@ -35,7 +40,7 @@ import { ToolCallItem } from "../ToolCallItem";
 import { openMenu } from "../../__tests__/helpers/open-menu";
 import { FileReviewContext } from "@stigmer/react-core";
 import { reviewFile, reviewSet, toolUse } from "./__fixtures__/fold-values";
-import { asked, conversation, result, said, status, toolId, use } from "./__fixtures__/thread-events";
+import { asked, conversation, customUse, result, said, status, toolId, use } from "./__fixtures__/thread-events";
 
 // ---------------------------------------------------------------------------
 // The two threads
@@ -84,6 +89,19 @@ function failedThread() {
 }
 
 /** The kinds the threads' steps resolve to, for the presenter a host registers. */
+const APP = "run_app";
+
+/** A live turn whose call of the app's own tool waits for the app's answer. */
+function appWaitingThread() {
+  return conversation({
+    id: APP,
+    message: "Connect our payments account",
+    phase: "running",
+    reply: "I'll fill in the registration form for you to check.",
+    extra: [customUse(APP, "reg", "register_cloud_account", { account_name: "payments-prod" }), status(APP, "waiting")],
+  });
+}
+
 const PRESENTED_KINDS: readonly ToolKind[] = ["shell", "mcp", "todo"];
 
 // ---------------------------------------------------------------------------
@@ -117,7 +135,7 @@ const THROWS: Host = {
     RunErrorNotice: () => broke("RunErrorNotice"),
     LivenessStatusLine: () => broke("LivenessStatusLine"),
   },
-  cards: { mcp__billing__create_invoice: () => broke("tool card") },
+  cards: { mcp__billing__create_invoice: () => broke("tool card"), register_cloud_account: () => broke("custom tool card") },
   messageActions: () => broke("messageActions"),
   presenter: {
     label: () => broke("presenter label"),
@@ -152,7 +170,7 @@ const DRAWS_NOTHING: Host = {
     },
     LivenessStatusLine: () => null,
   },
-  cards: { mcp__billing__create_invoice: () => null },
+  cards: { mcp__billing__create_invoice: () => null, register_cloud_account: () => null },
   messageActions: () => [],
   presenter: { label: () => "  ", summary: () => null, disclosure: () => "summary", chrome: () => "quiet", runGroupable: () => false },
 };
@@ -408,5 +426,59 @@ describe("a host that floods", () => {
     expect(screen.getByTestId("long-card")).toBeTruthy();
     expect(container.querySelector(".stg\\:text-status-failed")).not.toBeNull();
     expect(failureNotice()).toBeDefined();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// The app's own tools
+// ---------------------------------------------------------------------------
+
+describe("a call of the app's own tools under a hostile host", () => {
+  it("keeps the kit's row saying it waits for the app when the card throws, and reports the throw", () => {
+    hostRegisters(THROWS.presenter);
+    renderUnder(THROWS, appWaitingThread(), { onAnswerCustomToolUse: vi.fn() });
+
+    expect(screen.getByText(/Waiting for the app/)).toBeTruthy();
+    expect(screen.getByText("payments-prod")).toBeTruthy();
+    expect(reportedParts()).toContain("custom tool card");
+    expect(uncaught).toEqual([]);
+  });
+
+  it("keeps the row's line when the card draws nothing", () => {
+    hostRegisters(DRAWS_NOTHING.presenter);
+    renderUnder(DRAWS_NOTHING, appWaitingThread(), { onAnswerCustomToolUse: vi.fn() });
+
+    expect(screen.getByText("Register cloud account")).toBeTruthy();
+    expect(screen.getByText(/Waiting for the app/)).toBeTruthy();
+  });
+
+  it("keeps the thread when a flooding card's answer is refused, with no unhandled rejection", async () => {
+    const unhandled: unknown[] = [];
+    const onUnhandled = (event: PromiseRejectionEvent) => unhandled.push(event.reason);
+    window.addEventListener("unhandledrejection", onUnhandled);
+    const refused = vi.fn(async () => Promise.reject(new Error("already answered")));
+    const LONG = "A field. ".repeat(2000);
+    const floods = {
+      cards: {
+        register_cloud_account: ({ answer }: { answer?: (text: string) => Promise<void> }) => (
+          <div data-testid="long-app-card">
+            {LONG}
+            <button type="button" onClick={() => void answer?.("Registered").catch(() => undefined)}>
+              Register
+            </button>
+          </div>
+        ),
+      },
+      messageActions: () => [],
+    };
+    renderUnder(floods, appWaitingThread(), { onAnswerCustomToolUse: refused });
+
+    fireEvent.click(screen.getByRole("button", { name: "Register" }));
+    await vi.waitFor(() => expect(refused).toHaveBeenCalledTimes(1));
+    expect(screen.getByTestId("long-app-card")).toBeTruthy();
+    expect(screen.getByText(/Waiting for the app/)).toBeTruthy();
+    await new Promise((r) => setTimeout(r, 0));
+    window.removeEventListener("unhandledrejection", onUnhandled);
+    expect(unhandled).toEqual([]);
   });
 });

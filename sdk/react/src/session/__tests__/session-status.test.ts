@@ -2,7 +2,9 @@
  * Proves the words and hue of the session's status pill (../session-status.ts)
  * from its newest turn: Working (blue, timed) while the agent works; Waiting
  * for you (amber, timed) while a question or approval waits on the reader,
- * or Waiting for an answer for a reader who cannot answer it; Paused (amber,
+ * or Waiting for an answer for a reader who cannot answer it; Waiting for
+ * the app (amber, timed) to everyone while only the app's answer to a call
+ * of its own tools is due; Paused (amber,
  * timed); Starting (grey, timed from the message) before the turn has a phase that runs; Done
  * (green) once it completed; and once it ended otherwise, its ending's own
  * words and tone (`describeTurnEnding`), so the pill agrees with the notice
@@ -54,6 +56,17 @@ describe("sessionStatus", () => {
     expect(turn.asks.length).toBeGreaterThan(0);
     expect(turn.status?.phase).toBe("running");
     expect(sessionStatus(turn, true)).toEqual({ phase: "degraded", label: "Waiting for you", timed: true });
+  });
+
+  it("says the turn waits for the app, to everyone, while only a call of the app's own tools waits", () => {
+    const turn = samples.fold([
+      samples.userMessageEvent("Connect the account"),
+      samples.runStatusEvent("running"),
+      samples.customToolUseEvent("register_cloud_account", {}),
+      samples.runStatusEvent("waiting"),
+    ]).turns[0]!;
+    expect(sessionStatus(turn, true)).toEqual({ phase: "degraded", label: "Waiting for the app", timed: true });
+    expect(sessionStatus(turn, false)).toEqual({ phase: "degraded", label: "Waiting for the app", timed: true });
   });
 
   it("says the turn waits once the run reports waiting, even before its ask is folded", () => {

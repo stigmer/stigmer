@@ -107,7 +107,7 @@ developer's ask joins this table when one comes.
 | C1  | A host's own card when its own MCP tool runs              | real host; market                                 | stigmer/stigmer#3379 (where the ask came from is in its comments); assistant-ui tool UI, CopilotKit tool rendering                                    | Tool cards (built)                                                                                                                       |
 | C2  | The host's own actions on a message, the answer above all | real host; market; the kit's own use (the scores) | stigmer/stigmer#3380 (its comments); AI Elements message, assistant-ui thread                                                                         | Message actions (built)                                                                                                                  |
 | C3  | A right-click menu on the answer                          | real host, once                                   | inside stigmer/stigmer#3380                                                                                                                           | Asked once: no menu drawn by the kit; the bubble slot's data (for C2 and C5) lets a host build one                                       |
-| C4  | The agent asks the host to open its own screens           | real host; market; modelled                       | stigmer/stigmer#973; Managed Agents custom tools, CopilotKit frontend tools, AI SDK tool usage; the integrate bank's `move-off-claude-managed-agents` | Custom tools (designed)                                                                                                                  |
+| C4  | The agent asks the host to open its own screens           | real host; market; modelled                       | stigmer/stigmer#973; Managed Agents custom tools, CopilotKit frontend tools, AI SDK tool usage; the integrate bank's `move-off-claude-managed-agents` | Custom tools (built)                                                                                                                     |
 | C5  | The host's design system on thread parts                  | real host                                         | stigmer/stigmer#187                                                                                                                                   | Done: `threadSlots`                                                                                                                      |
 | C6  | The host's own recovery on the error notice               | real host                                         | stigmer/stigmer#351                                                                                                                                   | Done: the turn-ending wiring                                                                                                             |
 | C7  | Per-run credentials                                       | real host                                         | stigmer/stigmer#166                                                                                                                                   | Done, then removed (stigmer/stigmer#2026)                                                                                                |
@@ -190,8 +190,12 @@ A host draws the body of its own tool's row.
   }
   interface ToolCardProps {
     readonly call: ToolCallInfo;
-    readonly answer?: (text: string) => Promise<void>; // a custom tool's waiting call, for a viewer who may answer
+    readonly answer?: CustomToolAnswer; // a custom tool's waiting call, for a viewer who may answer
   }
+  type CustomToolAnswer = (
+    text: string,
+    options?: { readonly isError?: boolean },
+  ) => Promise<void>;
   ```
 
   The state set is the kit's own, mapped from the log's (`ToolUseState`, whose
@@ -317,10 +321,10 @@ function is `finalAnswerId` (same file): the scores sit wherever the lead does,
 so a turn Stigmer stopped carries them at its foot. A custom tool waiting on the
 host is not an ending: the turn resumes after the answer.
 
-## Custom tools: the host's side (wire and engines built; the kit designed; stigmer/stigmer#973; C4)
+## Custom tools: the host's side (built; stigmer/stigmer#973; C4)
 
-The host gives a session tools of its own, and answers them. The wire and both
-engines are built; the kit's side below is designed.
+The host gives a session tools of its own, and answers them. The wire, both
+engines and the kit's side are built.
 
 What is built, and where it lives:
 
@@ -356,13 +360,13 @@ What is built, and where it lives:
   sub-agent; never on an unattended turn (a chat link's visitor, a channel, a
   schedule); whatever the agent's tool lists say.
 
-The kit's side, designed:
+The kit's side, built:
 
 - **Declared once, drawn by name.** `defineCustomTool` declares a tool (its
   name, description and input schema; built in `@stigmer/client`,
-  `sdk/typescript/src/custom-tools.ts`, and re-exported by the kit); its card,
-  if any, is a tool card registered in the provider's `toolCards` under the same
-  name, so a tool's look has one home:
+  `sdk/typescript/src/custom-tools.ts`, and re-exported from the kit's root
+  entry); its card, if any, is a tool card registered in the provider's
+  `toolCards` under the same name, so a tool's look has one home:
 
   ```tsx
   const showRegistration = defineCustomTool({
@@ -381,38 +385,63 @@ The kit's side, designed:
   </StigmerProvider>;
   ```
 
-  `AgentChat` and `NewSessionViewer` declare the tools on the session they
-  create; the TypeScript SDK declares them in the create request's own input. On
-  `SessionViewer` the same prop only hears and answers the calls of a session
-  that already exists: it declares nothing, and its docs say so.
-
-- **Answering**: in the browser, `answer(text)`, at once or after the person
-  acts; from the host's backend, `stigmer.session.answerCustomToolUse` (built)
-  with `AnswerCustomToolUseInput`: text blocks and `is_error`. Only the
-  session's owner answers (`can_edit`), so a backend answers with the person's
-  own credential. Who may answer in the viewer follows the approval rule
-  exactly: an observer, a guest and a participant may not (`onAnswerToolUse` in
-  `sdk/react/src/session/SessionViewer.tsx`).
+- **Declared where the session is created, heard where it is shown.**
+  `customTools` is read once, when the session is created: on `AgentChat`,
+  `NewSessionViewer` (through `useNewSessionFlow` and the run bootstrap spec,
+  `sdk/react-core/src/run/useCreateRun.ts`) and `useCreateSession`; the
+  TypeScript SDK declares them in the create request's own input. The tools are
+  fixed once a turn has run. `SessionViewer` takes no `customTools`: a prop that
+  carried a declaration and declared nothing would mislead. It takes
+  `onCustomToolUse` only, and `AgentChat` forwards that to the viewer it shows.
+- **Answering**: `answer(text, { isError? })` (`CustomToolAnswer`,
+  `sdk/react/src/run/tool-cards-context.ts`), bound to the session and the call,
+  the same for a card and the callback; `isError` tells the agent the tool
+  failed or the person cancelled. It resolves when the server records the
+  answer; the same answer again resolves, a different one rejects. It stays
+  callable after the chat unmounts, for a host's panel that outlives it. From
+  the host's backend, `stigmer.session.answerCustomToolUse` with
+  `AnswerCustomToolUseInput`: text blocks and `is_error`. Only the session's
+  owner answers (`can_edit`), so a backend answers with the person's own
+  credential. Who may answer in the viewer follows the approval rule exactly: an
+  observer, a guest and a participant may not (`onAnswerToolUse` and
+  `onAnswerCustomToolUse` in `sdk/react/src/session/SessionViewer.tsx`). A card
+  drawn for one who may not gets no `answer`. A host drawing its own screen
+  answers with `useAnswerCustomToolUse`, or the conversation's bound
+  `answerCustomToolUse` beside its `customToolUses`
+  (`sdk/react-core/src/session/useSessionConversation.ts`).
 - **A call nobody may answer** never exists: an unattended turn is offered no
-  custom tools (built). A call nobody answers in an attended session waits, as
-  an approval does, until someone stops the session.
-- **Listening**: `onCustomToolUse(call, answer)` fires for each call that waits
-  on the host, live or found waiting when a session opens, never for a call
-  already answered on replay (the card draws that one as history). Two open tabs
-  each hear it, so a handler must be idempotent.
+  custom tools. A call nobody answers in an attended session waits, as an
+  approval does, until someone stops the session.
+- **Listening**: `onCustomToolUse(call, answer)` fires once for each call that
+  waits on the host, per mounted viewer: live, or found waiting when a session
+  opens, so a reopened conversation fires again for a call still waiting; never
+  for a call already answered (the card draws that one as history), and never
+  for a viewer that may not answer
+  (`sdk/react/src/session/useCustomToolUseCallback.ts`). Two open tabs each hear
+  it, so a handler must be idempotent. A handler that throws is reported once
+  and the call still waits.
+- **Without a card**, our row draws the call: "Waiting for the app", opening to
+  the call's input, with no answer button. Every reader of an open call counts
+  one waiting on the app (`awaitsAnswer` in
+  `sdk/typescript/src/run/step-words.ts`).
 - **Errors**: a call that fails its `inputSchema` never reaches the host; it
-  returns to the agent as a tool error it can fix (built, on both engines).
-- **Runtime cost**: `defineCustomTool` is a runtime export. The light chat entry
-  (`sdk/react/src/chat.ts`) has its own size budget
-  (`test/bundle-budgets.json`), so it is measured before it lands there. Type
-  exports cost nothing.
+  returns to the agent as a tool error it can fix (both engines). A declared
+  input property named like a secret (`password`, `token`, `secret`, `api_key`,
+  `apikey`, `credentials`, `auth`, `authorization`) is refused at create, since
+  its value would reach the host redacted
+  (`backend/libs/ts/tool-vocabulary/src/custom-tools.ts`).
+- **Runtime cost**: the light chat entry (`sdk/react/src/chat.ts`) exports the
+  types only (`CustomToolAnswer`, `OnCustomToolUse`); a chat page imports
+  `defineCustomTool` from `@stigmer/client`, as it imports the client itself, so
+  that entry re-exports no client value. The root entry re-exports
+  `defineCustomTool` beside `createRunnerAdapter`.
 
 ## Where each setting lives
 
 | Setting                                                     | Home                                                                        | Why                                                                                                    |
 | ----------------------------------------------------------- | --------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
 | Tool cards, a custom tool's included                        | `StigmerProvider`: `toolCards`, a map from a tool's public name to its card | A tool looks the same everywhere in an app; the `loadMermaid` precedent (`sdk/react/src/provider.tsx`) |
-| Custom tools (declare, hear, answer)                        | the viewer that creates or shows the session                                | They belong to the page and the session (stigmer/stigmer#973)                                          |
+| Custom tools (declare, hear, answer)                        | declared where the session is created; heard and answered by the viewer     | They belong to the page and the session (stigmer/stigmer#973)                                          |
 | Message actions                                             | the viewer (`SessionViewer`, `AgentChat`)                                   | They close over the host's routes; the `headerActions` precedent                                       |
 | Tool wording (label, summary, disclosure, chrome, grouping) | `registerToolPresenter`, by kind, unchanged                                 | See below                                                                                              |
 

@@ -139,6 +139,10 @@ function CategoryDetail({
 }) {
   const args = <ArgsSection toolUse={toolUse} />;
 
+  // A call of the app's own tools reads as a connected app's does: its
+  // fields as a list, and a short answer as the last of them.
+  if (toolUse.custom) return <McpToolDetail toolUse={toolUse} />;
+
   switch (category) {
     case "think":
       return <ThinkToolDetail toolUse={toolUse} />;
