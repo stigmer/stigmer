@@ -400,6 +400,7 @@ function useSessionAccess(sessionId: string | null): UseSessionAccessReturn
   type={{
     canDecide: { type: "boolean", description: "Whether the reader may stop its runs and make their decisions." },
     canSend: { type: "boolean", description: "Whether the reader may send messages into the conversation." },
+    decisionConfirmed: { type: "boolean", description: "Whether the server has answered that the reader decides: `canDecide` without its fail-open, so false while the check is in flight and after it failed." },
   }}
 />
 
