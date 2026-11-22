@@ -32,7 +32,7 @@ import { SessionSpecSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/s
 import { AgentSpecSchema } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/spec_pb";
 import { ApiResourceMetadataSchema } from "@stigmer/apis/ai/stigmer/commons/apiresource/metadata_pb";
 
-import type { TurnInput } from "../harness/types.js";
+import type { ComputerTurnInput, ComputerWorkspace, TurnInput } from "../harness/types.js";
 import type { ResolvedBlueprint, RunAgent } from "../shared/blueprint-resolver.js";
 import { ToolScope } from "../shared/tool-lists.js";
 import { NO_RUN_VALUES } from "../shared/run-values.js";
@@ -77,6 +77,11 @@ export interface TurnInputFixtureOverrides extends Partial<Omit<TurnInput, "exec
  * `session` and `blueprint.session` are the SAME object, as the runtime
  * guarantees.
  */
+/** The overrides of a turn with a computer: the fixture's default, or a workspace of that kind. */
+export type ComputerTurnInputFixtureOverrides = TurnInputFixtureOverrides & { readonly workspace?: ComputerWorkspace };
+
+export function turnInputFixture(overrides?: ComputerTurnInputFixtureOverrides): ComputerTurnInput;
+export function turnInputFixture(overrides: TurnInputFixtureOverrides): TurnInput;
 export function turnInputFixture(overrides: TurnInputFixtureOverrides = {}): TurnInput {
   const executionId = overrides.executionId ?? TURN_INPUT_FIXTURE_IDS.executionId;
   const sessionId = overrides.sessionId ?? TURN_INPUT_FIXTURE_IDS.sessionId;
@@ -125,6 +130,7 @@ export function turnInputFixture(overrides: TurnInputFixtureOverrides = {}): Tur
     blueprint,
     values: overrides.values ?? NO_RUN_VALUES,
     workspace: overrides.workspace ?? {
+      computer: true,
       dirs: [workspaceDir],
       primaryDir: workspaceDir,
       gitWorkspace: false,

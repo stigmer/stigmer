@@ -667,6 +667,7 @@ export function AgentDetailView({
         )}
         <AgentOverview
           spec={spec}
+          warnings={agent.status?.warnings}
           agentOrg={agentOrg}
           agentSlug={meta?.slug ?? slug}
           description={spec?.description}
@@ -734,6 +735,7 @@ export function AgentDetailView({
 
 function AgentOverview({
   spec,
+  warnings,
   agentOrg,
   agentSlug,
   description,
@@ -748,6 +750,8 @@ function AgentOverview({
   clearSaveError,
 }: {
   readonly spec: NonNullable<ReturnType<typeof useAgent>["agent"]>["spec"];
+  /** The server's warnings of the agent's last save, shown in the Computer section. */
+  readonly warnings?: NonNullable<NonNullable<ReturnType<typeof useAgent>["agent"]>["status"]>["warnings"];
   readonly agentOrg: string;
   readonly agentSlug: string;
   readonly description?: string;
@@ -929,6 +933,7 @@ function AgentOverview({
 
       <AgentComputerSection
         spec={spec}
+        warnings={warnings}
         editable={!!editable && saveField !== undefined}
         error={errorFor("computer")}
         onSave={(computer) => saveField?.("computer", computer) ?? Promise.resolve(false)}

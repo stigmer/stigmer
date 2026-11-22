@@ -63,7 +63,7 @@ import { casBlobReader } from "../shared/filereview/cas-substrate.js";
 import { changeSetIdParts } from "../shared/filereview/events.js";
 import { dropCaptureRefs } from "../shared/filereview/git-substrate.js";
 import { fileReviewReconciledEventId } from "./events/ids.js";
-import type { TurnWorkspace } from "./types.js";
+import type { ComputerWorkspace } from "./types.js";
 
 /** The log types the owed read asks for. */
 export const OWED_UNDO_EVENT_TYPES = [
@@ -175,7 +175,7 @@ export interface OwedUndoDeps {
   /** The run this turn serves. */
   readonly runId: string;
   readonly sessionId: string;
-  readonly workspace: Pick<TurnWorkspace, "primaryDir" | "gitWorkspace">;
+  readonly workspace: Pick<ComputerWorkspace, "primaryDir" | "gitWorkspace">;
   readonly artifactStorage: ArtifactStorage | undefined;
   /** A reconcile turn (`RunSpec.reconcile_file_review`): it drops no refs. */
   readonly reconcileTurn: boolean;

@@ -52,12 +52,14 @@ import type { TranscriptEvent } from "../harness/transcript/events.js";
 import type { TurnMessage } from "../harness/turn-input.js";
 import type { AgentFileKind } from "../shared/agent-fs.js";
 import type { ArchiveFileInfo } from "../shared/archive-reader.js";
+import type { InputFileInfo } from "../shared/inputs-reader.js";
+import type { BufferedOutputInfo } from "../shared/outputs-buffer.js";
 import type { RecalledMemoriesContent } from "../shared/recalled-memories.js";
 import type { TimingRecorderWire } from "../shared/cold-start-timing.js";
 import type { TelemetrySettings } from "../otel-export.js";
 import type { RuntimeFieldsWire, WireOffload, WireProjection, WireTurnInput } from "./codec.js";
 
-export const AGENT_HOST_PROTOCOL_VERSION = 19;
+export const AGENT_HOST_PROTOCOL_VERSION = 20;
 
 /**
  * The largest single message either side sends or accepts. A turn's input
@@ -340,6 +342,28 @@ export interface RunnerCalls {
     readonly args: { readonly turnId: string; readonly path: string };
     readonly result: { readonly content: string } | { readonly missing: true };
   };
+  /** A turn without a computer: `TurnStoreFiles.inputs.list`, the conversation's inputs the runner reads from the store. */
+  readonly listTurnInputs: { readonly args: { readonly turnId: string }; readonly result: readonly InputFileInfo[] };
+  /** `TurnStoreFiles.inputs.read`: one input's bytes, base64, or `missing` when the turn holds no such input. */
+  readonly readTurnInput: {
+    readonly args: { readonly turnId: string; readonly path: string };
+    readonly result: { readonly content: string } | { readonly missing: true };
+  };
+  /** `TurnStoreFiles.outputs.list`: what this turn saved in its outputs, held by the runner. */
+  readonly listTurnOutputs: { readonly args: { readonly turnId: string }; readonly result: readonly BufferedOutputInfo[] };
+  /** `TurnStoreFiles.outputs.read`: one output this turn saved, base64, or `missing`. */
+  readonly readTurnOutput: {
+    readonly args: { readonly turnId: string; readonly path: string };
+    readonly result: { readonly content: string } | { readonly missing: true };
+  };
+  /** `TurnStoreFiles.outputs.write`: save one output, base64; a refusal is a failed call whose message the agent reads. */
+  readonly writeTurnOutput: { readonly args: { readonly turnId: string; readonly path: string; readonly content: string }; readonly result: null };
+  /** `TurnStoreFiles.outputs.delete`: whether this turn had saved one at the path. */
+  readonly deleteTurnOutput: { readonly args: { readonly turnId: string; readonly path: string }; readonly result: boolean };
+  /** `TurnStoreFiles.offloads.put`: set a result aside, base64; the key the engine keeps. */
+  readonly putTurnOffload: { readonly args: { readonly turnId: string; readonly content: string }; readonly result: string };
+  /** `TurnStoreFiles.offloads.read`: a set-aside result's bytes, base64, by the key this conversation kept. */
+  readonly readTurnOffload: { readonly args: { readonly turnId: string; readonly key: string }; readonly result: string };
   /**
    * `TurnSink.input.claim`: the session's queued messages the runtime took
    * for the turn, their files mounted, and whether more still wait (a claim

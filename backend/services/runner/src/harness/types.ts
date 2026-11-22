@@ -69,6 +69,9 @@
  */
 
 import type { TurnArchiveFiles } from "../shared/archive-reader.js";
+import type { TurnInputFiles } from "../shared/inputs-reader.js";
+import type { TurnOutputFiles } from "../shared/outputs-buffer.js";
+import type { TurnOffloads } from "../shared/offload-store.js";
 import type { TurnInputChannel } from "./turn-input.js";
 import type { TranscriptMessage } from "@stigmer/eval-runtime";
 import type { Run, RunStatus } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
@@ -194,8 +197,41 @@ export interface HarnessAdapter {
 // The resolved record
 // ---------------------------------------------------------------------------
 
+/**
+ * Where the turn's files are: a provisioned workspace on the runner's disk
+ * for a conversation with a computer ({@link ComputerWorkspace}), or none at
+ * all ({@link NoComputerWorkspace}): a conversation without a computer
+ * (`shared/computer.ts`) gets no workspace, no lock, no git, no file review
+ * and no copy of anything on disk, and its engine's file tools stand on the
+ * store and the conversation's saved state. A conversation keeps its
+ * computer for life, so one conversation only ever sees one kind.
+ */
+export type TurnWorkspace = ComputerWorkspace | NoComputerWorkspace;
+
+/** The turn of a conversation without a computer: its files, none of them on a disk. */
+export interface NoComputerWorkspace {
+  readonly computer: false;
+  readonly files: TurnStoreFiles;
+}
+
+/**
+ * What a turn without a computer reads and writes instead of a disk, each
+ * answered by the runner (through the agent host's calls when the engine is
+ * hosted, `agent-host/remote-adapter.ts`). The engine's own notes are not
+ * here: they live in the conversation's saved state.
+ */
+export interface TurnStoreFiles {
+  /** The conversation's Files, its earlier outputs and an eval try's reference folders, read when opened (`shared/inputs-reader.ts`). */
+  readonly inputs: TurnInputFiles;
+  /** This turn's outputs, held until the turn ends and then returned as Files (`shared/outputs-buffer.ts`). */
+  readonly outputs: TurnOutputFiles;
+  /** Where long results are set aside (`shared/offload-store.ts`); absent on a runner without artifact storage. */
+  readonly offloads?: TurnOffloads;
+}
+
 /** The provisioned workspace (phase 2c) and the capture posture derived from it. */
-export interface TurnWorkspace {
+export interface ComputerWorkspace {
+  readonly computer: true;
   /** The directories the agent operates in; never empty (`provisionSessionWorkspace` guarantees it). */
   readonly dirs: readonly string[];
   /** `dirs[0]`, the tree the turn's lock, gate, capture and skill mount all key on. */
@@ -517,6 +553,10 @@ export interface TurnInput extends NormalizedActivityInput {
    */
   readonly resumedHistory?: readonly TranscriptMessage[];
 }
+
+/** A turn of a conversation with a computer: the only kind an engine that always runs on one (the Claude engine) is handed. */
+export type ComputerTurnInput = TurnInput & { readonly workspace: ComputerWorkspace };
+
 
 // ---------------------------------------------------------------------------
 // The sink

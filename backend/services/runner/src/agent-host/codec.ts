@@ -76,7 +76,7 @@ import { ToolCallOutputRefSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1
 
 import type { ApprovalAsk } from "../harness/approval-answers.js";
 import type { CustomToolAnswer } from "../harness/custom-tool-answers.js";
-import type { TurnFiles, TurnInput, TurnHookSource, TurnSubagent } from "../harness/types.js";
+import type { TurnFiles, TurnInput, TurnHookSource, TurnStoreFiles, TurnSubagent } from "../harness/types.js";
 import type { ArtifactStorage } from "../shared/artifact-storage.js";
 import type { PluginSubagent } from "../shared/blueprint-resolver.js";
 import type { CasTouchedSnapshot } from "../shared/filereview/cas-touched.js";
@@ -135,6 +135,23 @@ function decodeHookSource(source: WireHookSource, services: HostTurnServices): T
   };
 }
 
+/** A turn with a computer's workspace as it crosses. */
+export interface WireComputerWorkspace {
+  readonly computer: true;
+  readonly dirs: readonly string[];
+  readonly primaryDir: string;
+  readonly gitWorkspace: boolean;
+  readonly captureSubstrate: boolean;
+  readonly fileReview: boolean;
+  readonly captureMode: boolean;
+  readonly changeSetId: string;
+  readonly provision: {
+    readonly workspaceDirs: readonly string[];
+    readonly provisionResults: readonly ProvisionResult[];
+    readonly backend: { readonly rootDir: string; readonly platformDir: string | null };
+  };
+}
+
 /** `TurnInput` as it crosses (the module header says how each member is carried). */
 export interface WireTurnInput {
   readonly executionId: string;
@@ -170,20 +187,8 @@ export interface WireTurnInput {
     readonly plugins: ReadonlyArray<readonly [string, Readonly<Record<string, string>>]>;
     readonly subagents: ReadonlyArray<readonly [string, Readonly<Record<string, string>>]>;
   };
-  readonly workspace: {
-    readonly dirs: readonly string[];
-    readonly primaryDir: string;
-    readonly gitWorkspace: boolean;
-    readonly captureSubstrate: boolean;
-    readonly fileReview: boolean;
-    readonly captureMode: boolean;
-    readonly changeSetId: string;
-    readonly provision: {
-      readonly workspaceDirs: readonly string[];
-      readonly provisionResults: readonly ProvisionResult[];
-      readonly backend: { readonly rootDir: string; readonly platformDir: string | null };
-    };
-  };
+  /** A turn with a computer's workspace; without one, only whether set-aside results have a store (the files cross as calls to the runner). */
+  readonly workspace: WireComputerWorkspace | { readonly computer: false; readonly offloads: boolean };
   readonly mcp: {
     readonly servers: readonly ResolvedMcpServer[];
     readonly channelMessaging: readonly { readonly channel: string; readonly templates: readonly string[] }[];
@@ -271,23 +276,26 @@ export function encodeTurnInput(input: TurnInput): WireTurnInput {
       plugins: [...input.values.plugins],
       subagents: [...input.values.subagents],
     },
-    workspace: {
-      dirs: workspace.dirs,
-      primaryDir: workspace.primaryDir,
-      gitWorkspace: workspace.gitWorkspace,
-      captureSubstrate: workspace.captureSubstrate,
-      fileReview: workspace.fileReview,
-      captureMode: workspace.captureMode,
-      changeSetId: workspace.changeSetId,
-      provision: {
-        workspaceDirs: workspace.provision.workspaceDirs,
-        provisionResults: workspace.provision.provisionResults,
-        backend: {
-          rootDir: workspace.provision.workspaceBackend.rootDir,
-          platformDir: workspace.provision.workspaceBackend.platformDir ?? null,
-        },
-      },
-    },
+    workspace: workspace.computer
+      ? {
+          computer: true,
+          dirs: workspace.dirs,
+          primaryDir: workspace.primaryDir,
+          gitWorkspace: workspace.gitWorkspace,
+          captureSubstrate: workspace.captureSubstrate,
+          fileReview: workspace.fileReview,
+          captureMode: workspace.captureMode,
+          changeSetId: workspace.changeSetId,
+          provision: {
+            workspaceDirs: workspace.provision.workspaceDirs,
+            provisionResults: workspace.provision.provisionResults,
+            backend: {
+              rootDir: workspace.provision.workspaceBackend.rootDir,
+              platformDir: workspace.provision.workspaceBackend.platformDir ?? null,
+            },
+          },
+        }
+      : { computer: false, offloads: workspace.files.offloads !== undefined },
     mcp: {
       servers: mcp.servers,
       channelMessaging: mcp.channelMessaging.map((c) => ({
@@ -343,6 +351,8 @@ export interface HostTurnServices {
   readonly listTurnArchives: () => Promise<readonly ArchiveFileInfo[]>;
   /** `TurnArchiveFiles.read`, answered by the runner; throws `ArchiveFileNotFoundError` for a file the turn does not hold. */
   readonly readTurnArchiveFile: (path: string) => Promise<Uint8Array>;
+  /** A turn without a computer's files (`TurnStoreFiles`), each answered by the runner; a reader's not-found error is rebuilt here. */
+  readonly storeFiles: TurnStoreFiles;
 }
 
 /**
@@ -401,23 +411,33 @@ export function decodeTurnInput(wire: WireTurnInput, services: HostTurnServices)
       subagents: new Map(wire.values.subagents),
       repositories: [],
     },
-    workspace: {
-      dirs: wire.workspace.dirs,
-      primaryDir: wire.workspace.primaryDir,
-      gitWorkspace: wire.workspace.gitWorkspace,
-      captureSubstrate: wire.workspace.captureSubstrate,
-      fileReview: wire.workspace.fileReview,
-      captureMode: wire.workspace.captureMode,
-      changeSetId: wire.workspace.changeSetId,
-      provision: {
-        workspaceDirs: [...wire.workspace.provision.workspaceDirs],
-        provisionResults: [...wire.workspace.provision.provisionResults],
-        workspaceBackend: new LocalWorkspaceBackend(
-          wire.workspace.provision.backend.rootDir,
-          wire.workspace.provision.backend.platformDir ?? undefined,
-        ),
-      },
-    },
+    workspace: wire.workspace.computer
+      ? {
+          computer: true,
+          dirs: wire.workspace.dirs,
+          primaryDir: wire.workspace.primaryDir,
+          gitWorkspace: wire.workspace.gitWorkspace,
+          captureSubstrate: wire.workspace.captureSubstrate,
+          fileReview: wire.workspace.fileReview,
+          captureMode: wire.workspace.captureMode,
+          changeSetId: wire.workspace.changeSetId,
+          provision: {
+            workspaceDirs: [...wire.workspace.provision.workspaceDirs],
+            provisionResults: [...wire.workspace.provision.provisionResults],
+            workspaceBackend: new LocalWorkspaceBackend(
+              wire.workspace.provision.backend.rootDir,
+              wire.workspace.provision.backend.platformDir ?? undefined,
+            ),
+          },
+        }
+      : {
+          computer: false,
+          files: {
+            inputs: services.storeFiles.inputs,
+            outputs: services.storeFiles.outputs,
+            ...(wire.workspace.offloads && services.storeFiles.offloads !== undefined && { offloads: services.storeFiles.offloads }),
+          },
+        },
     mcp: {
       servers: wire.mcp.servers,
       channelMessaging: wire.mcp.channelMessaging.map((c) => ({

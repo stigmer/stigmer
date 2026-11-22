@@ -105,6 +105,44 @@ export async function prepareEvalCase(args: {
   };
 }
 
+/**
+ * The case's setup for an agent without a computer, which writes nothing:
+ * the reference folders are read from the archive the runner holds for the
+ * try and served under `inputs/` by the turn's reader
+ * (`../inputs-reader.ts`), and a case with a scaffold does not run, since a
+ * scaffold is a Bash script (the server marks such a case "not run: needs
+ * a computer" and never plans it; this is the runner's own word if one
+ * arrives). Throws {@link CaseArchiveError} as {@link prepareEvalCase} does.
+ */
+export function prepareEvalCaseWithoutDisk(args: {
+  readonly context: EvalCaseContext;
+  readonly archive: CaseArchive;
+}): PrepareOutcome & { readonly referenceFiles?: ReadonlyMap<string, Uint8Array> } {
+  const { context, archive } = args;
+  if (context.scaffoldScript !== "") return { kind: "scaffold-failed", detail: SCAFFOLD_NEEDS_A_COMPUTER };
+  const referenceFiles = new Map<string, Uint8Array>();
+  const referenceInputs: ListedFile[] = [];
+  for (const dir of context.addDirs) {
+    for (const [relative, bytes] of archive.under(`${context.caseDir}/${dir}`)) {
+      const inner = posix.join(dir, relative);
+      referenceFiles.set(inner, bytes);
+      referenceInputs.push({
+        filename: posix.basename(relative),
+        relativePath: posix.join(STIGMER_LOCAL_STATE_DIR, INPUTS_SUBDIR, inner),
+        sizeBytes: bytes.length,
+      });
+    }
+  }
+  return {
+    kind: "ready",
+    prepared: { referenceInputs, history: historyOf(context, archive), env: { ...context.env } },
+    referenceFiles,
+  };
+}
+
+/** Why a case with a scaffold does not run for an agent without a computer. */
+export const SCAFFOLD_NEEDS_A_COMPUTER = "needs a computer: the case's scaffold is a Bash script, and this agent has no computer to run it";
+
 /** Run the scaffold unless an earlier attempt of this turn finished it; the failure's detail, or `undefined`. */
 async function scaffoldOnce(
   context: EvalCaseContext,

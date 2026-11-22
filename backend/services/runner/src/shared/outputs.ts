@@ -41,6 +41,10 @@
  *    not written, so the next turn tries it again. Collection never fails a
  *    turn.
  *
+ * A conversation without a computer has no folder: its turn's outputs are
+ * held in the runner's memory (`outputs-buffer.ts`) and returned through the
+ * same door, caps and retries by {@link returnOutputFiles}.
+ *
  * Retries. A registration whose batch is refused is retried one output at a
  * time; an output whose upload reference was spent with no File behind it
  * is uploaded once more. The server derives each File's id from the run,
@@ -127,10 +131,17 @@ interface FoundOutput {
   readonly mtimeMs: number;
 }
 
-/** A changed output, hashed, on its way back. */
-interface ChangedOutput extends FoundOutput {
+/** An output on its way back: its path, size and hash, and its bytes in pieces. */
+interface ReturningOutput {
+  readonly outputPath: string;
+  readonly sizeBytes: number;
   readonly sha256: string;
+  /** Its bytes, in pieces of at most {@link READ_CHUNK_BYTES}. */
+  readonly chunks: () => AsyncGenerator<Uint8Array>;
 }
+
+/** A changed output found on disk, hashed, on its way back. */
+interface ChangedOutput extends FoundOutput, ReturningOutput {}
 
 export interface CollectOutputsOptions {
   readonly client: StigmerClient;
@@ -210,7 +221,7 @@ async function collect(options: CollectOutputsOptions): Promise<CollectedOutputs
       unchanged += 1;
       continue;
     }
-    changed.push({ ...found, sha256 });
+    changed.push({ ...found, sha256, chunks: () => pieces(found.absolutePath, found.sizeBytes) });
   }
 
   const returning = changed.slice(0, MAX_OUTPUTS_PER_TURN);
@@ -221,7 +232,7 @@ async function collect(options: CollectOutputsOptions): Promise<CollectedOutputs
   const returned = new Map<string, string>();
   if (returning.length > 0) {
     const credential = await options.client.acquireScopedRunnerToken({ agentExecutionId: options.executionId });
-    const door = new OutputDoor(options.client, options.executionId, credential);
+    const door = new OutputDoor<ChangedOutput>(options.client, options.executionId, credential);
     for (const [output, fileId] of await door.returnAll(returning, skipped)) {
       records.set(output.outputPath, {
         sizeBytes: output.sizeBytes,
@@ -293,8 +304,56 @@ async function* pieces(path: string, sizeBytes: number): AsyncGenerator<Buffer> 
   }
 }
 
+/**
+ * Return a turn's outputs held in memory as Files of the conversation:
+ * the outputs of a turn without a computer (`outputs-buffer.ts`), by output
+ * path. The door, the caps and the retries are {@link collectOutputs}'s; an
+ * empty output is skipped as it is there. Never throws.
+ */
+export async function returnOutputFiles(
+  options: Omit<CollectOutputsOptions, "sessionId">,
+  outputs: ReadonlyMap<string, Uint8Array>,
+): Promise<CollectedOutputs> {
+  try {
+    const skipped: Array<{ outputPath: string; reason: string }> = [];
+    const returning: ReturningOutput[] = [];
+    for (const [outputPath, bytes] of outputs) {
+      if (bytes.length === 0) {
+        skipped.push({ outputPath, reason: "it is empty" });
+        continue;
+      }
+      if (returning.length >= MAX_OUTPUTS_PER_TURN) {
+        skipped.push({ outputPath, reason: `the turn already returns ${MAX_OUTPUTS_PER_TURN} outputs` });
+        continue;
+      }
+      returning.push({
+        outputPath,
+        sizeBytes: bytes.length,
+        sha256: createHash("sha256").update(bytes).digest("hex"),
+        chunks: async function* () {
+          yield bytes;
+        },
+      });
+    }
+    const returned = new Map<string, string>();
+    if (returning.length > 0) {
+      const credential = await options.client.acquireScopedRunnerToken({ agentExecutionId: options.executionId });
+      const door = new OutputDoor<ReturningOutput>(options.client, options.executionId, credential);
+      for (const [output, fileId] of await door.returnAll(returning, skipped)) returned.set(output.outputPath, fileId);
+    }
+    for (const skip of skipped) {
+      console.warn(`[outputs] execution=${options.executionId} '${skip.outputPath}' is not returned: ${skip.reason}`);
+    }
+    if (returned.size > 0) console.log(`[outputs] execution=${options.executionId} returned=${returned.size} skipped=${skipped.length}`);
+    return { returned, unchanged: 0, skipped };
+  } catch (err) {
+    console.warn(`[outputs] execution=${options.executionId} the outputs could not be returned: ${errorText(err)}`);
+    return NOTHING;
+  }
+}
+
 /** The runner's calls to the server's output door for one turn, and their retries. */
-class OutputDoor {
+class OutputDoor<T extends ReturningOutput> {
   constructor(
     private readonly client: StigmerClient,
     private readonly executionId: string,
@@ -303,10 +362,10 @@ class OutputDoor {
 
   /** Each output that came back, with its File's id; every other one named in `skipped`. */
   async returnAll(
-    outputs: readonly ChangedOutput[],
+    outputs: readonly T[],
     skipped: Array<{ outputPath: string; reason: string }>,
-  ): Promise<Array<[ChangedOutput, string]>> {
-    const uploaded: Array<[ChangedOutput, string]> = [];
+  ): Promise<Array<[T, string]>> {
+    const uploaded: Array<[T, string]> = [];
     for (const [output, upload] of await this.mint(outputs, skipped)) {
       try {
         await put(output, upload);
@@ -325,7 +384,7 @@ class OutputDoor {
       return uploaded.map(([output], i) => [output, files[i]?.metadata?.id ?? ""]);
     } catch {
       // One output refused the batch: register each alone, so the rest come back.
-      const registered: Array<[ChangedOutput, string]> = [];
+      const registered: Array<[T, string]> = [];
       for (const [output, uploadRef] of uploaded) {
         const fileId = await this.registerOne(output, uploadRef, skipped);
         if (fileId !== undefined) registered.push([output, fileId]);
@@ -336,12 +395,12 @@ class OutputDoor {
 
   /** An upload link per output; a batch the server refuses is minted one output at a time. */
   private async mint(
-    outputs: readonly ChangedOutput[],
+    outputs: readonly T[],
     skipped: Array<{ outputPath: string; reason: string }>,
-  ): Promise<Array<[ChangedOutput, OutputUpload]>> {
+  ): Promise<Array<[T, OutputUpload]>> {
     try {
       const uploads = await this.client.createOutputUploads(this.executionId, outputs, this.credential);
-      return outputs.flatMap((output, i): Array<[ChangedOutput, OutputUpload]> => {
+      return outputs.flatMap((output, i): Array<[T, OutputUpload]> => {
         const upload = uploads[i];
         return upload === undefined ? [] : [[output, upload]];
       });
@@ -350,7 +409,7 @@ class OutputDoor {
         for (const output of outputs) skipped.push({ outputPath: output.outputPath, reason: `no upload link: ${errorText(err)}` });
         return [];
       }
-      const minted: Array<[ChangedOutput, OutputUpload]> = [];
+      const minted: Array<[T, OutputUpload]> = [];
       for (const output of outputs) minted.push(...(await this.mint([output], skipped)));
       return minted;
     }
@@ -358,7 +417,7 @@ class OutputDoor {
 
   /** One output's registration; a reference spent with no File is uploaded once more. */
   private async registerOne(
-    output: ChangedOutput,
+    output: T,
     uploadRef: string,
     skipped: Array<{ outputPath: string; reason: string }>,
   ): Promise<string | undefined> {
@@ -386,8 +445,8 @@ class OutputDoor {
 }
 
 /** Stream one output to its link; its declared size is signed into a bucket's link, so the length is sent. */
-async function put(output: ChangedOutput, upload: OutputUpload): Promise<void> {
-  const source = pieces(output.absolutePath, output.sizeBytes);
+async function put(output: ReturningOutput, upload: OutputUpload): Promise<void> {
+  const source = output.chunks();
   // Each piece opens and closes the file, so a body the upload abandons
   // holds nothing open.
   const body = new ReadableStream<Uint8Array>({

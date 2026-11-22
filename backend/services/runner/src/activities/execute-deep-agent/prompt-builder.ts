@@ -110,7 +110,9 @@ explain the issue and propose options before proceeding.`;
  *   model that is told nothing uses whatever path it saw last. `execute`
  *   runs with the workspace as its working directory (deepagents
  *   `LocalShellBackend`), so a `cd` into it is a wasted prefix; plan mode
- *   binds no shell, so its prompt says nothing about commands.
+ *   binds no shell, so its prompt says nothing about commands. Without a
+ *   computer there is no workspace and no shell: `/` holds the agent's
+ *   notes (`computerless-files.ts`), and the rule says so.
  * - Edits to different files may go in one response; several edits to ONE
  *   file are not asked for in one response, because each is a
  *   read-modify-write of the same bytes. Changes that sit close together go
@@ -119,15 +121,20 @@ explain the issue and propose options before proceeding.`;
  *   concurrency cap `shared/subagent-gate.ts` enforces by refusal, and leave
  *   the delegation mechanics to the `task` tool's own description.
  */
-function workingRules(interactionMode: InteractionMode | undefined): string {
+function workingRules(interactionMode: InteractionMode | undefined, computer: boolean): string {
   const plan = interactionMode === InteractionMode.PLAN;
-  const commands = plan ? "" : ` Commands run in the workspace, so \`${ENGINE_TOOL.execute}\` needs no \`cd\`.`;
+  const commands = plan || !computer ? "" : ` Commands run in the workspace, so \`${ENGINE_TOOL.execute}\` needs no \`cd\`.`;
   const outputs = plan ? "" : `\n- ${outputsFolderInstruction(STIGMER_OUTPUTS_FOLDER)}`;
+  // Without a computer there is no workspace: `/` holds the agent's notes,
+  // kept with the conversation (`computerless-files.ts`).
+  const layout = computer
+    ? "Your file tools see the workspace as `/`: a file at its top level is `/README.md`."
+    : "Your file tools see your notes as `/`; they're kept with this conversation: a note at the top level is `/notes.md`.";
   return `
 
 ## Working with tools
 
-- Your file tools see the workspace as \`/\`: a file at its top level is \`/README.md\`.${commands}${outputs}
+- ${layout}${commands}${outputs}
 - Make independent tool calls together in one response: read every file you need at once, and edit different files at once. Wait for a result only when the next call depends on it.
 - When one file needs changes that sit close together, make them in one \`${ENGINE_TOOL.editFile}\` call.
 - A file you have read stays in your context. Read it again only if something other than your own edit changed it.
@@ -145,6 +152,8 @@ export interface PromptBuilderInput {
   instructions: string;
   provisionResults: ProvisionResult[];
   containerRoot: string;
+  /** Whether the conversation has a computer (`shared/computer.ts`); without one the working rules describe notes, not a workspace. Absent reads as true. */
+  computer?: boolean;
   skillsPromptSection: string;
   /**
    * The `## Repository instructions` section (`repository-instructions.ts`
@@ -291,7 +300,7 @@ export function buildEnhancedSystemPrompt(input: PromptBuilderInput): string {
   }
 
   prompt += RESPONSE_RULES;
-  prompt += workingRules(input.interactionMode);
+  prompt += workingRules(input.interactionMode, input.computer ?? true);
 
   // Last sections on purpose: these per-execution directives redefine the
   // turn's deliverable, so they must be the freshest instruction the model

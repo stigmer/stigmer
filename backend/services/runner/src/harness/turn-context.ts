@@ -84,7 +84,7 @@ import { changeSetIdForInvocation } from "../shared/filereview/record.js";
 import type { FileChangeSet } from "@stigmer/apis/ai/stigmer/agentic/run/v1/filereview_pb";
 import { isGitWorkTree } from "../shared/filereview/git-substrate.js";
 import { type CaseArchive, fetchCaseArchive } from "../shared/eval-case/case-archive.js";
-import { prepareEvalCase, type PreparedEvalCase } from "../shared/eval-case/prepare-case.js";
+import { prepareEvalCase, prepareEvalCaseWithoutDisk, type PreparedEvalCase } from "../shared/eval-case/prepare-case.js";
 import { chatAgentMockModel } from "../shared/eval-case/agent-mock.js";
 import type { MockEndpoint } from "../shared/eval-case/mock-endpoint.js";
 import { formatTryStop } from "@stigmer/eval-runtime";
@@ -110,9 +110,21 @@ import { synthesizeMemoryAttachment } from "../shared/memory-attachment.js";
 import { injectSynthesizedAttachment } from "../shared/synthesized-attachment.js";
 import { buildMcpApprovalDefault, deriveActiveLeases, NOTHING_LISTED, type LeaseGrant } from "../shared/approval-policy.js";
 import { ToolScope } from "../shared/tool-lists.js";
-import { fetchRunFileMounts, mountFiles, offerMountedImage, splitMessageFiles, type MessageFile } from "../shared/file-mount.js";
+import {
+  fetchRunFileMounts,
+  mountFiles,
+  offerMountedImage,
+  splitMessageFiles,
+  UPLOADS_SUBDIR,
+  type MessageFile,
+  type MountedFile,
+} from "../shared/file-mount.js";
+import type { FileMount } from "@stigmer/apis/ai/stigmer/agentic/file/v1/run_files_pb";
 import { resolveSkills, type ResolvedSkill, type SkillMetadata } from "../shared/skill-resolver.js";
 import { prepareOutputsFolder } from "../shared/outputs.js";
+import { newTurnInputs, offerStoredImage, type RunFileSets, type TurnInputs } from "../shared/inputs-reader.js";
+import { newOutputsBuffer, type OutputsBuffer } from "../shared/outputs-buffer.js";
+import { newTurnOffloads } from "../shared/offload-store.js";
 import { holdPlatformMounts, mergeMounts, NO_MOUNTS, type PlatformMounts } from "../shared/platform-hold.js";
 import { hasComputer } from "../shared/computer.js";
 import { pluginTreeKey, sessionTreesDir } from "../shared/archive-tree.js";
@@ -127,12 +139,12 @@ import { HookFormat } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/hooks_pb"
 import type { HookSource } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/spec_pb";
 import type { HookFormatName } from "../shared/hooks/hook-set.js";
 import type { Plugin } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/api_pb";
-import { join } from "node:path";
+import { join, posix } from "node:path";
 import { PLUGINS_SUBDIR } from "../shared/plugin-mount.js";
 import { ensureStigmerSymlink, STIGMER_LOCAL_STATE_DIR } from "../shared/workspace/stigmer-link.js";
 import { pluginAgentName } from "../shared/blueprint-resolver.js";
 import type { ResolvedMcpServer } from "../shared/mcp-resolver.js";
-import { VisionBudget, type NotViewableEntry, type VisionImage } from "../shared/attachment-vision.js";
+import { VisionBudget, type NotViewableEntry, type VisionImage, type VisionOutcome } from "../shared/attachment-vision.js";
 import { getDefaultModel, getModelVisionCapability, registrySectionOf } from "../shared/model-registry.js";
 import { pluginSubagentScope, savedSubagentScope, subagentModel } from "../shared/subagents.js";
 import { resolveEffectiveServiceTier } from "../shared/service-tier.js";
@@ -160,7 +172,8 @@ import type {
   TurnSkills,
   TurnStandingContext,
   TurnSubagent,
-  TurnWorkspace,
+  ComputerWorkspace,
+  NoComputerWorkspace,
 } from "./types.js";
 import { ToolCallStatus, type ApprovalAction } from "../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
 import type { AgentMessage, RecalledMemoriesReport, TurnRows } from "../gen/turn/ai/stigmer/runner/turn/v1/rows_pb.js";
@@ -577,7 +590,7 @@ export async function provisionWorkspace(
     /** The run's file record as fetched (`RunStatus.file_changes`): which set this invocation captures into. */
     readonly fileRecord: readonly FileChangeSet[];
   },
-): Promise<{ readonly workspace: TurnWorkspace; readonly writeback: WriteBackCoordinator | null }> {
+): Promise<{ readonly workspace: ComputerWorkspace; readonly writeback: WriteBackCoordinator | null }> {
   deps.enterPhase("provision_workspace");
   await deps.reportProgress("Provisioning workspace");
   const provision = await provisionSessionWorkspace(deps.config, args.session, args.repositories, args.sessionId);
@@ -603,6 +616,7 @@ export async function provisionWorkspace(
 
   return {
     workspace: {
+      computer: true,
       dirs: provision.workspaceDirs,
       primaryDir,
       gitWorkspace,
@@ -713,7 +727,7 @@ export type EvalCaseOutcome =
         | {
             readonly case: PreparedEvalCase;
             /** The workspace with its capture substrate re-derived after the scaffold. */
-            readonly workspace: TurnWorkspace;
+            readonly workspace: ComputerWorkspace;
             /** The run's values with the case's `EVAL_*` variables over the agent's. */
             readonly values: RunValues;
             /** The plugin's archive at the eval's version, which the mocks answer from. */
@@ -737,7 +751,7 @@ export async function prepareEvalCasePhase(
   args: {
     readonly spec: RunSpec;
     readonly sessionId: string;
-    readonly workspace: TurnWorkspace;
+    readonly workspace: ComputerWorkspace;
     readonly values: RunValues;
   },
 ): Promise<EvalCaseOutcome> {
@@ -767,6 +781,55 @@ export async function prepareEvalCasePhase(
         captureSubstrate: deriveCaptureSubstrate(primaryDir, gitWorkspace, hasStorage),
         captureMode: deriveCaptureMode(primaryDir, gitWorkspace, hasStorage, fileReview),
       },
+      values: { ...args.values, agent: { ...args.values.agent, ...outcome.prepared.env } },
+      archive,
+    },
+  };
+}
+
+/** The eval phase's answer for an agent without a computer: as {@link EvalCaseOutcome}, with the reference files the turn's reader serves and no workspace. */
+export type EvalCaseWithoutComputerOutcome =
+  | {
+      readonly kind: "ready";
+      readonly prepared:
+        | {
+            readonly case: PreparedEvalCase;
+            readonly referenceFiles: ReadonlyMap<string, Uint8Array>;
+            readonly values: RunValues;
+            readonly archive: CaseArchive;
+          }
+        | undefined;
+    }
+  | { readonly kind: "settled"; readonly settlement: Extract<TurnSettlement, { kind: "eval-scaffold-failed" }> };
+
+/**
+ * Phase 2d for an agent without a computer (`shared/eval-case/prepare-case.ts`
+ * `prepareEvalCaseWithoutDisk`): nothing is written; the reference folders
+ * are served by the turn's reader, and a case with a scaffold ends as one
+ * whose scaffold could not run, which the server never plans.
+ */
+export async function prepareEvalCaseWithoutComputerPhase(
+  deps: ResolutionDeps,
+  args: { readonly spec: RunSpec; readonly values: RunValues },
+): Promise<EvalCaseWithoutComputerOutcome> {
+  const context = args.spec.evalCase;
+  if (context === undefined) return { kind: "ready", prepared: undefined };
+  deps.enterPhase("prepare_eval_case");
+  await deps.reportProgress("Preparing the eval case");
+  const archive = await fetchCaseArchive(deps.client, context, deps.input.executionId);
+  const outcome = prepareEvalCaseWithoutDisk({ context, archive });
+  deps.timing.mark("prepare_eval_case");
+  if (outcome.kind === "scaffold-failed") {
+    return {
+      kind: "settled",
+      settlement: { kind: "eval-scaffold-failed", message: formatTryStop({ kind: "scaffold-failed", detail: outcome.detail }) },
+    };
+  }
+  return {
+    kind: "ready",
+    prepared: {
+      case: outcome.prepared,
+      referenceFiles: outcome.referenceFiles ?? new Map(),
       values: { ...args.values, agent: { ...args.values.agent, ...outcome.prepared.env } },
       archive,
     },
@@ -916,7 +979,7 @@ export function waitingCustomAnswers(
  */
 export async function reconcileOwedUndosPhase(
   deps: ResolutionDeps,
-  args: { readonly sessionId: string; readonly workspace: TurnWorkspace; readonly reconcileTurn: boolean },
+  args: { readonly sessionId: string; readonly workspace: ComputerWorkspace; readonly reconcileTurn: boolean },
 ): Promise<readonly UndoOutcome[]> {
   deps.enterPhase("reconcile_owed_undos");
   const outcomes = await reconcileOwedUndos({
@@ -1713,9 +1776,65 @@ export async function mountTurnFiles(
   const entries = holdsFiles ? await fetchRunFileMounts(deps.client, deps.input.executionId) : [];
   const mounted = await mountFiles(entries, { sessionId: args.sessionId, primaryWorkspaceDir: args.primaryDir });
   const { message, conversation } = splitMessageFiles(blocks, mounted);
-  const viewed = await viewMessageImages(deps.input.executionId, args, message);
+  const viewed = await viewMessageImages(deps.input.executionId, args, message, (image, budget) =>
+    offerMountedImage(image, args.sessionId, budget),
+  );
   deps.timing.mark("mount_files");
   return { conversation, references: [], ...viewed };
+}
+
+/**
+ * Phase 5b for a conversation without a computer: nothing is written. The
+ * turn's reader (`shared/inputs-reader.ts`) is built over what the server
+ * answers (the conversation's Files and its earlier outputs) and an eval
+ * try's reference files, and the Files are listed and split exactly as the
+ * mount lists them, at the same `.stigmer/uploads/` paths, so the prompts
+ * read the same. The door is asked on every turn: a conversation without
+ * a Files may still hold what its agent saved before.
+ */
+export async function readTurnFiles(
+  deps: ResolutionDeps,
+  args: {
+    readonly execution: Run;
+    readonly sessionId: string;
+    readonly capabilities: Pick<HarnessCapabilities, "harness" | "visionProfile">;
+    readonly referenceFiles: ReadonlyMap<string, Uint8Array> | undefined;
+  },
+): Promise<{ readonly files: TurnFiles; readonly inputs: TurnInputs }> {
+  deps.enterPhase("mount_files");
+  const refetch = (): Promise<RunFileSets> => fetchRunFileSets(deps.client, deps.input.executionId);
+  const sets = await refetch();
+  const inputs = newTurnInputs({
+    org: args.execution.metadata?.org ?? "",
+    sets,
+    ...(args.referenceFiles !== undefined && { references: args.referenceFiles }),
+    refetch,
+  });
+  const { message, conversation } = splitMessageFiles(args.execution.status?.messageFiles ?? [], listedFiles(sets.entries));
+  const viewed = await viewMessageImages(deps.input.executionId, args, message, (image, budget) => offerStoredImage(image, inputs, budget));
+  deps.timing.mark("mount_files");
+  return { files: { conversation, references: [], ...viewed }, inputs };
+}
+
+/** The run's Files and its conversation's earlier outputs, asked under the run's scoped credential, as the mount asks. */
+async function fetchRunFileSets(client: StigmerClient, executionId: string): Promise<RunFileSets> {
+  const scopedToken = await client.acquireScopedRunnerToken({ agentExecutionId: executionId });
+  return client.mountRunFileSets(executionId, scopedToken);
+}
+
+/** The conversation's Files as the mount would list them, at their `.stigmer/uploads/` paths, none of them on a disk. */
+function listedFiles(entries: readonly FileMount[]): MountedFile[] {
+  return entries.map((entry) => {
+    const mountPath = posix.normalize(entry.mountPath);
+    return {
+      fileId: entry.fileId,
+      mountPath,
+      filename: entry.filename || posix.basename(mountPath),
+      mimeType: entry.mimeType,
+      sizeBytes: Number(entry.sizeBytes),
+      relativePath: posix.join(STIGMER_LOCAL_STATE_DIR, UPLOADS_SUBDIR, mountPath),
+    };
+  });
 }
 
 /** A message's files as a turn shows them: the files, and its images seen inline or degraded to their path. */
@@ -1734,11 +1853,24 @@ export async function mountMessageFiles(
   turn: Pick<TurnInput, "executionId" | "execution" | "sessionId" | "workspace">,
   capabilities: Pick<HarnessCapabilities, "harness" | "visionProfile">,
   blocks: readonly ContentBlock[],
+  inputs: TurnInputs | undefined,
 ): Promise<MessageFilesView> {
+  const args = { execution: turn.execution, sessionId: turn.sessionId, capabilities };
+  if (!turn.workspace.computer) {
+    // Without a computer the turn's reader takes the message's Files
+    // instead of a disk: the server made them the conversation's own as it
+    // admitted the message.
+    const sets = await fetchRunFileSets(client, turn.executionId);
+    inputs?.replace(sets);
+    const { message } = splitMessageFiles(blocks, listedFiles(sets.entries));
+    return viewMessageImages(turn.executionId, args, message, (image, budget) =>
+      inputs === undefined ? Promise.resolve(budget.offerBlind()) : offerStoredImage(image, inputs, budget),
+    );
+  }
   const entries = await fetchRunFileMounts(client, turn.executionId);
   const mounted = await mountFiles(entries, { sessionId: turn.sessionId, primaryWorkspaceDir: turn.workspace.primaryDir });
   const { message } = splitMessageFiles(blocks, mounted);
-  return viewMessageImages(turn.executionId, { execution: turn.execution, sessionId: turn.sessionId, capabilities }, message);
+  return viewMessageImages(turn.executionId, args, message, (image, budget) => offerMountedImage(image, turn.sessionId, budget));
 }
 
 /**
@@ -1748,8 +1880,9 @@ export async function mountMessageFiles(
  */
 async function viewMessageImages(
   executionId: string,
-  args: { readonly execution: Run; readonly sessionId: string; readonly capabilities: Pick<HarnessCapabilities, "harness" | "visionProfile"> },
+  args: { readonly execution: Run; readonly capabilities: Pick<HarnessCapabilities, "harness" | "visionProfile"> },
   message: readonly MessageFile[],
+  offer: (image: MessageFile, budget: VisionBudget) => Promise<VisionOutcome>,
 ): Promise<MessageFilesView> {
   const visionImages: VisionImage[] = [];
   const visionNotViewable: NotViewableEntry[] = [];
@@ -1759,7 +1892,7 @@ async function viewMessageImages(
     const modelName = args.execution.status?.runConfig?.modelName || (await getDefaultModel(registrySectionOf(harness)));
     const budget = new VisionBudget(visionProfile, { modelVision: await getModelVisionCapability(modelName) });
     for (const image of images) {
-      const outcome = await offerMountedImage(image, args.sessionId, budget);
+      const outcome = await offer(image, budget);
       if (outcome.kind === "accepted") visionImages.push(outcome.image);
       else if (outcome.kind === "degraded") visionNotViewable.push({ path: image.relativePath, reason: outcome.reason });
     }
@@ -1897,6 +2030,10 @@ export interface TurnFrame {
   lostRunner: boolean;
   /** The turn's reader of its skill and plugin files, set once the skills are resolved: the runtime logs what it read when the turn ends. */
   archives?: TurnArchives;
+  /** A turn without a computer: its reader of the conversation's inputs, which a message sent mid-turn extends. */
+  inputs?: TurnInputs;
+  /** A turn without a computer: its outputs, returned as Files when the turn ends instead of a folder walk. */
+  outputs?: OutputsBuffer;
 }
 
 /** What the composer answers: the whole record, or a settlement the caller writes and returns. */
@@ -1930,35 +2067,53 @@ export async function resolveTurnContext(
   const fetched = await fetchValues(deps);
   if (fetched.kind === "settled") return { kind: "settled", settlement: fetched.settlement };
   let { values } = fetched;
-  const provisioned = await provisionWorkspace(deps, {
-    session,
-    sessionId,
-    repositories: values.repositories,
-    review: fileReviewOn(session, spec),
-    fileRecord: execution.status?.fileChanges ?? [],
-  });
-  let { workspace } = provisioned;
-  const { writeback } = provisioned;
-  frame.primaryDir = workspace.primaryDir;
-  frame.writeback = writeback;
 
-  const lock = await acquireWorkspaceTurnLock(deps, workspace.primaryDir);
-  if (lock.kind === "settled") return { kind: "settled", settlement: lock.settlement };
-  frame.releaseWorkspaceLock = lock.release;
-  const finished = await runFinishedWhileWaiting(deps, lock.waited);
-  if (finished !== undefined) return { kind: "settled", settlement: finished };
-  await reconcileOwedUndosPhase(deps, { sessionId, workspace, reconcileTurn: false });
+  // The workspace and everything that keys on it: a conversation with a
+  // computer gets today's tree, lock, undos and outputs folder; one without
+  // gets none of them, and its files stand on the store (`NoComputerWorkspace`).
+  const computer = hasComputer(session);
+  let workspace: ComputerWorkspace | undefined;
+  let prepared: { readonly case: PreparedEvalCase; readonly archive: CaseArchive } | undefined;
+  let referenceFiles: ReadonlyMap<string, Uint8Array> | undefined;
+  if (computer) {
+    const provisioned = await provisionWorkspace(deps, {
+      session,
+      sessionId,
+      repositories: values.repositories,
+      review: fileReviewOn(session, spec),
+      fileRecord: execution.status?.fileChanges ?? [],
+    });
+    workspace = provisioned.workspace;
+    frame.primaryDir = workspace.primaryDir;
+    frame.writeback = provisioned.writeback;
 
-  const evalCase = await prepareEvalCasePhase(deps, { spec, sessionId, workspace, values });
-  if (evalCase.kind === "settled") return { kind: "settled", settlement: evalCase.settlement };
-  const prepared = evalCase.prepared;
-  if (prepared !== undefined) {
-    workspace = prepared.workspace;
-    values = prepared.values;
-    frame.evalReadFiles = spec.evalCase?.readFiles;
+    const lock = await acquireWorkspaceTurnLock(deps, workspace.primaryDir);
+    if (lock.kind === "settled") return { kind: "settled", settlement: lock.settlement };
+    frame.releaseWorkspaceLock = lock.release;
+    const finished = await runFinishedWhileWaiting(deps, lock.waited);
+    if (finished !== undefined) return { kind: "settled", settlement: finished };
+    await reconcileOwedUndosPhase(deps, { sessionId, workspace, reconcileTurn: false });
+
+    const evalCase = await prepareEvalCasePhase(deps, { spec, sessionId, workspace, values });
+    if (evalCase.kind === "settled") return { kind: "settled", settlement: evalCase.settlement };
+    if (evalCase.prepared !== undefined) {
+      prepared = evalCase.prepared;
+      workspace = evalCase.prepared.workspace;
+      values = evalCase.prepared.values;
+      frame.evalReadFiles = spec.evalCase?.readFiles;
+    }
+
+    await prepareOutputsPhase(deps, { sessionId, primaryDir: workspace.primaryDir });
+  } else {
+    const evalCase = await prepareEvalCaseWithoutComputerPhase(deps, { spec, values });
+    if (evalCase.kind === "settled") return { kind: "settled", settlement: evalCase.settlement };
+    if (evalCase.prepared !== undefined) {
+      prepared = evalCase.prepared;
+      referenceFiles = evalCase.prepared.referenceFiles;
+      values = evalCase.prepared.values;
+    }
   }
-
-  await prepareOutputsPhase(deps, { sessionId, primaryDir: workspace.primaryDir });
+  const primaryDir = workspace?.primaryDir ?? "";
 
   const reinvocation = await reconcileReinvocation(deps, {
     execution,
@@ -1982,7 +2137,7 @@ export async function resolveTurnContext(
   const mounted = await mountSkills(deps, {
     blueprint,
     sessionId,
-    primaryDir: workspace.primaryDir,
+    primaryDir,
     subAgents: capabilities.subAgents,
     toolScope: mcp.toolScope,
   });
@@ -1994,23 +2149,38 @@ export async function resolveTurnContext(
     sessionId,
     blueprint,
     values,
-    primaryDir: workspace.primaryDir,
+    primaryDir,
     capabilities,
     mainServers: mcp.servers,
   });
   if (subagentResolution.kind === "settled") return subagentResolution;
-  await holdPlatformToTurnPhase(deps, sessionId, [mounted.mounts, hookResolution.mounts, subagentResolution.mounts]);
+  // Without a computer nothing was mounted, and nothing is held: the
+  // platform folder of a conversation that once had one is left as it is.
+  if (computer) await holdPlatformToTurnPhase(deps, sessionId, [mounted.mounts, hookResolution.mounts, subagentResolution.mounts]);
   const archives = turnArchivesOf(deps, execution, [mounted.sources, hookResolution.sources, subagentResolution.sources]);
   frame.archives = archives;
-  const treesDir = sessionTreesDir(sessionId);
-  const mountedFiles = await mountTurnFiles(deps, {
-    execution,
-    session,
-    sessionId,
-    primaryDir: workspace.primaryDir,
-    capabilities,
-  });
-  const files: TurnFiles = prepared === undefined ? mountedFiles : { ...mountedFiles, references: prepared.case.referenceInputs };
+  const treesDir = computer ? sessionTreesDir(sessionId) : undefined;
+  let turnWorkspace: ComputerWorkspace | NoComputerWorkspace;
+  let readFiles: TurnFiles;
+  if (workspace !== undefined) {
+    turnWorkspace = workspace;
+    readFiles = await mountTurnFiles(deps, { execution, session, sessionId, primaryDir: workspace.primaryDir, capabilities });
+  } else {
+    const read = await readTurnFiles(deps, { execution, sessionId, capabilities, referenceFiles });
+    const outputs = newOutputsBuffer();
+    frame.inputs = read.inputs;
+    frame.outputs = outputs;
+    turnWorkspace = {
+      computer: false,
+      files: {
+        inputs: read.inputs,
+        outputs,
+        ...(deps.artifactStorage !== undefined && { offloads: newTurnOffloads(deps.artifactStorage, deps.input.executionId, sessionId) }),
+      },
+    };
+    readFiles = read.files;
+  }
+  const files: TurnFiles = prepared === undefined ? readFiles : { ...readFiles, references: prepared.case.referenceInputs };
   // What this turn loaded, recorded once it is ready to run; the
   // adapter's first persist carries it.
   const loadedVersions = loadedVersionsOf(
@@ -2036,7 +2206,7 @@ export async function resolveTurnContext(
       session,
       blueprint,
       values,
-      workspace,
+      workspace: turnWorkspace,
       mcp,
       skills: {
         ...mounted.skills,

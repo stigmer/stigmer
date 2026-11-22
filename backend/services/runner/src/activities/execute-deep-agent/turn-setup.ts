@@ -42,7 +42,7 @@ import { offeredCustomTools } from "../../shared/custom-tools.js";
 import { createCustomTools } from "./custom-tools.js";
 import type { DynamicStructuredTool } from "@langchain/core/tools";
 import type { Command } from "@langchain/langgraph";
-import { createDeepAgent } from "deepagents";
+import { createDeepAgent, type AnyBackendProtocol } from "deepagents";
 import { InteractionMode } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 import { hasComputer } from "../../shared/computer.js";
 
@@ -87,13 +87,15 @@ import { toLangChainImageRefs } from "../../shared/attachment-vision.js";
 import { workspaceResourcesOf } from "../../shared/workspace/provisioner.js";
 import { backstopRecursionLimit, resolveToolRoundLimit } from "../../shared/tool-rounds.js";
 import { structuredOutputFormat } from "./structured-output-format.js";
-import { skillContentReadCheck } from "../../shared/skill-mount.js";
+import { isSkillContentPath, skillContentReadCheck } from "../../shared/skill-mount.js";
 import { CasCaptureObserver } from "../../shared/filereview/cas-capture-observer.js";
 import { CasCaptureShellBackend, createCasCaptureBackend } from "./cas-capture-backend.js";
 import { createShellBinding } from "./shell-tool.js";
 import type { BackgroundCommands } from "../../shared/shell/background-commands.js";
 import { loadStreamingConfig } from "../../shared/streaming-scheduler.js";
-import { admitsRoutedRead, backgroundOutputPathsIn, mountPlatformRoute } from "./platform-route.js";
+import { admitsRoutedRead, backgroundOutputPathsIn, mountPlatformRoute, type PlatformRoutedBackend } from "./platform-route.js";
+import { computerlessFileBackend } from "./computerless-files.js";
+import { readStoredFile } from "../../shared/inputs-reader.js";
 import { resolveResumeInput, type GraphStateSnapshot } from "./hitl.js";
 import { RUN_STAMP_KEY, createRunStampMiddleware, stampedRunOf } from "./run-stamp.js";
 import { createTurnInputMiddleware } from "./turn-input-middleware.js";
@@ -126,8 +128,24 @@ export type DeepAgentAdapterConfig = Pick<
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type AgentGraph = any;
 
+/**
+ * Where this engine's file tools stand: the runtime's primary tree on disk
+ * for a conversation with a computer ({@link DiskWorkspace}), or the
+ * store-backed layer for one without (`computerless-files.ts`), shared by
+ * every graph of the turn.
+ */
+export type DeepAgentWorkspace = DiskWorkspace | StoreWorkspace;
+
+/** A conversation without a computer: its file tools stand on no filesystem. */
+export interface StoreWorkspace {
+  readonly kind: "store";
+  /** The one layer every graph of the turn reads and writes through. */
+  readonly backend: PlatformRoutedBackend;
+}
+
 /** The workspace as this engine sees it: one backend and one CAS observer, both rooted at the runtime's primary tree. */
-export interface DeepAgentWorkspace {
+export interface DiskWorkspace {
+  readonly kind: "disk";
   readonly backend: WorkspaceBackend;
   readonly casObserver: CasCaptureObserver;
   /** Git-tracked capturability, consulted by the gate to route a file write to git-diff (tracked) vs CAS (ignored). */
@@ -240,6 +258,9 @@ export async function openCheckpointer(input: TurnInput, sink: TurnSink, config:
  * runs at most once per distinct path.
  */
 export function buildDeepAgentWorkspace(input: TurnInput): DeepAgentWorkspace {
+  if (!input.workspace.computer) {
+    return { kind: "store", backend: computerlessFileBackend(input.workspace.files, input.skills.archives) };
+  }
   const { primaryDir, gitWorkspace, provision } = input.workspace;
   const backend = new LocalWorkspaceBackend(primaryDir, provision.workspaceBackend.platformDir);
   const isCapturablePath = gitWorkspace
@@ -256,7 +277,7 @@ export function buildDeepAgentWorkspace(input: TurnInput): DeepAgentWorkspace {
     ? (rawPath: string): Promise<boolean> =>
         resolvesIntoGitDirectory(primaryDir, resolveWorkspacePath(rawPath, primaryDir, true).path)
     : (_rawPath: string): Promise<boolean> => Promise.resolve(false);
-  return { backend, casObserver, isCapturablePath, inGitDirectory };
+  return { kind: "disk", backend, casObserver, isCapturablePath, inGitDirectory };
 }
 
 /**
@@ -399,11 +420,12 @@ export function composeSystemPrompt(
   repositoryInstructionsSection: string,
 ): string {
   const spec = input.execution.spec!;
-  const primaryDir = input.workspace.primaryDir;
+  const { workspace } = input;
   return buildEnhancedSystemPrompt({
     instructions: input.blueprint.instructions,
-    provisionResults: input.workspace.provision.provisionResults,
-    containerRoot: primaryDir,
+    provisionResults: workspace.computer ? workspace.provision.provisionResults : [],
+    containerRoot: workspace.computer ? workspace.primaryDir : "",
+    computer: workspace.computer,
     repositoryInstructionsSection,
     skillsPromptSection: renderSkillsSection(input.skills.root),
     // "" (nothing sendable) threads as undefined: the tool alone still serves
@@ -482,7 +504,12 @@ export async function buildEngine(
   // message's intent, on the spec.
   const runConfig = input.execution.status?.runConfig;
   const interactionMode = input.execution.spec!.interactionMode;
-  const primaryDir = input.workspace.primaryDir;
+  // The virtual root's real directory: the primary tree with a computer;
+  // without one the layer stands on no directory, and `/` maps to itself.
+  const primaryDir = input.workspace.computer ? input.workspace.primaryDir : "/";
+  const disk = workspace.kind === "disk" ? workspace : undefined;
+  const storeLayer = workspace.kind === "store" ? workspace.backend : undefined;
+  const storeInputs = input.workspace.computer ? undefined : input.workspace.files.inputs;
 
   // The model. Resolution to the provider API id happens inside
   // buildChatModel; modelName stays the registry id for pricing and
@@ -546,7 +573,7 @@ export async function buildEngine(
   // conversation without a computer (`shared/computer.ts`). The
   // conversation's computer is every graph's: no shell for the parent or
   // any subagent.
-  const runsCommands = !isPlanMode && hasComputer(input.session);
+  const runsCommands = !isPlanMode && hasComputer(input.session) && disk !== undefined;
   const shellEnv = runsCommands
     ? buildShellEnv(shellRunValues(input.values))
     : undefined;
@@ -565,7 +592,11 @@ export async function buildEngine(
     mcpIndex: tools.mcpIndex,
     platformServerSlugs: input.mcp.platformServerSlugs,
     admitsRoutedRead,
-    readsSkillContent: skillContentReadCheck(workspace.backend.platformDir, input.skills.treesDir),
+    // Without a computer nothing resolves to a real path: a skill's file
+    // is named by its text alone.
+    readsSkillContent: disk !== undefined
+      ? skillContentReadCheck(disk.backend.platformDir, input.skills.treesDir)
+      : async (virtualPath: string) => isSkillContentPath(virtualPath),
   };
 
   // The agent's hooks, run inside the gate before the default
@@ -582,7 +613,10 @@ export async function buildEngine(
   // The CAS arm additionally requires storage to persist its blobs. With the
   // turn's file review off, file edits flow uncaptured; the secret-like block
   // stays, keyed on the workspace's substrate.
-  const captureMode = input.workspace.captureMode;
+  // Without a computer there is no tree to review: edits flow, nothing is
+  // captured, and the capture inputs are inert.
+  const turnWorkspace = input.workspace.computer ? input.workspace : undefined;
+  const captureMode = turnWorkspace?.captureMode ?? false;
   const gateConfigFor = (evaluator: typeof hooks): ApprovalGateConfig | null => !gate.globalBypass || evaluator !== null
     ? {
         mcpDefault: gate.mcpDefault,
@@ -591,16 +625,16 @@ export async function buildEngine(
         fingerprintKey: executionFingerprintKey(executionId),
         executionId,
         fileCaptureMode: captureMode,
-        fileReviewOff: !input.workspace.fileReview,
-        fileCaptureSubstrate: input.workspace.captureSubstrate,
-        isCapturablePath: workspace.isCapturablePath,
-        inGitDirectory: workspace.inGitDirectory,
+        fileReviewOff: !(turnWorkspace?.fileReview ?? false),
+        fileCaptureSubstrate: turnWorkspace?.captureSubstrate ?? false,
+        isCapturablePath: disk?.isCapturablePath ?? (async () => false),
+        inGitDirectory: disk?.inGitDirectory ?? (async () => false),
         captureIgnored: captureMode && !!artifactStorage,
-        recordBlockedSecret: (rawPath: string) => workspace.casObserver.recordBlockedSecret(rawPath),
+        recordBlockedSecret: (rawPath: string) => disk?.casObserver.recordBlockedSecret(rawPath) ?? Promise.resolve(),
         // Pre-delete byte capture (issue #303): a flowing delete's before-bytes
         // are recorded by the gate at authorization time through the SAME
         // shared observer, so the boundary authors a restorable DELETE.
-        captureDeleteBefore: (rawPath: string) => workspace.casObserver.recordBefore(rawPath),
+        captureDeleteBefore: (rawPath: string) => disk?.casObserver.recordBefore(rawPath) ?? Promise.resolve(),
         unattended: gate.unattended,
         unattendedSkips: gate.unattendedSkips,
         ...(gate.refusedByPerson !== undefined ? { refusedByPerson: gate.refusedByPerson } : {}),
@@ -634,7 +668,9 @@ export async function buildEngine(
   // shell-capable backend is what the runner's shell tool runs through
   // (`middleware/shell.ts`); a turn that runs no commands gets a
   // filesystem-only one and no shell.
-  const workspaceBackend = await createCasCaptureBackend({ rootDir: primaryDir, observer: workspace.casObserver, shellEnv });
+  const workspaceBackend = disk !== undefined
+    ? await createCasCaptureBackend({ rootDir: primaryDir, observer: disk.casObserver, shellEnv })
+    : undefined;
   // Every graph's shell runs its background commands in this invocation's
   // one registry, writing their output beside the results deepagents
   // offloads (`platform-route.ts` `backgroundOutputPathsIn`). With the
@@ -645,7 +681,7 @@ export async function buildEngine(
     maxTimeoutSeconds: config.shellTimeoutMaxSeconds,
     floorMs: loadStreamingConfig().minIntervalMs,
     ...(config.shellBackgroundEnabled
-      ? { background: { commands: args.background, outputPaths: backgroundOutputPathsIn(workspace.backend.platformDir) } }
+      ? { background: { commands: args.background, outputPaths: backgroundOutputPathsIn(disk?.backend.platformDir) } }
       : {}),
   };
   const shell = workspaceBackend instanceof CasCaptureShellBackend
@@ -658,11 +694,13 @@ export async function buildEngine(
   // root. Mounted before the stack, whose truncation keeps a long tool
   // result whole through it, in the session's offload directory
   // (`middleware/tool-truncation.ts`).
-  const fileBackend = await mountPlatformRoute(workspaceBackend, {
-    workspaceDir: primaryDir,
-    platformDir: workspace.backend.platformDir,
-    ...(input.skills.archives !== undefined && { archives: input.skills.archives }),
-  });
+  const fileBackend: AnyBackendProtocol = workspaceBackend !== undefined && disk !== undefined
+    ? await mountPlatformRoute(workspaceBackend, {
+        workspaceDir: primaryDir,
+        platformDir: disk.backend.platformDir,
+        ...(input.skills.archives !== undefined && { archives: input.skills.archives }),
+      })
+    : storeLayer!;
   const maxToolResultChars = runConfig?.maxToolResultChars || 30_000;
 
   // The workspace roots' own AGENTS.md (else CLAUDE.md), read once per turn
@@ -670,17 +708,17 @@ export async function buildEngine(
   // built (`repository-instructions.ts`). Each graph is shown them only when
   // its own scope may read the workspace: the parent here, each sub-agent at
   // its compile (`subagent-transformer.ts`).
-  const repositoryRoots = workspaceRoots(
-    primaryDir,
-    input.workspace.provision.provisionResults.map((result) => result.rootDir),
-  );
-  const rootInstructions = await readRootInstructions(fileBackend, repositoryRoots, maxToolResultChars);
+  // Without a computer there is no repository to read instructions from.
+  const repositoryRoots = turnWorkspace !== undefined
+    ? workspaceRoots(primaryDir, turnWorkspace.provision.provisionResults.map((result) => result.rootDir))
+    : [];
+  const rootInstructions = turnWorkspace !== undefined ? await readRootInstructions(fileBackend, repositoryRoots, maxToolResultChars) : [];
   const repositoryInstructions = {
     section: renderRepositoryInstructions(rootInstructions),
     roots: repositoryRoots,
     maxChars: maxToolResultChars,
   };
-  const parentReadsWorkspace = toolScope.allowsEngineTool(ENGINE_TOOL.readFile, STIGMER_TOOL_COVERS);
+  const parentReadsWorkspace = turnWorkspace !== undefined && toolScope.allowsEngineTool(ENGINE_TOOL.readFile, STIGMER_TOOL_COVERS);
   if (parentReadsWorkspace && rootInstructions.length > 0) {
     console.log(
       `[REPO-INSTRUCTIONS] root=${rootInstructions.length} ` +
@@ -742,12 +780,16 @@ export async function buildEngine(
     parentScope: toolScope,
     scopeBase,
     skills: input.skills.bySubAgent,
-    workspaceBackend: workspace.backend,
+    ...(disk !== undefined
+      ? {
+          workspaceBackend: disk.backend,
+          // Capture is universal: every sub-agent gets a CAS-observing backend wired
+          // to the SAME per-turn observer as the parent.
+          casObserver: disk.casObserver,
+        }
+      : { fileLayer: storeLayer! }),
     ...(input.skills.archives !== undefined && { archives: input.skills.archives }),
     approvalGate: approvalGateConfig,
-    // Capture is universal: every sub-agent gets a CAS-observing backend wired
-    // to the SAME per-turn observer as the parent.
-    casObserver: workspace.casObserver,
     parentModelName: modelName,
     mcpIndex: tools.mcpIndex,
     webFetchPosture,
@@ -803,7 +845,10 @@ export async function buildEngine(
         barriers: inputBarriers,
       }),
       ...middleware,
-      createImageRefMiddleware({ sessionId }),
+      createImageRefMiddleware({
+        sessionId,
+        ...(storeInputs !== undefined && { readFile: (fileId: string) => readStoredFile(storeInputs, fileId) }),
+      }),
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
     ] as any,
     subagents: compiledSubagents ?? undefined,

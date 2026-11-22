@@ -30,6 +30,7 @@
  */
 
 import { ArchiveFileNotFoundError } from "../shared/archive-reader.js";
+import { InputFileNotFoundError } from "../shared/inputs-reader.js";
 import { harnessRowFor, type HarnessRow } from "../harness/registry.js";
 import type { Config } from "../config.js";
 import { DEFAULT_LIVENESS_INTERVAL_MS } from "../harness/liveness-pump.js";
@@ -129,6 +130,31 @@ export function serveAgentHost(channel: LineChannel, rows: readonly HarnessRow[]
         const answer = await peer.call("readTurnArchiveFile", { turnId, path });
         if ("missing" in answer) throw new ArchiveFileNotFoundError(path);
         return new Uint8Array(Buffer.from(answer.content, "base64"));
+      },
+      storeFiles: {
+        inputs: {
+          list: async () => peer.call("listTurnInputs", { turnId }),
+          read: async (path) => {
+            const answer = await peer.call("readTurnInput", { turnId, path });
+            if ("missing" in answer) throw new InputFileNotFoundError(path);
+            return new Uint8Array(Buffer.from(answer.content, "base64"));
+          },
+        },
+        outputs: {
+          list: async () => peer.call("listTurnOutputs", { turnId }),
+          read: async (path) => {
+            const answer = await peer.call("readTurnOutput", { turnId, path });
+            return "missing" in answer ? undefined : new Uint8Array(Buffer.from(answer.content, "base64"));
+          },
+          write: async (path, bytes) => {
+            await peer.call("writeTurnOutput", { turnId, path, content: Buffer.from(bytes).toString("base64") });
+          },
+          delete: async (path) => peer.call("deleteTurnOutput", { turnId, path }),
+        },
+        offloads: {
+          put: async (bytes) => peer.call("putTurnOffload", { turnId, content: Buffer.from(bytes).toString("base64") }),
+          read: async (key) => new Uint8Array(Buffer.from(await peer.call("readTurnOffload", { turnId, key }), "base64")),
+        },
       },
     });
     const turn = new HostTurn(peer, turnId, input, args.status, args.rows, args.timing);

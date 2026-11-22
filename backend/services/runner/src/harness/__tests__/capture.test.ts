@@ -34,7 +34,7 @@ import { initGitWorkspace } from "../../__test-utils__/git-workspace-fixture.js"
 import { mockWorkspaceBackend } from "../../__test-utils__/mock-workspace.js";
 import type { FileReviewIdentity } from "../capabilities.js";
 import { captureCandidate, deriveCommandProvenance, pinCaptureBaseline } from "../capture.js";
-import type { TurnWorkspace } from "../types.js";
+import type { ComputerWorkspace } from "../types.js";
 import { changeSetIdForInvocation, fileRecordOf } from "../../shared/filereview/record.js";
 import { baselineRef } from "../../shared/filereview/git-substrate.js";
 import { AgentMessageSchema, ToolCallSchema, type ToolCall, SubAgentRunSchema, TurnRowsSchema, type TurnRows } from "../../gen/turn/ai/stigmer/runner/turn/v1/rows_pb.js";
@@ -43,8 +43,9 @@ import { ApprovalAction, MessageType, ToolCallStatus } from "../../gen/turn/ai/s
 const EXECUTION_ID = "run_capture-unit";
 const FILE_REVIEW: FileReviewIdentity = { harnessId: "unit", excludePaths: [".unit/scratch.json"] };
 
-function workspaceOver(root: string, turnSeq = 0): TurnWorkspace {
+function workspaceOver(root: string, turnSeq = 0): ComputerWorkspace {
   return {
+    computer: true,
     dirs: [root],
     primaryDir: root,
     gitWorkspace: true,
@@ -203,7 +204,7 @@ describe("harness/capture over a git work tree", () => {
     // the adapter binds; unbound it reads nothing observed.
     const casRoot = mkdtempSync(join(tmpdir(), "stigmer-capture-cas-"));
     try {
-      const casWorkspace: TurnWorkspace = { ...workspaceOver(casRoot), gitWorkspace: false };
+      const casWorkspace: ComputerWorkspace = { ...workspaceOver(casRoot), gitWorkspace: false };
       const cas = (await pinCaptureBaseline({
         rows: create(TurnRowsSchema, {}),
         executionId: EXECUTION_ID,

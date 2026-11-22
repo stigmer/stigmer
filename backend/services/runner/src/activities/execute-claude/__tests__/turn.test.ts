@@ -35,7 +35,7 @@ import type { Options, Query, SDKMessage, SDKUserMessage } from "@anthropic-ai/c
 import { ServiceTier, ThinkingMode } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 
 import type { Config } from "../../../config.js";
-import type { TurnInput, TurnSubagent } from "../../../harness/types.js";
+import type { ComputerTurnInput, ComputerWorkspace, TurnInput, TurnSubagent } from "../../../harness/types.js";
 import type { TurnInputChannel, TurnMessage } from "../../../harness/turn-input.js";
 import { runWithExecutionContext } from "../../../shared/execution-context.js";
 import { ToolScope } from "../../../shared/tool-lists.js";
@@ -43,7 +43,7 @@ import { getClaudeEngineDir, getClaudeTranscriptDir } from "../../../shared/work
 import { createHermeticEnvironment } from "../../../__test-utils__/hermetic-activity.js";
 import { RecordingTurnSink } from "../../../__test-utils__/harness-contract/recording-sink.js";
 import { FIXTURE_CLAUDE_MODEL, stubRegistryFetch } from "../../../__test-utils__/model-registry-fixture.js";
-import { turnInputFixture } from "../../../__test-utils__/turn-input-fixture.js";
+import { turnInputFixture, type ComputerTurnInputFixtureOverrides } from "../../../__test-utils__/turn-input-fixture.js";
 import { HttpMcpServer } from "../../../__test-utils__/http-mcp-server.js";
 import { runMessageIdOf, sentMessageIdOf } from "../engine-session-id.js";
 import { ApprovalAction, ApprovalPolicySource, ToolCallStatus } from "../../../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
@@ -162,7 +162,7 @@ function heldInput(waiting: TurnMessage[]): TurnInputChannel & { raise(): void; 
   };
 }
 
-function input(overrides: Parameters<typeof turnInputFixture>[0] = {}): TurnInput {
+function input(overrides: ComputerTurnInputFixtureOverrides = {}): ComputerTurnInput {
   return turnInputFixture({
     sessionId: SESSION,
     threadId: `thread-${SESSION}`,
@@ -173,7 +173,7 @@ function input(overrides: Parameters<typeof turnInputFixture>[0] = {}): TurnInpu
 }
 
 /** One turn as the agent host runs it: inside the turn's execution context, holding its key. */
-function turn(turnInput: TurnInput, sink: RecordingTurnSink, sdk: ClaudeSdk, config: ClaudeAdapterConfig = CONFIG) {
+function turn(turnInput: ComputerTurnInput, sink: RecordingTurnSink, sdk: ClaudeSdk, config: ClaudeAdapterConfig = CONFIG) {
   return runWithExecutionContext(turnInput.executionId, () => runClaudeTurn(turnInput, sink, config, sdk), "turn-key");
 }
 
@@ -198,7 +198,7 @@ describe("runClaudeTurn", () => {
   });
 
   it("refuses what it cannot run yet, each with the sentence that says how", async () => {
-    const refusals: [Parameters<typeof turnInputFixture>[0], RegExp][] = [
+    const refusals: [ComputerTurnInputFixtureOverrides, RegExp][] = [
       [
         {
           skills: {
@@ -361,7 +361,7 @@ describe("runClaudeTurn", () => {
   it("warns of an agent's tool list naming an MCP tool no server offers", async () => {
     const warn = vi.spyOn(console, "warn");
     const scoped = input();
-    const turnInput: TurnInput = {
+    const turnInput: ComputerTurnInput = {
       ...scoped,
       mcp: {
         ...scoped.mcp,
@@ -407,7 +407,7 @@ describe("an approved shell call the engine hands back under its own name (stigm
   afterAll(() => registry.restore());
 
   /** A run that paused at the shell call `CALL`, approved: its transcript holds the call pending, its sink the WAITING row. */
-  function pausedRun(): { readonly turnInput: TurnInput; readonly sink: RecordingTurnSink } {
+  function pausedRun(): { readonly turnInput: ComputerTurnInput; readonly sink: RecordingTurnSink } {
     const turnInput = input({ approvalDecisions: new Map([[CALL, ApprovalAction.APPROVE]]) });
     const file = join(getClaudeTranscriptDir(SESSION), encodeURIComponent(turnInput.threadId), "transcript.jsonl");
     mkdirSync(join(file, ".."), { recursive: true });

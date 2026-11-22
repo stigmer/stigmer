@@ -461,6 +461,7 @@ export class ScriptedHarnessAdapter implements HarnessAdapter {
   private async flowingWrite(toolCallId: string, action: ProposedAction, input: TurnInput, sink: TurnSink): Promise<TurnOutcome | undefined> {
     if (this.hasSettled(input.sessionId, toolCallId)) return undefined;
     this.settle(input.sessionId, toolCallId);
+    if (!input.workspace.computer) throw new Error("the scripted adapter writes into a workspace, and this turn has no computer");
     const file = join(input.workspace.primaryDir, action.resource);
     await mkdir(dirname(file), { recursive: true });
     await writeFile(file, `${toolCallId}\n`);

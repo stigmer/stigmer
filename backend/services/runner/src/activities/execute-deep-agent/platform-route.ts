@@ -383,9 +383,9 @@ export class PlatformRoutedBackend extends CompositeBackend {
 
   constructor(
     backend: AnyBackendProtocol,
-    platform: PlatformContentBackend | ArchiveRoutedPlatform | NoPlatformContentBackend,
-    outputs?: OutputsBackend,
-    offloads: Readonly<Record<string, OffloadBackend>> = {},
+    platform: AnyBackendProtocol,
+    outputs?: AnyBackendProtocol,
+    offloads: Readonly<Record<string, AnyBackendProtocol>> = {},
   ) {
     super(backend, {
       [PLATFORM_ROUTE_PREFIX]: platform,

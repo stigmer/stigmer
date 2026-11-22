@@ -267,7 +267,14 @@ export interface SubagentTransformOptions {
   readonly skills: ReadonlyMap<string, readonly SkillMetadata[]>;
   /** The turn's skill and plugin files from the store, routed under `.stigmer/` for every sub-agent as for the parent (`platform-route.ts`). */
   readonly archives?: TurnArchiveFiles;
-  readonly workspaceBackend: WorkspaceBackend;
+  /** The workspace every sub-agent's backend is rooted at; absent without a computer, where {@link fileLayer} serves instead. */
+  readonly workspaceBackend?: WorkspaceBackend;
+  /**
+   * A conversation without a computer: the one store-backed layer the
+   * parent reads and writes through (`computerless-files.ts`), shared by
+   * every sub-agent, which gets no workspace and no shell.
+   */
+  readonly fileLayer?: AnyBackendProtocol;
   /**
    * The parent's approval-gate config, inherited verbatim so a mutating tool
    * inside a sub-agent is gated identically to one in the parent (same default,
@@ -565,6 +572,8 @@ export async function compileSubagents(
     readonly scopeBase?: SubagentScopeBase;
     readonly parentModelName: string;
     readonly workspaceRootDir: string;
+    /** See {@link SubagentTransformOptions.fileLayer}: every sub-agent's backend, in place of a workspace. */
+    readonly fileLayer?: AnyBackendProtocol;
     /** The session's platform dir, mounted read-only at `.stigmer/` (`platform-route.ts`). */
     readonly platformDir?: string;
     /** The turn's skill and plugin files from the store (`platform-route.ts`). */
@@ -601,12 +610,14 @@ export async function compileSubagents(
       // values); every other subagent's are the parent's.
       const approvalGate = spec.own ? spec.own.approvalGate : opts.approvalGate;
       const shellEnv = spec.own ? spec.own.shellEnv : opts.shellEnv;
-      const workspace = await buildSubagentWorkspaceBackend({ ...opts, shellEnv });
-      const backend = await mountPlatformRoute(workspace, {
-        workspaceDir: opts.workspaceRootDir,
-        platformDir: opts.platformDir,
-        ...(opts.archives !== undefined && { archives: opts.archives }),
-      });
+      const workspace = opts.fileLayer === undefined ? await buildSubagentWorkspaceBackend({ ...opts, shellEnv }) : undefined;
+      const backend = workspace === undefined
+        ? opts.fileLayer!
+        : await mountPlatformRoute(workspace, {
+            workspaceDir: opts.workspaceRootDir,
+            platformDir: opts.platformDir,
+            ...(opts.archives !== undefined && { archives: opts.archives }),
+          });
       // The sub-agent's own shell over its own backend (its values, never the
       // parent's), shared by every invocation as the backend is.
       const shell = workspace instanceof CasCaptureShellBackend && opts.shellStreaming
@@ -734,6 +745,7 @@ export async function transformAndCompileSubagents(
     skills,
     archives,
     workspaceBackend,
+    fileLayer,
     approvalGate,
     casObserver,
     parentModelName,
@@ -749,21 +761,25 @@ export async function transformAndCompileSubagents(
     permissions,
   } = options;
 
-  if (pluginAgents.length === 0 && subagents.length === 0 && !workspaceBackend.rootDir) {
+  // The built-in types work on files: a workspace, or the store-backed
+  // layer of a conversation without a computer, which runs no commands and
+  // so gets no `shell` type.
+  const hasFiles = fileLayer !== undefined || !!workspaceBackend?.rootDir;
+  if (pluginAgents.length === 0 && subagents.length === 0 && !hasFiles) {
     return null;
   }
 
   console.log(
     `[subagent-transformer] Transforming ${subagents.length} subagent(s) and ${pluginAgents.length} plugin subagent(s)` +
-    (workspaceBackend.rootDir ? " + built-in types" : ""),
+    (hasFiles ? " + built-in types" : ""),
   );
 
   const builtins = createBuiltinSubagents(
-    !!workspaceBackend.rootDir,
+    hasFiles,
     parentScope,
     parentMcpTools,
     webFetchPosture,
-  );
+  ).filter((builtin) => fileLayer === undefined || builtin.name !== "shell");
 
   const transformed: TransformedSubagent[] = [];
   for (const agent of pluginAgents) {
@@ -805,8 +821,9 @@ export async function transformAndCompileSubagents(
     approvalGate,
     scopeBase,
     parentModelName,
-    workspaceRootDir: workspaceBackend.rootDir,
-    platformDir: workspaceBackend.platformDir,
+    workspaceRootDir: workspaceBackend?.rootDir ?? "/",
+    ...(fileLayer !== undefined && { fileLayer }),
+    platformDir: workspaceBackend?.platformDir,
     ...(archives !== undefined && { archives }),
     casObserver,
     mcpIndex,

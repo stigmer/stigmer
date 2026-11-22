@@ -288,9 +288,10 @@ describe("mountMessageFiles", () => {
 
     const shown = await mountMessageFiles(
       client,
-      { executionId: "run_1", execution: execution({ model: "claude-haiku-4.5" }), sessionId: SESSION_ID, workspace: { primaryDir: workspace } as TurnInput["workspace"] },
+      { executionId: "run_1", execution: execution({ model: "claude-haiku-4.5" }), sessionId: SESSION_ID, workspace: { computer: true, primaryDir: workspace } as TurnInput["workspace"] },
       { harness: Harness.STIGMER, visionProfile: DEEP_AGENT_VISION_PROFILE },
       blocks,
+      undefined,
     );
 
     expect(client.mountRunFiles).toHaveBeenCalledWith("run_1", "scoped");

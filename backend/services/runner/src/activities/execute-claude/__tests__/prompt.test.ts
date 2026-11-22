@@ -22,9 +22,9 @@ import { join } from "node:path";
 import { InteractionMode } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 import type { ChannelTemplate, MessagingChannel } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/message_io_pb";
 
-import { turnInputFixture, type TurnInputFixtureOverrides } from "../../../__test-utils__/turn-input-fixture.js";
+import { turnInputFixture, type ComputerTurnInputFixtureOverrides } from "../../../__test-utils__/turn-input-fixture.js";
 import { mockWorkspaceBackend } from "../../../__test-utils__/mock-workspace.js";
-import type { TurnInput } from "../../../harness/types.js";
+import type { ComputerTurnInput, ComputerWorkspace, TurnInput } from "../../../harness/types.js";
 import { visionDisclosureLines } from "../../../shared/attachment-vision.js";
 import { BUILT_IN_ASSISTANT_INSTRUCTIONS } from "../../../shared/builtin-assistant-prompt.js";
 import { formatChannelTemplatesSection, type ChannelMessagingInfo } from "../../../shared/channel-attachment.js";
@@ -42,8 +42,9 @@ import { engineSkillOf } from "../skill-plugins.js";
 
 const PRIMARY = "/work/primary";
 
-function workspace(results: readonly ProvisionResult[]): TurnInput["workspace"] {
+function workspace(results: readonly ProvisionResult[]): ComputerWorkspace {
   return {
+    computer: true,
     dirs: [PRIMARY],
     primaryDir: PRIMARY,
     gitWorkspace: false,
@@ -55,11 +56,11 @@ function workspace(results: readonly ProvisionResult[]): TurnInput["workspace"] 
   };
 }
 
-function input(overrides: TurnInputFixtureOverrides = {}): TurnInput {
+function input(overrides: ComputerTurnInputFixtureOverrides = {}): ComputerTurnInput {
   return turnInputFixture({ workspace: workspace([]), ...overrides });
 }
 
-function withSpec(base: TurnInput, edit: (spec: NonNullable<TurnInput["execution"]["spec"]>) => void): TurnInput {
+function withSpec(base: ComputerTurnInput, edit: (spec: NonNullable<TurnInput["execution"]["spec"]>) => void): ComputerTurnInput {
   edit(base.execution.spec!);
   return base;
 }
