@@ -9,7 +9,9 @@
  * {owner} to approve", or "Waiting for the owner" unnamed); a waiting step
  * the thread answers in its own card (`cardedAsks`) is left out of the
  * plan, and one it does not (a viewer who cannot answer) stays in its item
- * as a row saying whom it waits on, with no decision;
+ * as a row saying whom it waits on, with no decision; an item whose call
+ * of the app's own tools waits says "Waiting for the app", unless it also
+ * holds an approval, which outranks it;
  * an item left in progress by an ended turn says where it stopped, in its
  * ending's words ("Stopped here" unless told otherwise); and the
  * steps outside any item draw at the foot, the settled ones folded under
@@ -24,7 +26,7 @@ import { turnSteps, type TurnSteps } from "@stigmer/client";
 import { PlanSteps } from "../PlanSteps";
 import { ApprovalContext } from "../ApprovalContext";
 import { ThreadPresentationContext } from "../ThreadPresentationContext";
-import { asked, result, status, subagent, toolId, turnsOf, use, user } from "./__fixtures__/thread-events";
+import { asked, customUse, result, status, subagent, toolId, turnsOf, use, user } from "./__fixtures__/thread-events";
 
 afterEach(cleanup);
 
@@ -216,6 +218,39 @@ describe("PlanSteps", () => {
     const rowOf = (words: string) => screen.getByText(words).closest('[data-cursor-target="tool-call-row"]')!;
     expect(rowOf("Ran a command").querySelector(".stg\\:bg-status-running-band"), "the finished step").toBeNull();
     expect(rowOf("Running a command").querySelector(".stg\\:bg-status-running-band"), "the running step").not.toBeNull();
+  });
+
+  it("says an item waits for the app while a call of the app's own tools waits, for whoever looks", () => {
+    const steps = stepsOf(
+      todos("t", [{ content: "Register the account", status: "in_progress" }]),
+      customUse(R, "c1", "register_cloud_account", { account_name: "payments-prod" }),
+      status(R, "waiting"),
+    );
+    render(
+      <Owner asks={[]}>
+        <PlanSteps working steps={steps} />
+      </Owner>,
+    );
+    const line = itemLine("Register the account");
+    expect(within(line).getAllByText(/Waiting for the app/).length).toBeGreaterThan(0);
+    expect(within(line).queryByText("Waiting for you")).toBeNull();
+  });
+
+  it("says an item waits for you when it holds an approval beside a call waiting on the app: the decision outranks", () => {
+    const steps = stepsOf(
+      todos("t", [{ content: "Register and push", status: "in_progress" }]),
+      customUse(R, "c1", "register_cloud_account", {}),
+      use(R, "c2", "execute", { command: "git push" }, { ask: true }),
+      asked(R, "c2"),
+      status(R, "waiting"),
+    );
+    render(
+      <Owner asks={[toolId(R, "c2")]}>
+        <PlanSteps working steps={steps} />
+      </Owner>,
+    );
+    const toggleLine = itemToggle("Register and push").parentElement!;
+    expect(within(toggleLine).getByText("Waiting for you")).toBeTruthy();
   });
 
   it("says an item waits for you, and leaves its carded waiting step to the bottom card", () => {

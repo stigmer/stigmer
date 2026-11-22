@@ -106,6 +106,23 @@ describe("useCreateSession", () => {
     expect(create.mock.calls[1][0].fileReview).toBeUndefined();
   });
 
+  it("declares the app's own tools on the created conversation", async () => {
+    const create = vi.fn().mockResolvedValue({ metadata: { id: "ses_1" } });
+    const client = createMockStigmer({ create });
+    const { result } = renderHook(() => useCreateSession(), { wrapper: wrapper(client) });
+    const tool = { name: "register_cloud_account", description: "Show the account form, filled in.", inputSchema: { type: "object", properties: { account_name: { type: "string" } } } };
+
+    await act(async () => {
+      await result.current.create({ org: "acme", customTools: [tool] });
+    });
+    await act(async () => {
+      await result.current.create({ org: "acme" });
+    });
+
+    expect(create.mock.calls[0][0].customTools).toEqual([tool]);
+    expect(create.mock.calls[1][0].customTools).toBeUndefined();
+  });
+
   it("sets error state on session.create failure", async () => {
     const create = vi.fn().mockRejectedValue(new Error("Permission denied"));
     const client = createMockStigmer({ create });

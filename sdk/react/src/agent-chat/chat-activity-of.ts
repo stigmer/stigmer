@@ -24,7 +24,8 @@ export function chatActivityOf(
     return {
       kind: "working",
       phrase: activityPhrase(progress.activity),
-      waiting: progress.activity.kind === "waiting_for_you",
+      // Parked on an answer: a person's, or the app's to a call of its own tools.
+      waiting: progress.activity.kind === "waiting_for_you" || progress.activity.kind === "waiting_for_app",
       startedAtMs: nowMs - progress.elapsedMs,
     };
   }

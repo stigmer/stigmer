@@ -55,6 +55,9 @@ describe("INK-10 thinking shows, and a working indicator counts the time", () =>
     const asking = { ...runningCommand(), asks: [waitingToolUse("execute")] };
     expect(workingWords(asking, now, { isStopping: true, isSlow: true })).toEqual({ phrase: STOPPING_PHRASE, elapsed: "5s", waiting: false });
     expect(workingWords(asking, now, { isSlow: true })).toMatchObject({ phrase: "Waiting for you", waiting: true });
+    // A call of the app's own tools parks the turn on the app's answer, read the same way.
+    const onApp = { ...waitingToolUse("register_cloud_account"), custom: true, state: "waiting_on_host" as const };
+    expect(workingWords({ ...runningCommand(), customToolUses: [onApp] }, now, { isSlow: true })).toMatchObject({ phrase: "Waiting for the app", waiting: true });
     expect(workingWords(runningCommand(), now, { isSlow: true }).phrase).toBe(SLOW_PHRASE);
     expect(workingWords(null, now)).toEqual({ phrase: "Starting", elapsed: "", waiting: false });
     expect(workingWords(null, now, { isStopping: true }).phrase).toBe(STOPPING_PHRASE);

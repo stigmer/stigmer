@@ -1,7 +1,8 @@
 /**
  * Proves what the session view reports to an <AgentChat> frame
  * (../chat-activity-of.ts): a working turn as its working line's words,
- * whether it waits on the person, and when it started; an ended turn as
+ * whether it waits on an answer (the person's, or the app's), and when it
+ * started; an ended turn as
  * its run, its ending and the Files that run returned (no other run's);
  * a turn still without an ending, or no turn, as idle. Drawn over the
  * scenario catalogue's busy, approval and finished conversations.
@@ -25,6 +26,14 @@ describe("chatActivityOf", () => {
   it("reports a turn waiting on the person", () => {
     expect(chatActivityOf(conversationOf(scenarios.approval).activeTurn!, undefined, [], NOW)).toMatchObject({
       kind: "working",
+      waiting: true,
+    });
+  });
+
+  it("reports a turn waiting on the app's answer as waiting, in its own words", () => {
+    expect(chatActivityOf(conversationOf(scenarios["waiting-on-app"]).activeTurn!, undefined, [], NOW)).toMatchObject({
+      kind: "working",
+      phrase: "Waiting for the app",
       waiting: true,
     });
   });

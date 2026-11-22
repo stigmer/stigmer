@@ -6,7 +6,8 @@
 // It reads only what a session's events fold into a turn
 // (@stigmer/session-log): the open tool calls and their kinds
 // (`resolveToolKind`, so the Stigmer harness's `execute` and the Claude
-// harness's `Bash` read alike), the asks waiting on a person, a message or
+// harness's `Bash` read alike), the asks waiting on a person, the calls of
+// the app's own tools waiting on the app, a message or
 // thinking still streaming, and the to-do list.
 // It returns structure, never prose; `activityPhrase` beside it gives the
 // present-tense words, so a surface may lay the parts out as it likes. The
@@ -41,6 +42,8 @@ export type TurnActivity =
   | { readonly kind: "tool"; readonly toolKind: ToolKind; readonly target: string; readonly toolUseId: string }
   /** A question or approval waits for the person; `count` of them. */
   | { readonly kind: "waiting_for_you"; readonly count: number }
+  /** A call of the app's own tools waits for the app's answer; `count` of them. */
+  | { readonly kind: "waiting_for_app"; readonly count: number }
   /** The agent's reply is streaming. */
   | { readonly kind: "writing" }
   /** The agent is thinking (its thinking is streaming). */
@@ -103,6 +106,7 @@ function activityOf(turn: Turn, open: readonly ToolUse[]): TurnActivity {
   const sandboxWait = turn.liveness?.awaitingSandboxMs;
   if (sandboxWait !== undefined && !turn.ended) return { kind: "waiting_for_sandbox", waitedMs: sandboxWait };
   if (turn.asks.length > 0) return { kind: "waiting_for_you", count: turn.asks.length };
+  if (turn.customToolUses.length > 0) return { kind: "waiting_for_app", count: turn.customToolUses.length };
   const last = turn.items.at(-1);
   if (last?.kind === "message" && last.live) return { kind: "writing" };
   if (last?.kind === "thinking" && last.live) return { kind: "thinking" };
@@ -128,13 +132,15 @@ function todoProgress(turn: Turn): TodoProgress | undefined {
 
 /**
  * The activity in present-tense words: "Editing invoice.ts", "Running a
- * command", "Waiting for you", "Waiting for a sandbox". A kind's words name the work, whichever
+ * command", "Waiting for you", "Waiting for the app", "Waiting for a sandbox". A kind's words name the work, whichever
  * harness ran it; a target the input did not name leaves the generic words.
  */
 export function activityPhrase(activity: TurnActivity): string {
   switch (activity.kind) {
     case "waiting_for_you":
       return "Waiting for you";
+    case "waiting_for_app":
+      return "Waiting for the app";
     case "writing":
       return "Writing the answer";
     case "thinking":

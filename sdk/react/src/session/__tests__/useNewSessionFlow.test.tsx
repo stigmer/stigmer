@@ -460,6 +460,21 @@ describe("useNewSessionFlow", () => {
       expect(mockCreateExecution.mock.calls[0][0].sessionSpec.fileReview).toBe(sent);
     });
 
+    it("declares the host's own tools on the conversation it creates, and none when it has none", async () => {
+      const tool = { name: "register_cloud_account", description: "Show the account form, filled in.", inputSchema: { type: "object", properties: { account_name: { type: "string" } } } };
+      const withTools = renderHook(() => useNewSessionFlow({ ...defaultOptions(), customTools: [tool] }), { wrapper: createWrapper() });
+      await act(async () => {
+        await withTools.result.current.submit("Connect it");
+      });
+      const none = renderHook(() => useNewSessionFlow({ ...defaultOptions(), customTools: [] }), { wrapper: createWrapper() });
+      await act(async () => {
+        await none.result.current.submit("Connect it");
+      });
+
+      expect(mockCreateExecution.mock.calls[0][0].sessionSpec.customTools).toEqual([tool]);
+      expect(mockCreateExecution.mock.calls[1][0].sessionSpec.customTools).toBeUndefined();
+    });
+
     it("passes harness in the sessionSpec", async () => {
       const opts = defaultOptions();
       const { result } = renderHook(() => useNewSessionFlow(opts), { wrapper: createWrapper() });
