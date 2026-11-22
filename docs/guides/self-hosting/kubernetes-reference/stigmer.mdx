@@ -417,13 +417,16 @@ bucket from its first minute. Absent, files live on a volume the server and the
 shared runner share.
 
 - **`s3`** (object): `s3` is any S3-compatible bucket: AWS S3, Cloudflare R2,
-  MinIO, or Google Cloud Storage through its S3 API. Its fields are under
+  SeaweedFS, MinIO, or Google Cloud Storage through its S3 API. Agent
+  Substrate's snapshots need a store other than Cloud Storage, whose S3 API
+  refuses them. Its fields are under
   [`spec.objectStore.s3`](#specobjectstores3). Required.
 
 #### `spec.objectStore.s3`
 
-`s3` is any S3-compatible bucket: AWS S3, Cloudflare R2, MinIO, or Google Cloud
-Storage through its S3 API.
+`s3` is any S3-compatible bucket: AWS S3, Cloudflare R2, SeaweedFS, MinIO, or
+Google Cloud Storage through its S3 API. Agent Substrate's snapshots need a
+store other than Cloud Storage, whose S3 API refuses them.
 
 - **`bucket`** (string): `bucket` is the bucket's name. Required. At most 63
   characters.

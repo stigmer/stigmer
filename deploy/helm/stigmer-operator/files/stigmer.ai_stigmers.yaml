@@ -559,8 +559,9 @@ spec:
                 properties:
                   s3:
                     description: |-
-                      S3 is any S3-compatible bucket: AWS S3, Cloudflare R2, MinIO, or Google
-                      Cloud Storage through its S3 API.
+                      S3 is any S3-compatible bucket: AWS S3, Cloudflare R2, SeaweedFS, MinIO,
+                      or Google Cloud Storage through its S3 API. Agent Substrate's snapshots
+                      need a store other than Cloud Storage, whose S3 API refuses them.
                     properties:
                       bucket:
                         description: Bucket is the bucket's name.
