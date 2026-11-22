@@ -29,11 +29,13 @@
 //
 // And the turn's program is locked and can't reach its machine:
 //
-//  - It runs in the runner's locked agent host, which the runner's log says
-//    started, and its memory tool reaches the server's `/v1/mcp/` lane over
-//    the network: a fact it proposes is the organization's to list.
-//  - A `web_fetch` of the server's own port (loopback) is refused; with a
-//    computer, on this local runner, the same fetch goes through.
+//  - Its memory tool reaches the server over the network (a local runner's
+//    `/v1/mcp/` lane, the cloud's bridge): a fact it proposes is the
+//    organization's to list. Where the target keeps the runner's log, the
+//    log says the runner started its locked host for the turn.
+//  - A `web_fetch` of the machine it runs on is refused. On a local runner,
+//    whose posture is relaxed, a turn with a computer fetches the server's
+//    own port, which one without a computer is refused (the control).
 //  - Saving it with an MCP server at a loopback address is refused, naming
 //    the address.
 //  - A plugin it lists that gains a local program, or a hook, after it was
@@ -276,13 +278,19 @@ describe("A turn without a computer — two organizations on one runner", () => 
   });
 });
 
-describe("A turn without a computer — locked, and off its machine", () => {
-  function serverBaseUrl(): string {
-    if (target.httpBaseUrl === undefined) throw new Error(`target ${target.name} exposes no unified port`);
-    return target.httpBaseUrl();
-  }
+// Collection-time facts of the target, for the arms that read a local
+// runner's own: its log (the locked host's start line) and its relaxed
+// posture, which lets a turn with a computer fetch the server's own port.
+// Elsewhere those arms are reported SKIPPED with the reason, never green.
+const collectionTarget = createTarget();
+const keepsRunnerLog = collectionTarget.runnerLogFile !== undefined;
+const fetchesLoopbackWithAComputer = collectionTarget.httpBaseUrl !== undefined && collectionTarget.runnerHomeDir !== undefined;
 
-  it("runs in the locked agent host, and its memory tool reaches the server's lane: the fact it proposes is listed", async () => {
+/** An address on the machine the turn runs on, which a conversation without a computer never reaches, on any target. */
+const THIS_MACHINE = "http://127.0.0.1:3000";
+
+describe("A turn without a computer — locked, and off its machine", () => {
+  it("has its memory tool, which reaches the server: the fact it proposes is listed", async () => {
     // Memory is the organization's switch: founded on, as the memory suites found theirs.
     const { org } = await provisionOrgWithFacts(clients, fixtures, [], async (slug) => {
       await target.keyTenancy?.(slug);
@@ -301,34 +309,52 @@ describe("A turn without a computer — locked, and off its machine", () => {
     const mine = listed.entries.filter((memory) => memory.spec?.content === fact);
     expect(mine, "the server holds the fact the turn proposed").toHaveLength(1);
     fixtures.defer(() => clients.memoryCommand.delete({ value: mine[0]!.metadata!.id }).catch(() => undefined));
+  });
 
-    if (target.runnerLogFile === undefined) throw new Error(`target ${target.name} keeps no runner log`);
-    const log = await readFile(target.runnerLogFile(), "utf8");
+  it.skipIf(!keepsRunnerLog)("runs in the runner's locked agent host, which the runner's log says started (a target that keeps the runner's log)", async () => {
+    const { org } = await target.provisionTenancy();
+    const agent = await agentOn(org, Computer.NONE);
+    mock.enqueue(anthropicText("Hello."));
+    await completed({ org, name: uniqueName("run-locked"), agentRef: agentRefOf(agent) });
+    const log = await readFile(target.runnerLogFile!(), "utf8");
     expect(log, "the runner started its locked host for the turn").toMatch(/\[agent-host\] the locked agent host started \(--(?:experimental-)?permission --allow-fs-read=/);
   });
 
-  it.each([
-    { label: "without a computer", computer: Computer.NONE, refused: true },
-    { label: "with a computer (the control: this local runner fetches loopback)", computer: Computer.REQUIRED, refused: false },
-  ])("a web_fetch of the server's own port, $label, is refused: $refused", async ({ computer, refused }) => {
+  it("refuses a web_fetch of the machine the turn runs on", async () => {
     const { org } = await target.provisionTenancy();
-    const agent = await agentOn(org, computer);
-    const url = `${serverBaseUrl()}/`;
+    const agent = await agentOn(org, Computer.NONE);
+    const url = `${THIS_MACHINE}/admin`;
     mock.enqueue(anthropicToolUse("call_fetch", "web_fetch", { url }));
     mock.enqueue(anthropicText("Done."));
     const run = await completed({ org, name: uniqueName("run-fetch"), agentRef: agentRefOf(agent), message: "Fetch the admin page." });
-
-    const call = await answered(run, "call_fetch");
-    if (refused) expect(call.text, `the fetch of ${url} is refused`).toMatch(/Refusing to fetch/);
-    else expect(call.text, `the fetch of ${url} goes through`).not.toMatch(/Refusing to fetch/);
+    expect((await answered(run, "call_fetch")).text, `the fetch of ${url} is refused`).toMatch(/Refusing to fetch/);
   });
+
+  it.skipIf(!fetchesLoopbackWithAComputer)(
+    "lets a turn with a computer fetch the server's own port on a local runner, which a turn without one is refused (the control: a local runner's relaxed posture)",
+    async () => {
+      const { org } = await target.provisionTenancy();
+      const url = `${target.httpBaseUrl!()}/`;
+      for (const [computer, refused] of [
+        [Computer.REQUIRED, false],
+        [Computer.NONE, true],
+      ] as const) {
+        const agent = await agentOn(org, computer);
+        mock.enqueue(anthropicToolUse("call_fetch", "web_fetch", { url }));
+        mock.enqueue(anthropicText("Done."));
+        const run = await completed({ org, name: uniqueName("run-fetch-local"), agentRef: agentRefOf(agent), message: "Fetch the server." });
+        const text = (await answered(run, "call_fetch")).text;
+        if (refused) expect(text, `without a computer, the fetch of ${url} is refused`).toMatch(/Refusing to fetch/);
+        else expect(text, `with a computer, the fetch of ${url} goes through`).not.toMatch(/Refusing to fetch/);
+      }
+    },
+  );
 
   it("refuses saving it with an MCP server at a loopback address, naming the address", async () => {
     const { org } = await target.provisionTenancy();
-    const url = `${serverBaseUrl()}/mcp`;
     await expect(
       clients.agentCommand.create(
-        makeAgent({ org, name: uniqueName("agent-nocomputer-local-mcp"), computer: Computer.NONE, mcpServers: [{ name: "local", url }] }),
+        makeAgent({ org, name: uniqueName("agent-nocomputer-local-mcp"), computer: Computer.NONE, mcpServers: [{ name: "local", url: `${THIS_MACHINE}/mcp` }] }),
       ),
     ).rejects.toThrow(/this machine/);
   });
