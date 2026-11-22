@@ -42,7 +42,7 @@ public final class QueryProto extends com.google.protobuf.GeneratedFile {
       "mer/commons/apiresource/io.proto\0328ai/sti" +
       "gmer/commons/apiresource/rpc_service_opt" +
       "ions.proto\032+ai/stigmer/commons/rpc/metho" +
-      "d_options.proto2\214\006\n\025PluginQueryControlle" +
+      "d_options.proto2\335\010\n\025PluginQueryControlle" +
       "r\022\200\001\n\003get\022&.ai.stigmer.agentic.plugin.v1" +
       ".PluginId\032$.ai.stigmer.agentic.plugin.v1" +
       ".Plugin\"+\302\270\030\'\010\001\020:\"\005value*\032unauthorized t" +
@@ -58,15 +58,23 @@ public final class QueryProto extends com.google.protobuf.GeneratedFile {
       "\026getArtifactDownloadUrl\0220.ai.stigmer.age" +
       "ntic.plugin.v1.GetArtifactRequest\0327.ai.s" +
       "tigmer.agentic.plugin.v1.PluginArtifactD" +
-      "ownloadUrl\"\004\320\270\030\001\022\205\001\n\014listVersions\0225.ai.s" +
-      "tigmer.agentic.plugin.v1.ListPluginVersi" +
-      "onsInput\0328.ai.stigmer.agentic.plugin.v1." +
-      "ListPluginVersionsResponse\"\004\320\270\030\001\032\004\240\377+:B\241" +
-      "\001B\nQueryProtoP\001\242\002\004ASAP\252\002\034Ai.Stigmer.Agen" +
-      "tic.Plugin.V1\312\002\034Ai\\Stigmer\\Agentic\\Plugi" +
-      "n\\V1\342\002(Ai\\Stigmer\\Agentic\\Plugin\\V1\\GPBM" +
-      "etadata\352\002 Ai::Stigmer::Agentic::Plugin::" +
-      "V1b\006proto3"
+      "ownloadUrl\"\004\320\270\030\001\022\245\001\n\tlistFiles\0222.ai.stig" +
+      "mer.agentic.plugin.v1.ListPluginFilesInp" +
+      "ut\032,.ai.stigmer.agentic.plugin.v1.Plugin" +
+      "FileList\"6\302\270\0302\010\001\020:\"\tplugin_id*!unauthori" +
+      "zed to read plugin files\022\246\001\n\010readFile\0221." +
+      "ai.stigmer.agentic.plugin.v1.ReadPluginF" +
+      "ileInput\032/.ai.stigmer.agentic.plugin.v1." +
+      "PluginFileContent\"6\302\270\0302\010\001\020:\"\tplugin_id*!" +
+      "unauthorized to read plugin files\022\205\001\n\014li" +
+      "stVersions\0225.ai.stigmer.agentic.plugin.v" +
+      "1.ListPluginVersionsInput\0328.ai.stigmer.a" +
+      "gentic.plugin.v1.ListPluginVersionsRespo" +
+      "nse\"\004\320\270\030\001\032\004\240\377+:B\241\001B\nQueryProtoP\001\242\002\004ASAP\252" +
+      "\002\034Ai.Stigmer.Agentic.Plugin.V1\312\002\034Ai\\Stig" +
+      "mer\\Agentic\\Plugin\\V1\342\002(Ai\\Stigmer\\Agent" +
+      "ic\\Plugin\\V1\\GPBMetadata\352\002 Ai::Stigmer::" +
+      "Agentic::Plugin::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,

@@ -32,7 +32,7 @@
 // the same way — so the outsider contract is one contract on the cloud and
 // on both open-source store drivers. Where a target lends no lane the arms
 // skip VISIBLY with its reason.
-import { Code } from "@connectrpc/connect";
+import { Code, ConnectError } from "@connectrpc/connect";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 
 import type { ConformanceClients } from "../harness/clients";
@@ -46,7 +46,8 @@ import { FixtureTracker } from "../harness/fixtures";
 import { expectGrpcCode, grpcCodeOf } from "../contract/errors";
 import { makeAgent, agentRefOf } from "../support/agents";
 import { makeSlackChannel } from "../support/channels";
-import { oneServerPlugin, pushPlugin } from "../support/plugins";
+import { claudePlugin, oneServerPlugin, pushPlugin } from "../support/plugins";
+import { makeSkillArtifact } from "../support/skills";
 import { makeSession } from "../support/sessions";
 import { makeSharedVault, vaultTarget } from "../support/vaults";
 import { uniqueName } from "../support/naming";
@@ -287,5 +288,51 @@ describe("direct-handler authorization — outsider denials (on the enforcing la
     expect(observed).toEqual(
       Object.fromEntries(lanes.map(([lane]) => [lane, "NotFound"])),
     );
+  });
+
+  it("[rpc:SkillQueryController.listFiles] [rpc:SkillQueryController.readFile] [rpc:PluginQueryController.listFiles] [rpc:PluginQueryController.readFile] the file reads refuse an outsider a foreign skill's or plugin's files with their annotation copy, and answer an unknown id with the uniform NOT_FOUND", async (ctx) => {
+    const lane = laneOrSkip(ctx);
+    const { org } = await lane.provisionTenancy();
+    const outsider = await lane.provisionIdentity();
+
+    const skill = await clients.skillCommand.push({ org, artifact: makeSkillArtifact({ name: uniqueName("authz-skill") }) });
+    fixtures.defer(() => clients.skillCommand.delete({ value: skill.metadata!.id }));
+    const plugin = await pushPlugin(clients, fixtures, org, claudePlugin({ name: uniqueName("authz-files") }));
+    const skillId = skill.metadata!.id;
+    const versionHash = skill.status!.versionHash;
+    const pluginId = plugin.metadata!.id;
+    const digest = plugin.status!.digest;
+
+    const foreign: ReadonlyArray<[string, () => Promise<unknown>, string]> = [
+      ["skill listFiles", () => outsider.skillQuery.listFiles({ skillId, versionHash }), "unauthorized to read skill files"],
+      ["skill readFile", () => outsider.skillQuery.readFile({ skillId, versionHash, path: "SKILL.md" }), "unauthorized to read skill files"],
+      ["plugin listFiles", () => outsider.pluginQuery.listFiles({ pluginId, digest }), "unauthorized to read plugin files"],
+      ["plugin readFile", () => outsider.pluginQuery.readFile({ pluginId, digest, path: ".claude-plugin/plugin.json" }), "unauthorized to read plugin files"],
+    ];
+    const missing: ReadonlyArray<[string, () => Promise<unknown>]> = [
+      ["skill listFiles", () => outsider.skillQuery.listFiles({ skillId: "skl_direct_handler_missing", versionHash: "" })],
+      ["skill readFile", () => outsider.skillQuery.readFile({ skillId: "skl_direct_handler_missing", versionHash: "", path: "SKILL.md" })],
+      ["plugin listFiles", () => outsider.pluginQuery.listFiles({ pluginId: "plg_direct_handler_missing", digest })],
+      ["plugin readFile", () => outsider.pluginQuery.readFile({ pluginId: "plg_direct_handler_missing", digest, path: "x" })],
+    ];
+
+    // Observe every lane, THEN assert the whole table.
+    const observed: Record<string, string> = {};
+    for (const [name, op, copy] of foreign) {
+      try {
+        await op();
+        observed[name] = "answered";
+      } catch (error) {
+        const refused = ConnectError.from(error);
+        observed[name] = refused.code === Code.PermissionDenied && refused.rawMessage === copy ? "denied with its copy" : `${Code[refused.code]}: ${refused.rawMessage}`;
+      }
+    }
+    for (const [name, op] of missing) {
+      observed[`unknown ${name}`] = Code[await grpcCodeOf(op, `outsider ${name} on an unknown id`)];
+    }
+    expect(observed).toEqual({
+      ...Object.fromEntries(foreign.map(([name]) => [name, "denied with its copy"])),
+      ...Object.fromEntries(missing.map(([name]) => [`unknown ${name}`, "NotFound"])),
+    });
   });
 });

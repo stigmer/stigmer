@@ -59,6 +59,7 @@
  * applying it again to every snapshot writes the same rows.
  */
 
+import type { ArchiveFileInfo, ArchiveFolder } from "../shared/archive-reader.js";
 import type { TranscriptMessage } from "@stigmer/eval-runtime";
 import { create, fromBinary, toBinary, type DescField, type DescMessage, type MessageShape } from "@bufbuild/protobuf";
 import { reflect } from "@bufbuild/protobuf/reflect";
@@ -196,7 +197,13 @@ export interface WireTurnInput {
     readonly unlisted: readonly string[];
     readonly toolScope: ToolScopeWire;
   };
-  readonly skills: { readonly root: readonly SkillMetadata[]; readonly bySubAgent: readonly (readonly [string, readonly SkillMetadata[]])[] };
+  readonly skills: {
+    readonly root: readonly SkillMetadata[];
+    readonly bySubAgent: readonly (readonly [string, readonly SkillMetadata[]])[];
+    /** The folders the turn's store-read files are in; `null` when it has none. The host reads them over calls to the runner. */
+    readonly archives: readonly ArchiveFolder[] | null;
+    readonly treesDir: string | null;
+  };
   readonly hooks: {
     readonly sources: readonly WireHookSource[];
     readonly serverNames: readonly (readonly [string, HookServerName])[];
@@ -297,7 +304,12 @@ export function encodeTurnInput(input: TurnInput): WireTurnInput {
       unlisted: [...mcp.mcpDefault.unlisted],
       toolScope: mcp.toolScope.toWire(),
     },
-    skills: { root: input.skills.root, bySubAgent: [...input.skills.bySubAgent] },
+    skills: {
+      root: input.skills.root,
+      bySubAgent: [...input.skills.bySubAgent],
+      archives: input.skills.archives === undefined ? null : [...input.skills.archives.folders],
+      treesDir: input.skills.treesDir ?? null,
+    },
     hooks: {
       sources: hooks.sources.map(encodeHookSource),
       serverNames: [...hooks.serverNames],
@@ -327,6 +339,10 @@ export function encodeTurnInput(input: TurnInput): WireTurnInput {
 export interface HostTurnServices {
   readonly selectRecalledMemories: () => Promise<RecalledMemoriesContent | undefined>;
   readonly verifyPlugin: (slug: string) => Promise<void>;
+  /** `TurnArchiveFiles.list`, answered by the runner. */
+  readonly listTurnArchives: () => Promise<readonly ArchiveFileInfo[]>;
+  /** `TurnArchiveFiles.read`, answered by the runner; throws `ArchiveFileNotFoundError` for a file the turn does not hold. */
+  readonly readTurnArchiveFile: (path: string) => Promise<Uint8Array>;
 }
 
 /**
@@ -420,7 +436,14 @@ export function decodeTurnInput(wire: WireTurnInput, services: HostTurnServices)
       platformServerSlugs: platformServerSlugsOf(wire.mcp.servers),
       toolScope: ToolScope.fromWire(wire.mcp.toolScope),
     },
-    skills: { root: wire.skills.root, bySubAgent: new Map(wire.skills.bySubAgent) },
+    skills: {
+      root: wire.skills.root,
+      bySubAgent: new Map(wire.skills.bySubAgent),
+      ...(wire.skills.archives !== null && {
+        archives: { folders: wire.skills.archives, list: services.listTurnArchives, read: services.readTurnArchiveFile },
+      }),
+      ...(wire.skills.treesDir !== null && { treesDir: wire.skills.treesDir }),
+    },
     hooks: {
       sources: wire.hooks.sources.map((source) => decodeHookSource(source, services)),
       serverNames: new Map(wire.hooks.serverNames),

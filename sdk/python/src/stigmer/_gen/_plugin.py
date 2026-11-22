@@ -101,6 +101,18 @@ class PluginClient:
         except grpc.RpcError as e:
             raise wrap_error(e) from e
 
+    def list_files(self, input: io_pb2.ListPluginFilesInput) -> io_pb2.PluginFileList:
+        try:
+            return self._query.listFiles(input)
+        except grpc.RpcError as e:
+            raise wrap_error(e) from e
+
+    def read_file(self, input: io_pb2.ReadPluginFileInput) -> io_pb2.PluginFileContent:
+        try:
+            return self._query.readFile(input)
+        except grpc.RpcError as e:
+            raise wrap_error(e) from e
+
     def list_versions(self, input: io_pb2.ListPluginVersionsInput) -> io_pb2.ListPluginVersionsResponse:
         try:
             return self._query.listVersions(input)

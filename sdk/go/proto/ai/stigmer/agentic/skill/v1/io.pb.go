@@ -945,6 +945,292 @@ func (x *SkillList) GetNextPageToken() string {
 	return ""
 }
 
+// ListSkillFilesInput names one version of a skill whose files to list.
+type ListSkillFilesInput struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// System-generated ID of the skill.
+	SkillId string `protobuf:"bytes,1,opt,name=skill_id,json=skillId,proto3" json:"skill_id,omitempty"`
+	// The version to read, by its SHA-256 version hash: the skill's current
+	// version or one in its history. Empty reads the current version.
+	VersionHash   string `protobuf:"bytes,2,opt,name=version_hash,json=versionHash,proto3" json:"version_hash,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListSkillFilesInput) Reset() {
+	*x = ListSkillFilesInput{}
+	mi := &file_ai_stigmer_agentic_skill_v1_io_proto_msgTypes[13]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListSkillFilesInput) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListSkillFilesInput) ProtoMessage() {}
+
+func (x *ListSkillFilesInput) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_agentic_skill_v1_io_proto_msgTypes[13]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListSkillFilesInput.ProtoReflect.Descriptor instead.
+func (*ListSkillFilesInput) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_skill_v1_io_proto_rawDescGZIP(), []int{13}
+}
+
+func (x *ListSkillFilesInput) GetSkillId() string {
+	if x != nil {
+		return x.SkillId
+	}
+	return ""
+}
+
+func (x *ListSkillFilesInput) GetVersionHash() string {
+	if x != nil {
+		return x.VersionHash
+	}
+	return ""
+}
+
+// SkillFileList is the files of one version of a skill.
+type SkillFileList struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// The files, in path order.
+	Files         []*SkillFile `protobuf:"bytes,1,rep,name=files,proto3" json:"files,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SkillFileList) Reset() {
+	*x = SkillFileList{}
+	mi := &file_ai_stigmer_agentic_skill_v1_io_proto_msgTypes[14]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SkillFileList) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SkillFileList) ProtoMessage() {}
+
+func (x *SkillFileList) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_agentic_skill_v1_io_proto_msgTypes[14]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SkillFileList.ProtoReflect.Descriptor instead.
+func (*SkillFileList) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_skill_v1_io_proto_rawDescGZIP(), []int{14}
+}
+
+func (x *SkillFileList) GetFiles() []*SkillFile {
+	if x != nil {
+		return x.Files
+	}
+	return nil
+}
+
+// SkillFile is one file of a skill version.
+type SkillFile struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Path of the file inside the skill, with forward slashes and no leading
+	// slash (`SKILL.md`, `scripts/run.sh`).
+	Path string `protobuf:"bytes,1,opt,name=path,proto3" json:"path,omitempty"`
+	// Size of the file in bytes.
+	SizeBytes int64 `protobuf:"varint,2,opt,name=size_bytes,json=sizeBytes,proto3" json:"size_bytes,omitempty"`
+	// SHA-256 of the file's bytes, lowercase hex.
+	Sha256 string `protobuf:"bytes,3,opt,name=sha256,proto3" json:"sha256,omitempty"`
+	// Whether the file is a script a command may run directly.
+	Executable    bool `protobuf:"varint,4,opt,name=executable,proto3" json:"executable,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SkillFile) Reset() {
+	*x = SkillFile{}
+	mi := &file_ai_stigmer_agentic_skill_v1_io_proto_msgTypes[15]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SkillFile) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SkillFile) ProtoMessage() {}
+
+func (x *SkillFile) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_agentic_skill_v1_io_proto_msgTypes[15]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SkillFile.ProtoReflect.Descriptor instead.
+func (*SkillFile) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_skill_v1_io_proto_rawDescGZIP(), []int{15}
+}
+
+func (x *SkillFile) GetPath() string {
+	if x != nil {
+		return x.Path
+	}
+	return ""
+}
+
+func (x *SkillFile) GetSizeBytes() int64 {
+	if x != nil {
+		return x.SizeBytes
+	}
+	return 0
+}
+
+func (x *SkillFile) GetSha256() string {
+	if x != nil {
+		return x.Sha256
+	}
+	return ""
+}
+
+func (x *SkillFile) GetExecutable() bool {
+	if x != nil {
+		return x.Executable
+	}
+	return false
+}
+
+// ReadSkillFileInput names one file of one version of a skill.
+type ReadSkillFileInput struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// System-generated ID of the skill.
+	SkillId string `protobuf:"bytes,1,opt,name=skill_id,json=skillId,proto3" json:"skill_id,omitempty"`
+	// The version to read, as ListSkillFilesInput.version_hash.
+	VersionHash string `protobuf:"bytes,2,opt,name=version_hash,json=versionHash,proto3" json:"version_hash,omitempty"`
+	// The file's path, exactly as the version's file list names it.
+	Path          string `protobuf:"bytes,3,opt,name=path,proto3" json:"path,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ReadSkillFileInput) Reset() {
+	*x = ReadSkillFileInput{}
+	mi := &file_ai_stigmer_agentic_skill_v1_io_proto_msgTypes[16]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ReadSkillFileInput) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ReadSkillFileInput) ProtoMessage() {}
+
+func (x *ReadSkillFileInput) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_agentic_skill_v1_io_proto_msgTypes[16]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ReadSkillFileInput.ProtoReflect.Descriptor instead.
+func (*ReadSkillFileInput) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_skill_v1_io_proto_rawDescGZIP(), []int{16}
+}
+
+func (x *ReadSkillFileInput) GetSkillId() string {
+	if x != nil {
+		return x.SkillId
+	}
+	return ""
+}
+
+func (x *ReadSkillFileInput) GetVersionHash() string {
+	if x != nil {
+		return x.VersionHash
+	}
+	return ""
+}
+
+func (x *ReadSkillFileInput) GetPath() string {
+	if x != nil {
+		return x.Path
+	}
+	return ""
+}
+
+// SkillFileContent is the bytes of one skill file.
+type SkillFileContent struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// The file's bytes.
+	Content       []byte `protobuf:"bytes,1,opt,name=content,proto3" json:"content,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SkillFileContent) Reset() {
+	*x = SkillFileContent{}
+	mi := &file_ai_stigmer_agentic_skill_v1_io_proto_msgTypes[17]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SkillFileContent) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SkillFileContent) ProtoMessage() {}
+
+func (x *SkillFileContent) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_agentic_skill_v1_io_proto_msgTypes[17]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SkillFileContent.ProtoReflect.Descriptor instead.
+func (*SkillFileContent) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_skill_v1_io_proto_rawDescGZIP(), []int{17}
+}
+
+func (x *SkillFileContent) GetContent() []byte {
+	if x != nil {
+		return x.Content
+	}
+	return nil
+}
+
 var File_ai_stigmer_agentic_skill_v1_io_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_skill_v1_io_proto_rawDesc = "" +
@@ -1018,7 +1304,27 @@ const file_ai_stigmer_agentic_skill_v1_io_proto_rawDesc = "" +
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"q\n" +
 	"\tSkillList\x12<\n" +
 	"\aentries\x18\x01 \x03(\v2\".ai.stigmer.agentic.skill.v1.SkillR\aentries\x12&\n" +
-	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageTokenB\xf8\x01\n" +
+	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"u\n" +
+	"\x13ListSkillFilesInput\x12!\n" +
+	"\bskill_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\askillId\x12;\n" +
+	"\fversion_hash\x18\x02 \x01(\tB\x18\xbaH\x15r\x132\x11^$|^[0-9a-f]{64}$R\vversionHash\"M\n" +
+	"\rSkillFileList\x12<\n" +
+	"\x05files\x18\x01 \x03(\v2&.ai.stigmer.agentic.skill.v1.SkillFileR\x05files\"v\n" +
+	"\tSkillFile\x12\x12\n" +
+	"\x04path\x18\x01 \x01(\tR\x04path\x12\x1d\n" +
+	"\n" +
+	"size_bytes\x18\x02 \x01(\x03R\tsizeBytes\x12\x16\n" +
+	"\x06sha256\x18\x03 \x01(\tR\x06sha256\x12\x1e\n" +
+	"\n" +
+	"executable\x18\x04 \x01(\bR\n" +
+	"executable\"\x94\x01\n" +
+	"\x12ReadSkillFileInput\x12!\n" +
+	"\bskill_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\askillId\x12;\n" +
+	"\fversion_hash\x18\x02 \x01(\tB\x18\xbaH\x15r\x132\x11^$|^[0-9a-f]{64}$R\vversionHash\x12\x1e\n" +
+	"\x04path\x18\x03 \x01(\tB\n" +
+	"\xbaH\ar\x05\x10\x01\x18\x80 R\x04path\",\n" +
+	"\x10SkillFileContent\x12\x18\n" +
+	"\acontent\x18\x01 \x01(\fR\acontentB\xf8\x01\n" +
 	"\x1fcom.ai.stigmer.agentic.skill.v1B\aIoProtoP\x01Z;go.stigmer.ai/sdk/proto/ai/stigmer/agentic/skill/v1;skillv1\xa2\x02\x04ASAS\xaa\x02\x1bAi.Stigmer.Agentic.Skill.V1\xca\x02\x1bAi\\Stigmer\\Agentic\\Skill\\V1\xe2\x02'Ai\\Stigmer\\Agentic\\Skill\\V1\\GPBMetadata\xea\x02\x1fAi::Stigmer::Agentic::Skill::V1b\x06proto3"
 
 var (
@@ -1033,7 +1339,7 @@ func file_ai_stigmer_agentic_skill_v1_io_proto_rawDescGZIP() []byte {
 	return file_ai_stigmer_agentic_skill_v1_io_proto_rawDescData
 }
 
-var file_ai_stigmer_agentic_skill_v1_io_proto_msgTypes = make([]protoimpl.MessageInfo, 15)
+var file_ai_stigmer_agentic_skill_v1_io_proto_msgTypes = make([]protoimpl.MessageInfo, 20)
 var file_ai_stigmer_agentic_skill_v1_io_proto_goTypes = []any{
 	(*SkillId)(nil),                             // 0: ai.stigmer.agentic.skill.v1.SkillId
 	(*PushSkillRequest)(nil),                    // 1: ai.stigmer.agentic.skill.v1.PushSkillRequest
@@ -1048,27 +1354,33 @@ var file_ai_stigmer_agentic_skill_v1_io_proto_goTypes = []any{
 	(*ListSkillVersionsResponse)(nil),           // 10: ai.stigmer.agentic.skill.v1.ListSkillVersionsResponse
 	(*ListSkillsRequest)(nil),                   // 11: ai.stigmer.agentic.skill.v1.ListSkillsRequest
 	(*SkillList)(nil),                           // 12: ai.stigmer.agentic.skill.v1.SkillList
-	nil,                                         // 13: ai.stigmer.agentic.skill.v1.PushSkillRequest.LabelsEntry
-	nil,                                         // 14: ai.stigmer.agentic.skill.v1.ListSkillsRequest.LabelsEntry
-	(*GitProvenance)(nil),                       // 15: ai.stigmer.agentic.skill.v1.GitProvenance
-	(*timestamppb.Timestamp)(nil),               // 16: google.protobuf.Timestamp
-	(*apiresource.ApiResourceAuditActor)(nil),   // 17: ai.stigmer.commons.apiresource.ApiResourceAuditActor
-	(*Skill)(nil),                               // 18: ai.stigmer.agentic.skill.v1.Skill
+	(*ListSkillFilesInput)(nil),                 // 13: ai.stigmer.agentic.skill.v1.ListSkillFilesInput
+	(*SkillFileList)(nil),                       // 14: ai.stigmer.agentic.skill.v1.SkillFileList
+	(*SkillFile)(nil),                           // 15: ai.stigmer.agentic.skill.v1.SkillFile
+	(*ReadSkillFileInput)(nil),                  // 16: ai.stigmer.agentic.skill.v1.ReadSkillFileInput
+	(*SkillFileContent)(nil),                    // 17: ai.stigmer.agentic.skill.v1.SkillFileContent
+	nil,                                         // 18: ai.stigmer.agentic.skill.v1.PushSkillRequest.LabelsEntry
+	nil,                                         // 19: ai.stigmer.agentic.skill.v1.ListSkillsRequest.LabelsEntry
+	(*GitProvenance)(nil),                       // 20: ai.stigmer.agentic.skill.v1.GitProvenance
+	(*timestamppb.Timestamp)(nil),               // 21: google.protobuf.Timestamp
+	(*apiresource.ApiResourceAuditActor)(nil),   // 22: ai.stigmer.commons.apiresource.ApiResourceAuditActor
+	(*Skill)(nil),                               // 23: ai.stigmer.agentic.skill.v1.Skill
 }
 var file_ai_stigmer_agentic_skill_v1_io_proto_depIdxs = []int32{
-	15, // 0: ai.stigmer.agentic.skill.v1.PushSkillRequest.git_provenance:type_name -> ai.stigmer.agentic.skill.v1.GitProvenance
-	13, // 1: ai.stigmer.agentic.skill.v1.PushSkillRequest.labels:type_name -> ai.stigmer.agentic.skill.v1.PushSkillRequest.LabelsEntry
-	16, // 2: ai.stigmer.agentic.skill.v1.SkillVersionEntry.pushed_at:type_name -> google.protobuf.Timestamp
-	17, // 3: ai.stigmer.agentic.skill.v1.SkillVersionEntry.pushed_by:type_name -> ai.stigmer.commons.apiresource.ApiResourceAuditActor
-	15, // 4: ai.stigmer.agentic.skill.v1.SkillVersionEntry.git_provenance:type_name -> ai.stigmer.agentic.skill.v1.GitProvenance
+	20, // 0: ai.stigmer.agentic.skill.v1.PushSkillRequest.git_provenance:type_name -> ai.stigmer.agentic.skill.v1.GitProvenance
+	18, // 1: ai.stigmer.agentic.skill.v1.PushSkillRequest.labels:type_name -> ai.stigmer.agentic.skill.v1.PushSkillRequest.LabelsEntry
+	21, // 2: ai.stigmer.agentic.skill.v1.SkillVersionEntry.pushed_at:type_name -> google.protobuf.Timestamp
+	22, // 3: ai.stigmer.agentic.skill.v1.SkillVersionEntry.pushed_by:type_name -> ai.stigmer.commons.apiresource.ApiResourceAuditActor
+	20, // 4: ai.stigmer.agentic.skill.v1.SkillVersionEntry.git_provenance:type_name -> ai.stigmer.agentic.skill.v1.GitProvenance
 	9,  // 5: ai.stigmer.agentic.skill.v1.ListSkillVersionsResponse.entries:type_name -> ai.stigmer.agentic.skill.v1.SkillVersionEntry
-	14, // 6: ai.stigmer.agentic.skill.v1.ListSkillsRequest.labels:type_name -> ai.stigmer.agentic.skill.v1.ListSkillsRequest.LabelsEntry
-	18, // 7: ai.stigmer.agentic.skill.v1.SkillList.entries:type_name -> ai.stigmer.agentic.skill.v1.Skill
-	8,  // [8:8] is the sub-list for method output_type
-	8,  // [8:8] is the sub-list for method input_type
-	8,  // [8:8] is the sub-list for extension type_name
-	8,  // [8:8] is the sub-list for extension extendee
-	0,  // [0:8] is the sub-list for field type_name
+	19, // 6: ai.stigmer.agentic.skill.v1.ListSkillsRequest.labels:type_name -> ai.stigmer.agentic.skill.v1.ListSkillsRequest.LabelsEntry
+	23, // 7: ai.stigmer.agentic.skill.v1.SkillList.entries:type_name -> ai.stigmer.agentic.skill.v1.Skill
+	15, // 8: ai.stigmer.agentic.skill.v1.SkillFileList.files:type_name -> ai.stigmer.agentic.skill.v1.SkillFile
+	9,  // [9:9] is the sub-list for method output_type
+	9,  // [9:9] is the sub-list for method input_type
+	9,  // [9:9] is the sub-list for extension type_name
+	9,  // [9:9] is the sub-list for extension extendee
+	0,  // [0:9] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_agentic_skill_v1_io_proto_init() }
@@ -1084,7 +1396,7 @@ func file_ai_stigmer_agentic_skill_v1_io_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ai_stigmer_agentic_skill_v1_io_proto_rawDesc), len(file_ai_stigmer_agentic_skill_v1_io_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   15,
+			NumMessages:   20,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

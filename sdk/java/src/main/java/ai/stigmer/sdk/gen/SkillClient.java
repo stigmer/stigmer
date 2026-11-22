@@ -5,15 +5,19 @@ package ai.stigmer.sdk.gen;
 import ai.stigmer.agentic.skill.v1.CreateSkillArtifactUploadUrlRequest;
 import ai.stigmer.agentic.skill.v1.GetArtifactRequest;
 import ai.stigmer.agentic.skill.v1.GetArtifactResponse;
+import ai.stigmer.agentic.skill.v1.ListSkillFilesInput;
 import ai.stigmer.agentic.skill.v1.ListSkillVersionsInput;
 import ai.stigmer.agentic.skill.v1.ListSkillVersionsResponse;
 import ai.stigmer.agentic.skill.v1.ListSkillsRequest;
 import ai.stigmer.agentic.skill.v1.PushSkillFromFileRequest;
 import ai.stigmer.agentic.skill.v1.PushSkillRequest;
+import ai.stigmer.agentic.skill.v1.ReadSkillFileInput;
 import ai.stigmer.agentic.skill.v1.Skill;
 import ai.stigmer.agentic.skill.v1.SkillArtifactDownloadUrl;
 import ai.stigmer.agentic.skill.v1.SkillArtifactUploadUrl;
 import ai.stigmer.agentic.skill.v1.SkillCommandControllerGrpc;
+import ai.stigmer.agentic.skill.v1.SkillFileContent;
+import ai.stigmer.agentic.skill.v1.SkillFileList;
 import ai.stigmer.agentic.skill.v1.SkillId;
 import ai.stigmer.agentic.skill.v1.SkillList;
 import ai.stigmer.agentic.skill.v1.SkillQueryControllerGrpc;
@@ -103,6 +107,18 @@ public class SkillClient {
     public SkillArtifactDownloadUrl getArtifactDownloadUrl(GetArtifactRequest input) {
         try {
             return query.getArtifactDownloadUrl(input);
+        } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
+    }
+
+    public SkillFileList listFiles(ListSkillFilesInput input) {
+        try {
+            return query.listFiles(input);
+        } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
+    }
+
+    public SkillFileContent readFile(ReadSkillFileInput input) {
+        try {
+            return query.readFile(input);
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
     }
 

@@ -29,6 +29,7 @@
  * the turn's lifetime.
  */
 
+import { ArchiveFileNotFoundError } from "../shared/archive-reader.js";
 import { harnessRowFor, type HarnessRow } from "../harness/registry.js";
 import type { Config } from "../config.js";
 import { DEFAULT_LIVENESS_INTERVAL_MS } from "../harness/liveness-pump.js";
@@ -122,6 +123,12 @@ export function serveAgentHost(channel: LineChannel, rows: readonly HarnessRow[]
       selectRecalledMemories: async () => (await peer.call("selectRecalledMemories", { turnId })) ?? undefined,
       verifyPlugin: async (slug) => {
         await peer.call("verifyPlugin", { turnId, slug });
+      },
+      listTurnArchives: async () => peer.call("listTurnArchives", { turnId }),
+      readTurnArchiveFile: async (path) => {
+        const answer = await peer.call("readTurnArchiveFile", { turnId, path });
+        if ("missing" in answer) throw new ArchiveFileNotFoundError(path);
+        return new Uint8Array(Buffer.from(answer.content, "base64"));
       },
     });
     const turn = new HostTurn(peer, turnId, input, args.status, args.rows, args.timing);

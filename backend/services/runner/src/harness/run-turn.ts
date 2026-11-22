@@ -44,6 +44,7 @@
  * the table against the scripted fake without any engine at all.
  */
 
+import { archiveReadLine } from "../shared/archive-reader.js";
 import { setMaxListeners } from "node:events";
 import { CancelledFailure, Context } from "@temporalio/activity";
 import { ApplicationFailure, ApplicationFailureCategory } from "@temporalio/common";
@@ -1114,6 +1115,8 @@ async function runTurn(deps: TurnRuntimeDeps, input: NormalizedActivityInput, ru
     stopNowSignal?.removeEventListener("abort", onStopNow);
     // A eval-run try's mock endpoint serves this turn only.
     await frame.evalMocks?.close();
+    // What the turn read of its skills and plugins from the store: one line.
+    if (frame.archives !== undefined) console.log(archiveReadLine(executionId, frame.archives.report()));
     // Remove the workspace's `.stigmer` link the skill and File phases
     // created, so attaching a real repo leaves it untouched between turns
     // (issue #173). After the adapter's own teardown (its gate), before the

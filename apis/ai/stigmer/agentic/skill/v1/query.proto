@@ -72,6 +72,43 @@ service SkillQueryController {
     option (ai.stigmer.commons.rpc.is_skip_authorization) = true;
   }
 
+  // List the files of one version of a skill.
+  //
+  // Returns each file's path, size, SHA-256 and whether it is executable,
+  // in path order. A plugin's eval suite, when the skill's archive is a
+  // whole plugin, is left out.
+  //
+  // @internal
+  // The version must be the skill's current one or one in its history;
+  // any other hash answers NotFound, so a hash learned elsewhere opens
+  // nothing. The listing comes from a table of contents the server keeps
+  // beside the archive, built at push or on the first read of a version
+  // pushed before it existed. Read by the runner, under the turn's own
+  // credential, to serve a skill's files without unpacking its archive.
+  rpc listFiles(ListSkillFilesInput) returns (SkillFileList) {
+    option (ai.stigmer.commons.rpc.config).resource_kind = skill;
+    option (ai.stigmer.commons.rpc.config).permission = can_view;
+    option (ai.stigmer.commons.rpc.config).field_path = "skill_id";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to read skill files";
+  }
+
+  // Read one file of one version of a skill.
+  //
+  // Returns the file's bytes, up to 8 MB; a larger file is refused with
+  // FailedPrecondition. The path is matched exactly against the version's
+  // file list.
+  //
+  // @internal
+  // Same version rule as listFiles. Only the file's own stored bytes are
+  // read from storage, inflated under a cap and checked against the
+  // entry's CRC; the caller checks them against the listing's SHA-256.
+  rpc readFile(ReadSkillFileInput) returns (SkillFileContent) {
+    option (ai.stigmer.commons.rpc.config).resource_kind = skill;
+    option (ai.stigmer.commons.rpc.config).permission = can_view;
+    option (ai.stigmer.commons.rpc.config).field_path = "skill_id";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to read skill files";
+  }
+
   // List version history for a skill.
   //
   // Returns all historical versions ordered by push time (newest first).

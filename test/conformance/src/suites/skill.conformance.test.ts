@@ -25,6 +25,7 @@
 // No known deviations are expected: every user-reachable Skill path runs through
 // ValidateProtoStep (or, for pushFromFile, equivalent manual checks)
 // and returns correct gRPC codes.
+import { createHash } from "node:crypto";
 import { SkillSchema } from "@stigmer/apis/ai/stigmer/agentic/skill/v1/api_pb";
 import { ApiResourceVisibility } from "@stigmer/apis/ai/stigmer/commons/apiresource/enum_pb";
 import { Code, ConnectError } from "@connectrpc/connect";
@@ -1313,5 +1314,64 @@ describe("Skill conformance — artifact transfer lane (#675)", () => {
       Code.Unimplemented,
       "download-url mint on a lane-less target",
     );
+  });
+});
+
+describe("Skill conformance — one file at a time", () => {
+  function skillZip(name: string, extra: Record<string, string>): Uint8Array {
+    return zipFiles({ "SKILL.md": `---\nname: ${name}\ndescription: d\n---\nbody of ${name}`, ...extra });
+  }
+
+  it("[rpc:SkillQueryController.listFiles] [rpc:SkillQueryController.readFile] lists a version's files and reads one, its bytes matching the listing's SHA-256", async () => {
+    const { org } = await target.provisionTenancy();
+    const name = uniqueName("skl-files");
+    const skill = await pushSkill(org, skillZip(name, { "refs/guide.md": "the guide", "scripts/run.sh": "echo hi" }));
+    const id = skill.metadata!.id;
+    const version = skill.status!.versionHash;
+
+    const listed = await clients.skillQuery.listFiles({ skillId: id, versionHash: version });
+    expect(listed.files.map((file) => [file.path, file.executable])).toEqual([
+      ["SKILL.md", false],
+      ["refs/guide.md", false],
+      ["scripts/run.sh", true],
+    ]);
+    const guide = listed.files.find((file) => file.path === "refs/guide.md")!;
+    expect(guide.sizeBytes).toBe(BigInt("the guide".length));
+
+    const read = await clients.skillQuery.readFile({ skillId: id, versionHash: version, path: "refs/guide.md" });
+    expect(new TextDecoder().decode(read.content)).toBe("the guide");
+    expect(createHash("sha256").update(read.content).digest("hex")).toBe(guide.sha256);
+    expect(new TextDecoder().decode((await clients.skillQuery.readFile({ skillId: id, versionHash: "", path: "refs/guide.md" })).content), "an empty version reads the head").toBe("the guide");
+  });
+
+  it("[rpc:SkillQueryController.readFile] reads an earlier version from the skill's own history, and refuses a version that is not the skill's own", async () => {
+    const { org } = await target.provisionTenancy();
+    const name = uniqueName("skl-files-v");
+    const first = await pushSkill(org, skillZip(name, { "a.md": "first" }));
+    await pushSkill(org, skillZip(name, { "a.md": "second" }), { track: false });
+    const id = first.metadata!.id;
+    expect(new TextDecoder().decode((await clients.skillQuery.readFile({ skillId: id, versionHash: first.status!.versionHash, path: "a.md" })).content)).toBe("first");
+
+    const other = await pushSkill(org, skillZip(uniqueName("skl-files-other"), { "secret.md": "s" }));
+    await expectGrpcCode(
+      () => clients.skillQuery.readFile({ skillId: id, versionHash: other.status!.versionHash, path: "secret.md" }),
+      Code.NotFound,
+      "a hash another skill holds",
+    );
+    await expectGrpcCode(
+      () => clients.skillQuery.listFiles({ skillId: id, versionHash: other.status!.versionHash }),
+      Code.NotFound,
+      "listing a hash another skill holds",
+    );
+  });
+
+  it("[rpc:SkillQueryController.readFile] matches a path exactly, and refuses an unknown skill and a malformed version", async () => {
+    const { org } = await target.provisionTenancy();
+    const skill = await pushSkill(org, skillZip(uniqueName("skl-files-exact"), { "refs/a.md": "a" }));
+    for (const near of ["./refs/a.md", "/refs/a.md", "refs/x/../a.md", "refs"]) {
+      await expectGrpcCode(() => clients.skillQuery.readFile({ skillId: skill.metadata!.id, versionHash: "", path: near }), Code.NotFound, near);
+    }
+    await expectGrpcCode(() => clients.skillQuery.listFiles({ skillId: "skl_missing", versionHash: "" }), Code.NotFound, "an unknown skill");
+    await expectGrpcCode(() => clients.skillQuery.listFiles({ skillId: skill.metadata!.id, versionHash: "not-a-hash" }), Code.InvalidArgument, "a malformed version");
   });
 });

@@ -51,12 +51,13 @@ import type { StopDetail } from "../shared/stop-kind.js";
 import type { TranscriptEvent } from "../harness/transcript/events.js";
 import type { TurnMessage } from "../harness/turn-input.js";
 import type { AgentFileKind } from "../shared/agent-fs.js";
+import type { ArchiveFileInfo } from "../shared/archive-reader.js";
 import type { RecalledMemoriesContent } from "../shared/recalled-memories.js";
 import type { TimingRecorderWire } from "../shared/cold-start-timing.js";
 import type { TelemetrySettings } from "../otel-export.js";
 import type { RuntimeFieldsWire, WireOffload, WireProjection, WireTurnInput } from "./codec.js";
 
-export const AGENT_HOST_PROTOCOL_VERSION = 18;
+export const AGENT_HOST_PROTOCOL_VERSION = 19;
 
 /**
  * The largest single message either side sends or accepts. A turn's input
@@ -329,6 +330,16 @@ export interface RunnerCalls {
   };
   /** `MountedPlugin.verify` for one of the turn's plugins, by slug: the tree and its archive are the runner's. */
   readonly verifyPlugin: { readonly args: { readonly turnId: string; readonly slug: string }; readonly result: null };
+  /** `TurnSkills.archives.list` for the turn: its skills' and plugins' files, which the runner reads from the store. */
+  readonly listTurnArchives: { readonly args: { readonly turnId: string }; readonly result: readonly ArchiveFileInfo[] };
+  /**
+   * `TurnSkills.archives.read` for the turn: one file's verified bytes,
+   * base64, or `missing` when the turn holds no such file.
+   */
+  readonly readTurnArchiveFile: {
+    readonly args: { readonly turnId: string; readonly path: string };
+    readonly result: { readonly content: string } | { readonly missing: true };
+  };
   /**
    * `TurnSink.input.claim`: the session's queued messages the runtime took
    * for the turn, their files mounted, and whether more still wait (a claim

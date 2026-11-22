@@ -308,3 +308,56 @@ message SkillList {
   // A page may be short, even empty, and still carry a token.
   string next_page_token = 2;
 }
+
+// ListSkillFilesInput names one version of a skill whose files to list.
+message ListSkillFilesInput {
+  // System-generated ID of the skill.
+  string skill_id = 1 [(buf.validate.field).required = true];
+
+  // The version to read, by its SHA-256 version hash: the skill's current
+  // version or one in its history. Empty reads the current version.
+  string version_hash = 2 [(buf.validate.field).string.pattern = "^$|^[0-9a-f]{64}$"];
+}
+
+// SkillFileList is the files of one version of a skill.
+message SkillFileList {
+  // The files, in path order.
+  repeated SkillFile files = 1;
+}
+
+// SkillFile is one file of a skill version.
+message SkillFile {
+  // Path of the file inside the skill, with forward slashes and no leading
+  // slash (`SKILL.md`, `scripts/run.sh`).
+  string path = 1;
+
+  // Size of the file in bytes.
+  int64 size_bytes = 2;
+
+  // SHA-256 of the file's bytes, lowercase hex.
+  string sha256 = 3;
+
+  // Whether the file is a script a command may run directly.
+  bool executable = 4;
+}
+
+// ReadSkillFileInput names one file of one version of a skill.
+message ReadSkillFileInput {
+  // System-generated ID of the skill.
+  string skill_id = 1 [(buf.validate.field).required = true];
+
+  // The version to read, as ListSkillFilesInput.version_hash.
+  string version_hash = 2 [(buf.validate.field).string.pattern = "^$|^[0-9a-f]{64}$"];
+
+  // The file's path, exactly as the version's file list names it.
+  string path = 3 [(buf.validate.field).string = {
+    min_len: 1
+    max_len: 4096
+  }];
+}
+
+// SkillFileContent is the bytes of one skill file.
+message SkillFileContent {
+  // The file's bytes.
+  bytes content = 1;
+}

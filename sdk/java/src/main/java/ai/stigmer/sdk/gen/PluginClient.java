@@ -5,6 +5,7 @@ package ai.stigmer.sdk.gen;
 import ai.stigmer.agentic.plugin.v1.CreatePluginArtifactUploadUrlRequest;
 import ai.stigmer.agentic.plugin.v1.GetArtifactRequest;
 import ai.stigmer.agentic.plugin.v1.GetArtifactResponse;
+import ai.stigmer.agentic.plugin.v1.ListPluginFilesInput;
 import ai.stigmer.agentic.plugin.v1.ListPluginToolsInput;
 import ai.stigmer.agentic.plugin.v1.ListPluginToolsOutput;
 import ai.stigmer.agentic.plugin.v1.ListPluginVersionsInput;
@@ -14,11 +15,14 @@ import ai.stigmer.agentic.plugin.v1.Plugin;
 import ai.stigmer.agentic.plugin.v1.PluginArtifactDownloadUrl;
 import ai.stigmer.agentic.plugin.v1.PluginArtifactUploadUrl;
 import ai.stigmer.agentic.plugin.v1.PluginCommandControllerGrpc;
+import ai.stigmer.agentic.plugin.v1.PluginFileContent;
+import ai.stigmer.agentic.plugin.v1.PluginFileList;
 import ai.stigmer.agentic.plugin.v1.PluginId;
 import ai.stigmer.agentic.plugin.v1.PluginList;
 import ai.stigmer.agentic.plugin.v1.PluginQueryControllerGrpc;
 import ai.stigmer.agentic.plugin.v1.PluginVersionEntry;
 import ai.stigmer.agentic.plugin.v1.PushPluginRequest;
+import ai.stigmer.agentic.plugin.v1.ReadPluginFileInput;
 import ai.stigmer.commons.apiresource.UpdateVisibilityInput;
 import ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind;
 import io.grpc.Channel;
@@ -104,6 +108,18 @@ public final class PluginClient {
     public PluginArtifactDownloadUrl getArtifactDownloadUrl(GetArtifactRequest input) {
         try {
             return query.getArtifactDownloadUrl(input);
+        } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
+    }
+
+    public PluginFileList listFiles(ListPluginFilesInput input) {
+        try {
+            return query.listFiles(input);
+        } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
+    }
+
+    public PluginFileContent readFile(ReadPluginFileInput input) {
+        try {
+            return query.readFile(input);
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
     }
 

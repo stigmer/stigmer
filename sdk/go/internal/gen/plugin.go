@@ -106,6 +106,16 @@ func (p *PluginClient) GetArtifactDownloadUrl(ctx context.Context, input *plugin
 	return resp, wrapErr(err)
 }
 
+func (p *PluginClient) ListFiles(ctx context.Context, input *pluginv1.ListPluginFilesInput) (*pluginv1.PluginFileList, error) {
+	resp, err := p.query.ListFiles(ctx, input)
+	return resp, wrapErr(err)
+}
+
+func (p *PluginClient) ReadFile(ctx context.Context, input *pluginv1.ReadPluginFileInput) (*pluginv1.PluginFileContent, error) {
+	resp, err := p.query.ReadFile(ctx, input)
+	return resp, wrapErr(err)
+}
+
 func (p *PluginClient) ListVersions(ctx context.Context, input *pluginv1.ListPluginVersionsInput) (*pluginv1.ListPluginVersionsResponse, error) {
 	resp, err := p.query.ListVersions(ctx, input)
 	return resp, wrapErr(err)

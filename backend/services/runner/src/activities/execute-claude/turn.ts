@@ -102,7 +102,7 @@ import { CasCaptureObserver } from "../../shared/filereview/cas-capture-observer
 import { HookSetupError } from "../../shared/hooks/setup.js";
 import { buildMcpApprovalDefault } from "../../shared/approval-policy.js";
 import { skillContentReadCheck } from "../../shared/skill-mount.js";
-import { platformReadRoot } from "../../shared/workspace/stigmer-link.js";
+import { platformReadRoot, treesReadRoot } from "../../shared/workspace/stigmer-link.js";
 import { toAnthropicImageBlocks } from "../../shared/attachment-vision.js";
 import { emitTimingLog } from "../../shared/cold-start-timing.js";
 import { getExecutionContext } from "../../shared/execution-context.js";
@@ -403,7 +403,13 @@ async function engineTurn(input: TurnInput, sink: TurnSink, config: ClaudeAdapte
     gateFactsOf(input, {
       agents: { root: agents.root.reach, subagents: new Map([...agents.subagents].map(([name, world]) => [name, world.reach])) },
       bridge: { serverOf: bridge.serverOf, mcpDefault: buildMcpApprovalDefault(bridge.listing, input.mcp.leases) },
-      paths: { platformDir, engineHome: home, readsSkillContent: skillContentReadCheck(platformDir), platformReadRoot: await platformReadRoot(workspace.primaryDir, platformDir) },
+      paths: {
+        platformDir,
+        engineHome: home,
+        readsSkillContent: skillContentReadCheck(platformDir, input.skills.treesDir),
+        platformReadRoot: await platformReadRoot(workspace.primaryDir, platformDir),
+        treesReadRoot: await treesReadRoot(workspace.primaryDir, platformDir, input.skills.treesDir),
+      },
       isCapturablePath: isCapturable,
       inGitDirectory: (path: string) =>
         workspace.gitWorkspace ? resolvesIntoGitDirectory(workspace.primaryDir, path.replace(/^\/+/, "")) : Promise.resolve(false),

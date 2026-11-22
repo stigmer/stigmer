@@ -11,6 +11,7 @@
  * worker polls activity tasks only (worker.ts's header says why).
  */
 
+import { releaseSessionTrees } from "./shared/archive-tree.js";
 import { mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { homedir, tmpdir } from "node:os";
@@ -507,6 +508,9 @@ async function buildStigmerRunnerManager(
           `[runner-manager] Harness release for session ${sessionId} failed (continuing): ${err instanceof Error ? err.message : String(err)}`,
         );
       }
+      // The session's read-only skill and plugin trees are the runner's own
+      // (shared/archive-tree.ts): removed with its rights, logged on failure.
+      await releaseSessionTrees(sessionId);
     },
 
     activeSessions(): string[] {

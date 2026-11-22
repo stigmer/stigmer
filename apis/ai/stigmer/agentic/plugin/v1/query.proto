@@ -71,6 +71,43 @@ service PluginQueryController {
     option (ai.stigmer.commons.rpc.is_skip_authorization) = true;
   }
 
+  // List the files of one version of a plugin.
+  //
+  // Returns each file's path, size, SHA-256 and whether it is executable,
+  // in path order. The plugin's eval suite is left out.
+  //
+  // @internal
+  // The digest must be the plugin's installed version or one in its
+  // history; any other digest answers NotFound, so a digest learned
+  // elsewhere opens nothing. The listing comes from a table of contents
+  // the server keeps beside the archive, built at push or on the first
+  // read of a version pushed before it existed. Read by the runner, under
+  // the turn's own credential, to serve a plugin's skills without
+  // unpacking its archive.
+  rpc listFiles(ListPluginFilesInput) returns (PluginFileList) {
+    option (ai.stigmer.commons.rpc.config).resource_kind = plugin;
+    option (ai.stigmer.commons.rpc.config).permission = can_view;
+    option (ai.stigmer.commons.rpc.config).field_path = "plugin_id";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to read plugin files";
+  }
+
+  // Read one file of one version of a plugin.
+  //
+  // Returns the file's bytes, up to 8 MB; a larger file is refused with
+  // FailedPrecondition. The path is matched exactly against the version's
+  // file list.
+  //
+  // @internal
+  // Same version rule as listFiles. Only the file's own stored bytes are
+  // read from storage, inflated under a cap and checked against the
+  // entry's CRC; the caller checks them against the listing's SHA-256.
+  rpc readFile(ReadPluginFileInput) returns (PluginFileContent) {
+    option (ai.stigmer.commons.rpc.config).resource_kind = plugin;
+    option (ai.stigmer.commons.rpc.config).permission = can_view;
+    option (ai.stigmer.commons.rpc.config).field_path = "plugin_id";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to read plugin files";
+  }
+
   // List version history for a plugin.
   //
   // Returns every installed version ordered by push time (newest first), with

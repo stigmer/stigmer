@@ -1,46 +1,42 @@
+/**
+ * A skill's tree: SKILL.md from the spec, the archive's other files with
+ * their executable bits, a plugin root skill's eval suite left out, and a
+ * tree held to that at every turn start where the runner does not separate
+ * (`../archive-tree.ts` `AgentOwnedTree`); then the download lane and the
+ * paths a `Skill`-denying turn may not read.
+ */
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { mkdtempSync, readFileSync, existsSync, rmSync, statSync } from "node:fs";
+import { mkdtempSync, readFileSync, existsSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
+import { create } from "@bufbuild/protobuf";
 import { ConnectError, Code } from "@connectrpc/connect";
-import {
-  MOUNT_MARKER_FILE,
-  isSkillContentPath,
-  mountIsFresh,
-  downloadArtifact,
-  writeSkillMount,
-} from "../skill-mount.js";
+import { SkillSchema, type Skill } from "@stigmer/apis/ai/stigmer/agentic/skill/v1/api_pb";
+import { isSkillContentPath, downloadArtifact, skillTreeEntries } from "../skill-mount.js";
+import { AgentOwnedTree } from "../archive-tree.js";
 import { buildZip } from "@stigmer/zip-structure/testing";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────
 
-function makeSkillProto(overrides: {
-  name?: string;
-  skillMd?: string;
-  artifactStorageKey?: string;
-  versionHash?: string;
-} = {}) {
-  return {
-    metadata: {
-      id: `skill-${overrides.name ?? "test"}`,
-      slug: overrides.name ?? "test-skill",
-      org: "test-org",
-    },
-    spec: {
-      name: overrides.name ?? "test-skill",
-      description: "A test skill",
-      skillMd: overrides.skillMd ?? "# Test Skill",
-    },
-    status: {
-      artifactStorageKey: overrides.artifactStorageKey ?? "",
-      versionHash: overrides.versionHash ?? "abc",
-    },
-  } as any;
+function makeSkillProto(overrides: { name?: string; skillMd?: string } = {}): Skill {
+  return create(SkillSchema, {
+    metadata: { id: `skill-${overrides.name ?? "test"}`, slug: overrides.name ?? "test-skill", org: "test-org" },
+    spec: { name: overrides.name ?? "test-skill", description: "A test skill", skillMd: overrides.skillMd ?? "# Test Skill" },
+    status: { artifactStorageKey: "", versionHash: "abc" },
+  });
 }
 
-// ─── writeSkillMount + mountIsFresh — marker mechanics ───────────────────
+/** The skill's tree at `dir`, as the resolver places it where the runner does not separate. */
+async function mountTree(skill: Skill, dir: string, artifact: Uint8Array | undefined): Promise<AgentOwnedTree> {
+  const { entries } = await skillTreeEntries(skill, artifact);
+  const tree = new AgentOwnedTree(dir, entries, "skill artifact");
+  await tree.verify();
+  return tree;
+}
 
-describe("writeSkillMount — marker mechanics", () => {
+// ─── skillTreeEntries + the tree ─────────────────────────────────────────
+
+describe("a skill's tree", () => {
   let skillDir: string;
 
   beforeEach(() => {
@@ -51,78 +47,44 @@ describe("writeSkillMount — marker mechanics", () => {
     rmSync(join(skillDir, ".."), { recursive: true, force: true });
   });
 
-  it("stamps a marker recording the hash and a fully mounted artifact", async () => {
-    const artifact = buildZip([{ name: "references/guide.md", content: "guide" }]);
-    await writeSkillMount(makeSkillProto({ versionHash: "hash-v1" }), skillDir, artifact);
-
-    const marker = JSON.parse(readFileSync(join(skillDir, MOUNT_MARKER_FILE), "utf-8"));
-    expect(marker).toEqual({ versionHash: "hash-v1", artifactMounted: true });
-    expect(await mountIsFresh(skillDir, "hash-v1", true)).toBe(true);
+  it("is SKILL.md alone for a skill with no artifact, or whose download failed", async () => {
+    const { entries, cacheable } = await skillTreeEntries(makeSkillProto({ skillMd: "# Only" }), undefined);
+    expect(entries.map((entry) => entry.path)).toEqual(["SKILL.md"]);
+    expect(cacheable).toBe(true);
   });
 
-  it("records a degraded SKILL.md-only mount so the next execution retries the artifact", async () => {
-    await writeSkillMount(makeSkillProto({ versionHash: "hash-v1" }), skillDir, undefined);
-
-    const marker = JSON.parse(readFileSync(join(skillDir, MOUNT_MARKER_FILE), "utf-8"));
-    expect(marker).toEqual({ versionHash: "hash-v1", artifactMounted: false });
-    // Stale for a skill that carries an artifact (retry the download)...
-    expect(await mountIsFresh(skillDir, "hash-v1", true)).toBe(false);
-    // ...fresh for a skill that never had one.
-    expect(await mountIsFresh(skillDir, "hash-v1", false)).toBe(true);
-  });
-
-  it("stamps no marker when the skill has no version hash — such mounts never cache", async () => {
-    await writeSkillMount(makeSkillProto({ versionHash: "" }), skillDir, undefined);
-
-    expect(existsSync(join(skillDir, MOUNT_MARKER_FILE))).toBe(false);
-    expect(await mountIsFresh(skillDir, "", false)).toBe(false);
-  });
-
-  it("is stale for a different hash", async () => {
-    await writeSkillMount(makeSkillProto({ versionHash: "hash-v1" }), skillDir, undefined);
-    expect(await mountIsFresh(skillDir, "hash-v2", false)).toBe(false);
-  });
-
-  it("is stale when the marker is missing or unparseable", async () => {
-    expect(await mountIsFresh(skillDir, "hash-v1", false)).toBe(false);
+  it("is rebuilt at the next turn start after a command edits it, so no edit carries into the next message", async () => {
+    const tree = await mountTree(makeSkillProto({ skillMd: "# Pushed" }), skillDir, buildZip([{ name: "references/guide.md", content: "guide" }]));
+    writeFileSync(join(skillDir, "SKILL.md"), "# Edited by a command");
+    writeFileSync(join(skillDir, "references", "guide.md"), "edited");
+    writeFileSync(join(skillDir, "planted.md"), "planted");
+    await tree.verify();
+    expect(readFileSync(join(skillDir, "SKILL.md"), "utf-8")).toBe("# Pushed");
+    expect(readFileSync(join(skillDir, "references", "guide.md"), "utf-8")).toBe("guide");
+    expect(existsSync(join(skillDir, "planted.md"))).toBe(false);
   });
 
   it("removes files from a previous mount that the new version no longer carries", async () => {
     const v1 = buildZip([{ name: "references/removed-in-v2.md", content: "old" }]);
     const v2 = buildZip([{ name: "references/new-in-v2.md", content: "new" }]);
 
-    await writeSkillMount(makeSkillProto({ versionHash: "hash-v1" }), skillDir, v1);
-    await writeSkillMount(makeSkillProto({ versionHash: "hash-v2" }), skillDir, v2);
+    await mountTree(makeSkillProto(), skillDir, v1);
+    await mountTree(makeSkillProto(), skillDir, v2);
 
     expect(existsSync(join(skillDir, "references", "removed-in-v2.md"))).toBe(false);
     expect(readFileSync(join(skillDir, "references", "new-in-v2.md"), "utf-8")).toBe("new");
   });
 
-  it("owns SKILL.md and the marker name unconditionally — zip copies are ignored", async () => {
-    const artifact = buildZip([
-      { name: "SKILL.md", content: "# Stale zip copy" },
-      { name: MOUNT_MARKER_FILE, content: "{\"versionHash\":\"forged\"}" },
-    ]);
-    await writeSkillMount(
-      makeSkillProto({ skillMd: "# Authoritative", versionHash: "hash-v1" }),
-      skillDir,
-      artifact,
-    );
-
+  it("owns SKILL.md unconditionally — the zip's copy is ignored", async () => {
+    const artifact = buildZip([{ name: "SKILL.md", content: "# Stale zip copy" }]);
+    await mountTree(makeSkillProto({ skillMd: "# Authoritative" }), skillDir, artifact);
     expect(readFileSync(join(skillDir, "SKILL.md"), "utf-8")).toBe("# Authoritative");
-    const marker = JSON.parse(readFileSync(join(skillDir, MOUNT_MARKER_FILE), "utf-8"));
-    expect(marker.versionHash).toBe("hash-v1");
   });
 
   it("rejects zip entries that escape the mount directory", async () => {
     const artifact = buildZip([{ name: "../escape.txt", content: "evil" }]);
-
-    await expect(
-      writeSkillMount(makeSkillProto({ versionHash: "hash-v1" }), skillDir, artifact),
-    ).rejects.toThrow(/escapes its mount directory/);
+    await expect(mountTree(makeSkillProto(), skillDir, artifact)).rejects.toThrow(/escapes its mount directory/);
     expect(existsSync(join(skillDir, "..", "escape.txt"))).toBe(false);
-    // The interrupted mount must not have been stamped as complete.
-    expect(existsSync(join(skillDir, MOUNT_MARKER_FILE))).toBe(false);
   });
 
   it("writes script entries with the executable bit set", async () => {
@@ -130,7 +92,7 @@ describe("writeSkillMount — marker mechanics", () => {
       { name: "scripts/run.py", content: "print('hi')" },
       { name: "references/notes.md", content: "notes" },
     ]);
-    await writeSkillMount(makeSkillProto({ versionHash: "hash-v1" }), skillDir, artifact);
+    await mountTree(makeSkillProto(), skillDir, artifact);
 
     expect(statSync(join(skillDir, "scripts", "run.py")).mode & 0o111).not.toBe(0);
     expect(statSync(join(skillDir, "references", "notes.md")).mode & 0o111).toBe(0);
@@ -141,13 +103,13 @@ describe("writeSkillMount — marker mechanics", () => {
       { name: "scripts/check", content: "#!/usr/bin/env bash\necho ok\n" },
       { name: "scripts/README", content: "plain text" },
     ]);
-    await writeSkillMount(makeSkillProto({ versionHash: "hash-v1" }), skillDir, artifact);
+    await mountTree(makeSkillProto(), skillDir, artifact);
 
     expect(statSync(join(skillDir, "scripts", "check")).mode & 0o111).not.toBe(0);
     expect(statSync(join(skillDir, "scripts", "README")).mode & 0o111).toBe(0);
   });
 
-  it("never mounts an eval suite a root skill's archive still carries, by its cleaned name", async () => {
+  it("never mounts an eval suite a root skill's archive still carries, by its cleaned name, nor caches that archive", async () => {
     // A root skill's archive is the whole plugin, its manifest included; one
     // stored before the suite was stripped at push still holds `evals/`,
     // which a try must not read.
@@ -159,11 +121,12 @@ describe("writeSkillMount — marker mechanics", () => {
       { name: "x/../evals/graders/g.yaml", content: "type: llm" },
       { name: "evalsx/kept.md", content: "not the suite" },
     ]);
-    await writeSkillMount(makeSkillProto({ versionHash: "hash-v1" }), skillDir, artifact);
+    await mountTree(makeSkillProto(), skillDir, artifact);
 
     expect(existsSync(join(skillDir, "evals"))).toBe(false);
     expect(readFileSync(join(skillDir, "references", "guide.md"), "utf-8")).toBe("guide");
     expect(readFileSync(join(skillDir, "evalsx", "kept.md"), "utf-8")).toBe("not the suite");
+    expect((await skillTreeEntries(makeSkillProto(), artifact)).cacheable).toBe(false);
   });
 
   it("mounts a standalone skill's own evals/, which holds no plugin manifest", async () => {
@@ -174,7 +137,7 @@ describe("writeSkillMount — marker mechanics", () => {
       { name: "evals/evals.json", content: "{}" },
       { name: "nested/plugin.json", content: "{}" },
     ]);
-    await writeSkillMount(makeSkillProto({ versionHash: "hash-v1" }), skillDir, artifact);
+    await mountTree(makeSkillProto(), skillDir, artifact);
 
     expect(readFileSync(join(skillDir, "evals", "evals.json"), "utf-8")).toBe("{}");
     expect(readFileSync(join(skillDir, "references", "guide.md"), "utf-8")).toBe("guide");
@@ -191,7 +154,7 @@ describe("writeSkillMount — marker mechanics", () => {
       { name: "evals/stale/prompt.md", content: "hi" },
       { name: "qa-notes/kept.md", content: "not the suite" },
     ]);
-    await writeSkillMount(makeSkillProto({ versionHash: "hash-v1" }), skillDir, artifact);
+    await mountTree(makeSkillProto(), skillDir, artifact);
 
     expect(existsSync(join(skillDir, "qa"))).toBe(false);
     expect(existsSync(join(skillDir, "evals"))).toBe(false);
@@ -312,6 +275,7 @@ describe("isSkillContentPath", () => {
     expect(isSkillContentPath("/.stigmer/plugins/abc123/SKILL.md"), "a root skill is the whole tree").toBe(true);
     expect(isSkillContentPath("/.stigmer/plugins/abc123/hooks/run.sh")).toBe(true);
     expect(isSkillContentPath("/.stigmer/plugins/abc123.zip")).toBe(true);
+    expect(isSkillContentPath(`/.stigmer/archives/${"a".repeat(64)}.zip`), "a cached archive of either kind").toBe(true);
   });
 
   it("matches without regard to case, as a case-insensitive filesystem resolves the path", () => {

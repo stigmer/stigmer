@@ -96,6 +96,22 @@
           "description": "Mint a URL for downloading a plugin archive over HTTP.\n\n Preferred over getArtifact for anything that might exceed the gRPC\n message-size cap (10MB): the bytes ride HTTP. Callers try this first and\n fall back to getArtifact against servers that predate it (UNIMPLEMENTED)."
         },
         {
+          "name": "ListFiles",
+          "inputType": "ListPluginFilesInput",
+          "inputFullType": "ai.stigmer.agentic.plugin.v1.ListPluginFilesInput",
+          "outputType": "PluginFileList",
+          "outputFullType": "ai.stigmer.agentic.plugin.v1.PluginFileList",
+          "description": "List the files of one version of a plugin.\n\n Returns each file's path, size, SHA-256 and whether it is executable,\n in path order. The plugin's eval suite is left out."
+        },
+        {
+          "name": "ReadFile",
+          "inputType": "ReadPluginFileInput",
+          "inputFullType": "ai.stigmer.agentic.plugin.v1.ReadPluginFileInput",
+          "outputType": "PluginFileContent",
+          "outputFullType": "ai.stigmer.agentic.plugin.v1.PluginFileContent",
+          "description": "Read one file of one version of a plugin.\n\n Returns the file's bytes, up to 8 MB; a larger file is refused with\n FailedPrecondition. The path is matched exactly against the version's\n file list."
+        },
+        {
           "name": "ListVersions",
           "inputType": "ListPluginVersionsInput",
           "inputFullType": "ai.stigmer.agentic.plugin.v1.ListPluginVersionsInput",
@@ -619,6 +635,128 @@
             "kind": "int64"
           },
           "description": "Size of the archive ZIP in bytes.",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "ListPluginFilesInput",
+      "description": "ListPluginFilesInput names one version of a plugin whose files to list.",
+      "protoType": "ai.stigmer.agentic.plugin.v1.ListPluginFilesInput",
+      "protoFile": "apis/ai/stigmer/agentic/plugin/v1/io.proto",
+      "fields": [
+        {
+          "name": "PluginId",
+          "jsonName": "pluginId",
+          "protoField": "plugin_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "System-generated ID of the plugin.",
+          "required": true,
+          "validation": {
+            "required": true
+          }
+        },
+        {
+          "name": "Digest",
+          "jsonName": "digest",
+          "protoField": "digest",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The version to read, by its SHA-256 digest: the plugin's installed\n version or one in its history.",
+          "required": false,
+          "validation": {
+            "pattern": "^[0-9a-f]{64}$"
+          }
+        }
+      ]
+    },
+    {
+      "name": "PluginFileList",
+      "description": "PluginFileList is the files of one version of a plugin.",
+      "protoType": "ai.stigmer.agentic.plugin.v1.PluginFileList",
+      "protoFile": "apis/ai/stigmer/agentic/plugin/v1/io.proto",
+      "fields": [
+        {
+          "name": "Files",
+          "jsonName": "files",
+          "protoField": "files",
+          "type": {
+            "kind": "array",
+            "elementType": {
+              "kind": "message",
+              "messageType": "PluginFile"
+            }
+          },
+          "description": "The files, in path order.",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "ReadPluginFileInput",
+      "description": "ReadPluginFileInput names one file of one version of a plugin.",
+      "protoType": "ai.stigmer.agentic.plugin.v1.ReadPluginFileInput",
+      "protoFile": "apis/ai/stigmer/agentic/plugin/v1/io.proto",
+      "fields": [
+        {
+          "name": "PluginId",
+          "jsonName": "pluginId",
+          "protoField": "plugin_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "System-generated ID of the plugin.",
+          "required": true,
+          "validation": {
+            "required": true
+          }
+        },
+        {
+          "name": "Digest",
+          "jsonName": "digest",
+          "protoField": "digest",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The version to read, as ListPluginFilesInput.digest.",
+          "required": false,
+          "validation": {
+            "pattern": "^[0-9a-f]{64}$"
+          }
+        },
+        {
+          "name": "Path",
+          "jsonName": "path",
+          "protoField": "path",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The file's path, exactly as the version's file list names it.",
+          "required": false,
+          "validation": {
+            "minLength": 1,
+            "maxLength": 4096
+          }
+        }
+      ]
+    },
+    {
+      "name": "PluginFileContent",
+      "description": "PluginFileContent is the bytes of one plugin file.",
+      "protoType": "ai.stigmer.agentic.plugin.v1.PluginFileContent",
+      "protoFile": "apis/ai/stigmer/agentic/plugin/v1/io.proto",
+      "fields": [
+        {
+          "name": "Content",
+          "jsonName": "content",
+          "protoField": "content",
+          "type": {
+            "kind": "bytes"
+          },
+          "description": "The file's bytes.",
           "required": false
         }
       ]

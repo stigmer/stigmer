@@ -6,7 +6,7 @@ import type { GenFile, GenService } from "@bufbuild/protobuf/codegenv1";
 import { fileDesc, serviceDesc } from "@bufbuild/protobuf/codegenv1";
 import type { PluginSchema } from "./api_pb.js";
 import { file_ai_stigmer_agentic_plugin_v1_api } from "./api_pb.js";
-import type { GetArtifactRequestSchema, GetArtifactResponseSchema, ListPluginsRequestSchema, ListPluginVersionsInputSchema, ListPluginVersionsResponseSchema, PluginArtifactDownloadUrlSchema, PluginIdSchema, PluginListSchema } from "./io_pb.js";
+import type { GetArtifactRequestSchema, GetArtifactResponseSchema, ListPluginFilesInputSchema, ListPluginsRequestSchema, ListPluginVersionsInputSchema, ListPluginVersionsResponseSchema, PluginArtifactDownloadUrlSchema, PluginFileContentSchema, PluginFileListSchema, PluginIdSchema, PluginListSchema, ReadPluginFileInputSchema } from "./io_pb.js";
 import { file_ai_stigmer_agentic_plugin_v1_io } from "./io_pb.js";
 import type { ApiResourceReferenceSchema } from "../../../commons/apiresource/io_pb.js";
 import { file_ai_stigmer_commons_apiresource_io } from "../../../commons/apiresource/io_pb.js";
@@ -17,7 +17,7 @@ import { file_ai_stigmer_commons_rpc_method_options } from "../../../commons/rpc
  * Describes the file ai/stigmer/agentic/plugin/v1/query.proto.
  */
 export const file_ai_stigmer_agentic_plugin_v1_query: GenFile = /*@__PURE__*/
-  fileDesc("CihhaS9zdGlnbWVyL2FnZW50aWMvcGx1Z2luL3YxL3F1ZXJ5LnByb3RvEhxhaS5zdGlnbWVyLmFnZW50aWMucGx1Z2luLnYxMowGChVQbHVnaW5RdWVyeUNvbnRyb2xsZXISgAEKA2dldBImLmFpLnN0aWdtZXIuYWdlbnRpYy5wbHVnaW4udjEuUGx1Z2luSWQaJC5haS5zdGlnbWVyLmFnZW50aWMucGx1Z2luLnYxLlBsdWdpbiIrwrgYJwgBEDoiBXZhbHVlKhp1bmF1dGhvcml6ZWQgdG8gZ2V0IHBsdWdpbhJyCg5nZXRCeVJlZmVyZW5jZRI0LmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZVJlZmVyZW5jZRokLmFpLnN0aWdtZXIuYWdlbnRpYy5wbHVnaW4udjEuUGx1Z2luIgTQuBgBEmgKBGxpc3QSMC5haS5zdGlnbWVyLmFnZW50aWMucGx1Z2luLnYxLkxpc3RQbHVnaW5zUmVxdWVzdBooLmFpLnN0aWdtZXIuYWdlbnRpYy5wbHVnaW4udjEuUGx1Z2luTGlzdCIE0LgYARJ4CgtnZXRBcnRpZmFjdBIwLmFpLnN0aWdtZXIuYWdlbnRpYy5wbHVnaW4udjEuR2V0QXJ0aWZhY3RSZXF1ZXN0GjEuYWkuc3RpZ21lci5hZ2VudGljLnBsdWdpbi52MS5HZXRBcnRpZmFjdFJlc3BvbnNlIgTQuBgBEokBChZnZXRBcnRpZmFjdERvd25sb2FkVXJsEjAuYWkuc3RpZ21lci5hZ2VudGljLnBsdWdpbi52MS5HZXRBcnRpZmFjdFJlcXVlc3QaNy5haS5zdGlnbWVyLmFnZW50aWMucGx1Z2luLnYxLlBsdWdpbkFydGlmYWN0RG93bmxvYWRVcmwiBNC4GAEShQEKDGxpc3RWZXJzaW9ucxI1LmFpLnN0aWdtZXIuYWdlbnRpYy5wbHVnaW4udjEuTGlzdFBsdWdpblZlcnNpb25zSW5wdXQaOC5haS5zdGlnbWVyLmFnZW50aWMucGx1Z2luLnYxLkxpc3RQbHVnaW5WZXJzaW9uc1Jlc3BvbnNlIgTQuBgBGgSg/ys6YgZwcm90bzM", [file_ai_stigmer_agentic_plugin_v1_api, file_ai_stigmer_agentic_plugin_v1_io, file_ai_stigmer_commons_apiresource_io, file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_commons_rpc_method_options]);
+  fileDesc("CihhaS9zdGlnbWVyL2FnZW50aWMvcGx1Z2luL3YxL3F1ZXJ5LnByb3RvEhxhaS5zdGlnbWVyLmFnZW50aWMucGx1Z2luLnYxMt0IChVQbHVnaW5RdWVyeUNvbnRyb2xsZXISgAEKA2dldBImLmFpLnN0aWdtZXIuYWdlbnRpYy5wbHVnaW4udjEuUGx1Z2luSWQaJC5haS5zdGlnbWVyLmFnZW50aWMucGx1Z2luLnYxLlBsdWdpbiIrwrgYJwgBEDoiBXZhbHVlKhp1bmF1dGhvcml6ZWQgdG8gZ2V0IHBsdWdpbhJyCg5nZXRCeVJlZmVyZW5jZRI0LmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZVJlZmVyZW5jZRokLmFpLnN0aWdtZXIuYWdlbnRpYy5wbHVnaW4udjEuUGx1Z2luIgTQuBgBEmgKBGxpc3QSMC5haS5zdGlnbWVyLmFnZW50aWMucGx1Z2luLnYxLkxpc3RQbHVnaW5zUmVxdWVzdBooLmFpLnN0aWdtZXIuYWdlbnRpYy5wbHVnaW4udjEuUGx1Z2luTGlzdCIE0LgYARJ4CgtnZXRBcnRpZmFjdBIwLmFpLnN0aWdtZXIuYWdlbnRpYy5wbHVnaW4udjEuR2V0QXJ0aWZhY3RSZXF1ZXN0GjEuYWkuc3RpZ21lci5hZ2VudGljLnBsdWdpbi52MS5HZXRBcnRpZmFjdFJlc3BvbnNlIgTQuBgBEokBChZnZXRBcnRpZmFjdERvd25sb2FkVXJsEjAuYWkuc3RpZ21lci5hZ2VudGljLnBsdWdpbi52MS5HZXRBcnRpZmFjdFJlcXVlc3QaNy5haS5zdGlnbWVyLmFnZW50aWMucGx1Z2luLnYxLlBsdWdpbkFydGlmYWN0RG93bmxvYWRVcmwiBNC4GAESpQEKCWxpc3RGaWxlcxIyLmFpLnN0aWdtZXIuYWdlbnRpYy5wbHVnaW4udjEuTGlzdFBsdWdpbkZpbGVzSW5wdXQaLC5haS5zdGlnbWVyLmFnZW50aWMucGx1Z2luLnYxLlBsdWdpbkZpbGVMaXN0IjbCuBgyCAEQOiIJcGx1Z2luX2lkKiF1bmF1dGhvcml6ZWQgdG8gcmVhZCBwbHVnaW4gZmlsZXMSpgEKCHJlYWRGaWxlEjEuYWkuc3RpZ21lci5hZ2VudGljLnBsdWdpbi52MS5SZWFkUGx1Z2luRmlsZUlucHV0Gi8uYWkuc3RpZ21lci5hZ2VudGljLnBsdWdpbi52MS5QbHVnaW5GaWxlQ29udGVudCI2wrgYMggBEDoiCXBsdWdpbl9pZCohdW5hdXRob3JpemVkIHRvIHJlYWQgcGx1Z2luIGZpbGVzEoUBCgxsaXN0VmVyc2lvbnMSNS5haS5zdGlnbWVyLmFnZW50aWMucGx1Z2luLnYxLkxpc3RQbHVnaW5WZXJzaW9uc0lucHV0GjguYWkuc3RpZ21lci5hZ2VudGljLnBsdWdpbi52MS5MaXN0UGx1Z2luVmVyc2lvbnNSZXNwb25zZSIE0LgYARoEoP8rOmIGcHJvdG8z", [file_ai_stigmer_agentic_plugin_v1_api, file_ai_stigmer_agentic_plugin_v1_io, file_ai_stigmer_commons_apiresource_io, file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_commons_rpc_method_options]);
 
 /**
  * PluginQueryController handles read operations for plugins.
@@ -87,6 +87,33 @@ export const PluginQueryController: GenService<{
     methodKind: "unary";
     input: typeof GetArtifactRequestSchema;
     output: typeof PluginArtifactDownloadUrlSchema;
+  },
+  /**
+   * List the files of one version of a plugin.
+   *
+   * Returns each file's path, size, SHA-256 and whether it is executable,
+   * in path order. The plugin's eval suite is left out.
+   *
+   * @generated from rpc ai.stigmer.agentic.plugin.v1.PluginQueryController.listFiles
+   */
+  listFiles: {
+    methodKind: "unary";
+    input: typeof ListPluginFilesInputSchema;
+    output: typeof PluginFileListSchema;
+  },
+  /**
+   * Read one file of one version of a plugin.
+   *
+   * Returns the file's bytes, up to 8 MB; a larger file is refused with
+   * FailedPrecondition. The path is matched exactly against the version's
+   * file list.
+   *
+   * @generated from rpc ai.stigmer.agentic.plugin.v1.PluginQueryController.readFile
+   */
+  readFile: {
+    methodKind: "unary";
+    input: typeof ReadPluginFileInputSchema;
+    output: typeof PluginFileContentSchema;
   },
   /**
    * List version history for a plugin.

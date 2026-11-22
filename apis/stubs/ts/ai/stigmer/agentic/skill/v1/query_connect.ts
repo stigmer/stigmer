@@ -3,7 +3,7 @@
 /* eslint-disable */
 // @ts-nocheck
 
-import { GetArtifactRequest, GetArtifactResponse, ListSkillsRequest, ListSkillVersionsInput, ListSkillVersionsResponse, SkillArtifactDownloadUrl, SkillId, SkillList } from "./io_pbjs";
+import { GetArtifactRequest, GetArtifactResponse, ListSkillFilesInput, ListSkillsRequest, ListSkillVersionsInput, ListSkillVersionsResponse, ReadSkillFileInput, SkillArtifactDownloadUrl, SkillFileContent, SkillFileList, SkillId, SkillList } from "./io_pbjs";
 import { Skill } from "./api_pbjs";
 import { MethodKind } from "@bufbuild/protobuf";
 import { ApiResourceReference } from "../../../commons/apiresource/io_pbjs";
@@ -83,6 +83,36 @@ export const SkillQueryController = {
       name: "getArtifactDownloadUrl",
       I: GetArtifactRequest,
       O: SkillArtifactDownloadUrl,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * List the files of one version of a skill.
+     *
+     * Returns each file's path, size, SHA-256 and whether it is executable,
+     * in path order. A plugin's eval suite, when the skill's archive is a
+     * whole plugin, is left out.
+     *
+     * @generated from rpc ai.stigmer.agentic.skill.v1.SkillQueryController.listFiles
+     */
+    listFiles: {
+      name: "listFiles",
+      I: ListSkillFilesInput,
+      O: SkillFileList,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * Read one file of one version of a skill.
+     *
+     * Returns the file's bytes, up to 8 MB; a larger file is refused with
+     * FailedPrecondition. The path is matched exactly against the version's
+     * file list.
+     *
+     * @generated from rpc ai.stigmer.agentic.skill.v1.SkillQueryController.readFile
+     */
+    readFile: {
+      name: "readFile",
+      I: ReadSkillFileInput,
+      O: SkillFileContent,
       kind: MethodKind.Unary,
     },
     /**

@@ -72,6 +72,14 @@ function noServices(calls: string[] = []): HostTurnServices {
     verifyPlugin: async (slug) => {
       calls.push(`verify ${slug}`);
     },
+    listTurnArchives: async () => {
+      calls.push("list archives");
+      return [{ path: "skills/notes/SKILL.md", size: 1, sha256: "a".repeat(64), executable: false }];
+    },
+    readTurnArchiveFile: async (path) => {
+      calls.push(`read ${path}`);
+      return new TextEncoder().encode("x");
+    },
   };
 }
 

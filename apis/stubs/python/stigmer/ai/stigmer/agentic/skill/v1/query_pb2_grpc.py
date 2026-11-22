@@ -42,6 +42,16 @@ class SkillQueryControllerStub(object):
                 request_serializer=ai_dot_stigmer_dot_agentic_dot_skill_dot_v1_dot_io__pb2.GetArtifactRequest.SerializeToString,
                 response_deserializer=ai_dot_stigmer_dot_agentic_dot_skill_dot_v1_dot_io__pb2.SkillArtifactDownloadUrl.FromString,
                 _registered_method=True)
+        self.listFiles = channel.unary_unary(
+                '/ai.stigmer.agentic.skill.v1.SkillQueryController/listFiles',
+                request_serializer=ai_dot_stigmer_dot_agentic_dot_skill_dot_v1_dot_io__pb2.ListSkillFilesInput.SerializeToString,
+                response_deserializer=ai_dot_stigmer_dot_agentic_dot_skill_dot_v1_dot_io__pb2.SkillFileList.FromString,
+                _registered_method=True)
+        self.readFile = channel.unary_unary(
+                '/ai.stigmer.agentic.skill.v1.SkillQueryController/readFile',
+                request_serializer=ai_dot_stigmer_dot_agentic_dot_skill_dot_v1_dot_io__pb2.ReadSkillFileInput.SerializeToString,
+                response_deserializer=ai_dot_stigmer_dot_agentic_dot_skill_dot_v1_dot_io__pb2.SkillFileContent.FromString,
+                _registered_method=True)
         self.listVersions = channel.unary_unary(
                 '/ai.stigmer.agentic.skill.v1.SkillQueryController/listVersions',
                 request_serializer=ai_dot_stigmer_dot_agentic_dot_skill_dot_v1_dot_io__pb2.ListSkillVersionsInput.SerializeToString,
@@ -102,6 +112,28 @@ class SkillQueryControllerServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def listFiles(self, request, context):
+        """List the files of one version of a skill.
+
+        Returns each file's path, size, SHA-256 and whether it is executable,
+        in path order. A plugin's eval suite, when the skill's archive is a
+        whole plugin, is left out.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def readFile(self, request, context):
+        """Read one file of one version of a skill.
+
+        Returns the file's bytes, up to 8 MB; a larger file is refused with
+        FailedPrecondition. The path is matched exactly against the version's
+        file list.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
     def listVersions(self, request, context):
         """List version history for a skill.
 
@@ -140,6 +172,16 @@ def add_SkillQueryControllerServicer_to_server(servicer, server):
                     servicer.getArtifactDownloadUrl,
                     request_deserializer=ai_dot_stigmer_dot_agentic_dot_skill_dot_v1_dot_io__pb2.GetArtifactRequest.FromString,
                     response_serializer=ai_dot_stigmer_dot_agentic_dot_skill_dot_v1_dot_io__pb2.SkillArtifactDownloadUrl.SerializeToString,
+            ),
+            'listFiles': grpc.unary_unary_rpc_method_handler(
+                    servicer.listFiles,
+                    request_deserializer=ai_dot_stigmer_dot_agentic_dot_skill_dot_v1_dot_io__pb2.ListSkillFilesInput.FromString,
+                    response_serializer=ai_dot_stigmer_dot_agentic_dot_skill_dot_v1_dot_io__pb2.SkillFileList.SerializeToString,
+            ),
+            'readFile': grpc.unary_unary_rpc_method_handler(
+                    servicer.readFile,
+                    request_deserializer=ai_dot_stigmer_dot_agentic_dot_skill_dot_v1_dot_io__pb2.ReadSkillFileInput.FromString,
+                    response_serializer=ai_dot_stigmer_dot_agentic_dot_skill_dot_v1_dot_io__pb2.SkillFileContent.SerializeToString,
             ),
             'listVersions': grpc.unary_unary_rpc_method_handler(
                     servicer.listVersions,
@@ -283,6 +325,60 @@ class SkillQueryController(object):
             '/ai.stigmer.agentic.skill.v1.SkillQueryController/getArtifactDownloadUrl',
             ai_dot_stigmer_dot_agentic_dot_skill_dot_v1_dot_io__pb2.GetArtifactRequest.SerializeToString,
             ai_dot_stigmer_dot_agentic_dot_skill_dot_v1_dot_io__pb2.SkillArtifactDownloadUrl.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def listFiles(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/ai.stigmer.agentic.skill.v1.SkillQueryController/listFiles',
+            ai_dot_stigmer_dot_agentic_dot_skill_dot_v1_dot_io__pb2.ListSkillFilesInput.SerializeToString,
+            ai_dot_stigmer_dot_agentic_dot_skill_dot_v1_dot_io__pb2.SkillFileList.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def readFile(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/ai.stigmer.agentic.skill.v1.SkillQueryController/readFile',
+            ai_dot_stigmer_dot_agentic_dot_skill_dot_v1_dot_io__pb2.ReadSkillFileInput.SerializeToString,
+            ai_dot_stigmer_dot_agentic_dot_skill_dot_v1_dot_io__pb2.SkillFileContent.FromString,
             options,
             channel_credentials,
             insecure,

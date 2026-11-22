@@ -96,6 +96,22 @@
           "description": "Mint a URL for downloading a skill artifact over HTTP.\n\n Preferred over getArtifact for anything that might exceed the gRPC\n message-size cap (10MB): the bytes ride HTTP, so the full 100MB skill\n limit is deliverable. Callers should try this first and fall back to\n getArtifact against servers that predate it (UNIMPLEMENTED)."
         },
         {
+          "name": "ListFiles",
+          "inputType": "ListSkillFilesInput",
+          "inputFullType": "ai.stigmer.agentic.skill.v1.ListSkillFilesInput",
+          "outputType": "SkillFileList",
+          "outputFullType": "ai.stigmer.agentic.skill.v1.SkillFileList",
+          "description": "List the files of one version of a skill.\n\n Returns each file's path, size, SHA-256 and whether it is executable,\n in path order. A plugin's eval suite, when the skill's archive is a\n whole plugin, is left out."
+        },
+        {
+          "name": "ReadFile",
+          "inputType": "ReadSkillFileInput",
+          "inputFullType": "ai.stigmer.agentic.skill.v1.ReadSkillFileInput",
+          "outputType": "SkillFileContent",
+          "outputFullType": "ai.stigmer.agentic.skill.v1.SkillFileContent",
+          "description": "Read one file of one version of a skill.\n\n Returns the file's bytes, up to 8 MB; a larger file is refused with\n FailedPrecondition. The path is matched exactly against the version's\n file list."
+        },
+        {
           "name": "ListVersions",
           "inputType": "ListSkillVersionsInput",
           "inputFullType": "ai.stigmer.agentic.skill.v1.ListSkillVersionsInput",
@@ -624,6 +640,128 @@
             "kind": "int64"
           },
           "description": "Size of the artifact ZIP in bytes. Lets clients pre-allocate or\n sanity-check before fetching.",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "ListSkillFilesInput",
+      "description": "ListSkillFilesInput names one version of a skill whose files to list.",
+      "protoType": "ai.stigmer.agentic.skill.v1.ListSkillFilesInput",
+      "protoFile": "apis/ai/stigmer/agentic/skill/v1/io.proto",
+      "fields": [
+        {
+          "name": "SkillId",
+          "jsonName": "skillId",
+          "protoField": "skill_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "System-generated ID of the skill.",
+          "required": true,
+          "validation": {
+            "required": true
+          }
+        },
+        {
+          "name": "VersionHash",
+          "jsonName": "versionHash",
+          "protoField": "version_hash",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The version to read, by its SHA-256 version hash: the skill's current\n version or one in its history. Empty reads the current version.",
+          "required": false,
+          "validation": {
+            "pattern": "^$|^[0-9a-f]{64}$"
+          }
+        }
+      ]
+    },
+    {
+      "name": "SkillFileList",
+      "description": "SkillFileList is the files of one version of a skill.",
+      "protoType": "ai.stigmer.agentic.skill.v1.SkillFileList",
+      "protoFile": "apis/ai/stigmer/agentic/skill/v1/io.proto",
+      "fields": [
+        {
+          "name": "Files",
+          "jsonName": "files",
+          "protoField": "files",
+          "type": {
+            "kind": "array",
+            "elementType": {
+              "kind": "message",
+              "messageType": "SkillFile"
+            }
+          },
+          "description": "The files, in path order.",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "ReadSkillFileInput",
+      "description": "ReadSkillFileInput names one file of one version of a skill.",
+      "protoType": "ai.stigmer.agentic.skill.v1.ReadSkillFileInput",
+      "protoFile": "apis/ai/stigmer/agentic/skill/v1/io.proto",
+      "fields": [
+        {
+          "name": "SkillId",
+          "jsonName": "skillId",
+          "protoField": "skill_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "System-generated ID of the skill.",
+          "required": true,
+          "validation": {
+            "required": true
+          }
+        },
+        {
+          "name": "VersionHash",
+          "jsonName": "versionHash",
+          "protoField": "version_hash",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The version to read, as ListSkillFilesInput.version_hash.",
+          "required": false,
+          "validation": {
+            "pattern": "^$|^[0-9a-f]{64}$"
+          }
+        },
+        {
+          "name": "Path",
+          "jsonName": "path",
+          "protoField": "path",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The file's path, exactly as the version's file list names it.",
+          "required": false,
+          "validation": {
+            "minLength": 1,
+            "maxLength": 4096
+          }
+        }
+      ]
+    },
+    {
+      "name": "SkillFileContent",
+      "description": "SkillFileContent is the bytes of one skill file.",
+      "protoType": "ai.stigmer.agentic.skill.v1.SkillFileContent",
+      "protoFile": "apis/ai/stigmer/agentic/skill/v1/io.proto",
+      "fields": [
+        {
+          "name": "Content",
+          "jsonName": "content",
+          "protoField": "content",
+          "type": {
+            "kind": "bytes"
+          },
+          "description": "The file's bytes.",
           "required": false
         }
       ]

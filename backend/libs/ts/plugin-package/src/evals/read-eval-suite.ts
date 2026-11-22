@@ -234,6 +234,16 @@ export function readEvalSuite(files: PluginFiles): EvalSuite {
 }
 
 /**
+ * The directory the plugin's suite lives in, by the one rule the suite
+ * reader and the skill listing share (`eval-dir.ts`), without reading a
+ * case: what a reader that leaves the suite out needs (the server's table
+ * of an archive's files). `evals` for a package with no manifest.
+ */
+export function evalSuiteDir(files: PluginFiles): string {
+  return resolveEvalDir(detectManifests(new PluginFileIndex(files), new Findings())).dir;
+}
+
+/**
  * A pushed eval: the folder at the archive's root, read as a suite whose
  * mocks may stand in for any server a name could be (the module comment).
  * `dir` is the empty string, the root.

@@ -67,6 +67,7 @@ Rows read `| \`package.Service.method\` | class |`.
 | `ai.stigmer.agentic.memory.v1.MemoryQueryController.list` | paged |
 | `ai.stigmer.agentic.plugin.v1.PluginCommandController.listTools` | exempt: computed, the tools one server of a plugin offers, asked of the server through a runner |
 | `ai.stigmer.agentic.plugin.v1.PluginQueryController.list` | paged |
+| `ai.stigmer.agentic.plugin.v1.PluginQueryController.listFiles` | exempt: the files of one immutable archive version, at most the archive cap's 10,000, answered whole from its table of contents |
 | `ai.stigmer.agentic.plugin.v1.PluginQueryController.listVersions` | paged |
 | `ai.stigmer.agentic.routine.v1.RoutineQueryController.list` | paged |
 | `ai.stigmer.agentic.routine.v1.RoutineQueryController.listByAgent` | paged |
@@ -82,6 +83,7 @@ Rows read `| \`package.Service.method\` | class |`.
 | `ai.stigmer.agentic.session.v1.SessionQueryController.listByChannel` | paged |
 | `ai.stigmer.agentic.session.v1.SessionQueryController.listEvents` | exempt: the session's event stream, paged by token in its own `events` shape, at most 1,000 events a page |
 | `ai.stigmer.agentic.skill.v1.SkillQueryController.list` | paged |
+| `ai.stigmer.agentic.skill.v1.SkillQueryController.listFiles` | exempt: the files of one immutable archive version, at most the archive cap's 10,000, answered whole from its table of contents |
 | `ai.stigmer.agentic.skill.v1.SkillQueryController.listVersions` | paged |
 | `ai.stigmer.agentic.vault.v1.VaultQueryController.list` | paged |
 | `ai.stigmer.billing.license.v1.LicenseQueryController.list` | paged |

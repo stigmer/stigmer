@@ -38,7 +38,7 @@ vi.mock("../archive-mount.js", async (importOriginal) => {
   };
 });
 
-import { PluginTree } from "../plugin-mount.js";
+import { AgentOwnedTree } from "../archive-tree.js";
 
 const entries = [
   { path: "hooks/check", content: new TextEncoder().encode("#!/bin/sh\nexit 0\n") },
@@ -55,7 +55,7 @@ afterEach(() => rmSync(dir, { recursive: true, force: true }));
 
 describe("the tamper guard under faults", () => {
   it("rebuilds a tree it could not read to the end", async () => {
-    const tree = new PluginTree(join(dir, "tree"), entries);
+    const tree = new AgentOwnedTree(join(dir, "tree"), entries, "plugin archive");
     await tree.verify();
     writeFileSync(join(tree.root, "hooks/check"), "#!/bin/sh\nexit 9\n");
     faults.failingReads = 1;
@@ -65,7 +65,7 @@ describe("the tamper guard under faults", () => {
 
   it("refuses a tree that still differs from the archive once written", async () => {
     faults.dropFirstEntry = true;
-    const tree = new PluginTree(join(dir, "tree"), entries);
+    const tree = new AgentOwnedTree(join(dir, "tree"), entries, "plugin archive");
     await expect(tree.verify()).rejects.toThrow("does not match its verified archive after a rebuild");
   });
 });

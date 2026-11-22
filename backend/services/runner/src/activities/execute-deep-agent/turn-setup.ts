@@ -44,7 +44,7 @@ import type { DynamicStructuredTool } from "@langchain/core/tools";
 import type { Command } from "@langchain/langgraph";
 import { createDeepAgent } from "deepagents";
 import { InteractionMode } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
-import { Computer } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
+import { hasComputer } from "../../shared/computer.js";
 
 import type { Config } from "../../config.js";
 import type { TurnInput, TurnSink } from "../../harness/types.js";
@@ -543,11 +543,10 @@ export async function buildEngine(
   const pricing = getModelPricing(modelName);
   const isPlanMode = interactionMode === InteractionMode.PLAN;
   // Whether this turn may run commands: never in plan mode, and never in a
-  // conversation without a computer (SessionStatus.computer; only
-  // COMPUTER_NONE means none, so a conversation from before the setting
-  // keeps its shell). The conversation's computer is every graph's: no
-  // shell for the parent or any subagent.
-  const runsCommands = !isPlanMode && input.session.status?.computer !== Computer.NONE;
+  // conversation without a computer (`shared/computer.ts`). The
+  // conversation's computer is every graph's: no shell for the parent or
+  // any subagent.
+  const runsCommands = !isPlanMode && hasComputer(input.session);
   const shellEnv = runsCommands
     ? buildShellEnv(shellRunValues(input.values))
     : undefined;
@@ -566,7 +565,7 @@ export async function buildEngine(
     mcpIndex: tools.mcpIndex,
     platformServerSlugs: input.mcp.platformServerSlugs,
     admitsRoutedRead,
-    readsSkillContent: skillContentReadCheck(workspace.backend.platformDir),
+    readsSkillContent: skillContentReadCheck(workspace.backend.platformDir, input.skills.treesDir),
   };
 
   // The agent's hooks, run inside the gate before the default
@@ -662,6 +661,7 @@ export async function buildEngine(
   const fileBackend = await mountPlatformRoute(workspaceBackend, {
     workspaceDir: primaryDir,
     platformDir: workspace.backend.platformDir,
+    ...(input.skills.archives !== undefined && { archives: input.skills.archives }),
   });
   const maxToolResultChars = runConfig?.maxToolResultChars || 30_000;
 
@@ -743,6 +743,7 @@ export async function buildEngine(
     scopeBase,
     skills: input.skills.bySubAgent,
     workspaceBackend: workspace.backend,
+    ...(input.skills.archives !== undefined && { archives: input.skills.archives }),
     approvalGate: approvalGateConfig,
     // Capture is universal: every sub-agent gets a CAS-observing backend wired
     // to the SAME per-turn observer as the parent.

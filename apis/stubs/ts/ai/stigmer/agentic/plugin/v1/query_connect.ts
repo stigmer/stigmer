@@ -3,7 +3,7 @@
 /* eslint-disable */
 // @ts-nocheck
 
-import { GetArtifactRequest, GetArtifactResponse, ListPluginsRequest, ListPluginVersionsInput, ListPluginVersionsResponse, PluginArtifactDownloadUrl, PluginId, PluginList } from "./io_pbjs";
+import { GetArtifactRequest, GetArtifactResponse, ListPluginFilesInput, ListPluginsRequest, ListPluginVersionsInput, ListPluginVersionsResponse, PluginArtifactDownloadUrl, PluginFileContent, PluginFileList, PluginId, PluginList, ReadPluginFileInput } from "./io_pbjs";
 import { Plugin } from "./api_pbjs";
 import { MethodKind } from "@bufbuild/protobuf";
 import { ApiResourceReference } from "../../../commons/apiresource/io_pbjs";
@@ -82,6 +82,35 @@ export const PluginQueryController = {
       name: "getArtifactDownloadUrl",
       I: GetArtifactRequest,
       O: PluginArtifactDownloadUrl,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * List the files of one version of a plugin.
+     *
+     * Returns each file's path, size, SHA-256 and whether it is executable,
+     * in path order. The plugin's eval suite is left out.
+     *
+     * @generated from rpc ai.stigmer.agentic.plugin.v1.PluginQueryController.listFiles
+     */
+    listFiles: {
+      name: "listFiles",
+      I: ListPluginFilesInput,
+      O: PluginFileList,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * Read one file of one version of a plugin.
+     *
+     * Returns the file's bytes, up to 8 MB; a larger file is refused with
+     * FailedPrecondition. The path is matched exactly against the version's
+     * file list.
+     *
+     * @generated from rpc ai.stigmer.agentic.plugin.v1.PluginQueryController.readFile
+     */
+    readFile: {
+      name: "readFile",
+      I: ReadPluginFileInput,
+      O: PluginFileContent,
       kind: MethodKind.Unary,
     },
     /**
