@@ -20,7 +20,9 @@ every RPC answers as Unavailable (`pipeline/errors.ts`, `internalError`). The
 store's first connection, at boot, is the exception: it retries for up to 60
 seconds while the database does not answer yet or says it is starting up, so a
 new pod that its NetworkPolicy admits late boots instead of restarting
-(`firstConnection`); a wrong password or database name fails at once. The
+(`firstConnection`); an answer from Postgres such as a wrong password or a
+missing database fails at once, while a TLS fault, which pg cannot tell from a
+network failure by its type, waits out the 60 seconds first. The
 two settings bound the store's pool; a composition's own pools take the default
 size and deadline unless it passes its own (the licensed Enterprise server
 passes these two). Domain code depends on `interface.ts` only — never on a driver

@@ -168,7 +168,10 @@ interface SilentFront {
  * `silentMs` is accepted and never answered, the way a dropped packet looks
  * to the client once the handshake is done; later ones are piped through.
  */
-async function silentFront(databaseUrl: string, silentMs: number): Promise<SilentFront> {
+async function silentFront(
+  databaseUrl: string,
+  silentMs: number,
+): Promise<SilentFront> {
   const target = new URL(databaseUrl);
   const targetPort = target.port === "" ? 5432 : Number(target.port);
   const silentUntil = Date.now() + silentMs;
@@ -217,7 +220,11 @@ describe.skipIf(testDatabaseAdminUrl() === undefined)(
     });
 
     it("opens once a database that stays silent at first answers, logging each retry", async () => {
-      const lines: Array<{ level: string; message: string; fields?: Record<string, unknown> }> = [];
+      const lines: Array<{
+        level: string;
+        message: string;
+        fields?: Record<string, unknown>;
+      }> = [];
       const logger: StoreLogger = {
         debug() {},
         info(message, fields) {
@@ -242,7 +249,8 @@ describe.skipIf(testDatabaseAdminUrl() === undefined)(
         await front.close();
       }
       const retries = lines.filter(
-        (line) => line.message === "the database is not answering yet; retrying",
+        (line) =>
+          line.message === "the database is not answering yet; retrying",
       );
       expect(retries.length).toBeGreaterThan(0);
       expect(retries[0]?.level).toBe("warn");
@@ -250,7 +258,10 @@ describe.skipIf(testDatabaseAdminUrl() === undefined)(
         "Connection terminated due to connection timeout",
       );
       expect(lines).toContainEqual(
-        expect.objectContaining({ level: "info", message: "the database answered" }),
+        expect.objectContaining({
+          level: "info",
+          message: "the database answered",
+        }),
       );
     });
 
@@ -266,14 +277,20 @@ describe.skipIf(testDatabaseAdminUrl() === undefined)(
         },
       };
       const startedAt = Date.now();
-      const failure: unknown = await PostgresStore.open(missing.toString(), logger, {
-        firstConnectionWaitMs: 15_000,
-      }).then(
+      const failure: unknown = await PostgresStore.open(
+        missing.toString(),
+        logger,
+        {
+          firstConnectionWaitMs: 15_000,
+        },
+      ).then(
         () => undefined,
         (error: unknown) => error,
       );
       expect(failure).toBeInstanceOf(DatabaseUnavailableError);
-      expect((failure as DatabaseUnavailableError).cause).toBeInstanceOf(pg.DatabaseError);
+      expect((failure as DatabaseUnavailableError).cause).toBeInstanceOf(
+        pg.DatabaseError,
+      );
       expect(warns).toEqual([]);
       expect(Date.now() - startedAt).toBeLessThan(5_000);
     });

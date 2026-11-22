@@ -265,7 +265,12 @@ describe("the boot's first connection", () => {
       ]);
       expect(lines[0]).toMatchObject({
         message: "the database is not answering yet; retrying",
-        fields: { attempt: 1, waitedMs: 0, waitLimitMs: 20_000, retryInMs: 1_000 },
+        fields: {
+          attempt: 1,
+          waitedMs: 0,
+          waitLimitMs: 20_000,
+          retryInMs: 1_000,
+        },
       });
       expect(typeof lines[0]?.fields?.["error"]).toBe("string");
     } finally {
@@ -274,7 +279,9 @@ describe("the boot's first connection", () => {
   });
 
   it("returns the client once the database answers, and says how long it took", async () => {
-    const timeout = new Error("Connection terminated due to connection timeout");
+    const timeout = new Error(
+      "Connection terminated due to connection timeout",
+    );
     const pool = poolFailing(
       [checkoutFailure(timeout), checkoutFailure(timeout)],
       CLIENT,
@@ -301,7 +308,11 @@ describe("the boot's first connection", () => {
 
   it("retries Postgres saying it is starting up (57P03)", async () => {
     const pool = poolFailing(
-      [checkoutFailure(postgresAnswer("57P03", "the database system is starting up"))],
+      [
+        checkoutFailure(
+          postgresAnswer("57P03", "the database system is starting up"),
+        ),
+      ],
       CLIENT,
     );
     const { logger, now, sleep } = recorder();
@@ -310,23 +321,34 @@ describe("the boot's first connection", () => {
   });
 
   it.each([
-    ["a wrong password", "28P01", 'password authentication failed for user "stigmer"'],
+    [
+      "a wrong password",
+      "28P01",
+      'password authentication failed for user "stigmer"',
+    ],
     ["a missing database", "3D000", 'database "stigmer" does not exist'],
-  ])("fails at once on %s, which waiting will not change", async (_name, code, message) => {
-    const answer = checkoutFailure(postgresAnswer(code, message));
-    const pool = poolFailing([answer], CLIENT);
-    const { logger, lines, sleeps, now, sleep } = recorder();
-    await expect(firstConnection(pool, { logger, now, sleep })).rejects.toBe(answer);
-    expect(pool.attempts()).toBe(1);
-    expect(sleeps).toEqual([]);
-    expect(lines).toEqual([]);
-  });
+  ])(
+    "fails at once on %s, which waiting will not change",
+    async (_name, code, message) => {
+      const answer = checkoutFailure(postgresAnswer(code, message));
+      const pool = poolFailing([answer], CLIENT);
+      const { logger, lines, sleeps, now, sleep } = recorder();
+      await expect(firstConnection(pool, { logger, now, sleep })).rejects.toBe(
+        answer,
+      );
+      expect(pool.attempts()).toBe(1);
+      expect(sleeps).toEqual([]);
+      expect(lines).toEqual([]);
+    },
+  );
 
   it("throws an error that is not a failed checkout at once", async () => {
     const bug = new TypeError("not a checkout failure");
     const pool = poolFailing([bug], CLIENT);
     const { logger, sleeps, now, sleep } = recorder();
-    await expect(firstConnection(pool, { logger, now, sleep })).rejects.toBe(bug);
+    await expect(firstConnection(pool, { logger, now, sleep })).rejects.toBe(
+      bug,
+    );
     expect(sleeps).toEqual([]);
   });
 });

@@ -11,7 +11,11 @@
  *     (requests queued for a connection; above zero for long means the
  *     pool is too small or a query is holding its connections);
  *   - `stigmer.store.pool.checkout_failures`, an observable counter: the
- *     checkouts that ended in `DatabaseUnavailableError` since boot.
+ *     checkouts that ended in `DatabaseUnavailableError` since boot. The
+ *     store's first connection retries at boot while the database does not
+ *     answer yet (store/postgres/pool.ts, `firstConnection`), and each
+ *     failed attempt counts too, so a server that waited for its database
+ *     starts above zero with no request answered Unavailable.
  *
  * No tenant attribute: the pool is the server's, not an organization's.
  *
@@ -58,7 +62,7 @@ function instruments(): Promise<Instruments> {
         STORE_POOL_CHECKOUT_FAILURES,
         {
           description:
-            "Checkouts from the Stigmer server's store pool that failed (the request was answered Unavailable)",
+            "Checkouts from the Stigmer server's store pool that failed: a request answered Unavailable, or a retry of the first connection at boot",
         },
       ),
     };

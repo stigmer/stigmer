@@ -51,12 +51,17 @@
  * checkout retries, with a doubling pause, for a bounded time
  * (DEFAULT_FIRST_CONNECTION_WAIT_MS, inside the operator's 150-second
  * startup budget), and logs each retry. It retries only what can pass on
- * its own: a failure with no answer from Postgres (a timeout, a refusal, a
- * name that does not resolve yet) or Postgres saying it cannot accept
- * connections yet (SQLSTATE 57P03). Any other answer from Postgres (a
- * wrong password, a missing database) is a setting to fix and fails at
- * once. Only the first connection waits: once the store has opened, a
- * failed checkout is a request's Unavailable, as above.
+ * its own: a failure that is not an answer from Postgres (a timeout, a
+ * refusal, a name that does not resolve yet) or Postgres saying it cannot
+ * accept connections yet (SQLSTATE 57P03). Any other answer from Postgres
+ * (a wrong password, a missing database) is a setting to fix and fails at
+ * once. A client-side fault raised before Postgres answers (TLS refused or
+ * an untrusted certificate) carries no SQLSTATE, so it cannot be told from
+ * a network failure by its type and waits out the bound before it fails;
+ * telling them apart by pg's message text would break on a driver update.
+ * Only the first connection waits: once the store has opened, a failed
+ * checkout is a request's Unavailable, as above. Each failed attempt still
+ * counts in `checkoutFailures`, and the pool metric says so.
  *
  * Proven by __tests__/pool.test.ts (a failed open, no database, and the
  * first connection's schedule) and __tests__/pool.postgres.test.ts (a
@@ -249,11 +254,12 @@ export async function firstConnection(
 }
 
 /**
- * True for a failed open that a later attempt can get past: no answer from
- * Postgres at all (pg's own timeout, or a socket error such as a refusal or
- * an unresolved name), or Postgres answering that it cannot accept
- * connections yet. Every other answer from Postgres is a `DatabaseError`
- * that waiting will not change.
+ * True for a failed open that a later attempt may get past: anything that
+ * is not an answer from Postgres (pg's own timeout, a socket error such as
+ * a refusal or an unresolved name, and also a TLS fault, which carries no
+ * SQLSTATE either), or Postgres answering that it cannot accept connections
+ * yet. Every other answer from Postgres is a `DatabaseError` that waiting
+ * will not change.
  */
 function passesOnItsOwn(cause: unknown): boolean {
   if (cause instanceof pg.DatabaseError) {
