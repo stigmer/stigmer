@@ -41,12 +41,11 @@ export function useCustomToolUseCallback(options: {
   const hasHandler = options.onCustomToolUse !== undefined;
 
   useEffect(() => {
-    if (!hasHandler || answerFor === undefined) return;
+    const handler = handlerRef.current;
+    if (handler === undefined || answerFor === undefined) return;
     for (const tool of calls) {
       if (told.current.has(tool.id)) continue;
       told.current.add(tool.id);
-      const handler = handlerRef.current;
-      if (handler === undefined) return;
       const call = toolCallInfoOf(tool, sessionId);
       try {
         const returned: unknown = handler(call, answerFor(tool.id));

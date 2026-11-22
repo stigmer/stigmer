@@ -21,6 +21,7 @@ import { ThreadPresentationContext } from "../ThreadPresentationContext";
 import { ToolCardsContext, type CustomToolAnswer, type ToolCardProps, type ToolCards } from "../tool-cards-context";
 import { CustomToolAnswerContext, useCustomToolAnswers, type AnswerCustomToolUse } from "../CustomToolAnswerContext";
 import { hostCardOf } from "../tool-card";
+import { useCustomToolUseCallback } from "../../session/useCustomToolUseCallback";
 import { toolUse } from "./__fixtures__/fold-values";
 import { customUse, said, status, turnsOf, user } from "./__fixtures__/thread-events";
 
@@ -157,6 +158,20 @@ describe("useCustomToolAnswers", () => {
     await result.current.now!("ok");
     expect(second).toHaveBeenCalledTimes(1);
     expect(first).not.toHaveBeenCalled();
+  });
+});
+
+describe("useCustomToolUseCallback", () => {
+  it("tells the host about a call that arrives later, and never again about one it told", () => {
+    const heard = vi.fn();
+    const a = register({ id: "run_1.a" });
+    const b = register({ id: "run_1.b" });
+    const answerFor = () => async () => undefined;
+    const { rerender } = renderHook(({ calls }) => useCustomToolUseCallback({ calls, sessionId: "s", answerFor, onCustomToolUse: heard }), {
+      initialProps: { calls: [a] },
+    });
+    rerender({ calls: [a, b] });
+    expect(heard.mock.calls.map(([call]) => call.id)).toEqual(["run_1.a", "run_1.b"]);
   });
 });
 
