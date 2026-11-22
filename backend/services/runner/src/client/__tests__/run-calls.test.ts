@@ -98,6 +98,21 @@ describe("StigmerClient.mountRunFiles", () => {
   });
 });
 
+describe("StigmerClient.mountRunFileSets", () => {
+  it("answers the conversation's Files and its earlier outputs, with or without a scoped token", async () => {
+    const entries = [{ fileId: "file_1", mountPath: "a.txt" }];
+    const outputs = [{ fileId: "file_2", mountPath: "reply.md" }];
+    fileMount.mockResolvedValue({ entries, outputs });
+
+    const answered = await newClient().mountRunFileSets("run_1", "scoped-tok");
+    expect(answered).toEqual({ entries, outputs });
+    expect((fileMount.mock.calls[0]![1] as { headers: Record<string, string> }).headers.authorization).toBe("Bearer scoped-tok");
+
+    await newClient().mountRunFileSets("run_1");
+    expect(fileMount.mock.calls[1]![1]).toBeUndefined();
+  });
+});
+
 describe("StigmerClient.claimSessionInput", () => {
   it("names the run, authenticates with the scoped token and answers the messages taken", async () => {
     const events = [{ runId: "run_1" }];
