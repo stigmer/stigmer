@@ -10,7 +10,8 @@ import { createHash } from "node:crypto";
 import { describe, expect, it } from "vitest";
 
 import { MAX_BUFFERED_OUTPUT_BYTES, MAX_BUFFERED_TURN_BYTES, newOutputsBuffer, OutputLimitError, OutputPathError } from "../outputs-buffer.js";
-import { newTurnOffloads, OffloadKeyError } from "../offload-store.js";
+import { MAX_OFFLOAD_BYTES, newTurnOffloads, OffloadKeyError } from "../offload-store.js";
+import { MAX_OUTPUTS_PER_TURN } from "../outputs.js";
 import { makeInMemoryArtifactStorage } from "../../__test-utils__/fake-artifact-storage.js";
 
 const bytes = (size: number): Uint8Array => new Uint8Array(size);
@@ -44,6 +45,16 @@ describe("the outputs buffer", () => {
   });
 });
 
+describe("the outputs buffer's count", () => {
+  it("refuses a turn's output past the most one turn returns, and lists its outputs by path", async () => {
+    const buffer = newOutputsBuffer();
+    for (let i = MAX_OUTPUTS_PER_TURN - 1; i >= 0; i -= 1) await buffer.write(`o-${String(i).padStart(3, "0")}.txt`, bytes(1));
+    await expect(buffer.write("one-more.txt", bytes(1))).rejects.toThrow(/already saved 500 outputs/);
+    await buffer.write("o-000.txt", bytes(2));
+    expect([...buffer.snapshot().keys()].slice(0, 2)).toEqual(["o-000.txt", "o-001.txt"]);
+  });
+});
+
 describe("the set-aside store", () => {
   it("stores under this run and session and reads back only this conversation's keys", async () => {
     const { storage } = makeInMemoryArtifactStorage();
@@ -53,6 +64,11 @@ describe("the set-aside store", () => {
     expect(Buffer.from(await newTurnOffloads(storage, "run_2", "ses_1").read(key)).toString(), "a later turn of the conversation").toBe("long result");
     await expect(newTurnOffloads(storage, "run_9", "ses_other").read(key), "another conversation's turn").rejects.toBeInstanceOf(OffloadKeyError);
     await expect(mine.read("artifacts/run_1/toolcalls/x.txt")).rejects.toBeInstanceOf(OffloadKeyError);
+  });
+
+  it("refuses a result past its bound", async () => {
+    const { storage } = makeInMemoryArtifactStorage();
+    await expect(newTurnOffloads(storage, "run_1", "ses_1").put(bytes(MAX_OFFLOAD_BYTES + 1))).rejects.toBeInstanceOf(OffloadKeyError);
   });
 
   it("refuses bytes that do not match their key", async () => {

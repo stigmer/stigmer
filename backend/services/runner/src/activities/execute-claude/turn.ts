@@ -210,11 +210,13 @@ export async function runClaudeTurn(turn: TurnInput, sink: TurnSink, config: Cla
   // The Claude engine always runs on a computer: the server never plans
   // it for a conversation without one, and a turn that reaches here
   // without one is refused in that sentence, as the server would.
-  if (!turn.workspace.computer) {
-    const refusal = new NoComputerError("The Claude engine");
-    return { kind: "failed", surface: "actionable", message: refusal.message, cause: refusal };
+  let input: ComputerTurnInput;
+  try {
+    input = requireComputer(turn, "The Claude engine");
+  } catch (err) {
+    if (!(err instanceof NoComputerError)) throw err;
+    return { kind: "failed", surface: "actionable", message: err.message, cause: err };
   }
-  const input = requireComputer(turn, "The Claude engine");
   let bridge: McpBridge | undefined;
   const home = getClaudeInvocationDir(input.sessionId, input.executionId, input.turnSeq);
   const observer = captureObserverOf(input);

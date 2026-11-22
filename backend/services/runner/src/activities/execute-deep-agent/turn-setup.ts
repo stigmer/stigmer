@@ -281,6 +281,36 @@ export function buildDeepAgentWorkspace(input: TurnInput): DeepAgentWorkspace {
 }
 
 /**
+ * Whether a `read_file` path opens a skill's files, for a turn's scope
+ * that hides skills: on a disk, by its text and the real path it resolves
+ * to (`shared/skill-mount.ts`); without a computer nothing resolves to a
+ * real path, so by its text alone.
+ */
+export function skillReadCheckOf(disk: DiskWorkspace | undefined, treesDir: string | undefined): (virtualPath: string) => Promise<boolean> {
+  if (disk !== undefined) return skillContentReadCheck(disk.backend.platformDir, treesDir);
+  return async (virtualPath) => isSkillContentPath(virtualPath);
+}
+
+/** The gate's capture inputs for a turn without a tree: nothing is capturable or in git, and nothing is observed. */
+export const NO_TREE_CAPTURE: Pick<ApprovalGateConfig, "isCapturablePath" | "inGitDirectory" | "recordBlockedSecret" | "captureDeleteBefore"> = {
+  isCapturablePath: async () => false,
+  inGitDirectory: async () => false,
+  recordBlockedSecret: async () => {},
+  captureDeleteBefore: async () => {},
+};
+
+/** The gate's capture inputs over the turn's tree, its CAS observer recording; {@link NO_TREE_CAPTURE} without one. */
+export function captureInputsOf(disk: DiskWorkspace | undefined): typeof NO_TREE_CAPTURE {
+  if (disk === undefined) return NO_TREE_CAPTURE;
+  return {
+    isCapturablePath: disk.isCapturablePath,
+    inGitDirectory: disk.inGitDirectory,
+    recordBlockedSecret: (rawPath: string) => disk.casObserver.recordBlockedSecret(rawPath),
+    captureDeleteBefore: (rawPath: string) => disk.casObserver.recordBefore(rawPath),
+  };
+}
+
+/**
  * Connect the runtime's resolved servers (synthesized attachments included)
  * and each saved subagent's servers into LangChain tools, each server once
  * by slug: a server the main agent and a subagent both have is one
@@ -592,11 +622,7 @@ export async function buildEngine(
     mcpIndex: tools.mcpIndex,
     platformServerSlugs: input.mcp.platformServerSlugs,
     admitsRoutedRead,
-    // Without a computer nothing resolves to a real path: a skill's file
-    // is named by its text alone.
-    readsSkillContent: disk !== undefined
-      ? skillContentReadCheck(disk.backend.platformDir, input.skills.treesDir)
-      : async (virtualPath: string) => isSkillContentPath(virtualPath),
+    readsSkillContent: skillReadCheckOf(disk, input.skills.treesDir),
   };
 
   // The agent's hooks, run inside the gate before the default
@@ -627,14 +653,11 @@ export async function buildEngine(
         fileCaptureMode: captureMode,
         fileReviewOff: !(turnWorkspace?.fileReview ?? false),
         fileCaptureSubstrate: turnWorkspace?.captureSubstrate ?? false,
-        isCapturablePath: disk?.isCapturablePath ?? (async () => false),
-        inGitDirectory: disk?.inGitDirectory ?? (async () => false),
         captureIgnored: captureMode && !!artifactStorage,
-        recordBlockedSecret: (rawPath: string) => disk?.casObserver.recordBlockedSecret(rawPath) ?? Promise.resolve(),
         // Pre-delete byte capture (issue #303): a flowing delete's before-bytes
         // are recorded by the gate at authorization time through the SAME
         // shared observer, so the boundary authors a restorable DELETE.
-        captureDeleteBefore: (rawPath: string) => disk?.casObserver.recordBefore(rawPath) ?? Promise.resolve(),
+        ...captureInputsOf(disk),
         unattended: gate.unattended,
         unattendedSkips: gate.unattendedSkips,
         ...(gate.refusedByPerson !== undefined ? { refusedByPerson: gate.refusedByPerson } : {}),
@@ -847,7 +870,7 @@ export async function buildEngine(
       ...middleware,
       createImageRefMiddleware({
         sessionId,
-        ...(storeInputs !== undefined && { readFile: (fileId: string) => readStoredFile(storeInputs, fileId) }),
+        ...(storeInputs !== undefined && { readFile: readStoredFile.bind(undefined, storeInputs) }),
       }),
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
     ] as any,

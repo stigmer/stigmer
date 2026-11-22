@@ -10,6 +10,8 @@ import { create } from "@bufbuild/protobuf";
 import { FileMountSchema, type FileMount } from "@stigmer/apis/ai/stigmer/agentic/file/v1/run_files_pb";
 import { describe, expect, it, vi } from "vitest";
 
+import { DEEP_AGENT_VISION_PROFILE, VisionBudget } from "../attachment-vision.js";
+
 import {
   InputFileNotFoundError,
   InputTooLargeError,
@@ -17,6 +19,8 @@ import {
   newInputCache,
   newTurnInputs,
   NO_TURN_INPUTS,
+  offerStoredImage,
+  readStoredFile,
   type InputFetch,
   type RunFileSets,
 } from "../inputs-reader.js";
@@ -122,5 +126,21 @@ describe("the turn's inputs reader", () => {
     expect((await reader.list()).map((file) => file.path)).toEqual(["uploads/ok.txt"]);
     expect(await NO_TURN_INPUTS.list()).toEqual([]);
     await expect(NO_TURN_INPUTS.read("uploads/a")).rejects.toBeInstanceOf(InputFileNotFoundError);
+  });
+
+  it("offers an image to a model that cannot see without reading it, and answers a File it cannot read as nothing", async () => {
+    const fetch = served({});
+    const reader = newTurnInputs({ org: "org_1", sets: SETS, refetch: async () => SETS, fetch });
+    const blind = new VisionBudget(DEEP_AGENT_VISION_PROFILE, { modelVision: false });
+    const outcome = await offerStoredImage(
+      { fileId: "file_a", mountPath: "brief.txt", filename: "brief.txt", mimeType: "image/png", sizeBytes: 5, relativePath: ".stigmer/uploads/brief.txt" },
+      reader,
+      blind,
+    );
+    expect(outcome.kind).toBe("degraded");
+    expect(fetch.urls).toEqual([]);
+    const failing = newTurnInputs({ org: "org_1", sets: SETS, refetch: async () => SETS, fetch: served({}, () => 500), cache: newInputCache(1024) });
+    expect(await readStoredFile(failing, "file_a")).toBeUndefined();
+    expect(await readStoredFile(failing, "file_unknown")).toBeUndefined();
   });
 });

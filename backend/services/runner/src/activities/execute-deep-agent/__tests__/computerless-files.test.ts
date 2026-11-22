@@ -25,6 +25,7 @@ import type { TurnHookSource, TurnInput } from "../../../harness/types.js";
 import { buildHookEvaluator, HookSetupError } from "../hooks-setup.js";
 import { newOutputsBuffer } from "../../../shared/outputs-buffer.js";
 import type { TurnOffloads } from "../../../shared/offload-store.js";
+import type { TurnArchiveFiles } from "../../../shared/archive-reader.js";
 import { computerlessFileBackend, MAX_NOTE_BYTES, NotesBackend, OFFLOAD_KEYS_ROOT } from "../computerless-files.js";
 import { routesOffloads } from "../platform-route.js";
 import { ScriptedModel, type ScriptedToolCall } from "../__test-utils__/scripted-model.js";
@@ -267,5 +268,69 @@ describe("the notes, read directly over a saved state", () => {
     expect((await notes.read("/plan.md")).content).toContain("step one");
     expect((await notes.downloadFiles(["/plan.md", key, "/missing.md"])).map((answer) => answer.error)).toEqual([null, "file_not_found", "file_not_found"]);
     expect((await notes.uploadFiles([["/up.bin", new Uint8Array([1])]]))[0]?.error).toBe("permission_denied");
+  });
+});
+
+describe("the file layer without a computer — the rest of its answers", () => {
+  it("routes the turn's skills to the store reader", async () => {
+    const archives: TurnArchiveFiles = {
+      folders: ["skills"],
+      list: async () => [{ path: "skills/notes/SKILL.md", size: 5, sha256: "", executable: false }],
+      read: async () => new TextEncoder().encode("# Notes"),
+    };
+    const backend = computerlessFileBackend({ inputs: inputs(), outputs: newOutputsBuffer() }, archives);
+    expect((await backend.read("/.stigmer/skills/notes/SKILL.md")).content).toContain("# Notes");
+  });
+
+  it("answers the rest of .stigmer as nothing, and refuses every change there", async () => {
+    const backend = computerlessFileBackend({ inputs: inputs(), outputs: newOutputsBuffer() }, undefined);
+    const at = "/.stigmer/elsewhere/x.txt";
+    expect((await backend.ls("/.stigmer/elsewhere")).files).toEqual([]);
+    expect((await backend.readRaw(at)).error).toMatch(/no such file/);
+    expect((await backend.grep("x", "/.stigmer/elsewhere")).matches).toEqual([]);
+    expect((await backend.glob("*", "/.stigmer/elsewhere")).files).toEqual([]);
+    expect((await backend.edit(at, "a", "b")).error).toMatch(/read-only/);
+    expect((await backend.delete(at)).error).toMatch(/read-only/);
+    expect((await backend.uploadFiles([[at, new Uint8Array([1])]]))[0]?.error).toBe("permission_denied");
+    expect((await backend.downloadFiles([at]))[0]?.error).toBe("file_not_found");
+  });
+
+  it("edits an output exactly as deepagents does, and answers a path the buffer refuses", async () => {
+    const buffer = newOutputsBuffer();
+    const backend = computerlessFileBackend({ inputs: inputs(), outputs: buffer }, undefined);
+    await backend.write("/.stigmer/outputs/blank.md", "");
+    expect((await backend.edit("/.stigmer/outputs/blank.md", "", "filled")).error).toBeUndefined();
+    expect(Buffer.from((await buffer.read("blank.md"))!).toString()).toBe("filled");
+    await backend.write("/.stigmer/outputs/twice.md", "a a");
+    expect((await backend.edit("/.stigmer/outputs/twice.md", "a", "b")).error).toMatch(/multiple occurrences/);
+    expect((await backend.delete("/.stigmer/outputs/a\\b.md")).error).toMatch(/not a path inside the outputs folder/);
+    const failing = computerlessFileBackend(
+      { inputs: inputs(), outputs: { ...buffer, write: () => Promise.reject(new Error("refused across the pipe")) } },
+      undefined,
+    );
+    expect((await failing.write("/.stigmer/outputs/x.md", "x")).error).toBe("Error: refused across the pipe");
+  });
+
+  it("takes no upload at an offload root, and finds a result never set aside as not found", async () => {
+    const store = offloads();
+    const layer = computerlessFileBackend({ inputs: inputs(), outputs: newOutputsBuffer(), offloads: store }, undefined);
+    expect((await layer.uploadFiles([["/large_tool_results/u.txt", new Uint8Array([1])]]))[0]?.error).toBe("permission_denied");
+    const graph = await graphOver(layer, [[call("missing", "read_file", { file_path: "/large_tool_results/never.txt" })]]);
+    expect((await turn(graph)).get("missing")).toMatch(/no such file|not found/i);
+  });
+});
+
+describe("the notes, read directly over a saved state — changes", () => {
+  const notesOver = (files: Record<string, unknown>) => new NotesBackend(new StateBackend({ state: { files } } as never));
+
+  it("edits, rewrites and deletes a note, an older note's lines included", async () => {
+    const notes = notesOver({
+      "/plan.md": { content: "step one\n", mimeType: "text/plain", created_at: "", modified_at: "" },
+      "/old.md": { content: ["line one", "line two"], created_at: "", modified_at: "" },
+    });
+    expect((await notes.edit("/plan.md", "one", "1")).error).toBeUndefined();
+    expect((await notes.write("/plan.md", "rewritten\n")).error).toBeUndefined();
+    expect((await notes.edit("/old.md", "two", "2")).error).toBeUndefined();
+    expect((await notes.delete("/plan.md")).error).toBeUndefined();
   });
 });

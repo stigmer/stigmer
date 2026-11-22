@@ -62,7 +62,7 @@ import type {
 import type { TurnStoreFiles } from "../../harness/types.js";
 import type { TurnArchiveFiles } from "../../shared/archive-reader.js";
 import { OUTPUTS_SUBDIR } from "../../shared/outputs.js";
-import { OutputLimitError, OutputPathError, type TurnOutputFiles } from "../../shared/outputs-buffer.js";
+import type { TurnOutputFiles } from "../../shared/outputs-buffer.js";
 import { InputFileNotFoundError, type TurnInputFiles } from "../../shared/inputs-reader.js";
 import type { TurnOffloads } from "../../shared/offload-store.js";
 import { editLoosely } from "./loose-edit.js";
@@ -288,13 +288,17 @@ export class StoredOutputsBackend extends StoreContentBackend {
     return files.map(([path]) => ({ path, error: "permission_denied" }));
   }
 
+  /**
+   * Every refusal of the buffer's is the agent's to read: a bound or a path,
+   * and, across the agent host's pipe, those same refusals rebuilt as plain
+   * errors with their sentences.
+   */
   private async save(filePath: string, bytes: Uint8Array): Promise<WriteResult> {
     try {
       await this.buffer.write(filePath, bytes);
       return { path: filePath };
     } catch (err) {
-      if (err instanceof OutputLimitError || err instanceof OutputPathError) return { error: `Error: ${err.message}` };
-      throw err;
+      return { error: `Error: ${err instanceof Error ? err.message : String(err)}` };
     }
   }
 }
@@ -373,7 +377,6 @@ function setAsideSource(prefix: string, offloads: TurnOffloads, state: StateBack
     async list() {
       const files: StoreFileInfo[] = [];
       for (const file of (await state.glob("**", keysDir)).files ?? []) {
-        if (file.is_dir) continue;
         const path = `${folder}/${file.path.slice(keysDir.length)}`;
         const found = await keyOf(path);
         if (found !== undefined) files.push({ path, size: found.size });

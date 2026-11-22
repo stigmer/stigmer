@@ -251,6 +251,17 @@ describe("RunFileController.mount", () => {
     expect(mounts.outputs).toEqual([]);
   });
 
+  it("reads every page of a conversation's outputs", async () => {
+    for (let i = 0; i < 201; i += 1) {
+      await seedOutput(`file_01page${String(i).padStart(3, "0")}`, `out/${i}.md`, "x", 1_000 + i);
+    }
+    await seedSession([]);
+    await seedRun("run_01p", SESSION);
+
+    const mounts = await mount("run_01p", auth.mintRunCredential("run_01p"));
+    expect(mounts.outputs).toHaveLength(201);
+  });
+
   it("never lists another conversation's outputs", async () => {
     await seedOutput("file_01mine", "report.md", "mine", 1_000);
     await seedOutput("file_01theirs", "theirs.md", "theirs", 2_000, { sessionId: "ses_01otherotherotherotherot" });

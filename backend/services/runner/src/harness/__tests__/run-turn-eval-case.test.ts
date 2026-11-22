@@ -27,6 +27,8 @@ import { join } from "node:path";
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { create } from "@bufbuild/protobuf";
 import { RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
+import { Computer } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
+import { SessionStatusSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/status_pb";
 import { EvalCaseContextSchema, EvalMockServerSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/eval_case_pb";
 import { RunConfigSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/invocation_pb";
 import { parseTryStop } from "@stigmer/eval-runtime";
@@ -36,6 +38,8 @@ import type { MockEndpoint, MockEndpointBinding } from "../../shared/eval-case/m
 
 const fakes = vi.hoisted(() => ({
   outcome: undefined as PrepareOutcome | undefined,
+  /** The setup's answer for an agent without a computer, which writes nothing. */
+  withoutDisk: undefined as (PrepareOutcome & { referenceFiles?: ReadonlyMap<string, Uint8Array> }) | undefined,
   prepared: [] as { sessionId: string; primaryDir: string }[],
   bindings: [] as MockEndpointBinding[],
   started: 0,
@@ -54,6 +58,10 @@ vi.mock("../../shared/eval-case/case-archive.js", async (importOriginal) => {
   return { ...actual, fetchCaseArchive: () => Promise.resolve(actual.caseArchiveOf([])) };
 });
 vi.mock("../../shared/eval-case/prepare-case.js", () => ({
+  prepareEvalCaseWithoutDisk: () => {
+    if (fakes.withoutDisk === undefined) throw new Error("no outcome scripted");
+    return fakes.withoutDisk;
+  },
   prepareEvalCase: (args: { sessionId: string; primaryDir: string }) => {
     fakes.prepared.push({ sessionId: args.sessionId, primaryDir: args.primaryDir });
     for (const [path, text] of Object.entries(fakes.writes)) writeFileSync(join(args.primaryDir, path), text);
@@ -125,6 +133,7 @@ describe("run-turn: a eval-run try's own phases", () => {
   beforeEach(() => {
     clock.reset();
     fakes.outcome = undefined;
+    fakes.withoutDisk = undefined;
     fakes.prepared.length = 0;
     fakes.bindings.length = 0;
     fakes.started = 0;
@@ -180,6 +189,21 @@ describe("run-turn: a eval-run try's own phases", () => {
 
     expect(driver.record.persistedPhases.at(-1)).toBe(RunPhase.RUN_TERMINATED);
     expect(parseTryStop(driver.record.lastFullStatus?.error ?? "")).toMatchObject({ kind: "cost-limit", maxCostUsd: 1 });
+  });
+
+  it("without a computer, a prepared case runs with nothing written, and a scaffold settles the try before any engine", async () => {
+    fakes.withoutDisk = { kind: "ready", prepared: { referenceInputs: [], history: undefined, env: { EVAL_X: "1" } }, referenceFiles: new Map() };
+    const ready = tryDriver("eval-no-computer", false);
+    ready.record.session.status = create(SessionStatusSchema, { computer: Computer.NONE });
+    await ready.turn([scenario.say("Done.")]);
+    expect(fakes.prepared, "the disk setup never runs").toHaveLength(0);
+    expect(ready.record.persistedPhases.at(-1)).toBe(RunPhase.RUN_COMPLETED);
+
+    fakes.withoutDisk = { kind: "scaffold-failed", detail: "needs a computer" };
+    const scaffolded = tryDriver("eval-no-computer-scaffold", false);
+    scaffolded.record.session.status = create(SessionStatusSchema, { computer: Computer.NONE });
+    await scaffolded.turn([scenario.say("never")]);
+    expect(scaffolded.record.persistedPhases.at(-1)).toBe(RunPhase.RUN_TERMINATED);
   });
 
   it("a prepared case without mocks starts no endpoint and completes", async () => {

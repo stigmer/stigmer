@@ -154,6 +154,22 @@ describe("RecordAgentWarnings", () => {
     expect(saved.status?.warnings).toEqual([warning("scripted")]);
   });
 
+  it("goes on past a plugin that is gone or whose files cannot be read, and leaves an agent with no spec as it is", async () => {
+    await fx.store.saveResource(
+      ApiResourceKind.plugin,
+      "plg_01broken",
+      PluginSchema,
+      create(PluginSchema, {
+        metadata: { id: "plg_01broken", org: ORG, slug: "broken", name: "broken" },
+        status: { digest: UNREADABLE, artifactStorageKey: `plugins/${UNREADABLE}.zip`, skills: [{ name: "x", path: "skills/x" }] },
+      }),
+    );
+    expect((await save(agentWith(Computer.NONE, ["skl_01scripted"], ["plg_01broken"]))).status?.warnings, "an unreadable plugin costs itself alone").toEqual([warning("scripted")]);
+    expect((await save(agentWith(Computer.NONE, ["skl_01scripted"], ["plg_01gone"]))).status?.warnings, "a plugin that cannot be loaded costs the plugins alone").toEqual([warning("scripted")]);
+    const bare = create(AgentSchema, { metadata: { id: "agt_01bare", org: ORG } });
+    expect((await save(bare)).status).toBeUndefined();
+  });
+
   it("writes status only: the spec it hashes is untouched", async () => {
     const agent = agentWith(Computer.NONE, ["skl_01scripted"], ["plg_01ops"]);
     const before = clone(AgentSchema, agent).spec;

@@ -709,6 +709,22 @@ async function acquireTurnLock(
   return { kind: "acquired", release, waited };
 }
 
+/**
+ * A turn's lock taken, onto the frame the instant it exists, and the run
+ * read again after a wait: the settlement that ends the turn instead (a
+ * wait past its bound, or a run that finished meanwhile), or `undefined`
+ * to go on. One step for a workspace's lock and a conversation's.
+ */
+export async function holdTurnLock(
+  deps: ResolutionDeps,
+  frame: Pick<TurnFrame, "releaseWorkspaceLock">,
+  lock: WorkspaceLockOutcome,
+): Promise<TurnSettlement | undefined> {
+  if (lock.kind === "settled") return lock.settlement;
+  frame.releaseWorkspaceLock = lock.release;
+  return runFinishedWhileWaiting(deps, lock.waited);
+}
+
 /** The phases the server holds as finished: it takes no more status and no more events of such a run. */
 const FINISHED_PHASES: ReadonlySet<RunPhase> = new Set([
   RunPhase.RUN_COMPLETED,
@@ -2118,11 +2134,8 @@ export async function resolveTurnContext(
     frame.primaryDir = workspace.primaryDir;
     frame.writeback = provisioned.writeback;
 
-    const lock = await acquireWorkspaceTurnLock(deps, workspace.primaryDir);
-    if (lock.kind === "settled") return { kind: "settled", settlement: lock.settlement };
-    frame.releaseWorkspaceLock = lock.release;
-    const finished = await runFinishedWhileWaiting(deps, lock.waited);
-    if (finished !== undefined) return { kind: "settled", settlement: finished };
+    const held = await holdTurnLock(deps, frame, await acquireWorkspaceTurnLock(deps, workspace.primaryDir));
+    if (held !== undefined) return { kind: "settled", settlement: held };
     await reconcileOwedUndosPhase(deps, { sessionId, workspace, reconcileTurn: false });
 
     const evalCase = await prepareEvalCasePhase(deps, { spec, sessionId, workspace, values });
@@ -2136,11 +2149,8 @@ export async function resolveTurnContext(
 
     await prepareOutputsPhase(deps, { sessionId, primaryDir: workspace.primaryDir });
   } else {
-    const lock = await acquireConversationTurnLock(deps, sessionId);
-    if (lock.kind === "settled") return { kind: "settled", settlement: lock.settlement };
-    frame.releaseWorkspaceLock = lock.release;
-    const finished = await runFinishedWhileWaiting(deps, lock.waited);
-    if (finished !== undefined) return { kind: "settled", settlement: finished };
+    const held = await holdTurnLock(deps, frame, await acquireConversationTurnLock(deps, sessionId));
+    if (held !== undefined) return { kind: "settled", settlement: held };
     const evalCase = await prepareEvalCaseWithoutComputerPhase(deps, { spec, values });
     if (evalCase.kind === "settled") return { kind: "settled", settlement: evalCase.settlement };
     if (evalCase.prepared !== undefined) {

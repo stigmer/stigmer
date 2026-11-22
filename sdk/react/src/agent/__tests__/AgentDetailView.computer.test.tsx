@@ -80,6 +80,15 @@ describe("AgentDetailView computer", () => {
     }
   });
 
+  it("shows a warning whose sentence does not quote its skill as the server wrote it", async () => {
+    const agent = agentWith({ computer: Computer.NONE });
+    agent.status ??= create(AgentStatusSchema);
+    agent.status.warnings = [create(AgentWarningSchema, { kind: "skill-scripts", message: "a skill carries scripts", skill: "pdf-tools" })];
+    renderAgent(agent);
+    await theSwitch();
+    expect(screen.getByRole("list", { name: COMPUTER_COPY.warningsLabel }).textContent).toBe("a skill carries scripts");
+  });
+
   it("reads on for a computer and for an agent saved before the setting, off for none", async () => {
     for (const [computer, on] of [
       [Computer.REQUIRED, true],

@@ -24,6 +24,7 @@ import {
   savePlanOutput,
 } from "../plan-file.js";
 import { getPlatformDir } from "../workspace/platform-dir.js";
+import { newOutputsBuffer } from "../outputs-buffer.js";
 
 /** Mirrors the runner's content-hash discriminator so tests can assert exact names. */
 function planId(text: string): string {
@@ -104,6 +105,16 @@ describe("isPlanFileName", () => {
     expect(isPlanFileName("plan.md")).toBe(false);
     expect(isPlanFileName("plan.md.bak")).toBe(false);
     expect(isPlanFileName("myplan.md")).toBe(false);
+  });
+});
+
+describe("savePlanOutput without a computer", () => {
+  it("saves the plan into the turn's outputs held in memory, and writes no folder", async () => {
+    const outputs = newOutputsBuffer();
+    const name = await savePlanOutput({ sessionId: "ses_plan_store", planText: "# Plan: ship it\n\n1. Go.\n", outputs });
+    expect(name?.endsWith(".plan.md")).toBe(true);
+    expect(Buffer.from((await outputs.read(name!))!).toString()).toBe("# Plan: ship it\n\n1. Go.\n");
+    expect(existsSync(getPlatformDir("ses_plan_store"))).toBe(false);
   });
 });
 
