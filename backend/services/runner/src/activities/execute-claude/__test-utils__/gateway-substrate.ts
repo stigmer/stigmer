@@ -180,6 +180,7 @@ function factsOf(world: DriveWorld, answer: { decision: ApprovalAction; shown: W
     engineHome: join(world.root, ".engine-home"),
     readsSkillContent: skillContentReadCheck(platformDirOf(world.root)),
     platformReadRoot: world.platformReadRoot,
+    treesReadRoot: "",
     hooks: world.hooks,
     decisions: answer === undefined || answer.decision === ApprovalAction.UNSPECIFIED ? new Map() : new Map([[CALL_ID, answer.decision]]),
     denyMessages: new Map(),

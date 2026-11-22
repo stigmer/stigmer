@@ -1,4 +1,13 @@
+/**
+ * Resolving a turn's skills: the prompt's metadata, the version loaded and
+ * the reader's source for every skill; with a computer, each skill's tree on
+ * disk, its archive cached by its SHA-256 so a later turn downloads it only
+ * when the cache no longer verifies, a degraded SKILL.md-only tree when the
+ * download fails (retried next turn), and a tree a command edited rebuilt
+ * at the next turn start; without one, nothing written at all.
+ */
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { createHash } from "node:crypto";
 import { mkdtempSync, readFileSync, existsSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
@@ -38,6 +47,11 @@ function makeSkillProto(overrides: {
   } as any;
 }
 
+/** A content-addressed storage key for `artifact`, as the server mints one. */
+function keyOf(artifact: Uint8Array): string {
+  return `skills/${createHash("sha256").update(artifact).digest("hex")}.zip`;
+}
+
 function makeRef(slug: string, org = "test-org") {
   return { slug, org, kind: 43 } as any;
 }
@@ -63,6 +77,7 @@ describe("resolveSkills — artifact extraction", () => {
   async function resolveWithMockClient(
     refs: any[],
     clientOverrides: Record<string, any>,
+    mount = true,
   ) {
     const sessionId = `test-session-${Date.now()}`;
 
@@ -80,7 +95,7 @@ describe("resolveSkills — artifact extraction", () => {
     // Re-run resolution for the same session — the mount-cache tests model
     // one session's successive executions, which share the platform dir.
     const resolveAgain = () =>
-      resolveSkills(client, refs, { sessionId, primaryWorkspaceDir: workspaceDir });
+      resolveSkills(client, refs, { sessionId, primaryWorkspaceDir: workspaceDir, mount });
 
     try {
       const result = await resolveAgain();
@@ -200,7 +215,7 @@ describe("resolveSkills — artifact extraction", () => {
     }
   });
 
-  it("re-resolving an unchanged version skips the artifact download (mount cache hit)", async () => {
+  it("re-resolving an unchanged version skips the artifact download (its cached archive verifies)", async () => {
     const artifact = buildZip([
       { name: "SKILL.md", content: "# Cached" },
       { name: "references/guide.md", content: "guide" },
@@ -210,7 +225,7 @@ describe("resolveSkills — artifact extraction", () => {
         name: "cached-skill",
         slug: "cached-skill",
         skillMd: "# Cached",
-        artifactStorageKey: "artifacts/cached.zip",
+        artifactStorageKey: keyOf(artifact),
         versionHash: "hash-v1",
       }),
     );
@@ -230,7 +245,7 @@ describe("resolveSkills — artifact extraction", () => {
       expect(second[0].metadata.name).toBe("cached-skill");
       // Metadata was re-fetched (latest-version freshness)...
       expect(client.getSkillByReference).toHaveBeenCalledTimes(2);
-      // ...but the artifact transfer and rewrite were skipped.
+      // ...but the artifact transfer was skipped: the cached archive verifies.
       expect(client.getSkillArtifactDownloadUrl).toHaveBeenCalledTimes(1);
 
       const skillDir = join(platformDir, "skills", "cached-skill");
@@ -285,14 +300,14 @@ describe("resolveSkills — artifact extraction", () => {
   });
 
   it("does not cache a SKILL.md-only fallback — the next execution retries the download", async () => {
+    const artifact = buildZip([{ name: "references/late.md", content: "finally" }]);
     const proto = makeSkillProto({
       name: "retry-skill",
       slug: "retry-skill",
       skillMd: "# Retry",
-      artifactStorageKey: "artifacts/retry.zip",
+      artifactStorageKey: keyOf(artifact),
       versionHash: "hash-v1",
     });
-    const artifact = buildZip([{ name: "references/late.md", content: "finally" }]);
     const getSkillByReference = vi.fn().mockResolvedValue(proto);
     const getSkillArtifactDownloadUrl = vi
       .fn()
@@ -323,14 +338,14 @@ describe("resolveSkills — artifact extraction", () => {
     }
   });
 
-  it("treats a corrupted mount marker as stale and remounts", async () => {
+  it("downloads again when the cached archive was tampered with, and rebuilds a tree a command edited", async () => {
     const artifact = buildZip([{ name: "references/guide.md", content: "guide" }]);
     const getSkillByReference = vi.fn().mockResolvedValue(
       makeSkillProto({
         name: "tampered-skill",
         slug: "tampered-skill",
         skillMd: "# Tampered",
-        artifactStorageKey: "artifacts/tampered.zip",
+        artifactStorageKey: keyOf(artifact),
         versionHash: "hash-v1",
       }),
     );
@@ -343,11 +358,45 @@ describe("resolveSkills — artifact extraction", () => {
 
     try {
       const skillDir = join(platformDir, "skills", "tampered-skill");
-      writeFileSync(join(skillDir, ".stigmer-mount.json"), "not json {");
+      writeFileSync(join(platformDir, "archives", `${keyOf(artifact).slice("skills/".length)}`), "tampered");
+      writeFileSync(join(skillDir, "references", "guide.md"), "edited by a command");
 
       await resolveAgain();
       expect(client.getSkillArtifactDownloadUrl).toHaveBeenCalledTimes(2);
       expect(readFileSync(join(skillDir, "references", "guide.md"), "utf-8")).toBe("guide");
+    } finally {
+      cleanupPlatformDir(platformDir);
+    }
+  });
+
+  it("writes nothing without a computer, and still returns each skill's reader source", async () => {
+    const artifact = buildZip([{ name: "references/guide.md", content: "guide" }]);
+    const { result, platformDir, client } = await resolveWithMockClient(
+      [makeRef("diskless")],
+      {
+        getSkillByReference: vi.fn().mockResolvedValue(
+          makeSkillProto({ name: "diskless", slug: "diskless", skillMd: "# Diskless", artifactStorageKey: keyOf(artifact), versionHash: "hash-v1" }),
+        ),
+        getSkillArtifactDownloadUrl: vi.fn().mockResolvedValue(mintedDownload(artifact)),
+      },
+      false,
+    );
+
+    try {
+      expect(result).toHaveLength(1);
+      expect(result[0].metadata.path).toBe(".stigmer/skills/diskless/SKILL.md");
+      expect(result[0].source).toEqual({
+        kind: "skill",
+        dir: "skills/diskless",
+        id: "skill-diskless",
+        version: "hash-v1",
+        hasArchive: true,
+        skillMd: "# Diskless",
+      });
+      expect(result[0].mounted).toBeUndefined();
+      expect(client.getSkillArtifactDownloadUrl).not.toHaveBeenCalled();
+      expect(existsSync(platformDir)).toBe(false);
+      expect(existsSync(join(workspaceDir, ".stigmer"))).toBe(false);
     } finally {
       cleanupPlatformDir(platformDir);
     }

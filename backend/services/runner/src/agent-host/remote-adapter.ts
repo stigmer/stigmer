@@ -34,6 +34,7 @@
  * never as the process.
  */
 
+import { ArchiveFileNotFoundError } from "../shared/archive-reader.js";
 import { AsyncLocalStorage } from "node:async_hooks";
 import { randomBytes, randomUUID } from "node:crypto";
 import { posix } from "node:path";
@@ -206,6 +207,17 @@ class RemoteTurn {
           if (!plugin) throw new Error(`plugin '${slug}' is not one of this turn's`);
           await plugin.verify();
           return null;
+        },
+        listTurnArchives: async () => (await input.skills.archives?.list()) ?? [],
+        readTurnArchiveFile: async ({ path }) => {
+          const archives = input.skills.archives;
+          if (archives === undefined) return { missing: true };
+          try {
+            return { content: Buffer.from(await archives.read(path)).toString("base64") };
+          } catch (err) {
+            if (err instanceof ArchiveFileNotFoundError) return { missing: true };
+            throw err;
+          }
         },
         claimInput: async ({ force }) => {
           const messages = await sink.input.claim({ force });

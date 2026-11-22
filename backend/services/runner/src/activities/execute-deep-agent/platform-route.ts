@@ -82,10 +82,22 @@
  *   listing then leaves `.stigmer/` out, as the tree does.
  * Shell commands (a skill's own scripts among them) run in the workspace
  * and resolve `.stigmer/…` through the link.
+ *
+ * WHERE SKILLS AND PLUGINS COME FROM
+ * ----------------------------------
+ * `.stigmer/skills/` and `.stigmer/plugins/` are not read from the platform
+ * folder: when the turn has skills or plugins, each is a route of its own to
+ * {@link StoreContentBackend}, which lists them from the store and fetches a
+ * file when it is opened (`shared/archive-reader.ts`), in every
+ * conversation. The platform folder's own copies (the read-only trees a
+ * conversation with a computer keeps for its commands) are left out of the
+ * platform route's answers, so the file tools read only the verified
+ * version, and a conversation without a computer, which keeps no copy,
+ * reads the same paths.
  */
 
 import { join, posix } from "node:path";
-import { CompositeBackend, FilesystemBackend } from "deepagents";
+import { applyGrepMaxCount, CompositeBackend, FilesystemBackend } from "deepagents";
 import type {
   AnyBackendProtocol,
   BackendProtocolV2,
@@ -106,6 +118,8 @@ import { offloadDirBeside } from "../../shared/workspace/platform-dir.js";
 import { backgroundOutputFileName, type BackgroundOutputPaths } from "../../shared/shell/background-commands.js";
 import { agentFs } from "../../shared/agent-fs.js";
 import { editLoosely } from "./loose-edit.js";
+import type { ArchiveFolder, TurnArchiveFiles } from "../../shared/archive-reader.js";
+import { StoreContentBackend } from "./store-content-backend.js";
 
 /** The route prefix, with the trailing slash `CompositeBackend` needs to match `/.stigmer/x` but never `/.stigmerx`. */
 export const PLATFORM_ROUTE_PREFIX = `/${STIGMER_LOCAL_STATE_DIR}/`;
@@ -152,6 +166,11 @@ function agentPath(routedPath: string, prefix = PLATFORM_ROUTE_PREFIX): string {
   return `${prefix.slice(0, -1)}${routedPath}`;
 }
 
+/** The refusal of a write under `.stigmer/`, by the path inside the platform folder; read by every read-only route. */
+export function readOnlyPlatformContent(routedPath: string): string {
+  return readOnly(routedPath);
+}
+
 function readOnly(routedPath: string): string {
   return (
     `Error: '${agentPath(routedPath)}' is platform content (skills, attached inputs, the approved plan) ` +
@@ -168,8 +187,37 @@ function noPlatformContent(routedPath: string): string {
 
 /** The platform dir, virtual-rooted like every Stigmer backend, refusing every mutation. */
 export class PlatformContentBackend extends FilesystemBackend {
-  constructor(platformDir: string) {
+  /**
+   * `storeFolders` are the folders whose files the store serves on this
+   * turn (the header): the platform folder's own copies of them are left
+   * out of every listing and search here.
+   */
+  constructor(
+    platformDir: string,
+    private readonly storeFolders: readonly ArchiveFolder[] = [],
+  ) {
     super({ rootDir: platformDir, virtualMode: true });
+  }
+
+  override async ls(path: string): Promise<LsResult> {
+    const result = await super.ls(path);
+    return result.files === undefined ? result : { ...result, files: result.files.filter((file) => !this.storeServes(file.path)) };
+  }
+
+  override async grep(pattern: string, path?: string | null, glob?: string | null, maxCount?: number | null): Promise<GrepResult> {
+    const result = await super.grep(pattern, path ?? "/", glob ?? null, null);
+    if (result.matches === undefined) return result;
+    return applyGrepMaxCount({ result: { ...result, matches: result.matches.filter((match) => !this.storeServes(match.path)) }, maxCount });
+  }
+
+  override async glob(pattern: string, path = "/"): Promise<GlobResult> {
+    const result = await super.glob(pattern, path);
+    return result.files === undefined ? result : { ...result, files: result.files.filter((file) => !this.storeServes(file.path)) };
+  }
+
+  /** Whether a path inside the platform folder is one the store serves this turn. */
+  private storeServes(path: string): boolean {
+    return this.storeFolders.some((folder) => path === `/${folder}` || path.startsWith(`/${folder}/`));
   }
 
   override async write(filePath: string): Promise<WriteResult> {
@@ -299,6 +347,22 @@ export class NoPlatformContentBackend implements BackendProtocolV2 {
 }
 
 /**
+ * The platform folder with the turn's skills and plugins routed to the
+ * store (the header): `/skills/` and `/plugins/` inside the platform route,
+ * each to its {@link StoreContentBackend}, everything else to the platform
+ * folder. A folder the turn has nothing in gets no route, so it is listed
+ * only if the platform folder holds it, which it then does not.
+ */
+export class ArchiveRoutedPlatform extends CompositeBackend {
+  constructor(platformDir: string, archives: TurnArchiveFiles) {
+    super(
+      new PlatformContentBackend(platformDir, archives.folders),
+      Object.fromEntries(archives.folders.map((folder) => [`/${folder}/`, new StoreContentBackend(folder, archives)])),
+    );
+  }
+}
+
+/**
  * The workspace backend with `.stigmer/` routed to {@link PLATFORM_ROUTE_PREFIX}'s
  * backend for this turn, when the platform is exposed `.stigmer/outputs/`
  * to {@link OutputsBackend}, and deepagents' offload roots to their
@@ -320,7 +384,7 @@ export class PlatformRoutedBackend extends CompositeBackend {
 
   constructor(
     backend: AnyBackendProtocol,
-    platform: PlatformContentBackend | NoPlatformContentBackend,
+    platform: PlatformContentBackend | ArchiveRoutedPlatform | NoPlatformContentBackend,
     outputs?: OutputsBackend,
     offloads: Readonly<Record<string, OffloadBackend>> = {},
   ) {
@@ -329,7 +393,7 @@ export class PlatformRoutedBackend extends CompositeBackend {
       ...(outputs === undefined ? {} : { [OUTPUTS_ROUTE_PREFIX]: outputs }),
       ...offloads,
     });
-    this.exposesPlatform = platform instanceof PlatformContentBackend;
+    this.exposesPlatform = !(platform instanceof NoPlatformContentBackend);
     this.routesToolResults = DEEPAGENTS_OFFLOAD_ROOT in offloads;
   }
 
@@ -368,6 +432,8 @@ export interface PlatformRouteOptions {
   readonly workspaceDir: string;
   /** The session's platform dir; absent when the session has none. */
   readonly platformDir: string | undefined;
+  /** The turn's skills and plugins, served from the store (the header); absent or empty, none are routed. */
+  readonly archives?: TurnArchiveFiles;
 }
 
 /**
@@ -390,9 +456,10 @@ export async function mountPlatformRoute(
   if (!(await stigmerSymlinkPointsAt(workspaceDir, platformDir))) {
     return new PlatformRoutedBackend(backend, new NoPlatformContentBackend(), undefined, offloads);
   }
+  const archives = options.archives;
   return new PlatformRoutedBackend(
     backend,
-    new PlatformContentBackend(platformDir),
+    archives !== undefined && archives.folders.length > 0 ? new ArchiveRoutedPlatform(platformDir, archives) : new PlatformContentBackend(platformDir),
     new OutputsBackend(join(platformDir, OUTPUTS_SUBDIR)),
     offloads,
   );

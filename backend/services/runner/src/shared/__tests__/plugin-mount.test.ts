@@ -27,7 +27,7 @@
  */
 
 import { createHash } from "node:crypto";
-import { chmodSync, existsSync, lstatSync, mkdtempSync, readFileSync, rmSync, statSync, symlinkSync, unlinkSync, writeFileSync } from "node:fs";
+import { chmodSync, existsSync, lstatSync, mkdirSync, mkdtempSync, readFileSync, rmSync, statSync, symlinkSync, unlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -38,7 +38,8 @@ import { buildZip } from "@stigmer/zip-structure/testing";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { StigmerClient } from "../../client/stigmer-client.js";
 import { archiveFileMode } from "../archive-mount.js";
-import { manifestEvalDir, mountPlugin, PluginMountError, PluginTree, PLUGINS_SUBDIR, withoutEvalSuite } from "../plugin-mount.js";
+import { AgentOwnedTree, ARCHIVES_SUBDIR } from "../archive-tree.js";
+import { manifestEvalDir, mountPlugin, PluginMountError, PLUGINS_SUBDIR, withoutEvalSuite } from "../plugin-mount.js";
 import { mintedDownload } from "../../__test-utils__/minted-download.js";
 
 const FILES = {
@@ -78,37 +79,37 @@ function clientServing(bytes: Uint8Array): StigmerClient & { getPluginArtifactDo
 describe("mountPlugin", () => {
   it("mounts the verified archive as a tree, scripts executable, and caches the archive", async () => {
     const client = clientServing(archive);
-    const mounted = await mountPlugin(client, pluginRecord(), platformDir);
+    const mounted = await mountPlugin(client, pluginRecord(), platformDir, "ses-1");
     expect(mounted).toMatchObject({ slug: "safety", name: "Safety Rails" });
     expect(mounted.root).toBe(join(platformDir, PLUGINS_SUBDIR, digest));
     expect(readFileSync(join(mounted.root, "hooks/hooks.json"), "utf-8")).toBe(FILES["hooks/hooks.json"]);
     expect(statSync(join(mounted.root, "hooks/check")).mode & 0o100).toBe(0o100);
     expect(statSync(join(mounted.root, "hooks/hooks.json")).mode & 0o100).toBe(0);
     expect(existsSync(mounted.data)).toBe(true);
-    expect(existsSync(join(platformDir, PLUGINS_SUBDIR, `${digest}.zip`))).toBe(true);
+    expect(existsSync(join(platformDir, ARCHIVES_SUBDIR, `${digest}.zip`))).toBe(true);
 
-    await mountPlugin(client, pluginRecord(), platformDir);
+    await mountPlugin(client, pluginRecord(), platformDir, "ses-1");
     expect(client.getPluginArtifactDownloadUrl).toHaveBeenCalledTimes(1);
   });
 
   it("fetches again when the cached archive no longer hashes to the digest", async () => {
     const client = clientServing(archive);
-    await mountPlugin(client, pluginRecord(), platformDir);
-    writeFileSync(join(platformDir, PLUGINS_SUBDIR, `${digest}.zip`), "tampered");
-    const mounted = await mountPlugin(client, pluginRecord(), platformDir);
+    await mountPlugin(client, pluginRecord(), platformDir, "ses-1");
+    writeFileSync(join(platformDir, ARCHIVES_SUBDIR, `${digest}.zip`), "tampered");
+    const mounted = await mountPlugin(client, pluginRecord(), platformDir, "ses-1");
     expect(client.getPluginArtifactDownloadUrl).toHaveBeenCalledTimes(2);
     expect(readFileSync(join(mounted.root, "hooks/check"), "utf-8")).toBe(FILES["hooks/check"]);
   });
 
   it("refuses an archive that does not match the installed digest", async () => {
-    await expect(mountPlugin(clientServing(archive), pluginRecord({ digest: "0".repeat(64) }), platformDir)).rejects.toThrow(
+    await expect(mountPlugin(clientServing(archive), pluginRecord({ digest: "0".repeat(64) }), platformDir, "ses-1")).rejects.toThrow(
       "the plugin 'safety' could not be mounted: the fetched archive does not match the installed version's digest",
     );
   });
 
   it("refuses a plugin with no installed archive, or a server with no bytes", async () => {
-    await expect(mountPlugin(clientServing(archive), pluginRecord({ key: "" }), platformDir)).rejects.toBeInstanceOf(PluginMountError);
-    await expect(mountPlugin(clientServing(new Uint8Array()), pluginRecord(), platformDir)).rejects.toThrow("the server holds no archive");
+    await expect(mountPlugin(clientServing(archive), pluginRecord({ key: "" }), platformDir, "ses-1")).rejects.toBeInstanceOf(PluginMountError);
+    await expect(mountPlugin(clientServing(new Uint8Array()), pluginRecord(), platformDir, "ses-1")).rejects.toThrow("the server holds no archive");
   });
 
   it("refuses when the archive cannot be fetched", async () => {
@@ -117,22 +118,22 @@ describe("mountPlugin", () => {
         throw new ConnectError("denied", Code.PermissionDenied);
       }),
     } as unknown as StigmerClient;
-    await expect(mountPlugin(client, pluginRecord(), platformDir)).rejects.toThrow("its archive could not be fetched");
+    await expect(mountPlugin(client, pluginRecord(), platformDir, "ses-1")).rejects.toThrow("its archive could not be fetched");
   });
 
   it("refuses an archive holding no files", async () => {
     const empty = buildZip([]);
     const emptyDigest = createHash("sha256").update(empty).digest("hex");
-    await expect(mountPlugin(clientServing(empty), pluginRecord({ digest: emptyDigest }), platformDir)).rejects.toThrow("holds no files");
+    await expect(mountPlugin(clientServing(empty), pluginRecord({ digest: emptyDigest }), platformDir, "ses-1")).rejects.toThrow("holds no files");
   });
 });
 
 describe("the tamper guard", () => {
-  let tree: PluginTree;
+  let tree: AgentOwnedTree;
   const entries = () => Object.entries(FILES).map(([path, text]) => ({ path, content: new TextEncoder().encode(text) }));
 
   beforeEach(async () => {
-    tree = new PluginTree(join(platformDir, "tree"), entries());
+    tree = new AgentOwnedTree(join(platformDir, "tree"), entries(), "plugin archive");
     await tree.verify();
   });
 
@@ -187,7 +188,7 @@ describe("the tamper guard", () => {
   });
 
   it("refuses an entry that escapes the mount", () => {
-    expect(() => new PluginTree(join(platformDir, "tree2"), [{ path: "../outside", content: new Uint8Array([1]) }])).toThrow(
+    expect(() => new AgentOwnedTree(join(platformDir, "tree2"), [{ path: "../outside", content: new Uint8Array([1]) }], "plugin archive")).toThrow(
       "plugin archive entry escapes its mount directory",
     );
   });
@@ -226,7 +227,7 @@ describe("the eval suite is not mounted", () => {
 
   it("leaves evals/ and a configured quality/evals out of the tree, and keeps it so across checks", async () => {
     const bytes = buildZip(Object.entries(suiteFiles).map(([name, content]) => ({ name, content })));
-    const mounted = await mountPlugin(clientServing(bytes), suitePlugin(bytes, "quality/evals"), platformDir);
+    const mounted = await mountPlugin(clientServing(bytes), suitePlugin(bytes, "quality/evals"), platformDir, "ses-1");
     expect(existsSync(join(mounted.root, "evals"))).toBe(false);
     expect(existsSync(join(mounted.root, "quality/evals"))).toBe(false);
     expect(readFileSync(join(mounted.root, "quality/notes.md"), "utf-8")).toBe("kept");
@@ -246,7 +247,7 @@ describe("the eval suite is not mounted", () => {
 
   it("skips evals/ even when the install recorded no suite, and mounts a directory no manifest moved the suite to", async () => {
     const bytes = buildZip(Object.entries(suiteFiles).map(([name, content]) => ({ name, content })));
-    const mounted = await mountPlugin(clientServing(bytes), suitePlugin(bytes, undefined), platformDir);
+    const mounted = await mountPlugin(clientServing(bytes), suitePlugin(bytes, undefined), platformDir, "ses-1");
     expect(existsSync(join(mounted.root, "evals"))).toBe(false);
     expect(existsSync(join(mounted.root, "quality/evals/other/prompt.md"))).toBe(true);
   });
@@ -256,7 +257,7 @@ describe("the eval suite is not mounted", () => {
       const files = { ...suiteFiles, ".claude-plugin/plugin.json": '{"name":"safety"}', [manifest]: '{"name":"safety","experimental":{"evals":"quality/evals"}}' };
       const bytes = buildZip(Object.entries(files).map(([name, content]) => ({ name, content })));
       const root = join(platformDir, manifest.slice(1, 7));
-      const mounted = await mountPlugin(clientServing(bytes), suitePlugin(bytes, undefined), root);
+      const mounted = await mountPlugin(clientServing(bytes), suitePlugin(bytes, undefined), root, "ses-1");
       expect(existsSync(join(mounted.root, "quality/evals")), manifest).toBe(false);
       expect(existsSync(join(mounted.root, "evals")), manifest).toBe(false);
       expect(readFileSync(join(mounted.root, "quality/notes.md"), "utf-8"), manifest).toBe("kept");
@@ -269,7 +270,7 @@ describe("the eval suite is not mounted", () => {
       const files = { ...suiteFiles, ".claude-plugin/plugin.json": JSON.stringify({ name: "safety", experimental: { evals: value } }) };
       const bytes = buildZip(Object.entries(files).map(([name, content]) => ({ name, content })));
       const root = join(platformDir, `u${unusable.indexOf(value)}`);
-      const mounted = await mountPlugin(clientServing(bytes), suitePlugin(bytes, undefined), root);
+      const mounted = await mountPlugin(clientServing(bytes), suitePlugin(bytes, undefined), root, "ses-1");
       expect(existsSync(join(mounted.root, "evals")), String(value)).toBe(false);
       expect(existsSync(join(mounted.root, "quality/evals/other/prompt.md")), String(value)).toBe(true);
     }
@@ -280,7 +281,7 @@ describe("the eval suite is not mounted", () => {
       const files = { ...suiteFiles, ".claude-plugin/plugin.json": JSON.stringify({ name: "safety", experimental: { evals: value } }) };
       const bytes = buildZip(Object.entries(files).map(([name, content]) => ({ name, content })));
       const root = join(platformDir, createHash("sha256").update(JSON.stringify(value)).digest("hex").slice(0, 8));
-      const mounted = await mountPlugin(clientServing(bytes), suitePlugin(bytes, undefined), root);
+      const mounted = await mountPlugin(clientServing(bytes), suitePlugin(bytes, undefined), root, "ses-1");
       expect(existsSync(join(mounted.root, "quality/evals")), JSON.stringify(value)).toBe(false);
       expect(readFileSync(join(mounted.root, "quality/notes.md"), "utf-8"), JSON.stringify(value)).toBe("kept");
     }
@@ -310,7 +311,7 @@ describe("the eval suite is not mounted", () => {
       const files = { ...skillFiles, ".claude-plugin/plugin.json": '{"name":"safety"}', ...manifests };
       const bytes = buildZip(Object.entries(files).map(([name, content]) => ({ name, content })));
       const root = join(platformDir, createHash("sha256").update(label).digest("hex").slice(0, 8));
-      const mounted = await mountPlugin(clientServing(bytes), suitePlugin(bytes, "evals"), root);
+      const mounted = await mountPlugin(clientServing(bytes), suitePlugin(bytes, "evals"), root, "ses-1");
       expect(existsSync(join(mounted.root, "skills/alpha/SKILL.md")), label).toBe(true);
       expect(existsSync(join(mounted.root, "skills/alpha/references/REF.md")), label).toBe(true);
       expect(existsSync(join(mounted.root, "extra/one/SKILL.md")), label).toBe(true);
@@ -331,7 +332,7 @@ describe("the eval suite is not mounted", () => {
       const files = { ...suiteFiles, "skills-tests/c/prompt.md": "Hi.", ".claude-plugin/plugin.json": manifest };
       const bytes = buildZip(Object.entries(files).map(([name, content]) => ({ name, content })));
       const root = join(platformDir, createHash("sha256").update(manifest).digest("hex").slice(0, 8));
-      const mounted = await mountPlugin(clientServing(bytes), suitePlugin(bytes, undefined), root);
+      const mounted = await mountPlugin(clientServing(bytes), suitePlugin(bytes, undefined), root, "ses-1");
       expect(existsSync(join(mounted.root, dir)), manifest).toBe(false);
     }
   });
@@ -341,7 +342,7 @@ describe("the eval suite is not mounted", () => {
       const files = { ...suiteFiles, ".claude-plugin/plugin.json": text };
       const bytes = buildZip(Object.entries(files).map(([name, content]) => ({ name, content })));
       const root = join(platformDir, createHash("sha256").update(text).digest("hex").slice(0, 8));
-      const mounted = await mountPlugin(clientServing(bytes), suitePlugin(bytes, undefined), root);
+      const mounted = await mountPlugin(clientServing(bytes), suitePlugin(bytes, undefined), root, "ses-1");
       expect(existsSync(join(mounted.root, "evals")), text).toBe(false);
       expect(existsSync(join(mounted.root, "quality/evals/other/prompt.md")), text).toBe(true);
     }
@@ -365,12 +366,13 @@ describe("the eval suite is not mounted", () => {
   it("never caches an archive carrying a suite, and removes a cached copy an earlier runner left", async () => {
     const bytes = buildZip(Object.entries(suiteFiles).map(([name, content]) => ({ name, content })));
     const plugin = suitePlugin(bytes, undefined);
-    const cachePath = join(platformDir, PLUGINS_SUBDIR, `${plugin.status?.digest ?? ""}.zip`);
-    await mountPlugin(clientServing(bytes), plugin, platformDir);
+    const cachePath = join(platformDir, ARCHIVES_SUBDIR, `${plugin.status?.digest ?? ""}.zip`);
+    await mountPlugin(clientServing(bytes), plugin, platformDir, "ses-1");
     expect(existsSync(cachePath)).toBe(false);
 
+    mkdirSync(dirname(cachePath), { recursive: true });
     writeFileSync(cachePath, bytes);
-    await mountPlugin(clientServing(bytes), plugin, platformDir);
+    await mountPlugin(clientServing(bytes), plugin, platformDir, "ses-1");
     expect(existsSync(cachePath)).toBe(false);
   });
 

@@ -33,7 +33,7 @@ import { EvalQueryController } from "@stigmer/apis/ai/stigmer/agentic/eval/v1/qu
 import { GetRunEvalCaseArchiveInputSchema, RunEvalCaseController } from "@stigmer/apis/ai/stigmer/agentic/eval/v1/run_eval_case_pb";
 import type { EvalArchive, EvalArchiveDownloadUrl } from "@stigmer/apis/ai/stigmer/agentic/eval/v1/io_pb";
 import type { Plugin } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/api_pb";
-import type { PluginArtifactDownloadUrl } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/io_pb";
+import type { PluginArtifactDownloadUrl, PluginFileList } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/io_pb";
 import type { Run, RunStatus } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 import type { Session } from "@stigmer/apis/ai/stigmer/agentic/session/v1/api_pb";
 import type { SessionEvent } from "@stigmer/apis/ai/stigmer/agentic/session/v1/event_pb";
@@ -45,7 +45,7 @@ import type { Agent } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb";
 import type { AgentVersionEntry } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/version_pb";
 import type { Skill } from "@stigmer/apis/ai/stigmer/agentic/skill/v1/api_pb";
 import type { ApiResourceReference } from "@stigmer/apis/ai/stigmer/commons/apiresource/io_pb";
-import type { SkillArtifactDownloadUrl } from "@stigmer/apis/ai/stigmer/agentic/skill/v1/io_pb";
+import type { SkillArtifactDownloadUrl, SkillFileList } from "@stigmer/apis/ai/stigmer/agentic/skill/v1/io_pb";
 import { create } from "@bufbuild/protobuf";
 import { RunUpdateStatusInputSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/io_pb";
 import type { UpdateStatusResponse } from "@stigmer/apis/ai/stigmer/agentic/run/v1/io_pb";
@@ -722,6 +722,30 @@ export class StigmerClient {
   /** Mint an HTTP download URL for a plugin archive, the skill lane's twin. */
   async getPluginArtifactDownloadUrl(artifactStorageKey: string): Promise<PluginArtifactDownloadUrl> {
     return this.pluginQuery.getArtifactDownloadUrl({ artifactStorageKey });
+  }
+
+  /**
+   * The files of one version of a skill (`version` empty for its head's
+   * stored archive), under the caller's own access: the runner's reader of
+   * skill files (`shared/archive-reader.ts`).
+   */
+  async listSkillFiles(skillId: string, versionHash: string): Promise<SkillFileList> {
+    return this.skillQuery.listFiles({ skillId, versionHash });
+  }
+
+  /** One file of one version of a skill, its bytes alone. */
+  async readSkillFile(skillId: string, versionHash: string, path: string): Promise<Uint8Array> {
+    return (await this.skillQuery.readFile({ skillId, versionHash, path })).content;
+  }
+
+  /** The files of one version of a plugin, the skill reader's twin. */
+  async listPluginFiles(pluginId: string, digest: string): Promise<PluginFileList> {
+    return this.pluginQuery.listFiles({ pluginId, digest });
+  }
+
+  /** One file of one version of a plugin, its bytes alone. */
+  async readPluginFile(pluginId: string, digest: string, path: string): Promise<Uint8Array> {
+    return (await this.pluginQuery.readFile({ pluginId, digest, path })).content;
   }
 
   /**

@@ -259,7 +259,7 @@ function ready(result: Awaited<ReturnType<typeof run>>["result"]) {
 describe("resolveSubagents: what a subagent runs with", () => {
   it("resolves nothing, and reports nothing, for a turn whose agent lists no subagent", async () => {
     const { result, labels } = await run([]);
-    expect(result).toEqual({ kind: "ready", subagents: [], loadedSkills: [], mounts: { skills: [], plugins: [] } });
+    expect(result).toEqual({ kind: "ready", subagents: [], loadedSkills: [], mounts: { skills: [], plugins: [], archives: [], trees: [] }, sources: [] });
     expect(labels).toEqual([]);
   });
 
@@ -269,7 +269,7 @@ describe("resolveSubagents: what a subagent runs with", () => {
       c,
       capabilities: { harness: Harness.STIGMER, subAgents: false },
     });
-    expect(result).toEqual({ kind: "ready", subagents: [], loadedSkills: [], mounts: { skills: [], plugins: [] } });
+    expect(result).toEqual({ kind: "ready", subagents: [], loadedSkills: [], mounts: { skills: [], plugins: [], archives: [], trees: [] }, sources: [] });
     expect(labels).toEqual([]);
     expect(fetches).toEqual([]);
   });
@@ -372,16 +372,18 @@ describe("resolveSubagents: what a subagent runs with", () => {
     expect(loaded.map((r) => [r.org, r.id, r.version]), "its own skill by id at its version; its plugin's is named by the digest").toEqual([
       ["acme", "skill-alpha", "hash-alpha"],
     ]);
-    expect(result.kind === "ready" ? result.mounts : undefined, "what it mounted, which the platform folder keeps").toEqual({
+    expect(result.kind === "ready" ? result.mounts : undefined, "what it mounted, which the platform folder keeps").toMatchObject({
       skills: ["alpha"],
       plugins: [DIGEST],
+      archives: [DIGEST],
+      trees: [expect.stringMatching(/^skill-[0-9a-f]{64}$/), `plugin-${DIGEST}`],
     });
   });
 
-  it("mounts a skill the main agent also has once: the second resolution hits the hash-keyed marker", async () => {
+  it("mounts a skill the main agent also has once: the second resolution finds the tree already holds it", async () => {
     const { client: c, fetches } = client(["shared"]);
     const { deps } = depsWith(c);
-    const writes = vi.spyOn(await import("../../shared/skill-mount.js"), "writeSkillMount");
+    const writes = vi.spyOn(await import("../../shared/archive-mount.js"), "writeArchiveEntries");
     const { skills: root } = await mountSkills(deps, {
       blueprint: turnInputFixture({ sessionId, blueprint: { mergedSkillRefs: [ref("shared")] } }).blueprint,
       sessionId,

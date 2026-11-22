@@ -354,6 +354,8 @@ export interface GateFacts {
   readonly readsSkillContent: (workspacePath: string) => Promise<boolean>;
   /** The real path a confined `Read` reaches files inside (`shared/workspace/stigmer-link.ts` `platformReadRoot`); "" on a turn with no platform link. */
   readonly platformReadRoot: string;
+  /** The real path of the session's runner-owned skill trees, the second root a confined `Read` reaches (`stigmer-link.ts` `treesReadRoot`); "" when there are none. */
+  readonly treesReadRoot: string;
   /** Every caller's hooks (`hooks.ts`). */
   readonly hooks: TurnHookEvaluators;
   /** A person's answers to this run's WAITING rows, by call id (`TurnInput.approvalDecisions`). */
@@ -390,6 +392,7 @@ export interface GateFactSources {
     readonly engineHome: string;
     readonly readsSkillContent: GateFacts["readsSkillContent"];
     readonly platformReadRoot: string;
+    readonly treesReadRoot: string;
   };
   readonly isCapturablePath: (workspacePath: string) => Promise<boolean>;
   /** Whether a path resolves into the repository's `.git` directory once links are followed. */
@@ -754,7 +757,7 @@ export class ClaudeGate {
   private async readsPlatformContent(path: JudgedPath): Promise<boolean> {
     if (path.kind === "none") return false;
     const absolute = path.kind === "outside" ? path.absolute : join(this.facts.primaryDir, path.workspacePath);
-    return readsPlatformContent(this.facts.platformReadRoot, absolute);
+    return readsPlatformContent(this.facts.platformReadRoot, absolute, this.facts.treesReadRoot);
   }
 
   /** Whether a read opens a skill's files: through `.stigmer`, in the platform folder, or the copies in the engine's home. */

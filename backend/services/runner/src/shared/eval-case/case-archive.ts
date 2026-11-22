@@ -39,7 +39,8 @@ import type { EvalArchiveDownloadUrl } from "@stigmer/apis/ai/stigmer/agentic/ev
 import type { EvalCaseContext } from "@stigmer/apis/ai/stigmer/agentic/run/v1/eval_case_pb";
 import type { StigmerClient } from "../../client/stigmer-client.js";
 import { downloadArchive } from "../archive-mount.js";
-import { cleanEntryPath, sha256Hex } from "../plugin-mount.js";
+import { cleanEntryPath } from "../plugin-mount.js";
+import { sha256Hex } from "../archive-tree.js";
 import { extractZipFileEntries } from "../zip-extract.js";
 
 /** A case's archive, read once for the turn. */

@@ -220,16 +220,37 @@ export async function platformReadRoot(workspaceDir: string, platformDir: string
 }
 
 /**
- * Whether a read of `absolutePath` opens the platform's content: its REAL
- * path lies inside `readRoot` ({@link platformReadRoot}). Real path, not
- * prefix: a repository's own `.stigmer` on an unlinked turn, or a link inside
- * platform content pointing out, would otherwise stretch the confinement to
- * any target. A missing file, or a turn with no root, admits nothing.
+ * The real path of the session's runner-owned skill and plugin trees
+ * (`shared/archive-tree.ts`), the second root a confined `Read` reaches
+ * platform content inside: where the runner separates, the platform folder's
+ * `skills/` and `plugins/` are links into it. "" on a turn with no platform
+ * link ({@link platformReadRoot}), or with no such folder. The folder is
+ * root-owned and holds only what the runner unpacked, so admitting it
+ * stretches the confinement to nothing the agent can choose.
  */
-export async function readsPlatformContent(readRoot: string, absolutePath: string): Promise<boolean> {
-  if (readRoot === "") return false;
+export async function treesReadRoot(workspaceDir: string, platformDir: string, treesDir: string | undefined): Promise<string> {
+  if (treesDir === undefined || !(await stigmerSymlinkPointsAt(workspaceDir, platformDir))) return "";
   try {
-    return (await agentFs().realpath(absolutePath)).startsWith(readRoot + sep);
+    return await agentFs().realpath(treesDir);
+  } catch {
+    return "";
+  }
+}
+
+/**
+ * Whether a read of `absolutePath` opens the platform's content: its REAL
+ * path lies inside `readRoot` ({@link platformReadRoot}) or `treesRoot`
+ * ({@link treesReadRoot}). Real path, not prefix: a repository's own
+ * `.stigmer` on an unlinked turn, or a link inside platform content
+ * pointing out, would otherwise stretch the confinement to any target. A
+ * missing file, or a turn with no root, admits nothing.
+ */
+export async function readsPlatformContent(readRoot: string, absolutePath: string, treesRoot = ""): Promise<boolean> {
+  const roots = [readRoot, treesRoot].filter((root) => root !== "");
+  if (roots.length === 0) return false;
+  try {
+    const real = await agentFs().realpath(absolutePath);
+    return roots.some((root) => real.startsWith(root + sep));
   } catch {
     return false;
   }
