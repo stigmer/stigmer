@@ -216,7 +216,7 @@ export class PlatformContentBackend extends FilesystemBackend {
 
   /** Whether a path inside the platform folder is one the store serves this turn. */
   private storeServes(path: string): boolean {
-    return this.storeFolders.some((folder) => path === `/${folder}` || path.startsWith(`/${folder}/`));
+    return this.storeFolders.some((folder) => path.startsWith(`/${folder}/`));
   }
 
   override async write(filePath: string): Promise<WriteResult> {

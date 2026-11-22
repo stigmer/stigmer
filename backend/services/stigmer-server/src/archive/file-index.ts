@@ -128,6 +128,7 @@ function suiteDirsOf(kind: IndexedArchiveKind, byPath: ReadonlyMap<string, ZipSt
     entries: [...byPath].map(([path, entry]) => ({ path, size: entry.uncompressedSize })),
     read: (path) => {
       const entry = byPath.get(path);
+      /* v8 ignore next -- @preserve: the library reads only the paths this reader lists */
       if (entry === undefined) throw new Error(`archive file '${path}' is not listed`);
       return inflateNamed(path, entry);
     },
@@ -140,10 +141,7 @@ function inflateNamed(path: string, entry: ZipStructuralEntry): Uint8Array {
   try {
     return inflateEntry(entry, entry.uncompressedSize);
   } catch (error) {
-    if (error instanceof InflateError) {
-      throw new Error(`failed to read '${path}' from the archive: ${error.detail}`);
-    }
-    throw error;
+    throw new Error(`failed to read '${path}' from the archive: ${error instanceof InflateError ? error.detail : String(error)}`);
   }
 }
 

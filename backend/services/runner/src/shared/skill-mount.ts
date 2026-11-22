@@ -85,21 +85,26 @@ export function skillContentReadCheck(platformDir: string | undefined, treesDir?
     if (isSkillContentPath(virtualPath)) return true;
     const normalized = posix.normalize(virtualPath);
     if (platformDir === undefined || !normalized.toLowerCase().startsWith(PLATFORM_PREFIX)) return false;
+    let root: string;
     let target: string;
     try {
-      target = (await agentFs().realpath(join(platformDir, normalized.slice(PLATFORM_PREFIX.length)))).toLowerCase();
+      [root, target] = await Promise.all([agentFs().realpath(platformDir), agentFs().realpath(join(platformDir, normalized.slice(PLATFORM_PREFIX.length)))]);
     } catch {
       return false;
     }
-    const root = await agentFs().realpath(platformDir).catch(() => undefined);
-    if (root !== undefined) {
-      const inside = relative(root.toLowerCase(), target).split(sep).join("/");
-      if (!inside.startsWith("../") && inside !== ".." && SKILL_CONTENT_PATTERN.test(inside)) return true;
-    }
-    if (treesDir === undefined) return false;
-    const trees = await fs.realpath(treesDir).catch(() => undefined);
-    return trees !== undefined && target.startsWith(`${trees.toLowerCase()}${sep}`);
+    const inside = relative(root.toLowerCase(), target.toLowerCase()).split(sep).join("/");
+    if (!inside.startsWith("../") && inside !== ".." && SKILL_CONTENT_PATTERN.test(inside)) return true;
+    return treesDir !== undefined && target.toLowerCase().startsWith(`${(await realpathOrSelf(treesDir)).toLowerCase()}${sep}`);
   };
+}
+
+/** A folder's real path, or the path itself when it does not exist yet (a session with no trees). */
+async function realpathOrSelf(path: string): Promise<string> {
+  try {
+    return await fs.realpath(path);
+  } catch {
+    return path;
+  }
 }
 
 /**

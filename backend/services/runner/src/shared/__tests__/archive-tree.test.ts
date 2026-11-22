@@ -107,6 +107,23 @@ describe("placeArchiveTree where the runner does not separate", () => {
   });
 });
 
+describe("the agent-owned tree, where the runner does not separate", () => {
+  it("rebuilds a tree whose root became a link, as a runner-owned layout left it", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "agent-tree-"));
+    try {
+      const entries = [{ path: "SKILL.md", content: new TextEncoder().encode("# Pushed") }];
+      mkdirSync(join(dir, "elsewhere"));
+      writeFileSync(join(dir, "elsewhere", "SKILL.md"), "# Pushed");
+      symlinkSync(join(dir, "elsewhere"), join(dir, "notes"));
+      await new AgentOwnedTree(join(dir, "notes"), entries, "skill artifact").verify();
+      expect(lstatSync(join(dir, "notes")).isDirectory()).toBe(true);
+      expect(readFileSync(join(dir, "notes", "SKILL.md"), "utf8")).toBe("# Pushed");
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+});
+
 describe("the runner-owned tree, its owner standing in for root", () => {
   let base: string;
   let mounts: string;

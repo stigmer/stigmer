@@ -557,6 +557,8 @@ describe("tool scope attribution, on the middleware itself", () => {
         expect(await callRefused(withTrees, "read_file", { file_path: "/.stigmer/plugin-data/p/tree-link" })).toBe(true);
         expect(await callRefused(withoutTrees, "read_file", { file_path: "/.stigmer/plugin-data/p/tree-link" }), "the platform folder alone does not see it").toBe(false);
         expect(await callRefused(withTrees, "read_file", { file_path: "/.stigmer/plugin-data/p/own.txt" })).toBe(false);
+        const noTreesYet: ToolScopeConfig = { ...config({ tools: [], disallowedTools: ["Skill"] }), readsSkillContent: skillContentReadCheck(platformDir, join(trees, "not-made-yet")) };
+        expect(await callRefused(noTreesYet, "read_file", { file_path: "/.stigmer/plugin-data/p/tree-link" }), "a trees folder not made yet holds nothing").toBe(false);
       } finally {
         await rm(trees, { recursive: true, force: true });
       }

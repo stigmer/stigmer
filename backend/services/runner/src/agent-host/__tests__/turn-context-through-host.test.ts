@@ -137,7 +137,10 @@ describe("the agent host's calls to the runtime", () => {
       read: async (path) => Promise.reject(new ArchiveFileNotFoundError(path)),
     };
     await row.adapter.runTurn(turnInputFixture({ executionId: "holds-none", skills: { root: [], bySubAgent: new Map(), archives: holding } }), new RecordingTurnSink());
+    const failing: TurnArchiveFiles = { ...holding, read: async () => Promise.reject(new Error("the store is unreachable")) };
+    await row.adapter.runTurn(turnInputFixture({ executionId: "store-down", skills: { root: [], bySubAgent: new Map(), archives: failing } }), new RecordingTurnSink());
 
-    expect(answers).toEqual(["not found: skills/notes/nothing.md"]);
+    expect(answers[0]).toBe("not found: skills/notes/nothing.md");
+    expect(answers[1], "any other failure crosses as itself, never as not found").toContain("the store is unreachable");
   });
 });

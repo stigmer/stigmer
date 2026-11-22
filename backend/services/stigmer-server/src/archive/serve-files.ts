@@ -101,8 +101,9 @@ export async function resolveServedVersion<Desc extends DescMessage>(
   const named = binding.nameOf(head);
   const headHash = binding.headHashOf(head);
   if (version === "" || version === headHash) {
+    // A head with no stored archive (a skill pushed without one) serves no files.
     const storageKey = binding.storageKeyOf(head);
-    const hash = headHash !== "" ? headHash : (hashOfStorageKey(storageKey) ?? "");
+    const hash = storageKey === "" ? "" : headHash !== "" ? headHash : (hashOfStorageKey(storageKey) ?? "");
     return { hash, storageKey: hash === "" ? "" : storageKey, hiddenDirs: suiteDirs(binding, head), named };
   }
   let snapshot: MessageShape<Desc>;

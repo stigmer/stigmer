@@ -11,7 +11,7 @@ import { buildZip } from "@stigmer/zip-structure/testing";
 import type { ArtifactStorage } from "../../artifactstorage/artifact-storage.js";
 import { ArtifactStorageNotFoundError } from "../../artifactstorage/artifact-storage.js";
 import { createLogger } from "../../boot/logger.js";
-import { newIndexedArchiveStore } from "../content-store.js";
+import { ArtifactNotFoundError, newIndexedArchiveStore } from "../content-store.js";
 import { encodeArchiveFileIndex, buildArchiveFileIndex, fileIndexKeyPrefix } from "../file-index.js";
 import { newArchiveFileReads, storeIndexAtPush } from "../file-reads.js";
 
@@ -128,6 +128,56 @@ describe("newArchiveFileReads", () => {
     tampered[small.offset] = tampered[small.offset]! ^ 0xff;
     blobs.set(key, tampered);
     await expect(reads.read(key, small)).rejects.toThrow();
+  });
+});
+
+describe("newArchiveFileReads under faults", () => {
+  it("still answers an index it built but could not store, building it again on the next process's read", async () => {
+    const { bytes, hash, key } = pushed();
+    const { driver } = countingDriver(new Map([[key, bytes]]));
+    const store = newIndexedArchiveStore(
+      { ...driver, upload: () => Promise.reject(new Error("disk full")) } as ArtifactStorage,
+      "skills/",
+      fileIndexKeyPrefix("skill"),
+    );
+    const index = await newArchiveFileReads(store, "skill", silentLogger).index(hash, key);
+    expect(index.files.map((file) => file.path)).toContain("references/small.md");
+  });
+
+  it("refuses a stored archive shorter than its index says", async () => {
+    const { bytes, hash, key } = pushed();
+    const { driver, blobs } = countingDriver(new Map([[key, bytes]]));
+    const store = newIndexedArchiveStore(driver, "skills/", fileIndexKeyPrefix("skill"));
+    const reads = newArchiveFileReads(store, "skill", silentLogger);
+    const index = await reads.index(hash, key);
+    blobs.set(key, bytes.subarray(0, 64));
+    const small = index.files.find((file) => file.path === "references/small.md")!;
+    await expect(reads.read(key, small)).rejects.toThrow(/shorter than its index says/);
+  });
+});
+
+describe("the indexed store's ranged read", () => {
+  const archive = new TextEncoder().encode("0123456789");
+
+  it("reads a range on a driver that has none by loading the archive and cutting it", async () => {
+    const { driver } = countingDriver(new Map([["skills/a.zip", archive]]));
+    const plain = { ...driver, readRange: undefined } as ArtifactStorage;
+    const store = newIndexedArchiveStore(plain, "skills/", fileIndexKeyPrefix("skill"));
+    expect(new TextDecoder().decode(await store.readRange("skills/a.zip", 2, 3))).toBe("234");
+  });
+
+  it("answers a key outside the store or a missing archive as not found, and any other fault as a failed read", async () => {
+    const { driver } = countingDriver();
+    const store = newIndexedArchiveStore(driver, "skills/", fileIndexKeyPrefix("skill"));
+    await expect(store.readRange("../../etc/passwd", 0, 1)).rejects.toBeInstanceOf(ArtifactNotFoundError);
+    await expect(store.readRange("skills/missing.zip", 0, 1)).rejects.toBeInstanceOf(ArtifactNotFoundError);
+    const broken = newIndexedArchiveStore(
+      { ...driver, readRange: () => Promise.reject(new Error("EIO")), download: () => Promise.reject(new Error("EIO")) } as ArtifactStorage,
+      "skills/",
+      fileIndexKeyPrefix("skill"),
+    );
+    await expect(broken.readRange("skills/a.zip", 0, 1)).rejects.toThrow("failed to read artifact: EIO");
+    await expect(broken.loadIndex("a".repeat(64))).rejects.toThrow("EIO");
   });
 });
 

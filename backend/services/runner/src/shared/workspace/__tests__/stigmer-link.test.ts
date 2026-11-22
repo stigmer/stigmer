@@ -107,6 +107,7 @@ describe("stigmer-link", () => {
         expect(await readsPlatformContent(root, viaLink, treesRoot)).toBe(true);
         expect(await readsPlatformContent(root, join(platformDir, "escape.md"), treesRoot), "any other link out still admits nothing").toBe(false);
         expect(await treesReadRoot(workspaceDir, platformDir, undefined)).toBe("");
+        expect(await treesReadRoot(workspaceDir, platformDir, join(trees, "not-made-yet")), "a trees folder not made yet").toBe("");
         await removeStigmerSymlink(workspaceDir);
         expect(await treesReadRoot(workspaceDir, platformDir, trees), "a turn with no link has no second root").toBe("");
       } finally {

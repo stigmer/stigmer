@@ -72,6 +72,9 @@ describe("the stored document", () => {
     expect(decodeArchiveFileIndex(text({ ...index, format: 2 }))).toBeUndefined();
     expect(decodeArchiveFileIndex(text({ ...index, files: [{ path: "a" }] }))).toBeUndefined();
     expect(decodeArchiveFileIndex(encodeArchiveFileIndex(index).subarray(0, 10))).toBeUndefined();
+    expect(decodeArchiveFileIndex(text({ ...index, suiteDirs: [1] }))).toBeUndefined();
+    expect(decodeArchiveFileIndex(text({ ...index, files: ["a file"] }))).toBeUndefined();
+    expect(decodeArchiveFileIndex(text([index]))).toBeUndefined();
   });
 
   it("lives under a prefix that names its format and no download lane admits", () => {
