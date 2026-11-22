@@ -98,7 +98,7 @@ function platformDirOf(run: Run): string {
 }
 
 describe("Run — a turn reads its skills from the store", () => {
-  it("[rpc:SkillQueryController.readFile] two organizations' skills of one name, on one runner: each turn reads only its own", async () => {
+  it("two organizations' skills of one name, on one runner: each turn reads only its own", async () => {
     const turns: Array<{ org: string; run: Run; text: string; reference: string }> = [];
     for (const who of ["alpha", "beta"]) {
       const { org } = await target.provisionTenancy();
@@ -125,7 +125,7 @@ describe("Run — a turn reads its skills from the store", () => {
     }
   });
 
-  it("[rpc:PluginQueryController.readFile] a 50 MB plugin's turn receives only the file it opened; without a computer nothing lands on disk, with one the archive does", async (ctx) => {
+  it("a 50 MB plugin's turn receives only the file it opened; without a computer nothing lands on disk, with one the archive does", async (ctx) => {
     if (target.runnerLogFile === undefined || target.runnerHomeDir === undefined) return ctx.skip();
     const { org } = await target.provisionTenancy();
     const name = uniqueName("big-kit");

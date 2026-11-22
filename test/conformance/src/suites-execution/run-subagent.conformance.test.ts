@@ -469,7 +469,7 @@ describe("Run — a subagent runs its own definition", () => {
 });
 
 describe("Run — what a subagent is not given", () => {
-  it("[rpc:SkillQueryController.readFile] a saved subagent reads its own skill, one the parent does not list, from the store", async () => {
+  it("a saved subagent reads its own skill, one the parent does not list, from the store", async () => {
     const { org } = await target.provisionTenancy();
     const skillName = uniqueName("sub-notes");
     const body = "Only the subagent's own skill says this.";
