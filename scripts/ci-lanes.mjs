@@ -823,6 +823,11 @@ export const LANES = {
       // cluster and the health status the operator waits on.
       "backend/services/stigmer-server/src/sandbox/substrate/**",
       "backend/services/stigmer-server/src/transport/health.ts",
+      // The bundled profile proves the server's first database connection
+      // through the bundled Postgres's NetworkPolicy, on amd64 and arm64:
+      // a new pod is admitted asynchronously, and the store waits for it.
+      "backend/services/stigmer-server/src/store/postgres/pool.ts",
+      "backend/services/stigmer-server/src/store/postgres/store.ts",
       "Makefile",
       ".nvmrc",
       "package.json",

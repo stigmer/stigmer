@@ -19,6 +19,10 @@
 #     a certificate with the bundled sign-in, the owner, sign-up and the
 #     CLI's sign-ins, through an Ingress and a Gateway; an upgrade that
 #     takes a backup before the server rolls).
+#     The bundled profile runs a second time on an arm64 runner: the release
+#     smokes its packaged chart on both architectures, and a fault only
+#     arm64 shows (stigmer/stigmer#3403, the server's first boot outrunning
+#     its database's NetworkPolicy) must fail a pull request, not a release.
 #     The enterprise profile builds the Enterprise image and runs on
 #     request (make smoke-operator PROFILE=enterprise), as the chart's does.
 #
@@ -78,14 +82,21 @@ jobs:
         run: make test-operator
 
   kind-gate:
-    name: Kind Gate (${{ matrix.profile }}, build-from-source)
-    runs-on: ubuntu-24.04
+    name: Kind Gate (${{ matrix.profile }}, ${{ matrix.runner }}, build-from-source)
+    runs-on: ${{ matrix.runner }}
     timeout-minutes: 45
     # One profile per job, in parallel: each fits the merge queue's cap.
+    # `runner` is an axis of its own so that the arm64 entry is a job of its
+    # own: an include that only added a key would fold into the amd64
+    # bundled job instead.
     strategy:
       fail-fast: false
       matrix:
         profile: [bundled, byo, bucket, exposed, agent-sandbox, substrate, upgrade]
+        runner: [ubuntu-24.04]
+        include:
+          - profile: bundled
+            runner: ubuntu-24.04-arm
     steps:
       - name: Checkout
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
@@ -104,12 +115,17 @@ jobs:
       - name: Install npm workspace dependencies
         run: npm ci
 
-      - name: Install helm and kind (pinned)
+      - name: Install helm and kind (pinned, for the runner's architecture)
         run: |
           set -euo pipefail
-          curl -fsSL "https://get.helm.sh/helm-${HELM_VERSION}-linux-amd64.tar.gz" | tar -xz -C /tmp
-          sudo install -m 0755 /tmp/linux-amd64/helm /usr/local/bin/helm
-          curl -fsSL -o /tmp/kind "https://kind.sigs.k8s.io/dl/${KIND_VERSION}/kind-linux-amd64"
+          case "$(uname -m)" in
+            x86_64) arch=amd64 ;;
+            aarch64) arch=arm64 ;;
+            *) echo "no helm or kind build for $(uname -m)" >&2; exit 1 ;;
+          esac
+          curl -fsSL "https://get.helm.sh/helm-${HELM_VERSION}-linux-${arch}.tar.gz" | tar -xz -C /tmp
+          sudo install -m 0755 "/tmp/linux-${arch}/helm" /usr/local/bin/helm
+          curl -fsSL -o /tmp/kind "https://kind.sigs.k8s.io/dl/${KIND_VERSION}/kind-linux-${arch}"
           sudo install -m 0755 /tmp/kind /usr/local/bin/kind
           helm version --short && kind version && kubectl version --client
 

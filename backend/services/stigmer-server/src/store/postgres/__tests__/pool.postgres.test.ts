@@ -12,10 +12,22 @@
  * options, and its idle-connection error is a WARN, driven for real by
  * terminating the store's idle backend.
  *
+ * The boot's first connection is pinned against the failure
+ * stigmer/stigmer#3403 names: a database that is up but does not answer a
+ * new pod for its first seconds (its NetworkPolicy admitting the pod late).
+ * A stand-in in front of the real database accepts connections and stays
+ * silent for a while, so pg's own timeout fires ("Connection terminated due
+ * to connection timeout"), then passes traffic through: the store must open
+ * after logged retries instead of failing its boot. A missing database is
+ * Postgres's own answer and must fail at once, with no retry.
+ *
  * Gated on TEST_DATABASE_URL (support.ts): visible skips without a
  * database, always exercised in CI via the ci.stigmer-server service
  * container.
  */
+import { connect as connectTcp, createServer } from "node:net";
+import type { AddressInfo, Server, Socket } from "node:net";
+
 import pg from "pg";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
@@ -141,6 +153,129 @@ describe.skipIf(testDatabaseAdminUrl() === undefined)(
         await admin.end();
         await store.close();
       }
+    });
+  },
+);
+
+interface SilentFront {
+  /** `databaseUrl` pointed at the stand-in. */
+  readonly url: string;
+  close(): Promise<void>;
+}
+
+/**
+ * A TCP stand-in in front of `databaseUrl`: a connection made in its first
+ * `silentMs` is accepted and never answered, the way a dropped packet looks
+ * to the client once the handshake is done; later ones are piped through.
+ */
+async function silentFront(databaseUrl: string, silentMs: number): Promise<SilentFront> {
+  const target = new URL(databaseUrl);
+  const targetPort = target.port === "" ? 5432 : Number(target.port);
+  const silentUntil = Date.now() + silentMs;
+  const sockets = new Set<Socket>();
+  const server: Server = createServer((socket) => {
+    sockets.add(socket);
+    socket.on("close", () => sockets.delete(socket));
+    socket.on("error", () => socket.destroy());
+    if (Date.now() < silentUntil) {
+      return;
+    }
+    const upstream = connectTcp(targetPort, target.hostname);
+    sockets.add(upstream);
+    upstream.on("close", () => sockets.delete(upstream));
+    upstream.on("error", () => socket.destroy());
+    socket.on("close", () => upstream.destroy());
+    upstream.on("close", () => socket.destroy());
+    socket.pipe(upstream).pipe(socket);
+  });
+  await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
+  const front = new URL(databaseUrl);
+  front.hostname = "127.0.0.1";
+  front.port = String((server.address() as AddressInfo).port);
+  return {
+    url: front.toString(),
+    close: async () => {
+      for (const socket of sockets) {
+        socket.destroy();
+      }
+      await new Promise<void>((resolve) => server.close(() => resolve()));
+    },
+  };
+}
+
+describe.skipIf(testDatabaseAdminUrl() === undefined)(
+  "the store's first connection",
+  () => {
+    let db: TestDatabase;
+
+    beforeAll(async () => {
+      db = await createTestDatabase();
+    });
+
+    afterAll(async () => {
+      await db.drop();
+    });
+
+    it("opens once a database that stays silent at first answers, logging each retry", async () => {
+      const lines: Array<{ level: string; message: string; fields?: Record<string, unknown> }> = [];
+      const logger: StoreLogger = {
+        debug() {},
+        info(message, fields) {
+          lines.push({ level: "info", message, fields });
+        },
+        warn(message, fields) {
+          lines.push({ level: "warn", message, fields });
+        },
+      };
+      const front = await silentFront(db.databaseUrl, 1_500);
+      try {
+        const store = await PostgresStore.open(front.url, logger, {
+          poolCheckoutTimeoutMs: CHECKOUT_TIMEOUT_MS,
+          firstConnectionWaitMs: 15_000,
+        });
+        try {
+          expect(await store.bootstrapState.get("absent-key")).toBe("");
+        } finally {
+          await store.close();
+        }
+      } finally {
+        await front.close();
+      }
+      const retries = lines.filter(
+        (line) => line.message === "the database is not answering yet; retrying",
+      );
+      expect(retries.length).toBeGreaterThan(0);
+      expect(retries[0]?.level).toBe("warn");
+      expect(String(retries[0]?.fields?.["error"])).toContain(
+        "Connection terminated due to connection timeout",
+      );
+      expect(lines).toContainEqual(
+        expect.objectContaining({ level: "info", message: "the database answered" }),
+      );
+    });
+
+    it("fails at once, without a retry, on a database that does not exist", async () => {
+      const missing = new URL(db.databaseUrl);
+      missing.pathname = `${missing.pathname}_absent`;
+      const warns: string[] = [];
+      const logger: StoreLogger = {
+        debug() {},
+        info() {},
+        warn(message) {
+          warns.push(message);
+        },
+      };
+      const startedAt = Date.now();
+      const failure: unknown = await PostgresStore.open(missing.toString(), logger, {
+        firstConnectionWaitMs: 15_000,
+      }).then(
+        () => undefined,
+        (error: unknown) => error,
+      );
+      expect(failure).toBeInstanceOf(DatabaseUnavailableError);
+      expect((failure as DatabaseUnavailableError).cause).toBeInstanceOf(pg.DatabaseError);
+      expect(warns).toEqual([]);
+      expect(Date.now() - startedAt).toBeLessThan(5_000);
     });
   },
 );
