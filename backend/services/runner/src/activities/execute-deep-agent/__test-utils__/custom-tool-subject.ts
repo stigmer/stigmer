@@ -19,6 +19,7 @@ import type { Computer } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_
 import { savedAgentFixture } from "../../../__test-utils__/execution-record-fixture.js";
 import type { ScriptedClock, HermeticEnvironment } from "../../../__test-utils__/hermetic-activity.js";
 import { FORM_TOOL, FORM_TOOL_DECLARATION, type ContractCall, type ContractRun, type ContractScenario, type CustomToolSubject, type ModelRead } from "../../../__test-utils__/custom-tool-contract/contract.js";
+import { HOST_ERROR_PREFIX } from "../custom-tools.js";
 import { beginDeepAgentScenario, deepAgentExecutionRecord, runDeepAgentTurn, sessionWorkspaceDir } from "./hermetic-deep-agent.js";
 import type { ScriptedToolCall, ScriptedTurn } from "./scripted-model.js";
 
@@ -54,6 +55,7 @@ export function stigmerCustomToolSubject(env: HermeticEnvironment, clock: Script
     oneDeferralPerInvocation: false,
     reachesUnofferedTools: false,
     modelName: (tool) => tool,
+    hostErrorRead: (text) => ({ text: `${HOST_ERROR_PREFIX}${text}`, isError: true }),
     async begin(scenario: ContractScenario): Promise<ContractRun> {
       clock.reset();
       const helper = scenario.helper;

@@ -68,9 +68,9 @@ describe("the custom tools", () => {
   const [tool] = createCustomTools([FORM], answers);
   const call = (id: string) => tool!.invoke({ id, name: FORM.name, args: { service: "x" }, type: "tool_call" });
 
-  it("hands the model the host's answer, an error as an error message", async () => {
+  it("hands the model the host's answer, an error as an error message whose text says so", async () => {
     expect(await call("call_ok")).toMatchObject({ content: "registered" });
-    expect(await call("call_err")).toMatchObject({ content: "closed the form", status: "error" });
+    expect(await call("call_err")).toMatchObject({ content: "Error: closed the form", status: "error" });
   });
 
   it("says so when reached with no answer", async () => {

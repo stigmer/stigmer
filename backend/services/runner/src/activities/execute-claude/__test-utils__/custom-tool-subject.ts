@@ -42,6 +42,7 @@ export function claudeCustomToolSubject(file: () => ClaudeScenarioFile): CustomT
     oneDeferralPerInvocation: true,
     reachesUnofferedTools: true,
     modelName: (tool) => customToolEngineName(tool),
+    hostErrorRead: (text) => ({ text, isError: true }),
     async begin(scenario: ContractScenario): Promise<ContractRun> {
       const helper = scenario.helper;
       const record = claudeExecutionRecord({

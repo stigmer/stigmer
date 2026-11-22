@@ -104,6 +104,8 @@ export interface CustomToolSubject {
   readonly reachesUnofferedTools: boolean;
   /** The name the model calls the declared tool by. */
   modelName(tool: string): string;
+  /** What the model reads for an answer the host marked failed: the host's text, as this engine words a tool's failure. */
+  hostErrorRead(text: string): ModelRead;
   /** A fresh session running the scenario's first invocation. */
   begin(scenario: ContractScenario): Promise<ContractRun>;
 }
@@ -168,7 +170,7 @@ export function describeCustomToolContract(subject: CustomToolSubject): void {
       run.record.answerCustomToolUse("toolu_err", "The person closed the form.", true);
       await run.resume();
       expect(run.phase()).toBe("RUN_COMPLETED");
-      expect(run.modelRead("toolu_err")).toEqual({ text: "The person closed the form.", isError: true });
+      expect(run.modelRead("toolu_err")).toEqual(subject.hostErrorRead("The person closed the form."));
     });
 
     it("4: input that does not match the schema is refused to the model, and nothing waits", async () => {

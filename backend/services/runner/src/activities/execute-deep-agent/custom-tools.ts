@@ -11,6 +11,12 @@
  * said the tool failed, as an error message. An error is returned, never
  * thrown: a thrown error reaches the error hints, which would append
  * recovery hints meant for the engine's own tools to the host's words.
+ *
+ * An error's text starts {@link HOST_ERROR_PREFIX}, the words this engine's
+ * own tools fail in. A provider may carry no error mark at all, and the
+ * Anthropic adapter this engine uses sends a tool message's text without
+ * its status (`@langchain/anthropic` 1.5.5), so the text alone must say the
+ * tool failed.
  */
 
 import { ToolMessage } from "@langchain/core/messages";
@@ -18,6 +24,9 @@ import { tool, type DynamicStructuredTool } from "@langchain/core/tools";
 
 import type { CustomToolAnswer } from "../../harness/custom-tool-answers.js";
 import type { CustomToolOffer } from "../../shared/custom-tools.js";
+
+/** What the text of a failed call's result starts with (the header). */
+export const HOST_ERROR_PREFIX = "Error: ";
 
 /** What a body answers a call the host never answered: it is reached only past the pause, so only by a defect. */
 export const NO_HOST_ANSWER_MESSAGE = "The app gave no answer to this call; it was not run.";
@@ -31,7 +40,7 @@ export function createCustomTools(offers: readonly CustomToolOffer[], answers: R
           const id = config.toolCall?.id ?? "";
           const answer = answers.get(id);
           if (answer === undefined) return new ToolMessage({ content: NO_HOST_ANSWER_MESSAGE, tool_call_id: id, name: offer.name, status: "error" });
-          if (answer.isError) return new ToolMessage({ content: answer.text, tool_call_id: id, name: offer.name, status: "error" });
+          if (answer.isError) return new ToolMessage({ content: `${HOST_ERROR_PREFIX}${answer.text}`, tool_call_id: id, name: offer.name, status: "error" });
           return answer.text;
         },
         { name: offer.name, description: offer.description, schema: offer.inputSchema },

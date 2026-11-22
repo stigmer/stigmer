@@ -15,6 +15,7 @@
 // validity-by-construction. The harness / execution_target immutability
 // validators hold once the session has run; the Class B immutability suite
 // drives a real turn to reach them.
+import type { JsonObject } from "@bufbuild/protobuf";
 import type { InitShape } from "./init-shape";
 import { SessionSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/api_pb";
 import { Harness, ExecutionTarget } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
@@ -26,6 +27,9 @@ export const SESSION_API_VERSION = "agentic.stigmer.ai/v1";
 export const SESSION_KIND = "Session";
 
 export interface SessionSpecOptions {
+  // The host app's own tools (spec.custom_tools), each with a JSON Schema
+  // object for its input.
+  customTools?: { name: string; description: string; inputSchema: Record<string, unknown> }[];
   // The agent the session runs (spec.agent_ref), optionally at a version.
   // Omitted: the built-in assistant.
   agentRef?: AgentRefInit;
@@ -84,6 +88,7 @@ export function makeSessionSpec(opts: SessionSpecOptions = {}): InitShape<typeof
     ...(opts.vaults !== undefined ? { vaults: opts.vaults.map((slug) => ({ slug, kind: ApiResourceKind.vault })) } : {}),
     ...(opts.includeMyVault !== undefined ? { includeMyVault: opts.includeMyVault } : {}),
     ...(opts.fileReview !== undefined ? { fileReview: opts.fileReview } : {}),
+    ...(opts.customTools !== undefined ? { customTools: opts.customTools.map((tool) => ({ ...tool, inputSchema: tool.inputSchema as JsonObject })) } : {}),
   };
 }
 
