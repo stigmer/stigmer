@@ -2,7 +2,8 @@
  * Pins the eval's matrix (matrix.ts): the fixed cell order (case, target,
  * arm, try), the case filter by glob and tags, the runs ladder (spec, then
  * case, then 3), ablation `none`, an unsupported case planned with no
- * cells, a scaffolded case not run when the eval skips scaffolds, a Claude
+ * cells, a scaffolded case not run when the eval skips scaffolds or the
+ * agent has no computer, a Claude
  * target not run for a resumed conversation while Stigmer runs and a case's
  * `env` run on both, the target rules when the spec names none (the case's catalog
  * model, never an alias; the Stigmer default with no model), and a
@@ -26,6 +27,7 @@ import { Harness } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
 import { newModelCatalogProviderFromDocument } from "../../../modelcatalog/document-catalog.js";
 import type { EvalModelCatalog } from "../matrix.js";
 import {
+  NEEDS_A_COMPUTER_REASON,
   SCAFFOLD_SKIPPED_REASON,
   caseGlobError,
   engineUnsupportedReason,
@@ -188,6 +190,33 @@ describe("planMatrix", () => {
     expect(skipped.cases[0]).toMatchObject({ notRunReason: SCAFFOLD_SKIPPED_REASON, targets: [] });
     expect(skipped.cells).toEqual([]);
     expect(planMatrix(suiteOf(scaffolded), specOf(), catalog).cells).toHaveLength(2);
+  });
+
+  it("does not run a scaffolded case for an agent without a computer, and runs its other cases", () => {
+    const scaffolded = evalCase("scaffolded", { runs: 1, context: { addDirs: [], scaffoldScript: "setup.sh" } });
+    const referenced = evalCase("referenced", { runs: 1, context: { addDirs: ["fixtures"] } });
+    const agent = (computer: boolean) => ({ harness: Harness.STIGMER, modelName: "m1", computer });
+    const without = planMatrix(suiteOf(scaffolded, referenced), specOf(), catalog, agent(false));
+    expect(without.cases[0]).toMatchObject({ notRunReason: NEEDS_A_COMPUTER_REASON, targets: [] });
+    expect(without.cases[1]?.notRunReason).toBeUndefined();
+    expect(without.cells.map((cell) => cell.caseIndex)).toEqual([1, 1]);
+    expect(sizeOfMatrix(suiteOf(scaffolded, referenced), specOf(), catalog, agent(false))).toEqual({ cases: 2, tries: 2 });
+    expect(planMatrix(suiteOf(scaffolded, referenced), specOf(), catalog, agent(true)).cells).toHaveLength(4);
+  });
+
+  it("does not run a case whose graders read the try's files for an agent without a computer, and runs one that grades the trace", () => {
+    const grader = (check: EvalCase["graders"][number]["check"]): EvalCase["graders"][number] =>
+      ({ name: "g", check }) as EvalCase["graders"][number];
+    const fileCases = [
+      evalCase("exists", { runs: 1, graders: [grader({ type: "file_exists", path: "report.md" } as EvalCase["graders"][number]["check"])] }),
+      evalCase("regex-file", { runs: 1, graders: [grader({ type: "regex", pattern: "x", target: { kind: "file", path: "report.md" } } as EvalCase["graders"][number]["check"])] }),
+      evalCase("judge-files", { runs: 1, graders: [grader({ type: "llm", criteria: "c", focus: { kind: "files" } } as EvalCase["graders"][number]["check"])] }),
+    ];
+    const traced = evalCase("traced", { runs: 1, graders: [grader({ type: "regex", pattern: "x", target: { kind: "trace" } } as EvalCase["graders"][number]["check"])] });
+    const agent = (computer: boolean) => ({ harness: Harness.STIGMER, modelName: "m1", computer });
+    const without = planMatrix(suiteOf(...fileCases, traced), specOf(), catalog, agent(false));
+    expect(without.cases.map((planned) => planned.notRunReason)).toEqual([NEEDS_A_COMPUTER_REASON, NEEDS_A_COMPUTER_REASON, NEEDS_A_COMPUTER_REASON, undefined]);
+    expect(planMatrix(suiteOf(...fileCases, traced), specOf(), catalog, agent(true)).cases.every((planned) => planned.notRunReason === undefined)).toBe(true);
   });
 
   it("lists a resumed conversation as not run on a Claude target, and runs a case's env there", () => {

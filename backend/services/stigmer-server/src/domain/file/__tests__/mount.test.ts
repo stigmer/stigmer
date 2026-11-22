@@ -13,7 +13,11 @@
  *     a finished run is refused; a run_id is required;
  *   - a conversation that is gone is refused;
  *   - a store fault reading the run, the conversation or a File is
- *     INTERNAL.
+ *     INTERNAL, and so is one listing the conversation's outputs;
+ *   - beside the resources, the conversation's outputs: the newest File at
+ *     each output path, never one of another conversation or another
+ *     organization (each filter is the query's own, so removing it reds its
+ *     case), never an upload, never one whose bytes went.
  */
 import { randomBytes } from "node:crypto";
 import { mkdtempSync, rmSync } from "node:fs";
@@ -23,6 +27,7 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 
 import { create } from "@bufbuild/protobuf";
+import { timestampFromMs } from "@bufbuild/protobuf/wkt";
 import { Code, ConnectError } from "@connectrpc/connect";
 import type { ConnectRouter, HandlerContext } from "@connectrpc/connect";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
@@ -33,6 +38,7 @@ import type { MountRunFilesInput, RunFileMounts } from "@stigmer/apis/ai/stigmer
 import { RunSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 import { RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 import { SessionSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/api_pb";
+import { Computer } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
 import { SessionResourceSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/resource_pb";
 import type { SessionResource } from "@stigmer/apis/ai/stigmer/agentic/session/v1/resource_pb";
 import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
@@ -127,7 +133,34 @@ async function seedFile(id: string, filename: string, text: string, sessionId = 
   );
 }
 
-async function seedSession(files: Array<[string, string]>, extra: SessionResource[] = []): Promise<void> {
+async function seedOutput(
+  id: string,
+  outputPath: string,
+  text: string,
+  createdAtMs: number,
+  { sessionId = SESSION, org = ORG }: { sessionId?: string; org?: string } = {},
+): Promise<void> {
+  const blob = await blobs.storeInline(org, new TextEncoder().encode(text), "");
+  const filename = path.posix.basename(outputPath);
+  await blobs.insertFile(
+    id,
+    FileSchema,
+    create(FileSchema, {
+      metadata: { id, org, name: filename },
+      spec: { filename, mimeType: "text/markdown" },
+      status: {
+        sizeBytes: BigInt(text.length),
+        sessionId,
+        runId: "run_01earlier",
+        outputPath,
+        audit: { specAudit: { createdAt: timestampFromMs(createdAtMs) } },
+      },
+    }),
+    blob,
+  );
+}
+
+async function seedSession(files: Array<[string, string]>, extra: SessionResource[] = [], computer = Computer.NONE): Promise<void> {
   await fx.store.saveResource(
     ApiResourceKind.session,
     SESSION,
@@ -142,6 +175,7 @@ async function seedSession(files: Array<[string, string]>, extra: SessionResourc
           ),
         ],
       },
+      status: { computer },
     }),
   );
 }
@@ -189,6 +223,86 @@ describe("RunFileController.mount", () => {
       ["file_01a", "a.txt", "a.txt", "text/plain", 5n],
     ]);
     expect(await (await fetch(mounts.entries[0]!.url)).text()).toBe("bravo");
+  });
+
+  it("lists the conversation's newest output at each path, apart from its resources", async () => {
+    await seedFile("file_01upload", "notes.md", "an upload");
+    await seedOutput("file_01reportold", "report.md", "first draft", 1_000);
+    await seedOutput("file_01reportnew", "report.md", "second draft", 2_000);
+    await seedOutput("file_01chart", "charts/q3.md", "chart", 1_500);
+    await seedSession([["file_01upload", "notes.md"]]);
+    await seedRun("run_01m", SESSION);
+
+    const mounts = await mount("run_01m", auth.mintRunCredential("run_01m"));
+    expect(mounts.entries.map((entry) => entry.fileId)).toEqual(["file_01upload"]);
+    expect(mounts.outputs.map((entry) => [entry.fileId, entry.mountPath, entry.filename, entry.mimeType, entry.sizeBytes])).toEqual([
+      ["file_01reportnew", "report.md", "report.md", "text/markdown", 12n],
+      ["file_01chart", "charts/q3.md", "q3.md", "text/markdown", 5n],
+    ]);
+    expect(await (await fetch(mounts.outputs[0]!.url)).text()).toBe("second draft");
+  });
+
+  it("lists no outputs for a conversation with a computer, which finds them in its folder", async () => {
+    await seedOutput("file_01report", "report.md", "a draft", 1_000);
+    await seedSession([], [], Computer.REQUIRED);
+    await seedRun("run_01c", SESSION);
+
+    const mounts = await mount("run_01c", auth.mintRunCredential("run_01c"));
+    expect(mounts.outputs).toEqual([]);
+  });
+
+  it("reads every page of a conversation's outputs", async () => {
+    for (let i = 0; i < 201; i += 1) {
+      await seedOutput(`file_01page${String(i).padStart(3, "0")}`, `out/${i}.md`, "x", 1_000 + i);
+    }
+    await seedSession([]);
+    await seedRun("run_01p", SESSION);
+
+    const mounts = await mount("run_01p", auth.mintRunCredential("run_01p"));
+    expect(mounts.outputs).toHaveLength(201);
+  });
+
+  it("never lists another conversation's outputs", async () => {
+    await seedOutput("file_01mine", "report.md", "mine", 1_000);
+    await seedOutput("file_01theirs", "theirs.md", "theirs", 2_000, { sessionId: "ses_01otherotherotherotherot" });
+    await seedSession([]);
+    await seedRun("run_01m", SESSION);
+    const mounts = await mount("run_01m", auth.mintRunCredential("run_01m"));
+    expect(mounts.outputs.map((entry) => entry.fileId)).toEqual(["file_01mine"]);
+  });
+
+  it("never lists another organization's outputs, even under the same conversation id", async () => {
+    await seedOutput("file_01mine", "report.md", "mine", 1_000);
+    await seedOutput("file_01foreign", "foreign.md", "foreign", 2_000, { org: "org_01bbbbbbbbbbbbbbbbbbbbbbbb" });
+    await seedSession([]);
+    await seedRun("run_01m", SESSION);
+    const mounts = await mount("run_01m", auth.mintRunCredential("run_01m"));
+    expect(mounts.outputs.map((entry) => entry.fileId)).toEqual(["file_01mine"]);
+  });
+
+  it("leaves out an output whose bytes went", async () => {
+    await fx.store.saveResource(
+      ApiResourceKind.file,
+      "file_01nobytes",
+      FileSchema,
+      create(FileSchema, { metadata: { id: "file_01nobytes", org: ORG }, status: { sessionId: SESSION, outputPath: "gone.md" } }),
+    );
+    await seedSession([]);
+    await seedRun("run_01m", SESSION);
+    expect((await mount("run_01m", auth.mintRunCredential("run_01m"))).outputs).toEqual([]);
+  });
+
+  it("answers INTERNAL when the conversation's outputs cannot be listed", async () => {
+    await seedSession([]);
+    await seedRun("run_01m", SESSION);
+    const store = new Proxy(fx.store, {
+      get(target, property, receiver) {
+        if (property === "queryResources") return () => Promise.reject(new Error("database unreachable"));
+        const value: unknown = Reflect.get(target, property, receiver);
+        return typeof value === "function" ? (value as (...args: unknown[]) => unknown).bind(target) : value;
+      },
+    });
+    expect((await refusal(mount("run_01m", auth.mintRunCredential("run_01m"), { store }))).code).toBe(Code.Internal);
   });
 
   it("mounts nothing for a run in no conversation, through the registered service too", async () => {

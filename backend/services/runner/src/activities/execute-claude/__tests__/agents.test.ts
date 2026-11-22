@@ -18,7 +18,7 @@ import { execFileSync } from "node:child_process";
 
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 
-import type { TurnInput, TurnSubagent } from "../../../harness/types.js";
+import type { ComputerTurnInput, ComputerWorkspace, TurnInput, TurnSubagent } from "../../../harness/types.js";
 import type { PluginSubagent } from "../../../shared/blueprint-resolver.js";
 import type { ResolvedMcpServer } from "../../../shared/mcp-resolver.js";
 import { NO_RUN_VALUES } from "../../../shared/run-values.js";
@@ -55,7 +55,7 @@ function saved(overrides: Partial<TurnSubagent> = {}): TurnSubagent {
 const PLUGIN_AGENT: PluginSubagent = { name: "acme:helper", description: "", instructions: "You help.", tools: [], disallowedTools: ["Write"], model: "" };
 
 /** A turn: the main agent with the docs server, the platform's channel server and a skill, one saved and one plugin sub-agent. */
-function input(overrides: { toolScope?: ToolScope; subagents?: TurnSubagent[]; pluginAgents?: PluginSubagent[]; planMode?: boolean } = {}): TurnInput {
+function input(overrides: { toolScope?: ToolScope; subagents?: TurnSubagent[]; pluginAgents?: PluginSubagent[]; planMode?: boolean } = {}): ComputerTurnInput {
   const base = turnInputFixture({ workspaceDir: WORKSPACE, values: { ...NO_RUN_VALUES, agent: { MAIN_ONLY: "1" } } });
   return {
     ...base,
@@ -125,7 +125,7 @@ describe("bridgeServersOf", () => {
 describe("turnAgentsOf", () => {
   it("hands the shell an eval case's env, which the try overlays on the run's agent values, as the Stigmer harness's shell gets it", () => {
     const base = input({ subagents: [], pluginAgents: [] });
-    const caseTurn: TurnInput = { ...base, values: { ...base.values, agent: { ...base.values.agent, EVAL_LEVEL: "2" } } };
+    const caseTurn: ComputerTurnInput = { ...base, values: { ...base.values, agent: { ...base.values.agent, EVAL_LEVEL: "2" } } };
     const agents = turnAgentsOf(caseTurn, [], BRIDGE, { planMode: false, structuredOutput: false });
     const printed = execFileSync("bash", ["-c", 'printf "%s|%s" "$EVAL_LEVEL" "$MAIN_ONLY"'], { env: buildShellEnv(agents.root.shellValues), encoding: "utf8" });
     expect(printed).toBe("2|1");

@@ -49,11 +49,12 @@ import { getDefaultModel, getModelVisionCapability } from "../../shared/model-re
 import { DEEP_AGENT_VISION_PROFILE } from "../../shared/attachment-vision.js";
 import { TimingRecorder } from "../../shared/cold-start-timing.js";
 import { getPlatformDir } from "../../shared/workspace/platform-dir.js";
+import { newTurnInputs } from "../../shared/inputs-reader.js";
 import type { StigmerClient } from "../../client/stigmer-client.js";
 import { mockStigmerClient } from "../../__test-utils__/mock-client.js";
 import { testConfig } from "../../__test-utils__/config-fixture.js";
 import { TranscriptBuilder } from "../transcript/builder.js";
-import { mountMessageFiles, mountTurnFiles, type ResolutionDeps } from "../turn-context.js";
+import { mountMessageFiles, mountTurnFiles, readTurnFiles, type ResolutionDeps } from "../turn-context.js";
 import type { TurnInput } from "../types.js";
 import { TurnRowsSchema } from "../../gen/turn/ai/stigmer/runner/turn/v1/rows_pb.js";
 
@@ -288,14 +289,67 @@ describe("mountMessageFiles", () => {
 
     const shown = await mountMessageFiles(
       client,
-      { executionId: "run_1", execution: execution({ model: "claude-haiku-4.5" }), sessionId: SESSION_ID, workspace: { primaryDir: workspace } as TurnInput["workspace"] },
+      { executionId: "run_1", execution: execution({ model: "claude-haiku-4.5" }), sessionId: SESSION_ID, workspace: { computer: true, primaryDir: workspace } as TurnInput["workspace"] },
       { harness: Harness.STIGMER, visionProfile: DEEP_AGENT_VISION_PROFILE },
       blocks,
+      undefined,
     );
 
     expect(client.mountRunFiles).toHaveBeenCalledWith("run_1", "scoped");
     expect(shown.message.map((f) => [f.relativePath, f.kind])).toEqual([[".stigmer/uploads/late.png", "image"]]);
     expect(shown.visionImages.map((v) => v.filename)).toEqual(["late.png"]);
     expect(existsSync(join(getPlatformDir(SESSION_ID), "uploads", "old.csv")), "the conversation's other Files stay mounted").toBe(true);
+  });
+
+  it("without a computer, extends the turn's reader instead of a disk, and shows the message's image read from the store", async () => {
+    const sessionId = "ses_turn_files_nocomputer";
+    const old = file("file_old", "old.csv", Buffer.from("a,b"), "text/csv");
+    const late = file("file_img", "late.png", PNG, "image/png");
+    const client = mockStigmerClient({
+      acquireScopedRunnerToken: vi.fn().mockResolvedValue("scoped"),
+      mountRunFileSets: vi.fn().mockResolvedValue({ entries: [old, late], outputs: [] }),
+    });
+    const inputs = newTurnInputs({ org: "org_1", sets: { entries: [old], outputs: [] }, refetch: async () => ({ entries: [old], outputs: [] }) });
+    const blocks = [create(ContentBlockSchema, { type: "image", source: create(ContentSourceSchema, { type: "file", fileId: "file_img" }) })];
+
+    const shown = await mountMessageFiles(
+      client,
+      { executionId: "run_2", execution: execution({ model: "claude-haiku-4.5" }), sessionId, workspace: { computer: false } as TurnInput["workspace"] },
+      { harness: Harness.STIGMER, visionProfile: DEEP_AGENT_VISION_PROFILE },
+      blocks,
+      inputs,
+    );
+
+    expect(client.mountRunFileSets).toHaveBeenCalledWith("run_2", "scoped");
+    expect(client.mountRunFiles).not.toHaveBeenCalled();
+    expect((await inputs.list()).map((input) => input.path).sort(), "the reader holds the message's File").toEqual(["uploads/late.png", "uploads/old.csv"]);
+    expect(shown.message.map((f) => [f.relativePath, f.kind])).toEqual([[".stigmer/uploads/late.png", "image"]]);
+    expect(shown.visionImages.map((v) => v.filename), "the image is read from the store").toEqual(["late.png"]);
+    expect(existsSync(getPlatformDir(sessionId)), "nothing is written for the conversation").toBe(false);
+  });
+});
+
+describe("readTurnFiles", () => {
+  it("lists the conversation's Files without writing them, and shows the message's image read from the store", async () => {
+    const doc = file("file_doc", "brief.txt", Buffer.from("brief"), "text/plain");
+    const image = file("file_img", "photo.png", PNG, "image/png");
+    const client = mockStigmerClient({
+      acquireScopedRunnerToken: vi.fn().mockResolvedValue("scoped"),
+      mountRunFileSets: vi.fn().mockResolvedValue({ entries: [doc, image], outputs: [] }),
+    });
+    const sessionId = "ses_read_turn_files";
+
+    const read = await readTurnFiles(deps(client), {
+      execution: execution({ model: "claude-haiku-4.5", messageFiles: [["image", "file_img"]] }),
+      sessionId,
+      capabilities: { harness: Harness.STIGMER, visionProfile: DEEP_AGENT_VISION_PROFILE },
+      referenceFiles: undefined,
+    });
+
+    expect(read.files.conversation.map((f) => f.relativePath)).toEqual([".stigmer/uploads/brief.txt"]);
+    expect(read.files.visionImages.map((v) => v.filename)).toEqual(["photo.png"]);
+    expect((await read.inputs.list()).map((input) => input.path).sort()).toEqual(["uploads/brief.txt", "uploads/photo.png"]);
+    expect(client.mountRunFiles).not.toHaveBeenCalled();
+    expect(existsSync(getPlatformDir(sessionId))).toBe(false);
   });
 });

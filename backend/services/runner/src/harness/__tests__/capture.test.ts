@@ -34,7 +34,9 @@ import { initGitWorkspace } from "../../__test-utils__/git-workspace-fixture.js"
 import { mockWorkspaceBackend } from "../../__test-utils__/mock-workspace.js";
 import type { FileReviewIdentity } from "../capabilities.js";
 import { captureCandidate, deriveCommandProvenance, pinCaptureBaseline } from "../capture.js";
-import type { TurnWorkspace } from "../types.js";
+import type { ComputerWorkspace, TurnWorkspace } from "../types.js";
+import { NO_TURN_INPUTS } from "../../shared/inputs-reader.js";
+import { newOutputsBuffer } from "../../shared/outputs-buffer.js";
 import { changeSetIdForInvocation, fileRecordOf } from "../../shared/filereview/record.js";
 import { baselineRef } from "../../shared/filereview/git-substrate.js";
 import { AgentMessageSchema, ToolCallSchema, type ToolCall, SubAgentRunSchema, TurnRowsSchema, type TurnRows } from "../../gen/turn/ai/stigmer/runner/turn/v1/rows_pb.js";
@@ -43,8 +45,9 @@ import { ApprovalAction, MessageType, ToolCallStatus } from "../../gen/turn/ai/s
 const EXECUTION_ID = "run_capture-unit";
 const FILE_REVIEW: FileReviewIdentity = { harnessId: "unit", excludePaths: [".unit/scratch.json"] };
 
-function workspaceOver(root: string, turnSeq = 0): TurnWorkspace {
+function workspaceOver(root: string, turnSeq = 0): ComputerWorkspace {
   return {
+    computer: true,
     dirs: [root],
     primaryDir: root,
     gitWorkspace: true,
@@ -70,6 +73,16 @@ function row(id: string, name: string, status: ToolCallStatus, extra: RowFacts =
 function messageWith(...toolCalls: ToolCall[]) {
   return create(AgentMessageSchema, { type: MessageType.MESSAGE_AI, toolCalls });
 }
+
+describe("capture without a computer", () => {
+  it("pins nothing and captures nothing for a turn with no tree", async () => {
+    const rows = create(TurnRowsSchema, {});
+    const workspace: TurnWorkspace = { computer: false, files: { inputs: NO_TURN_INPUTS, outputs: newOutputsBuffer() } };
+    expect(await pinCaptureBaseline({ rows, executionId: EXECUTION_ID, workspace, fileReview: FILE_REVIEW, artifactStorage: undefined, fileRecord: [] })).toBeUndefined();
+    const capture = { changeSetId: "cs" } as Parameters<typeof captureCandidate>[0]["capture"];
+    expect(await captureCandidate({ rows, executionId: EXECUTION_ID, workspace, fileReview: FILE_REVIEW, artifactStorage: undefined, capture, globalBypass: false })).toBe(false);
+  });
+});
 
 describe("harness/capture over a git work tree", () => {
   let root: string;
@@ -203,7 +216,7 @@ describe("harness/capture over a git work tree", () => {
     // the adapter binds; unbound it reads nothing observed.
     const casRoot = mkdtempSync(join(tmpdir(), "stigmer-capture-cas-"));
     try {
-      const casWorkspace: TurnWorkspace = { ...workspaceOver(casRoot), gitWorkspace: false };
+      const casWorkspace: ComputerWorkspace = { ...workspaceOver(casRoot), gitWorkspace: false };
       const cas = (await pinCaptureBaseline({
         rows: create(TurnRowsSchema, {}),
         executionId: EXECUTION_ID,

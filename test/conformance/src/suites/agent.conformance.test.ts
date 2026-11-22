@@ -35,7 +35,9 @@
 // on it is refused), and an update or apply that leaves it unset keeps the
 // stored value. An agent without one is refused, at save, everything that
 // needs one: the Bash tool, its own hooks, a plugin with hooks or a local
-// MCP server, and a subagent that has a computer.
+// MCP server, and a subagent that has a computer. A skill with scripts is
+// not refused: the save records a warning on the agent's status, which an
+// agent with a computer never carries.
 import { AgentSchema } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb";
 import { ServiceTier, ThinkingMode } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 import { Computer, Harness } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
@@ -60,6 +62,7 @@ import {
 import { uniqueName, uniqueOrg } from "../support/naming";
 import { createChildOrganization, organizationSlug } from "../support/organizations";
 import { oneServerPlugin, pushPlugin, thermosLike } from "../support/plugins";
+import { zipFiles } from "../support/skills";
 import { createTarget, type TargetProfile } from "../targets";
 
 let target: TargetProfile;
@@ -897,6 +900,29 @@ describe("Agent conformance — the computer", () => {
     expect(byProgram.rawMessage).toContain("as a local program");
 
     expect((await created(org, { computer: Computer.NONE, plugins: [remote.metadata!.slug] })).spec?.computer).toBe(Computer.NONE);
+  });
+
+  it("[rpc:AgentCommandController.create] an agent without a computer is warned, not refused, of a skill with scripts; an agent with one is not", async () => {
+    const { org } = await target.provisionTenancy();
+    const push = async (name: string, files: Record<string, string>) => {
+      const skill = await clients.skillCommand.push({
+        org,
+        artifact: zipFiles({ "SKILL.md": `---\nname: ${name}\ndescription: d\n---\nbody of ${name}`, ...files }),
+      });
+      fixtures.defer(() => clients.skillCommand.delete({ value: skill.metadata!.id }));
+      return skill.metadata!.slug;
+    };
+    const scripted = await push(uniqueName("scripted"), { "scripts/run.sh": "echo hi" });
+    const plain = await push(uniqueName("plain"), { "refs/guide.md": "the guide" });
+
+    const without = await created(org, { computer: Computer.NONE, skillRefs: [scripted, plain] });
+    expect(without.status?.warnings.map((warning) => [warning.kind, warning.skill, warning.message])).toEqual([
+      ["skill-scripts", scripted, `skill '${scripted}' has scripts this agent can't run without a computer; it can still read them`],
+    ]);
+    const withOne = await created(org, { computer: Computer.REQUIRED, skillRefs: [scripted, plain] });
+    expect(withOne.status?.warnings).toEqual([]);
+    const read = await clients.agentQuery.get({ value: without.metadata!.id });
+    expect(read.status?.warnings.map((warning) => warning.skill), "the warning is stored on the agent").toEqual([scripted]);
   });
 
   it("[rpc:AgentCommandController.create] an agent without a computer is refused a subagent that has one (FailedPrecondition), and lists one without", async () => {

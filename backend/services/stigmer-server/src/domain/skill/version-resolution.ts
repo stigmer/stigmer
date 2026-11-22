@@ -27,6 +27,7 @@ import type {
   SkillVersionEntry,
 } from "@stigmer/apis/ai/stigmer/agentic/skill/v1/io_pb";
 import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import type { ApiResourceReference } from "@stigmer/apis/ai/stigmer/commons/apiresource/io_pb";
 
 import type { PipelineStep } from "../../pipeline/pipeline.js";
 import type { Store } from "../../store/interface.js";
@@ -34,6 +35,7 @@ import {
   LIST_VERSIONS_HEAD_HASH_KEY,
   LIST_VERSIONS_RESOURCE_ID_KEY,
   LIST_VERSIONS_RESPONSE_KEY,
+  loadByReferenceWithVersion,
   newLoadAndMapVersionsStep as newSharedLoadAndMapVersionsStep,
   newLoadByReferenceWithVersionStep,
   newResolveBySlugForVersionsStep,
@@ -72,6 +74,22 @@ const skillVersionBinding: VersionHistoryBinding<
   response: (entries, nextPageToken) =>
     create(ListSkillVersionsResponseSchema, { entries, nextPageToken }),
 };
+
+/**
+ * The skill a reference names, at its version (the head when it names
+ * none), in the reference's organization or `org` when it names none.
+ * NotFound names the skill or the version; asks no authorization.
+ */
+export function loadSkillByReference(
+  store: Store,
+  ref: ApiResourceReference,
+  org: string,
+): Promise<Skill> {
+  return loadByReferenceWithVersion(store, skillVersionBinding, {
+    ...ref,
+    org: ref.org === "" ? org : ref.org,
+  });
+}
 
 /** LoadSkillByReference — the reference + version ladder. */
 export function newLoadSkillByReferenceStep(

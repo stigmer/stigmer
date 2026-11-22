@@ -16,10 +16,12 @@ class MountRunFilesInput(_message.Message):
     def __init__(self, run_id: _Optional[str] = ...) -> None: ...
 
 class RunFileMounts(_message.Message):
-    __slots__ = ("entries",)
+    __slots__ = ("entries", "outputs")
     ENTRIES_FIELD_NUMBER: _ClassVar[int]
+    OUTPUTS_FIELD_NUMBER: _ClassVar[int]
     entries: _containers.RepeatedCompositeFieldContainer[FileMount]
-    def __init__(self, entries: _Optional[_Iterable[_Union[FileMount, _Mapping]]] = ...) -> None: ...
+    outputs: _containers.RepeatedCompositeFieldContainer[FileMount]
+    def __init__(self, entries: _Optional[_Iterable[_Union[FileMount, _Mapping]]] = ..., outputs: _Optional[_Iterable[_Union[FileMount, _Mapping]]] = ...) -> None: ...
 
 class FileMount(_message.Message):
     __slots__ = ("file_id", "mount_path", "filename", "mime_type", "size_bytes", "url")

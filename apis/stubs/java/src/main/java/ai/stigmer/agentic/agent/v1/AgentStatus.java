@@ -33,6 +33,7 @@ private static final long serialVersionUID = 0L;
   }
   private AgentStatus() {
     versionHash_ = "";
+    warnings_ = java.util.Collections.emptyList();
   }
 
   public static final com.google.protobuf.Descriptors.Descriptor
@@ -161,6 +162,77 @@ private static final long serialVersionUID = 0L;
     }
   }
 
+  public static final int WARNINGS_FIELD_NUMBER = 4;
+  @SuppressWarnings("serial")
+  private java.util.List<ai.stigmer.agentic.agent.v1.AgentWarning> warnings_;
+  /**
+   * <pre>
+   * Warnings the last save recorded: what the agent's skills carry that it
+   * cannot use as configured, such as scripts an agent without a computer
+   * cannot run. A save never fails over one.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.agent.v1.AgentWarning warnings = 4 [json_name = "warnings"];</code>
+   */
+  @java.lang.Override
+  public java.util.List<ai.stigmer.agentic.agent.v1.AgentWarning> getWarningsList() {
+    return warnings_;
+  }
+  /**
+   * <pre>
+   * Warnings the last save recorded: what the agent's skills carry that it
+   * cannot use as configured, such as scripts an agent without a computer
+   * cannot run. A save never fails over one.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.agent.v1.AgentWarning warnings = 4 [json_name = "warnings"];</code>
+   */
+  @java.lang.Override
+  public java.util.List<? extends ai.stigmer.agentic.agent.v1.AgentWarningOrBuilder> 
+      getWarningsOrBuilderList() {
+    return warnings_;
+  }
+  /**
+   * <pre>
+   * Warnings the last save recorded: what the agent's skills carry that it
+   * cannot use as configured, such as scripts an agent without a computer
+   * cannot run. A save never fails over one.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.agent.v1.AgentWarning warnings = 4 [json_name = "warnings"];</code>
+   */
+  @java.lang.Override
+  public int getWarningsCount() {
+    return warnings_.size();
+  }
+  /**
+   * <pre>
+   * Warnings the last save recorded: what the agent's skills carry that it
+   * cannot use as configured, such as scripts an agent without a computer
+   * cannot run. A save never fails over one.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.agent.v1.AgentWarning warnings = 4 [json_name = "warnings"];</code>
+   */
+  @java.lang.Override
+  public ai.stigmer.agentic.agent.v1.AgentWarning getWarnings(int index) {
+    return warnings_.get(index);
+  }
+  /**
+   * <pre>
+   * Warnings the last save recorded: what the agent's skills carry that it
+   * cannot use as configured, such as scripts an agent without a computer
+   * cannot run. A save never fails over one.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.agent.v1.AgentWarning warnings = 4 [json_name = "warnings"];</code>
+   */
+  @java.lang.Override
+  public ai.stigmer.agentic.agent.v1.AgentWarningOrBuilder getWarningsOrBuilder(
+      int index) {
+    return warnings_.get(index);
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -178,6 +250,9 @@ private static final long serialVersionUID = 0L;
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(versionHash_)) {
       com.google.protobuf.GeneratedMessage.writeString(output, 3, versionHash_);
     }
+    for (int i = 0; i < warnings_.size(); i++) {
+      output.writeMessage(4, warnings_.get(i));
+    }
     if (((bitField0_ & 0x00000001) != 0)) {
       output.writeMessage(99, getAudit());
     }
@@ -193,6 +268,15 @@ private static final long serialVersionUID = 0L;
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(versionHash_)) {
       size += com.google.protobuf.GeneratedMessage.computeStringSize(3, versionHash_);
     }
+
+        {
+          final int count = warnings_.size();
+          for (int i = 0; i < count; i++) {
+            size += com.google.protobuf.CodedOutputStream
+              .computeMessageSizeNoTag(warnings_.get(i));
+          }
+          size += 1 * count;
+        }
     if (((bitField0_ & 0x00000001) != 0)) {
       size += com.google.protobuf.CodedOutputStream
         .computeMessageSize(99, getAudit());
@@ -219,6 +303,8 @@ private static final long serialVersionUID = 0L;
     }
     if (!getVersionHash()
         .equals(other.getVersionHash())) return false;
+    if (!getWarningsList()
+        .equals(other.getWarningsList())) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -236,6 +322,10 @@ private static final long serialVersionUID = 0L;
     }
     hash = (37 * hash) + VERSION_HASH_FIELD_NUMBER;
     hash = (53 * hash) + getVersionHash().hashCode();
+    if (getWarningsCount() > 0) {
+      hash = (37 * hash) + WARNINGS_FIELD_NUMBER;
+      hash = (53 * hash) + getWarningsList().hashCode();
+    }
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -371,6 +461,7 @@ private static final long serialVersionUID = 0L;
       if (com.google.protobuf.GeneratedMessage
               .alwaysUseFieldBuilders) {
         internalGetAuditFieldBuilder();
+        internalGetWarningsFieldBuilder();
       }
     }
     @java.lang.Override
@@ -383,6 +474,13 @@ private static final long serialVersionUID = 0L;
         auditBuilder_ = null;
       }
       versionHash_ = "";
+      if (warningsBuilder_ == null) {
+        warnings_ = java.util.Collections.emptyList();
+      } else {
+        warnings_ = null;
+        warningsBuilder_.clear();
+      }
+      bitField0_ = (bitField0_ & ~0x00000004);
       return this;
     }
 
@@ -409,9 +507,22 @@ private static final long serialVersionUID = 0L;
     @java.lang.Override
     public ai.stigmer.agentic.agent.v1.AgentStatus buildPartial() {
       ai.stigmer.agentic.agent.v1.AgentStatus result = new ai.stigmer.agentic.agent.v1.AgentStatus(this);
+      buildPartialRepeatedFields(result);
       if (bitField0_ != 0) { buildPartial0(result); }
       onBuilt();
       return result;
+    }
+
+    private void buildPartialRepeatedFields(ai.stigmer.agentic.agent.v1.AgentStatus result) {
+      if (warningsBuilder_ == null) {
+        if (((bitField0_ & 0x00000004) != 0)) {
+          warnings_ = java.util.Collections.unmodifiableList(warnings_);
+          bitField0_ = (bitField0_ & ~0x00000004);
+        }
+        result.warnings_ = warnings_;
+      } else {
+        result.warnings_ = warningsBuilder_.build();
+      }
     }
 
     private void buildPartial0(ai.stigmer.agentic.agent.v1.AgentStatus result) {
@@ -449,6 +560,32 @@ private static final long serialVersionUID = 0L;
         bitField0_ |= 0x00000002;
         onChanged();
       }
+      if (warningsBuilder_ == null) {
+        if (!other.warnings_.isEmpty()) {
+          if (warnings_.isEmpty()) {
+            warnings_ = other.warnings_;
+            bitField0_ = (bitField0_ & ~0x00000004);
+          } else {
+            ensureWarningsIsMutable();
+            warnings_.addAll(other.warnings_);
+          }
+          onChanged();
+        }
+      } else {
+        if (!other.warnings_.isEmpty()) {
+          if (warningsBuilder_.isEmpty()) {
+            warningsBuilder_.dispose();
+            warningsBuilder_ = null;
+            warnings_ = other.warnings_;
+            bitField0_ = (bitField0_ & ~0x00000004);
+            warningsBuilder_ = 
+              com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders ?
+                 internalGetWarningsFieldBuilder() : null;
+          } else {
+            warningsBuilder_.addAllMessages(other.warnings_);
+          }
+        }
+      }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
       return this;
@@ -480,6 +617,19 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00000002;
               break;
             } // case 26
+            case 34: {
+              ai.stigmer.agentic.agent.v1.AgentWarning m =
+                  input.readMessage(
+                      ai.stigmer.agentic.agent.v1.AgentWarning.parser(),
+                      extensionRegistry);
+              if (warningsBuilder_ == null) {
+                ensureWarningsIsMutable();
+                warnings_.add(m);
+              } else {
+                warningsBuilder_.addMessage(m);
+              }
+              break;
+            } // case 34
             case 794: {
               input.readMessage(
                   internalGetAuditFieldBuilder().getBuilder(),
@@ -806,6 +956,354 @@ private static final long serialVersionUID = 0L;
       bitField0_ |= 0x00000002;
       onChanged();
       return this;
+    }
+
+    private java.util.List<ai.stigmer.agentic.agent.v1.AgentWarning> warnings_ =
+      java.util.Collections.emptyList();
+    private void ensureWarningsIsMutable() {
+      if (!((bitField0_ & 0x00000004) != 0)) {
+        warnings_ = new java.util.ArrayList<ai.stigmer.agentic.agent.v1.AgentWarning>(warnings_);
+        bitField0_ |= 0x00000004;
+       }
+    }
+
+    private com.google.protobuf.RepeatedFieldBuilder<
+        ai.stigmer.agentic.agent.v1.AgentWarning, ai.stigmer.agentic.agent.v1.AgentWarning.Builder, ai.stigmer.agentic.agent.v1.AgentWarningOrBuilder> warningsBuilder_;
+
+    /**
+     * <pre>
+     * Warnings the last save recorded: what the agent's skills carry that it
+     * cannot use as configured, such as scripts an agent without a computer
+     * cannot run. A save never fails over one.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.agent.v1.AgentWarning warnings = 4 [json_name = "warnings"];</code>
+     */
+    public java.util.List<ai.stigmer.agentic.agent.v1.AgentWarning> getWarningsList() {
+      if (warningsBuilder_ == null) {
+        return java.util.Collections.unmodifiableList(warnings_);
+      } else {
+        return warningsBuilder_.getMessageList();
+      }
+    }
+    /**
+     * <pre>
+     * Warnings the last save recorded: what the agent's skills carry that it
+     * cannot use as configured, such as scripts an agent without a computer
+     * cannot run. A save never fails over one.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.agent.v1.AgentWarning warnings = 4 [json_name = "warnings"];</code>
+     */
+    public int getWarningsCount() {
+      if (warningsBuilder_ == null) {
+        return warnings_.size();
+      } else {
+        return warningsBuilder_.getCount();
+      }
+    }
+    /**
+     * <pre>
+     * Warnings the last save recorded: what the agent's skills carry that it
+     * cannot use as configured, such as scripts an agent without a computer
+     * cannot run. A save never fails over one.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.agent.v1.AgentWarning warnings = 4 [json_name = "warnings"];</code>
+     */
+    public ai.stigmer.agentic.agent.v1.AgentWarning getWarnings(int index) {
+      if (warningsBuilder_ == null) {
+        return warnings_.get(index);
+      } else {
+        return warningsBuilder_.getMessage(index);
+      }
+    }
+    /**
+     * <pre>
+     * Warnings the last save recorded: what the agent's skills carry that it
+     * cannot use as configured, such as scripts an agent without a computer
+     * cannot run. A save never fails over one.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.agent.v1.AgentWarning warnings = 4 [json_name = "warnings"];</code>
+     */
+    public Builder setWarnings(
+        int index, ai.stigmer.agentic.agent.v1.AgentWarning value) {
+      if (warningsBuilder_ == null) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        ensureWarningsIsMutable();
+        warnings_.set(index, value);
+        onChanged();
+      } else {
+        warningsBuilder_.setMessage(index, value);
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Warnings the last save recorded: what the agent's skills carry that it
+     * cannot use as configured, such as scripts an agent without a computer
+     * cannot run. A save never fails over one.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.agent.v1.AgentWarning warnings = 4 [json_name = "warnings"];</code>
+     */
+    public Builder setWarnings(
+        int index, ai.stigmer.agentic.agent.v1.AgentWarning.Builder builderForValue) {
+      if (warningsBuilder_ == null) {
+        ensureWarningsIsMutable();
+        warnings_.set(index, builderForValue.build());
+        onChanged();
+      } else {
+        warningsBuilder_.setMessage(index, builderForValue.build());
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Warnings the last save recorded: what the agent's skills carry that it
+     * cannot use as configured, such as scripts an agent without a computer
+     * cannot run. A save never fails over one.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.agent.v1.AgentWarning warnings = 4 [json_name = "warnings"];</code>
+     */
+    public Builder addWarnings(ai.stigmer.agentic.agent.v1.AgentWarning value) {
+      if (warningsBuilder_ == null) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        ensureWarningsIsMutable();
+        warnings_.add(value);
+        onChanged();
+      } else {
+        warningsBuilder_.addMessage(value);
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Warnings the last save recorded: what the agent's skills carry that it
+     * cannot use as configured, such as scripts an agent without a computer
+     * cannot run. A save never fails over one.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.agent.v1.AgentWarning warnings = 4 [json_name = "warnings"];</code>
+     */
+    public Builder addWarnings(
+        int index, ai.stigmer.agentic.agent.v1.AgentWarning value) {
+      if (warningsBuilder_ == null) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        ensureWarningsIsMutable();
+        warnings_.add(index, value);
+        onChanged();
+      } else {
+        warningsBuilder_.addMessage(index, value);
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Warnings the last save recorded: what the agent's skills carry that it
+     * cannot use as configured, such as scripts an agent without a computer
+     * cannot run. A save never fails over one.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.agent.v1.AgentWarning warnings = 4 [json_name = "warnings"];</code>
+     */
+    public Builder addWarnings(
+        ai.stigmer.agentic.agent.v1.AgentWarning.Builder builderForValue) {
+      if (warningsBuilder_ == null) {
+        ensureWarningsIsMutable();
+        warnings_.add(builderForValue.build());
+        onChanged();
+      } else {
+        warningsBuilder_.addMessage(builderForValue.build());
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Warnings the last save recorded: what the agent's skills carry that it
+     * cannot use as configured, such as scripts an agent without a computer
+     * cannot run. A save never fails over one.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.agent.v1.AgentWarning warnings = 4 [json_name = "warnings"];</code>
+     */
+    public Builder addWarnings(
+        int index, ai.stigmer.agentic.agent.v1.AgentWarning.Builder builderForValue) {
+      if (warningsBuilder_ == null) {
+        ensureWarningsIsMutable();
+        warnings_.add(index, builderForValue.build());
+        onChanged();
+      } else {
+        warningsBuilder_.addMessage(index, builderForValue.build());
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Warnings the last save recorded: what the agent's skills carry that it
+     * cannot use as configured, such as scripts an agent without a computer
+     * cannot run. A save never fails over one.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.agent.v1.AgentWarning warnings = 4 [json_name = "warnings"];</code>
+     */
+    public Builder addAllWarnings(
+        java.lang.Iterable<? extends ai.stigmer.agentic.agent.v1.AgentWarning> values) {
+      if (warningsBuilder_ == null) {
+        ensureWarningsIsMutable();
+        com.google.protobuf.AbstractMessageLite.Builder.addAll(
+            values, warnings_);
+        onChanged();
+      } else {
+        warningsBuilder_.addAllMessages(values);
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Warnings the last save recorded: what the agent's skills carry that it
+     * cannot use as configured, such as scripts an agent without a computer
+     * cannot run. A save never fails over one.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.agent.v1.AgentWarning warnings = 4 [json_name = "warnings"];</code>
+     */
+    public Builder clearWarnings() {
+      if (warningsBuilder_ == null) {
+        warnings_ = java.util.Collections.emptyList();
+        bitField0_ = (bitField0_ & ~0x00000004);
+        onChanged();
+      } else {
+        warningsBuilder_.clear();
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Warnings the last save recorded: what the agent's skills carry that it
+     * cannot use as configured, such as scripts an agent without a computer
+     * cannot run. A save never fails over one.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.agent.v1.AgentWarning warnings = 4 [json_name = "warnings"];</code>
+     */
+    public Builder removeWarnings(int index) {
+      if (warningsBuilder_ == null) {
+        ensureWarningsIsMutable();
+        warnings_.remove(index);
+        onChanged();
+      } else {
+        warningsBuilder_.remove(index);
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Warnings the last save recorded: what the agent's skills carry that it
+     * cannot use as configured, such as scripts an agent without a computer
+     * cannot run. A save never fails over one.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.agent.v1.AgentWarning warnings = 4 [json_name = "warnings"];</code>
+     */
+    public ai.stigmer.agentic.agent.v1.AgentWarning.Builder getWarningsBuilder(
+        int index) {
+      return internalGetWarningsFieldBuilder().getBuilder(index);
+    }
+    /**
+     * <pre>
+     * Warnings the last save recorded: what the agent's skills carry that it
+     * cannot use as configured, such as scripts an agent without a computer
+     * cannot run. A save never fails over one.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.agent.v1.AgentWarning warnings = 4 [json_name = "warnings"];</code>
+     */
+    public ai.stigmer.agentic.agent.v1.AgentWarningOrBuilder getWarningsOrBuilder(
+        int index) {
+      if (warningsBuilder_ == null) {
+        return warnings_.get(index);  } else {
+        return warningsBuilder_.getMessageOrBuilder(index);
+      }
+    }
+    /**
+     * <pre>
+     * Warnings the last save recorded: what the agent's skills carry that it
+     * cannot use as configured, such as scripts an agent without a computer
+     * cannot run. A save never fails over one.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.agent.v1.AgentWarning warnings = 4 [json_name = "warnings"];</code>
+     */
+    public java.util.List<? extends ai.stigmer.agentic.agent.v1.AgentWarningOrBuilder> 
+         getWarningsOrBuilderList() {
+      if (warningsBuilder_ != null) {
+        return warningsBuilder_.getMessageOrBuilderList();
+      } else {
+        return java.util.Collections.unmodifiableList(warnings_);
+      }
+    }
+    /**
+     * <pre>
+     * Warnings the last save recorded: what the agent's skills carry that it
+     * cannot use as configured, such as scripts an agent without a computer
+     * cannot run. A save never fails over one.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.agent.v1.AgentWarning warnings = 4 [json_name = "warnings"];</code>
+     */
+    public ai.stigmer.agentic.agent.v1.AgentWarning.Builder addWarningsBuilder() {
+      return internalGetWarningsFieldBuilder().addBuilder(
+          ai.stigmer.agentic.agent.v1.AgentWarning.getDefaultInstance());
+    }
+    /**
+     * <pre>
+     * Warnings the last save recorded: what the agent's skills carry that it
+     * cannot use as configured, such as scripts an agent without a computer
+     * cannot run. A save never fails over one.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.agent.v1.AgentWarning warnings = 4 [json_name = "warnings"];</code>
+     */
+    public ai.stigmer.agentic.agent.v1.AgentWarning.Builder addWarningsBuilder(
+        int index) {
+      return internalGetWarningsFieldBuilder().addBuilder(
+          index, ai.stigmer.agentic.agent.v1.AgentWarning.getDefaultInstance());
+    }
+    /**
+     * <pre>
+     * Warnings the last save recorded: what the agent's skills carry that it
+     * cannot use as configured, such as scripts an agent without a computer
+     * cannot run. A save never fails over one.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.agent.v1.AgentWarning warnings = 4 [json_name = "warnings"];</code>
+     */
+    public java.util.List<ai.stigmer.agentic.agent.v1.AgentWarning.Builder> 
+         getWarningsBuilderList() {
+      return internalGetWarningsFieldBuilder().getBuilderList();
+    }
+    private com.google.protobuf.RepeatedFieldBuilder<
+        ai.stigmer.agentic.agent.v1.AgentWarning, ai.stigmer.agentic.agent.v1.AgentWarning.Builder, ai.stigmer.agentic.agent.v1.AgentWarningOrBuilder> 
+        internalGetWarningsFieldBuilder() {
+      if (warningsBuilder_ == null) {
+        warningsBuilder_ = new com.google.protobuf.RepeatedFieldBuilder<
+            ai.stigmer.agentic.agent.v1.AgentWarning, ai.stigmer.agentic.agent.v1.AgentWarning.Builder, ai.stigmer.agentic.agent.v1.AgentWarningOrBuilder>(
+                warnings_,
+                ((bitField0_ & 0x00000004) != 0),
+                getParentForChildren(),
+                isClean());
+        warnings_ = null;
+      }
+      return warningsBuilder_;
     }
 
     // @@protoc_insertion_point(builder_scope:ai.stigmer.agentic.agent.v1.AgentStatus)

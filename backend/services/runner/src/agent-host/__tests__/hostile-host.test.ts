@@ -30,6 +30,8 @@ import { ToolCallOutputRefSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1
 import { DEEP_AGENT_CAPABILITIES } from "../../activities/execute-deep-agent/deep-agent-capabilities.js";
 import { testConfig } from "../../__test-utils__/config-fixture.js";
 import { RecordingTurnSink } from "../../__test-utils__/harness-contract/recording-sink.js";
+import { NO_TURN_INPUTS, InputFileNotFoundError } from "../../shared/inputs-reader.js";
+import { newOutputsBuffer } from "../../shared/outputs-buffer.js";
 import { turnInputFixture } from "../../__test-utils__/turn-input-fixture.js";
 import type { HarnessAdapter } from "../../harness/types.js";
 import { Peer, loopbackChannels } from "../channel.js";
@@ -277,6 +279,52 @@ describe("a host that does not follow the rules", () => {
     await adapter.runTurn(input, new RecordingTurnSink({ executionId: input.executionId }));
 
     expect(refusal).toBe("plugin 'not-mine' is not one of this turn's");
+  });
+
+  it("refuses the store's calls for a turn with a computer, and a set-aside call where the runner keeps none", async () => {
+    const refusals: string[] = [];
+    const refuse = (err: Error) => void refusals.push(err.message);
+    const attack: Attack = async (host, turnId) => {
+      await host.call("listTurnInputs", { turnId }).catch(refuse);
+      await host.call("putTurnOffload", { turnId, content: "" }).catch(refuse);
+    };
+    const adapter = hostileHarness(attack);
+    await adapter.boot(testConfig());
+    const withComputer = turnInputFixture();
+    await adapter.runTurn(withComputer, new RecordingTurnSink({ executionId: withComputer.executionId }));
+    const withoutStorage = { ...turnInputFixture(), workspace: { computer: false as const, files: { inputs: NO_TURN_INPUTS, outputs: newOutputsBuffer() } } };
+    await adapter.runTurn(withoutStorage, new RecordingTurnSink({ executionId: withoutStorage.executionId }));
+
+    expect(refusals).toEqual([
+      "this turn has a computer; its files are on its workspace, not the store",
+      "this turn has a computer; its files are on its workspace, not the store",
+      "this runner has no artifact storage to set results aside in",
+    ]);
+  });
+
+  it("answers a turn's input it does not hold as missing, and passes on a reader's other failure", async () => {
+    const answers: unknown[] = [];
+    const adapter = hostileHarness(async (host, turnId) => {
+      answers.push(await host.call("readTurnInput", { turnId, path: "uploads/none.txt" }));
+      answers.push(await host.call("readTurnInput", { turnId, path: "uploads/broken.txt" }).catch((err: Error) => err.message));
+      answers.push(await host.call("deleteTurnOutput", { turnId, path: "none.md" }));
+    });
+    await adapter.boot(testConfig());
+    const input = {
+      ...turnInputFixture(),
+      workspace: {
+        computer: false as const,
+        files: {
+          inputs: {
+            list: async () => [],
+            read: async (path: string) => Promise.reject(path.endsWith("broken.txt") ? new Error("store down") : new InputFileNotFoundError(path)),
+          },
+          outputs: newOutputsBuffer(),
+        },
+      },
+    };
+    await adapter.runTurn(input, new RecordingTurnSink({ executionId: input.executionId }));
+    expect(answers).toEqual([{ missing: true }, "store down", false]);
   });
 
   it("tells the host a turn the runtime had already stopped, with the stop's reason", async () => {

@@ -149,7 +149,7 @@ import { isDeepStrictEqual } from "node:util";
 import type { CanUseTool, HookCallback, HookCallbackMatcher, HookEvent, PermissionResult } from "@anthropic-ai/claude-agent-sdk";
 
 import { ApprovalAction } from "../../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
-import type { TurnInput } from "../../harness/types.js";
+import type { ComputerTurnInput } from "../../harness/types.js";
 import {
   CHANGED_MESSAGE,
   isUnattendedApprovalMode,
@@ -436,7 +436,7 @@ export interface GateFactSources {
 }
 
 /** The gate's facts for a turn, from the runtime's record and the turn's own pieces. */
-export function gateFactsOf(input: TurnInput, sources: GateFactSources): GateFacts {
+export function gateFactsOf(input: ComputerTurnInput, sources: GateFactSources): GateFacts {
   const { workspace } = input;
   return {
     root: sources.agents.root,

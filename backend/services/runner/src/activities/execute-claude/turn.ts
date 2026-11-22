@@ -96,7 +96,8 @@ import { InteractionMode, ServiceTier } from "@stigmer/apis/ai/stigmer/agentic/r
 
 import type { Config } from "../../config.js";
 import type { TurnInputChannel } from "../../harness/turn-input.js";
-import type { TurnInput, TurnOutcome, TurnSink } from "../../harness/types.js";
+import type { ComputerTurnInput, TurnInput, TurnOutcome, TurnSink } from "../../harness/types.js";
+import { computerTurnOf, NoComputerError } from "../../harness/computer-turn.js";
 import { ToolCallStatus } from "../../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
 import { CasCaptureObserver } from "../../shared/filereview/cas-capture-observer.js";
 import { HookSetupError } from "../../shared/hooks/setup.js";
@@ -204,8 +205,16 @@ const STDERR_LINE_CHARS = 2_000;
 /** A turn this harness refuses before it starts, with the sentence that says how. */
 class Refusal extends Error {}
 
-export async function runClaudeTurn(input: TurnInput, sink: TurnSink, config: ClaudeAdapterConfig, sdk: ClaudeSdk): Promise<TurnOutcome> {
+export async function runClaudeTurn(turn: TurnInput, sink: TurnSink, config: ClaudeAdapterConfig, sdk: ClaudeSdk): Promise<TurnOutcome> {
   if (sink.stopSignal.aborted || sink.yieldSignal.aborted) return { kind: "interrupted" };
+  // The Claude engine always runs on a computer: the server never plans
+  // it for a conversation without one, and a turn that reaches here
+  // without one is refused in that sentence, as the server would.
+  const input = computerTurnOf(turn);
+  if (input === undefined) {
+    const refusal = new NoComputerError("The Claude engine");
+    return { kind: "failed", surface: "actionable", message: refusal.message, cause: refusal };
+  }
   let bridge: McpBridge | undefined;
   const home = getClaudeInvocationDir(input.sessionId, input.executionId, input.turnSeq);
   const observer = captureObserverOf(input);
@@ -238,7 +247,7 @@ export async function runClaudeTurn(input: TurnInput, sink: TurnSink, config: Cl
 }
 
 /** The turn's capture observer: an ignored path's before-bytes in a git workspace, every path's in one with no git (the Stigmer harness's rule). */
-function captureObserverOf(input: TurnInput): CasCaptureObserver {
+function captureObserverOf(input: ComputerTurnInput): CasCaptureObserver {
   const { primaryDir, gitWorkspace } = input.workspace;
   return new CasCaptureObserver({
     rootDir: primaryDir,
@@ -247,7 +256,7 @@ function captureObserverOf(input: TurnInput): CasCaptureObserver {
 }
 
 /** Step 1 of the header. */
-function refuseUnsupported(input: TurnInput): void {
+function refuseUnsupported(input: ComputerTurnInput): void {
   if (input.model.serviceTier === ServiceTier.FAST) throw new Refusal("Claude does not offer the fast tier yet. Run this turn on the standard tier.");
 }
 
@@ -261,14 +270,14 @@ interface TurnModel {
   readonly thinking: ThinkingProfile | undefined;
 }
 
-async function resolveModel(input: TurnInput): Promise<TurnModel> {
+async function resolveModel(input: ComputerTurnInput): Promise<TurnModel> {
   const registryId = input.model.requested === "default" ? await getDefaultModel("claude") : input.model.requested;
   const apiId = await resolveToApiModelId(registryId);
   if (!apiId.startsWith("claude")) throw new Refusal(`Claude runs Claude models only, and "${registryId}" is not one. Choose a Claude model for this agent.`);
   return { registryId, stopId: await registryIdOf(registryId), apiId, thinking: (await getRequestProfile(registryId, "claude"))?.thinking };
 }
 
-async function connectTools(input: TurnInput, sink: TurnSink, specs: readonly SubagentSpec[]): Promise<McpBridge> {
+async function connectTools(input: ComputerTurnInput, sink: TurnSink, specs: readonly SubagentSpec[]): Promise<McpBridge> {
   const { servers, inScope } = bridgeServersOf(input, specs);
   if (servers.length > 0) await sink.reportProgress("Connecting tools…");
   const bridge = await connectBridge(servers, inScope, input.mcp.platformServerSlugs);
@@ -309,7 +318,7 @@ interface PendingCall {
 }
 
 /** Who left the transcript's pending call: this run's WAITING row, an earlier run, or this run unproposed. */
-function pendingCallOf(input: TurnInput, facts: TranscriptFacts, waiting: ReadonlyMap<string, WaitingCall>): PendingCall {
+function pendingCallOf(input: ComputerTurnInput, facts: TranscriptFacts, waiting: ReadonlyMap<string, WaitingCall>): PendingCall {
   const id = facts.pendingCall;
   const none: PendingCall = { answered: undefined, staleCallId: undefined, unproposedCallId: undefined };
   if (id === undefined) return none;
@@ -328,7 +337,7 @@ function waitingRowsOf(sink: TurnSink): Map<string, WaitingCall> {
   return waiting;
 }
 
-async function openingOf(input: TurnInput, channel: TurnInputChannel, facts: TranscriptFacts, pending: PendingCall): Promise<Opening> {
+async function openingOf(input: ComputerTurnInput, channel: TurnInputChannel, facts: TranscriptFacts, pending: PendingCall): Promise<Opening> {
   const runId = runMessageIdOf(input.executionId);
   if (pending.answered !== undefined) return { kind: "resume", call: pending.answered };
   if (!facts.taken.has(runId)) {
@@ -350,7 +359,7 @@ async function openingOf(input: TurnInput, channel: TurnInputChannel, facts: Tra
  * moves; stigmer#2624). A note the engine never read keeps its id, so a
  * retried invocation does not hand it two.
  */
-function continueNoteIdOf(input: TurnInput, facts: TranscriptFacts): string {
+function continueNoteIdOf(input: ComputerTurnInput, facts: TranscriptFacts): string {
   const base = `${input.executionId}:${input.turnSeq}`;
   for (let n = 0; ; n += 1) {
     const id = runMessageIdOf(n === 0 ? base : `${base}:${n}`);
@@ -359,7 +368,7 @@ function continueNoteIdOf(input: TurnInput, facts: TranscriptFacts): string {
 }
 
 /** The run's own message: its images first, as content blocks, then its text (`prompt.ts`). */
-function firstMessageContent(input: TurnInput): SDKUserMessage["message"]["content"] {
+function firstMessageContent(input: ComputerTurnInput): SDKUserMessage["message"]["content"] {
   const text = composeTurnMessage(input);
   const images = input.files.visionImages;
   return images.length === 0 ? text : [...toAnthropicImageBlocks(images), { type: "text", text }];
@@ -375,7 +384,7 @@ interface EngineTurnDeps {
   readonly resumesLeft: number;
 }
 
-async function engineTurn(input: TurnInput, sink: TurnSink, config: ClaudeAdapterConfig, sdk: ClaudeSdk, deps: EngineTurnDeps): Promise<TurnOutcome | ResumeAgain> {
+async function engineTurn(input: ComputerTurnInput, sink: TurnSink, config: ClaudeAdapterConfig, sdk: ClaudeSdk, deps: EngineTurnDeps): Promise<TurnOutcome | ResumeAgain> {
   const { bridge, model, home } = deps;
   const { workspace } = input;
   const turnKey = getExecutionContext().getStore()?.turnKey;
@@ -647,7 +656,7 @@ interface EngineEnd extends InvocationEnd {
 }
 
 /** Step 4 of the header: the engine run to its last result. */
-async function runEngine(input: TurnInput, sink: TurnSink, sdk: ClaudeSdk, run: EngineRun): Promise<EngineEnd> {
+async function runEngine(input: ComputerTurnInput, sink: TurnSink, sdk: ClaudeSdk, run: EngineRun): Promise<EngineEnd> {
   const { stream, midTurn, abort, translator, usage } = run;
   const builder = sink.transcript;
   const scheduler = new StreamingUpdateScheduler(loadStreamingConfig());

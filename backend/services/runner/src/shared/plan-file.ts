@@ -34,6 +34,7 @@ import { createHash } from "node:crypto";
 import { join } from "node:path";
 import { agentFs } from "./agent-fs.js";
 import { OUTPUTS_SUBDIR } from "./outputs.js";
+import type { TurnOutputFiles } from "./outputs-buffer.js";
 import { getPlatformDir } from "./workspace/platform-dir.js";
 
 /**
@@ -155,11 +156,21 @@ export const PLAN_STAGING_FILE = "plan.next";
 export async function savePlanOutput(opts: {
   readonly sessionId: string;
   readonly planText: string;
+  /**
+   * A turn without a computer: the plan goes into the turn's outputs held
+   * in memory (`outputs-buffer.ts`), returned as a File like anything the
+   * agent saved there; no folder is written.
+   */
+  readonly outputs?: Pick<TurnOutputFiles, "write">;
 }): Promise<string | undefined> {
   const { sessionId, planText } = opts;
   if (planText.trim().length === 0) return undefined;
-  const platformDir = getPlatformDir(sessionId);
   const name = planFileName(planText);
+  if (opts.outputs !== undefined) {
+    await opts.outputs.write(name, Buffer.from(planText, "utf8"));
+    return name;
+  }
+  const platformDir = getPlatformDir(sessionId);
   const staging = join(platformDir, PLAN_STAGING_FILE);
   await agentFs().writeFile(staging, planText);
   await agentFs().rename(staging, join(platformDir, OUTPUTS_SUBDIR, name));

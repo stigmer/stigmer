@@ -216,6 +216,14 @@ export class AgentHostSupervisor {
     peer.handle("verifyPlugin", async (args) => endpointFor(args.turnId).calls.verifyPlugin(args));
     peer.handle("listTurnArchives", async (args) => endpointFor(args.turnId).calls.listTurnArchives(args));
     peer.handle("readTurnArchiveFile", async (args) => endpointFor(args.turnId).calls.readTurnArchiveFile(args));
+    peer.handle("listTurnInputs", async (args) => endpointFor(args.turnId).calls.listTurnInputs(args));
+    peer.handle("readTurnInput", async (args) => endpointFor(args.turnId).calls.readTurnInput(args));
+    peer.handle("listTurnOutputs", async (args) => endpointFor(args.turnId).calls.listTurnOutputs(args));
+    peer.handle("readTurnOutput", async (args) => endpointFor(args.turnId).calls.readTurnOutput(args));
+    peer.handle("writeTurnOutput", async (args) => endpointFor(args.turnId).calls.writeTurnOutput(args));
+    peer.handle("deleteTurnOutput", async (args) => endpointFor(args.turnId).calls.deleteTurnOutput(args));
+    peer.handle("putTurnOffload", async (args) => endpointFor(args.turnId).calls.putTurnOffload(args));
+    peer.handle("readTurnOffload", async (args) => endpointFor(args.turnId).calls.readTurnOffload(args));
     peer.handle("claimInput", async (args) => endpointFor(args.turnId).calls.claimInput(args));
     peer.handle("claimedInput", async (args) => endpointFor(args.turnId).calls.claimedInput(args));
     // A notice for a turn that already settled is late, and dropped.

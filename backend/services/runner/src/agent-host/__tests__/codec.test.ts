@@ -59,6 +59,8 @@ import {
   encodeTurnInput,
   type HostTurnServices,
 } from "../codec.js";
+import { NO_TURN_INPUTS } from "../../shared/inputs-reader.js";
+import { newOutputsBuffer } from "../../shared/outputs-buffer.js";
 import { AgentMessageSchema } from "../../gen/turn/ai/stigmer/runner/turn/v1/rows_pb.js";
 import { ApprovalAction, MessageType } from "../../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
 import { TurnRowsSchema } from "../../gen/turn/ai/stigmer/runner/turn/v1/rows_pb.js";
@@ -79,6 +81,17 @@ function noServices(calls: string[] = []): HostTurnServices {
     readTurnArchiveFile: async (path) => {
       calls.push(`read ${path}`);
       return new TextEncoder().encode("x");
+    },
+    storeFiles: {
+      inputs: NO_TURN_INPUTS,
+      outputs: newOutputsBuffer(),
+      offloads: {
+        put: async () => {
+          calls.push("offload put");
+          return "key";
+        },
+        read: async () => new Uint8Array(),
+      },
     },
   };
 }

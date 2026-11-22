@@ -37,6 +37,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     "/about",
     "/download",
     "/blog",
+    "/releases",
   ]) {
     routes.push({
       url: `${baseUrl}${path}`,

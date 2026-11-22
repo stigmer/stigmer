@@ -383,9 +383,11 @@ export class PlatformRoutedBackend extends CompositeBackend {
 
   constructor(
     backend: AnyBackendProtocol,
-    platform: PlatformContentBackend | ArchiveRoutedPlatform | NoPlatformContentBackend,
-    outputs?: OutputsBackend,
-    offloads: Readonly<Record<string, OffloadBackend>> = {},
+    platform: AnyBackendProtocol,
+    outputs?: AnyBackendProtocol,
+    offloads: Readonly<Record<string, AnyBackendProtocol>> = {},
+    /** Whether the offload root keeps what is written there; false for a route that only refuses. */
+    keepsToolResults = DEEPAGENTS_OFFLOAD_ROOT in offloads,
   ) {
     super(backend, {
       [PLATFORM_ROUTE_PREFIX]: platform,
@@ -393,7 +395,7 @@ export class PlatformRoutedBackend extends CompositeBackend {
       ...offloads,
     });
     this.exposesPlatform = !(platform instanceof NoPlatformContentBackend);
-    this.routesToolResults = DEEPAGENTS_OFFLOAD_ROOT in offloads;
+    this.routesToolResults = keepsToolResults;
   }
 
   override async ls(path: string): Promise<LsResult> {

@@ -178,7 +178,8 @@ import {
   readServedFile,
   resolveServedVersion,
 } from "../../archive/serve-files.js";
-import type { ServedArchiveBinding, ServedVersion } from "../../archive/serve-files.js";
+import type { ServedVersion } from "../../archive/serve-files.js";
+import { servedSkill } from "./served-files.js";
 
 /**
  * pushFromFile's read deadline: bounds the File's read, sized for the
@@ -200,6 +201,11 @@ export interface SkillControllerDeps {
   /** The Files' bytes, which pushFromFile reads a skill archive from. */
   readonly fileBlobs: FileBlobs;
   /**
+   * The skills' file reads, shared with the agent's save
+   * (domain/agent/skill-warnings.ts); absent, the controller makes its own.
+   */
+  readonly fileReads?: ArchiveFileReads;
+  /**
    * The transfer lane's staging port over the skill
    * blob driver. Optional — absent, createArtifactUploadUrl and
    * getArtifactDownloadUrl answer FailedPrecondition and push accepts
@@ -213,7 +219,7 @@ export function registerSkillServices(
   router: ConnectRouter,
   deps: SkillControllerDeps,
 ): void {
-  const fileReads = newArchiveFileReads(deps.artifactStorage, "skill", deps.logger);
+  const fileReads = deps.fileReads ?? newArchiveFileReads(deps.artifactStorage, "skill", deps.logger);
   router.service(SkillCommandController, {
     push: (req, ctx) =>
       push(deps, req, ctx, SkillCommandController.method.push),
@@ -756,17 +762,6 @@ async function getByReference(
   return reqCtx.get(TARGET_RESOURCE_KEY) as Skill;
 }
 
-/** How a skill's files are served (archive/serve-files.ts). */
-const servedSkill: ServedArchiveBinding<typeof SkillSchema> = {
-  kind: ApiResourceKind.skill,
-  schema: SkillSchema,
-  noun: "skill",
-  headHashOf: (skill) => skill.status?.versionHash ?? "",
-  storageKeyOf: (skill) => skill.status?.artifactStorageKey ?? "",
-  suiteDirOf: () => undefined,
-  keyForHash: (hash) => `${SKILL_ARTIFACT_KEY_PREFIX}${hash}.zip`,
-  nameOf: (skill) => skill.metadata?.slug || skill.metadata?.id || "",
-};
 
 /**
  * Authorizes a file read by its annotation (can_view on skill_id), then

@@ -28,7 +28,7 @@
 import type { HookCallback, HookCallbackMatcher, HookEvent } from "@anthropic-ai/claude-agent-sdk";
 import { InteractionMode } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 
-import type { TurnInput, TurnSink, TurnSubagent } from "../../harness/types.js";
+import type { ComputerTurnInput, TurnSink, TurnSubagent } from "../../harness/types.js";
 import type { HookEvaluator } from "../../shared/hooks/evaluate.js";
 import { hookFeedbackSection } from "../../shared/hooks/messages.js";
 import { buildHookEvaluator, hookPermissionMode } from "../../shared/hooks/setup.js";
@@ -48,7 +48,7 @@ export const NO_HOOKS: TurnHookEvaluators = { root: null, subagents: new Map() }
 
 /** The turn's evaluators (the header). Throws `HookSetupError` when a hook cannot run as written. */
 export async function turnHookEvaluators(
-  input: TurnInput,
+  input: ComputerTurnInput,
   sink: Pick<TurnSink, "stopSignal" | "recordActivity">,
   stallTimeoutMs: number,
 ): Promise<TurnHookEvaluators> {
@@ -59,7 +59,7 @@ export async function turnHookEvaluators(
 }
 
 async function evaluatorOf(
-  input: TurnInput,
+  input: ComputerTurnInput,
   sink: Pick<TurnSink, "stopSignal" | "recordActivity">,
   stallTimeoutMs: number,
   subagent?: TurnSubagent,

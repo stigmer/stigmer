@@ -158,6 +158,8 @@ import {
   newValidateMcpServersStep,
   newValidatePluginListStep,
 } from "./steps.js";
+import { newRecordAgentWarningsStep } from "./skill-warnings.js";
+import type { AgentWarningReads } from "./skill-warnings.js";
 import { newCascadeDeleteScoringRulesStep } from "../scoring-rule/cascade.js";
 import type { ClockProvider } from "../routine/clock.js";
 import { newCascadeDeleteRoutinesStep } from "../routine/cascade.js";
@@ -217,6 +219,12 @@ export interface AgentControllerDeps {
   readonly channelRuntime: ChannelRuntime | undefined;
   /** The routine clock the delete tears the agent's routines' artifacts down through. */
   readonly routineClock: ClockProvider;
+  /**
+   * The skills' and plugins' file reads: the save reads their indexes for
+   * the warnings it records on an agent without a computer
+   * (skill-warnings.ts).
+   */
+  readonly archiveFileReads: AgentWarningReads;
 }
 
 /** Registers both agent services on the router (routes stage). */
@@ -292,6 +300,7 @@ async function createAgent(
     .addStep(newPinSubagentsStep(deps.store, deps.authorizer))
     .addStep(newResolveAgentComputerStep())
     .addStep(newRefuseWhatNeedsAComputerStep(deps.store))
+    .addStep(newRecordAgentWarningsStep(deps.store, deps.archiveFileReads, deps.logger))
     .addStep(newRefuseUnofferedHarnessStep(agentHarnesses))
     .addStep(newValidateAgentRunConfigStep(deps.modelRegistry))
     .addStep(newComputeAgentVersionHashStep())
@@ -355,6 +364,7 @@ async function update(
       .addStep(newPinSubagentsStep(deps.store, deps.authorizer))
       .addStep(newResolveAgentComputerStep())
       .addStep(newRefuseWhatNeedsAComputerStep(deps.store))
+      .addStep(newRecordAgentWarningsStep(deps.store, deps.archiveFileReads, deps.logger))
       .addStep(newRefuseUnofferedHarnessStep(agentHarnesses))
       .addStep(newValidateAgentRunConfigStep(deps.modelRegistry))
       .addStep(newComputeAgentVersionHashStep())

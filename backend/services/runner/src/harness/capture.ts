@@ -91,7 +91,7 @@ import {
 } from "../shared/filereview/progress.js";
 import { collectSettledToolCallIds, collectSubAgentToolCallIds, stampFlowedFileEditRows, stampFlowedSubAgentFileEditRows } from "../shared/tool-row.js";
 import type { FileReviewIdentity } from "./capabilities.js";
-import type { TurnWorkspace } from "./types.js";
+import type { ComputerWorkspace, TurnWorkspace } from "./types.js";
 import type { ToolCall, TurnRows } from "../gen/turn/ai/stigmer/runner/turn/v1/rows_pb.js";
 import { ApprovalAction, ToolCallStatus } from "../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
 
@@ -154,7 +154,8 @@ export async function pinCaptureBaseline(args: {
   readonly fileRecord: readonly FileChangeSet[];
 }): Promise<TurnCapture | undefined> {
   const { rows, executionId, workspace, fileReview, artifactStorage, fileRecord } = args;
-  if (!workspace.captureMode) return undefined;
+  // A turn without a computer has no tree to capture: nothing it writes is on a disk.
+  if (!workspace.computer || !workspace.captureMode) return undefined;
   const { primaryDir, gitWorkspace, changeSetId } = workspace;
 
   const priorSettledToolCallIds = collectSettledToolCallIds(rows.messages);
@@ -209,7 +210,7 @@ export async function pinCaptureBaseline(args: {
  */
 function buildProgressSubstrate(args: {
   readonly executionId: string;
-  readonly workspace: TurnWorkspace;
+  readonly workspace: ComputerWorkspace;
   readonly baselineTree: string;
   readonly excludePaths: readonly string[];
   readonly casSlice: boolean;
@@ -246,6 +247,8 @@ export async function captureCandidate(args: {
   readonly globalBypass: boolean;
 }): Promise<boolean> {
   const { rows, executionId, workspace, fileReview, artifactStorage, capture, globalBypass } = args;
+  // A capture is pinned only on a computer's tree (`pinCaptureBaseline`).
+  if (!workspace.computer) return false;
   const { primaryDir, gitWorkspace } = workspace;
   const { changeSetId } = capture;
 

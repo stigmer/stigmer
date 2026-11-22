@@ -40,6 +40,7 @@ import {
   isReadOnlyPlatformPath,
   MAX_OUTPUT_BYTES,
   MAX_OUTPUTS_PER_TURN,
+  returnOutputFiles,
   OUTPUTS_INDEX_FILE,
   OUTPUTS_SUBDIR,
   prepareOutputsFolder,
@@ -429,5 +430,32 @@ describe("isReadOnlyPlatformPath", () => {
     for (const path of ["/.stigmer/outputs/report.md", ".stigmer/outputs/reports/q3.md", "/.stigmer/outputs/a/../b.md", "/src/main.ts", "/.stigmerx/a.md", "/src/.stigmer/skills/x.md", "/"]) {
       expect(isReadOnlyPlatformPath(path), path).toBe(false);
     }
+  });
+});
+
+describe("returnOutputFiles: a turn without a computer's outputs, from memory", () => {
+  it("returns each output through the door, and skips an empty one", async () => {
+    const d = door();
+    const outputs = new Map<string, Uint8Array>([
+      ["reply.md", new TextEncoder().encode("Dear customer\n")],
+      ["empty.md", new Uint8Array()],
+    ]);
+    const result = await returnOutputFiles({ client: d.client, executionId: "run_1" }, outputs);
+    expect([...result.returned.keys()]).toEqual(["reply.md"]);
+    expect(result.skipped).toEqual([{ outputPath: "empty.md", reason: "it is empty" }]);
+    expect(d.registered.flat().map((entry) => [entry.outputPath, entry.contentSha256])).toEqual([["reply.md", sha256("Dear customer\n")]]);
+    expect(received.get(d.registered[0]![0]!.uploadRef)?.toString()).toBe("Dear customer\n");
+  });
+
+  it("returns at most a turn's worth, and never throws on a door that fails", async () => {
+    const many = new Map<string, Uint8Array>();
+    for (let i = 0; i <= MAX_OUTPUTS_PER_TURN; i += 1) many.set(`o-${i}.txt`, new Uint8Array([1]));
+    const refusing = mockStigmerClient({ acquireScopedRunnerToken: vi.fn().mockRejectedValue(new Error("no credential")) });
+    const result = await returnOutputFiles({ client: refusing, executionId: "run_1" }, many);
+    expect(result.returned.size).toBe(0);
+    const d = door();
+    const capped = await returnOutputFiles({ client: d.client, executionId: "run_1" }, many);
+    expect(capped.returned.size).toBe(MAX_OUTPUTS_PER_TURN);
+    expect(capped.skipped.map((skip) => skip.reason)).toEqual([`the turn already returns ${MAX_OUTPUTS_PER_TURN} outputs`]);
   });
 });

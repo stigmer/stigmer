@@ -19,7 +19,7 @@ import { describe, it, expect, vi, afterEach, beforeEach } from "vitest";
 import { testConfig } from "../../../__test-utils__/config-fixture.js";
 import { RecordingTurnSink } from "../../../__test-utils__/harness-contract/recording-sink.js";
 import { turnInputFixture } from "../../../__test-utils__/turn-input-fixture.js";
-import type { TurnInput, TurnOutcome, TurnSink } from "../../../harness/types.js";
+import type { ComputerTurnInput, ComputerWorkspace, TurnInput, TurnOutcome, TurnSink } from "../../../harness/types.js";
 import type { ClaudeAdapterConfig, ClaudeSdk } from "../turn.js";
 
 const SDK = "@anthropic-ai/claude-agent-sdk";
@@ -62,10 +62,10 @@ describe("the Claude adapter on a runner with the engine", () => {
   it("hands each turn to the turn module with the config slice taken at boot and the loaded SDK", async () => {
     const fakeSdk = { marker: "the loaded sdk" };
     vi.doMock(SDK, () => fakeSdk);
-    const seen: { input: TurnInput; sink: TurnSink; config: ClaudeAdapterConfig; sdk: ClaudeSdk }[] = [];
+    const seen: { input: ComputerTurnInput; sink: TurnSink; config: ClaudeAdapterConfig; sdk: ClaudeSdk }[] = [];
     const outcome: TurnOutcome = { kind: "completed" };
     vi.doMock("../turn.js", () => ({
-      runClaudeTurn: async (input: TurnInput, sink: TurnSink, config: ClaudeAdapterConfig, sdk: ClaudeSdk): Promise<TurnOutcome> => {
+      runClaudeTurn: async (input: ComputerTurnInput, sink: TurnSink, config: ClaudeAdapterConfig, sdk: ClaudeSdk): Promise<TurnOutcome> => {
         seen.push({ input, sink, config, sdk });
         return outcome;
       },

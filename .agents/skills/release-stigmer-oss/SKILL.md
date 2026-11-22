@@ -237,3 +237,8 @@ providers. A red run files a `live-failure` issue: a broken provider path is
 fixed like any defect, an outage is waited out, and a person closes the issue
 once a dispatch of the workflow runs green. A dispatch installs a published CLI,
 so a fix on the CLI's side needs a release first.
+
+Once the GitHub release is published, `release.cli.yaml` starts
+`release.website.yaml` on `main`, so the website redeploys and
+stigmer.ai/releases shows the release. After editing a release's notes by hand,
+`gh workflow run release.website.yaml --ref main` refreshes the page.

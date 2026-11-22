@@ -32,7 +32,8 @@ public interface FileMountOrBuilder extends
 
   /**
    * <pre>
-   * Where the agent finds it, relative to .stigmer/uploads/.
+   * Where the agent finds it, relative to .stigmer/uploads/ (an output:
+   * relative to .stigmer/outputs/).
    * </pre>
    *
    * <code>string mount_path = 2 [json_name = "mountPath"];</code>
@@ -41,7 +42,8 @@ public interface FileMountOrBuilder extends
   java.lang.String getMountPath();
   /**
    * <pre>
-   * Where the agent finds it, relative to .stigmer/uploads/.
+   * Where the agent finds it, relative to .stigmer/uploads/ (an output:
+   * relative to .stigmer/outputs/).
    * </pre>
    *
    * <code>string mount_path = 2 [json_name = "mountPath"];</code>

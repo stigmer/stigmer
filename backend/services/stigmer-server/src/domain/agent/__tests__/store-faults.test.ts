@@ -29,6 +29,7 @@ import { ResourceNotFoundError } from "../../../store/interface.js";
 import type { ModelCatalogProvider } from "../../../modelcatalog/model-catalog-provider.js";
 import type { Store } from "../../../store/interface.js";
 
+import type { ArchiveFileReads } from "../../../archive/file-reads.js";
 import { registerAgentServices } from "../controller.js";
 import { UNBOUND_CREDENTIAL_BINDING } from "../../../authorization/__tests__/unbound-credential-binding.js";
 
@@ -37,6 +38,12 @@ const silentLogger = createLogger({
   pretty: false,
   write: () => {},
 });
+
+/** File reads no case here reaches: every chain stops at the store's fault first. */
+const UNREAD_FILES: ArchiveFileReads = {
+  index: () => Promise.reject(new Error("no file index is read in these cases")),
+  read: () => Promise.reject(new Error("no file is read in these cases")),
+};
 
 const AGENT_ID = "agt_storefault";
 
@@ -65,6 +72,7 @@ function agentCommand(store: Store): Client<typeof AgentCommandController> {
         listReadScope: undefined,
         modelRegistry: {} as ModelCatalogProvider,
         channelRuntime: undefined,
+        archiveFileReads: { skill: UNREAD_FILES, plugin: UNREAD_FILES },
       });
     },
     {
