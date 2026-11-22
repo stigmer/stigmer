@@ -66,10 +66,8 @@ describe("AgentDetailView computer", () => {
       [Computer.REQUIRED, false],
     ] as const) {
       const agent = agentWith({ computer });
-      agent.status = create(AgentStatusSchema, {
-        ...agent.status,
-        warnings: [create(AgentWarningSchema, { kind: "skill-scripts", message, skill: "pdf-tools" })],
-      });
+      agent.status ??= create(AgentStatusSchema);
+      agent.status.warnings = [create(AgentWarningSchema, { kind: "skill-scripts", message, skill: "pdf-tools" })];
       renderAgent(agent);
       await theSwitch();
       const list = screen.queryByRole("list", { name: COMPUTER_COPY.warningsLabel });
