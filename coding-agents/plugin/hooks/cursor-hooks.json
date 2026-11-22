@@ -1,1 +1,6 @@
-{"version": 1, "hooks": {}}
+{
+  "version": 1,
+  "hooks": {
+    "beforeShellExecution": [{ "command": "node \"${CURSOR_PLUGIN_ROOT}/hooks/cursor-guard.mjs\"" }]
+  }
+}

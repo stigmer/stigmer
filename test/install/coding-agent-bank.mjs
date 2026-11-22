@@ -33,10 +33,14 @@
  *     nothing; and every acting case's scaffold puts back, before each try,
  *     whatever an earlier try deleted or changed (`stigmer-bank-fixture`,
  *     on the stage's PATH).
- * The plugin is the tree a release publishes (coding-agents/dist/plugin/),
- * copied with the bank as its evals/ into the stage's folder, since
- * `claude plugin eval` reads cases only below the plugin and the bank is
- * not published with it. Its MCP server is the real `stigmer mcp-server`
+ * The plugin is the tree a release publishes: the CLI's pack carries
+ * @stigmer/coding-agent-plugin beside it (the CLI depends on it, and
+ * publish-libs --only packs the closure), stamped with the pack's version,
+ * and the stage's node_modules/@stigmer/coding-agent-plugin/plugin/ is
+ * exactly the folder the reconcile lane copies from the npm tarball into
+ * stigmer/coding-agent-plugin. It is copied from there, with the bank as its
+ * evals/, into the stage's folder, since `claude plugin eval` reads cases
+ * only below the plugin and the bank is not published with it. Its MCP server is the real `stigmer mcp-server`
  * (`--allow-real-servers`), started through the same shim. A person's own
  * settings, plugins and Stigmer config are never read: `claude plugin eval`
  * runs each try with a scratch home, and the shim keeps the CLI's config in
@@ -83,6 +87,7 @@ import { stageBuildPaths, startHermeticStage } from "./lib/hermetic-stage.mjs";
 const repoRoot = fileURLToPath(new URL("../..", import.meta.url));
 const evalsDir = join(repoRoot, "coding-agents", "evals");
 const fixtureLib = fileURLToPath(new URL("./lib/bank-fixture.mjs", import.meta.url));
+/** The plugin's build, which the CLI's pack reads (the package is published from dist/). */
 const builtPlugin = join(repoRoot, "coding-agents", "dist", "plugin");
 const AUDIENCE = "https://bank.stigmer.test/api";
 const NATIVE_CLIENT = "stigmer-bank";
@@ -112,7 +117,10 @@ function run(command, args, { env, cwd, stdio = "pipe", signal }) {
 }
 
 
-/** This checkout's CLI, packed as a release packs it and installed into `dir`; returns the shim's command for it. */
+/**
+ * This checkout's CLI, packed as a release packs it and installed into
+ * `dir`; returns the shim's command for it and the packed plugin's folder.
+ */
 function installPackedCli(dir, packDir) {
   log("packing this checkout's CLI");
   execFileSync(process.execPath, [join(repoRoot, "scripts", "publish-libs.mjs"), "--version", PACK_VERSION, "--pack-dir", packDir, "--only", "@stigmer/cli", "--skip-build"], {
@@ -131,12 +139,15 @@ function installPackedCli(dir, packDir) {
   const manifest = JSON.parse(readFileSync(join(dir, "node_modules", "@stigmer", "cli", "package.json"), "utf8"));
   const entry = join(dir, "node_modules", "@stigmer", "cli", manifest.bin.stigmer);
   check(existsSync(entry), `the installed CLI has no entry at ${entry}`);
-  return `'${process.execPath}' '${entry}'`;
+  const packedPlugin = join(dir, "node_modules", "@stigmer", "coding-agent-plugin", "plugin");
+  const stamped = JSON.parse(readFileSync(join(packedPlugin, ".claude-plugin", "plugin.json"), "utf8")).version;
+  check(stamped === PACK_VERSION, `the packed plugin is stamped ${stamped}, not the pack's ${PACK_VERSION}`);
+  return { cliCommand: `'${process.execPath}' '${entry}'`, packedPlugin };
 }
 
-/** The plugin as a release publishes it, with the selected cases as its evals/ (the fixture and every other case left out). */
-function stagePlugin(dir, selected) {
-  cpSync(builtPlugin, dir, { recursive: true });
+/** The packed plugin, with the selected cases as its evals/ (the fixture and every other case left out). */
+function stagePlugin(dir, packedPlugin, selected) {
+  cpSync(packedPlugin, dir, { recursive: true });
   for (const c of selected) cpSync(join(evalsDir, c.dir), join(dir, "evals", c.dir), { recursive: true });
 }
 
@@ -196,9 +207,10 @@ async function main() {
   let stage;
   try {
     const binDir = join(root, "bin");
-    const cliCommand = installPackedCli(join(binDir, "cli"), join(root, "packs"));
+    const { cliCommand, packedPlugin } = installPackedCli(join(binDir, "cli"), join(root, "packs"));
     const pluginDir = join(root, "plugin");
-    stagePlugin(pluginDir, selected);
+    stagePlugin(pluginDir, packedPlugin, selected);
+    log(`the plugin is the pack's (${PACK_VERSION}), as a release publishes it`);
     stage = await startHermeticStage({
       scratch: root,
       audience: AUDIENCE,

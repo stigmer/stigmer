@@ -1,7 +1,10 @@
-// The plugin's Claude Code guard (plugin/hooks): its tool list is exactly the
-// tools the full roster marks destructive, plus the approval tool, in the
-// script and in the hook's matcher; every decision it makes, asked or let
-// through; and the entry script run as Claude Code runs it, failing open.
+// The plugin's guard (plugin/hooks): its tool list is exactly the tools the
+// full roster marks destructive, plus the approval tool, in the script and in
+// Claude Code's hook matcher; every decision it makes, asked or let through,
+// from Claude Code's input and from Cursor's shell hook; Cursor's hooks file
+// on that one event, the one where Cursor enforces an ask (its MCP executor
+// acts on `deny` alone); and both entry scripts run as their coding agent
+// runs them, failing open.
 // The CLI's suite holds its command list to the CLI's own --force options
 // (client-apps/cli/src/commands/__tests__/coding-agent.test.ts).
 
@@ -20,11 +23,18 @@ const hooks = join(root, "plugin", "hooks");
 interface Decision {
   hookSpecificOutput: { hookEventName: string; permissionDecision: string; permissionDecisionReason: string };
 }
+interface CursorAnswer {
+  permission?: string;
+  user_message?: string;
+  agent_message?: string;
+}
 interface Guard {
   DESTRUCTIVE_TOOLS: string[];
   APPROVAL_TOOL: string;
   TOOL_PREFIX: string;
   decide(input: unknown): Decision | null;
+  decideCursor(input: unknown): CursorAnswer;
+  reasonFor(call: { kind: "tool"; name: string; args: Record<string, unknown> } | { kind: "shell"; command: string }): string | null;
   commands(line: string): string[][];
 }
 
@@ -73,12 +83,24 @@ describe("what the guard asks about", () => {
     }
   });
 
-  it("points Codex and Cursor at empty hooks files of their own, never Claude Code's", () => {
+  it("points Codex at an empty hooks file of its own (its hooks cannot ask), never Claude Code's", () => {
     const manifest = (path: string) => JSON.parse(readFileSync(join(root, "plugin", path), "utf8")) as { hooks?: string };
     expect(manifest(".codex-plugin/plugin.json").hooks).toBe("./hooks/codex-hooks.json");
-    expect(manifest(".cursor-plugin/plugin.json").hooks).toBe("./hooks/cursor-hooks.json");
     expect(JSON.parse(readFileSync(join(hooks, "codex-hooks.json"), "utf8"))).toEqual({ hooks: {} });
-    expect(JSON.parse(readFileSync(join(hooks, "cursor-hooks.json"), "utf8"))).toEqual({ version: 1, hooks: {} });
+  });
+
+  // Cursor turns an `ask` into a prompt on beforeShellExecution alone: its
+  // MCP executor acts on a beforeMCPExecution answer only when it is `deny`,
+  // and any MCP hook makes it refuse every server's call that carries a file
+  // path, so the plugin hooks no MCP call (cursor-agent 2026.11.19's bundled
+  // executor). Cursor fails a hook open unless failClosed is set.
+  it("is run by Cursor on beforeShellExecution alone, through cursor-guard.mjs, failing open", () => {
+    const manifest = JSON.parse(readFileSync(join(root, "plugin", ".cursor-plugin", "plugin.json"), "utf8")) as { hooks?: string };
+    expect(manifest.hooks).toBe("./hooks/cursor-hooks.json");
+    expect(JSON.parse(readFileSync(join(hooks, "cursor-hooks.json"), "utf8"))).toEqual({
+      version: 1,
+      hooks: { beforeShellExecution: [{ command: 'node "${CURSOR_PLUGIN_ROOT}/hooks/cursor-guard.mjs"' }] },
+    });
   });
 });
 
@@ -177,6 +199,80 @@ describe("decide", () => {
       ["ls", "-f"],
     ]);
     expect(guard.commands(`echo "say \\"hi\\""`)).toEqual([["echo", 'say "hi"']]);
+  });
+});
+
+describe("reasonFor, the one decision both coding agents' sides read", () => {
+  it("answers the same reason for a tool call and a shell line as decide gives Claude Code", () => {
+    const toolReason = guard.reasonFor({ kind: "tool", name: "delete_agent", args: { org: "acme", slug: "x" } });
+    expect(guard.decide(tool("delete_agent", { org: "acme", slug: "x" }))?.hookSpecificOutput.permissionDecisionReason.startsWith(toolReason ?? "-")).toBe(true);
+    const shellReason = guard.reasonFor({ kind: "shell", command: "stigmer delete agent x -f" });
+    expect(guard.decide(bash("stigmer delete agent x -f"))?.hookSpecificOutput.permissionDecisionReason.startsWith(shellReason ?? "-")).toBe(true);
+    expect(guard.reasonFor({ kind: "tool", name: "get_agent", args: {} })).toBeNull();
+    expect(guard.reasonFor({ kind: "shell", command: "stigmer list agents" })).toBeNull();
+  });
+
+  it("says nothing about a call of a kind it does not know", () => {
+    expect(guard.reasonFor({ kind: "file", path: "x" } as unknown as { kind: "shell"; command: string })).toBeNull();
+  });
+});
+
+// Cursor's hook input, as Cursor 2026.11.19 hands it.
+const cursorShell = (command: string) => ({ hook_event_name: "beforeShellExecution", command, cwd: "" });
+
+describe("decideCursor", () => {
+  it.each([
+    ["stigmer delete agent acme/invoice-checker -f", /skips the CLI's own question with --force/],
+    ["stigmer runs approve run_1 --action allow", /approval with "allow"/],
+  ])("asks before `%s`, telling the person and the agent", (command, reason) => {
+    const answer = guard.decideCursor(cursorShell(command));
+    expect(answer.permission).toBe("ask");
+    expect(answer.user_message).toMatch(reason);
+    expect(answer.agent_message).toMatch(reason);
+    expect(answer.agent_message).toMatch(/stop and ask them first\.$/);
+  });
+
+  it.each(["stigmer delete agent x", "stigmer list agents", "git push -f"])("lets the shell line `%s` through", (command) => {
+    expect(guard.decideCursor(cursorShell(command))).toEqual({});
+  });
+
+  it("says nothing about an MCP call, which the plugin does not hook in Cursor", () => {
+    const mcp = { hook_event_name: "beforeMCPExecution", tool_name: "delete_agent", tool_input: '{"slug":"x"}', mcp_server_name: "plugin-stigmer-stigmer" };
+    expect(guard.decideCursor(mcp)).toEqual({});
+  });
+
+  it.each([null, 1, "x", {}, { hook_event_name: "preToolUse", tool_name: "Shell" }, { hook_event_name: "beforeShellExecution" }])(
+    "says nothing about malformed or other input %j",
+    (input) => {
+      expect(guard.decideCursor(input)).toEqual({});
+    },
+  );
+
+  it("says nothing when reading the input throws, rather than fail the call", () => {
+    const hostile = {
+      get hook_event_name(): string {
+        throw new Error("boom");
+      },
+    };
+    expect(guard.decideCursor(hostile)).toEqual({});
+  });
+});
+
+describe("cursor-guard.mjs, as Cursor runs it", () => {
+  const run = (stdin: string) => spawnSync(process.execPath, [join(hooks, "cursor-guard.mjs")], { input: stdin, encoding: "utf8" });
+
+  it("prints the ask as JSON and exits 0", () => {
+    const result = run(JSON.stringify(cursorShell("stigmer delete agent x --force")));
+    expect(result.status).toBe(0);
+    expect((JSON.parse(result.stdout) as CursorAnswer).permission).toBe("ask");
+  });
+
+  it("prints {} and exits 0 for a call it lets through, and for input it can't read", () => {
+    for (const stdin of [JSON.stringify(cursorShell("stigmer list agents")), "not json", ""]) {
+      const result = run(stdin);
+      expect(result.status).toBe(0);
+      expect(JSON.parse(result.stdout)).toEqual({});
+    }
   });
 });
 
