@@ -160,3 +160,45 @@ class SkillList(_message.Message):
     entries: _containers.RepeatedCompositeFieldContainer[_api_pb2.Skill]
     next_page_token: str
     def __init__(self, entries: _Optional[_Iterable[_Union[_api_pb2.Skill, _Mapping]]] = ..., next_page_token: _Optional[str] = ...) -> None: ...
+
+class ListSkillFilesInput(_message.Message):
+    __slots__ = ("skill_id", "version_hash")
+    SKILL_ID_FIELD_NUMBER: _ClassVar[int]
+    VERSION_HASH_FIELD_NUMBER: _ClassVar[int]
+    skill_id: str
+    version_hash: str
+    def __init__(self, skill_id: _Optional[str] = ..., version_hash: _Optional[str] = ...) -> None: ...
+
+class SkillFileList(_message.Message):
+    __slots__ = ("files",)
+    FILES_FIELD_NUMBER: _ClassVar[int]
+    files: _containers.RepeatedCompositeFieldContainer[SkillFile]
+    def __init__(self, files: _Optional[_Iterable[_Union[SkillFile, _Mapping]]] = ...) -> None: ...
+
+class SkillFile(_message.Message):
+    __slots__ = ("path", "size_bytes", "sha256", "executable")
+    PATH_FIELD_NUMBER: _ClassVar[int]
+    SIZE_BYTES_FIELD_NUMBER: _ClassVar[int]
+    SHA256_FIELD_NUMBER: _ClassVar[int]
+    EXECUTABLE_FIELD_NUMBER: _ClassVar[int]
+    path: str
+    size_bytes: int
+    sha256: str
+    executable: bool
+    def __init__(self, path: _Optional[str] = ..., size_bytes: _Optional[int] = ..., sha256: _Optional[str] = ..., executable: bool = ...) -> None: ...
+
+class ReadSkillFileInput(_message.Message):
+    __slots__ = ("skill_id", "version_hash", "path")
+    SKILL_ID_FIELD_NUMBER: _ClassVar[int]
+    VERSION_HASH_FIELD_NUMBER: _ClassVar[int]
+    PATH_FIELD_NUMBER: _ClassVar[int]
+    skill_id: str
+    version_hash: str
+    path: str
+    def __init__(self, skill_id: _Optional[str] = ..., version_hash: _Optional[str] = ..., path: _Optional[str] = ...) -> None: ...
+
+class SkillFileContent(_message.Message):
+    __slots__ = ("content",)
+    CONTENT_FIELD_NUMBER: _ClassVar[int]
+    content: bytes
+    def __init__(self, content: _Optional[bytes] = ...) -> None: ...

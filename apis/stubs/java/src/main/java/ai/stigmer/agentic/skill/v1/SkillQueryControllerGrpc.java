@@ -170,6 +170,68 @@ public final class SkillQueryControllerGrpc {
     return getGetArtifactDownloadUrlMethod;
   }
 
+  private static volatile io.grpc.MethodDescriptor<ai.stigmer.agentic.skill.v1.ListSkillFilesInput,
+      ai.stigmer.agentic.skill.v1.SkillFileList> getListFilesMethod;
+
+  @io.grpc.stub.annotations.RpcMethod(
+      fullMethodName = SERVICE_NAME + '/' + "listFiles",
+      requestType = ai.stigmer.agentic.skill.v1.ListSkillFilesInput.class,
+      responseType = ai.stigmer.agentic.skill.v1.SkillFileList.class,
+      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
+  public static io.grpc.MethodDescriptor<ai.stigmer.agentic.skill.v1.ListSkillFilesInput,
+      ai.stigmer.agentic.skill.v1.SkillFileList> getListFilesMethod() {
+    io.grpc.MethodDescriptor<ai.stigmer.agentic.skill.v1.ListSkillFilesInput, ai.stigmer.agentic.skill.v1.SkillFileList> getListFilesMethod;
+    if ((getListFilesMethod = SkillQueryControllerGrpc.getListFilesMethod) == null) {
+      synchronized (SkillQueryControllerGrpc.class) {
+        if ((getListFilesMethod = SkillQueryControllerGrpc.getListFilesMethod) == null) {
+          SkillQueryControllerGrpc.getListFilesMethod = getListFilesMethod =
+              io.grpc.MethodDescriptor.<ai.stigmer.agentic.skill.v1.ListSkillFilesInput, ai.stigmer.agentic.skill.v1.SkillFileList>newBuilder()
+              .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
+              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "listFiles"))
+              .setSampledToLocalTracing(true)
+              .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.agentic.skill.v1.ListSkillFilesInput.getDefaultInstance()))
+              .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.agentic.skill.v1.SkillFileList.getDefaultInstance()))
+              .setSchemaDescriptor(new SkillQueryControllerMethodDescriptorSupplier("listFiles"))
+              .build();
+        }
+      }
+    }
+    return getListFilesMethod;
+  }
+
+  private static volatile io.grpc.MethodDescriptor<ai.stigmer.agentic.skill.v1.ReadSkillFileInput,
+      ai.stigmer.agentic.skill.v1.SkillFileContent> getReadFileMethod;
+
+  @io.grpc.stub.annotations.RpcMethod(
+      fullMethodName = SERVICE_NAME + '/' + "readFile",
+      requestType = ai.stigmer.agentic.skill.v1.ReadSkillFileInput.class,
+      responseType = ai.stigmer.agentic.skill.v1.SkillFileContent.class,
+      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
+  public static io.grpc.MethodDescriptor<ai.stigmer.agentic.skill.v1.ReadSkillFileInput,
+      ai.stigmer.agentic.skill.v1.SkillFileContent> getReadFileMethod() {
+    io.grpc.MethodDescriptor<ai.stigmer.agentic.skill.v1.ReadSkillFileInput, ai.stigmer.agentic.skill.v1.SkillFileContent> getReadFileMethod;
+    if ((getReadFileMethod = SkillQueryControllerGrpc.getReadFileMethod) == null) {
+      synchronized (SkillQueryControllerGrpc.class) {
+        if ((getReadFileMethod = SkillQueryControllerGrpc.getReadFileMethod) == null) {
+          SkillQueryControllerGrpc.getReadFileMethod = getReadFileMethod =
+              io.grpc.MethodDescriptor.<ai.stigmer.agentic.skill.v1.ReadSkillFileInput, ai.stigmer.agentic.skill.v1.SkillFileContent>newBuilder()
+              .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
+              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "readFile"))
+              .setSampledToLocalTracing(true)
+              .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.agentic.skill.v1.ReadSkillFileInput.getDefaultInstance()))
+              .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.agentic.skill.v1.SkillFileContent.getDefaultInstance()))
+              .setSchemaDescriptor(new SkillQueryControllerMethodDescriptorSupplier("readFile"))
+              .build();
+        }
+      }
+    }
+    return getReadFileMethod;
+  }
+
   private static volatile io.grpc.MethodDescriptor<ai.stigmer.agentic.skill.v1.ListSkillVersionsInput,
       ai.stigmer.agentic.skill.v1.ListSkillVersionsResponse> getListVersionsMethod;
 
@@ -330,6 +392,32 @@ public final class SkillQueryControllerGrpc {
 
     /**
      * <pre>
+     * List the files of one version of a skill.
+     * Returns each file's path, size, SHA-256 and whether it is executable,
+     * in path order. A plugin's eval suite, when the skill's archive is a
+     * whole plugin, is left out.
+     * </pre>
+     */
+    default void listFiles(ai.stigmer.agentic.skill.v1.ListSkillFilesInput request,
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.skill.v1.SkillFileList> responseObserver) {
+      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getListFilesMethod(), responseObserver);
+    }
+
+    /**
+     * <pre>
+     * Read one file of one version of a skill.
+     * Returns the file's bytes, up to 8 MB; a larger file is refused with
+     * FailedPrecondition. The path is matched exactly against the version's
+     * file list.
+     * </pre>
+     */
+    default void readFile(ai.stigmer.agentic.skill.v1.ReadSkillFileInput request,
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.skill.v1.SkillFileContent> responseObserver) {
+      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getReadFileMethod(), responseObserver);
+    }
+
+    /**
+     * <pre>
      * List version history for a skill.
      * Returns all historical versions ordered by push time (newest first).
      * Each entry includes the version hash, push timestamp, actor, tag,
@@ -443,6 +531,34 @@ public final class SkillQueryControllerGrpc {
 
     /**
      * <pre>
+     * List the files of one version of a skill.
+     * Returns each file's path, size, SHA-256 and whether it is executable,
+     * in path order. A plugin's eval suite, when the skill's archive is a
+     * whole plugin, is left out.
+     * </pre>
+     */
+    public void listFiles(ai.stigmer.agentic.skill.v1.ListSkillFilesInput request,
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.skill.v1.SkillFileList> responseObserver) {
+      io.grpc.stub.ClientCalls.asyncUnaryCall(
+          getChannel().newCall(getListFilesMethod(), getCallOptions()), request, responseObserver);
+    }
+
+    /**
+     * <pre>
+     * Read one file of one version of a skill.
+     * Returns the file's bytes, up to 8 MB; a larger file is refused with
+     * FailedPrecondition. The path is matched exactly against the version's
+     * file list.
+     * </pre>
+     */
+    public void readFile(ai.stigmer.agentic.skill.v1.ReadSkillFileInput request,
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.skill.v1.SkillFileContent> responseObserver) {
+      io.grpc.stub.ClientCalls.asyncUnaryCall(
+          getChannel().newCall(getReadFileMethod(), getCallOptions()), request, responseObserver);
+    }
+
+    /**
+     * <pre>
      * List version history for a skill.
      * Returns all historical versions ordered by push time (newest first).
      * Each entry includes the version hash, push timestamp, actor, tag,
@@ -538,6 +654,32 @@ public final class SkillQueryControllerGrpc {
 
     /**
      * <pre>
+     * List the files of one version of a skill.
+     * Returns each file's path, size, SHA-256 and whether it is executable,
+     * in path order. A plugin's eval suite, when the skill's archive is a
+     * whole plugin, is left out.
+     * </pre>
+     */
+    public ai.stigmer.agentic.skill.v1.SkillFileList listFiles(ai.stigmer.agentic.skill.v1.ListSkillFilesInput request) throws io.grpc.StatusException {
+      return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
+          getChannel(), getListFilesMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
+     * Read one file of one version of a skill.
+     * Returns the file's bytes, up to 8 MB; a larger file is refused with
+     * FailedPrecondition. The path is matched exactly against the version's
+     * file list.
+     * </pre>
+     */
+    public ai.stigmer.agentic.skill.v1.SkillFileContent readFile(ai.stigmer.agentic.skill.v1.ReadSkillFileInput request) throws io.grpc.StatusException {
+      return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
+          getChannel(), getReadFileMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
      * List version history for a skill.
      * Returns all historical versions ordered by push time (newest first).
      * Each entry includes the version hash, push timestamp, actor, tag,
@@ -628,6 +770,32 @@ public final class SkillQueryControllerGrpc {
     public ai.stigmer.agentic.skill.v1.SkillArtifactDownloadUrl getArtifactDownloadUrl(ai.stigmer.agentic.skill.v1.GetArtifactRequest request) {
       return io.grpc.stub.ClientCalls.blockingUnaryCall(
           getChannel(), getGetArtifactDownloadUrlMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
+     * List the files of one version of a skill.
+     * Returns each file's path, size, SHA-256 and whether it is executable,
+     * in path order. A plugin's eval suite, when the skill's archive is a
+     * whole plugin, is left out.
+     * </pre>
+     */
+    public ai.stigmer.agentic.skill.v1.SkillFileList listFiles(ai.stigmer.agentic.skill.v1.ListSkillFilesInput request) {
+      return io.grpc.stub.ClientCalls.blockingUnaryCall(
+          getChannel(), getListFilesMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
+     * Read one file of one version of a skill.
+     * Returns the file's bytes, up to 8 MB; a larger file is refused with
+     * FailedPrecondition. The path is matched exactly against the version's
+     * file list.
+     * </pre>
+     */
+    public ai.stigmer.agentic.skill.v1.SkillFileContent readFile(ai.stigmer.agentic.skill.v1.ReadSkillFileInput request) {
+      return io.grpc.stub.ClientCalls.blockingUnaryCall(
+          getChannel(), getReadFileMethod(), getCallOptions(), request);
     }
 
     /**
@@ -731,6 +899,34 @@ public final class SkillQueryControllerGrpc {
 
     /**
      * <pre>
+     * List the files of one version of a skill.
+     * Returns each file's path, size, SHA-256 and whether it is executable,
+     * in path order. A plugin's eval suite, when the skill's archive is a
+     * whole plugin, is left out.
+     * </pre>
+     */
+    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.skill.v1.SkillFileList> listFiles(
+        ai.stigmer.agentic.skill.v1.ListSkillFilesInput request) {
+      return io.grpc.stub.ClientCalls.futureUnaryCall(
+          getChannel().newCall(getListFilesMethod(), getCallOptions()), request);
+    }
+
+    /**
+     * <pre>
+     * Read one file of one version of a skill.
+     * Returns the file's bytes, up to 8 MB; a larger file is refused with
+     * FailedPrecondition. The path is matched exactly against the version's
+     * file list.
+     * </pre>
+     */
+    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.skill.v1.SkillFileContent> readFile(
+        ai.stigmer.agentic.skill.v1.ReadSkillFileInput request) {
+      return io.grpc.stub.ClientCalls.futureUnaryCall(
+          getChannel().newCall(getReadFileMethod(), getCallOptions()), request);
+    }
+
+    /**
+     * <pre>
      * List version history for a skill.
      * Returns all historical versions ordered by push time (newest first).
      * Each entry includes the version hash, push timestamp, actor, tag,
@@ -749,7 +945,9 @@ public final class SkillQueryControllerGrpc {
   private static final int METHODID_LIST = 2;
   private static final int METHODID_GET_ARTIFACT = 3;
   private static final int METHODID_GET_ARTIFACT_DOWNLOAD_URL = 4;
-  private static final int METHODID_LIST_VERSIONS = 5;
+  private static final int METHODID_LIST_FILES = 5;
+  private static final int METHODID_READ_FILE = 6;
+  private static final int METHODID_LIST_VERSIONS = 7;
 
   private static final class MethodHandlers<Req, Resp> implements
       io.grpc.stub.ServerCalls.UnaryMethod<Req, Resp>,
@@ -787,6 +985,14 @@ public final class SkillQueryControllerGrpc {
         case METHODID_GET_ARTIFACT_DOWNLOAD_URL:
           serviceImpl.getArtifactDownloadUrl((ai.stigmer.agentic.skill.v1.GetArtifactRequest) request,
               (io.grpc.stub.StreamObserver<ai.stigmer.agentic.skill.v1.SkillArtifactDownloadUrl>) responseObserver);
+          break;
+        case METHODID_LIST_FILES:
+          serviceImpl.listFiles((ai.stigmer.agentic.skill.v1.ListSkillFilesInput) request,
+              (io.grpc.stub.StreamObserver<ai.stigmer.agentic.skill.v1.SkillFileList>) responseObserver);
+          break;
+        case METHODID_READ_FILE:
+          serviceImpl.readFile((ai.stigmer.agentic.skill.v1.ReadSkillFileInput) request,
+              (io.grpc.stub.StreamObserver<ai.stigmer.agentic.skill.v1.SkillFileContent>) responseObserver);
           break;
         case METHODID_LIST_VERSIONS:
           serviceImpl.listVersions((ai.stigmer.agentic.skill.v1.ListSkillVersionsInput) request,
@@ -845,6 +1051,20 @@ public final class SkillQueryControllerGrpc {
               ai.stigmer.agentic.skill.v1.GetArtifactRequest,
               ai.stigmer.agentic.skill.v1.SkillArtifactDownloadUrl>(
                 service, METHODID_GET_ARTIFACT_DOWNLOAD_URL)))
+        .addMethod(
+          getListFilesMethod(),
+          io.grpc.stub.ServerCalls.asyncUnaryCall(
+            new MethodHandlers<
+              ai.stigmer.agentic.skill.v1.ListSkillFilesInput,
+              ai.stigmer.agentic.skill.v1.SkillFileList>(
+                service, METHODID_LIST_FILES)))
+        .addMethod(
+          getReadFileMethod(),
+          io.grpc.stub.ServerCalls.asyncUnaryCall(
+            new MethodHandlers<
+              ai.stigmer.agentic.skill.v1.ReadSkillFileInput,
+              ai.stigmer.agentic.skill.v1.SkillFileContent>(
+                service, METHODID_READ_FILE)))
         .addMethod(
           getListVersionsMethod(),
           io.grpc.stub.ServerCalls.asyncUnaryCall(
@@ -905,6 +1125,8 @@ public final class SkillQueryControllerGrpc {
               .addMethod(getListMethod())
               .addMethod(getGetArtifactMethod())
               .addMethod(getGetArtifactDownloadUrlMethod())
+              .addMethod(getListFilesMethod())
+              .addMethod(getReadFileMethod())
               .addMethod(getListVersionsMethod())
               .build();
         }

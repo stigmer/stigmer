@@ -7,7 +7,7 @@ import { create, type MessageInitShape } from "@bufbuild/protobuf";
 import { createClient, type Client, type Transport } from "@connectrpc/connect";
 import { SkillSchema, type Skill } from "@stigmer/apis/ai/stigmer/agentic/skill/v1/api_pb";
 import { SkillCommandController } from "@stigmer/apis/ai/stigmer/agentic/skill/v1/command_pb";
-import { SkillIdSchema, PushSkillRequestSchema, CreateSkillArtifactUploadUrlRequestSchema, SkillArtifactUploadUrlSchema, PushSkillFromFileRequestSchema, ListSkillsRequestSchema, SkillListSchema, GetArtifactRequestSchema, GetArtifactResponseSchema, SkillArtifactDownloadUrlSchema, ListSkillVersionsInputSchema, ListSkillVersionsResponseSchema, type PushSkillRequest, type CreateSkillArtifactUploadUrlRequest, type SkillArtifactUploadUrl, type PushSkillFromFileRequest, type ListSkillsRequest, type SkillList, type GetArtifactRequest, type GetArtifactResponse, type SkillArtifactDownloadUrl, type ListSkillVersionsInput, type ListSkillVersionsResponse } from "@stigmer/apis/ai/stigmer/agentic/skill/v1/io_pb";
+import { SkillIdSchema, PushSkillRequestSchema, CreateSkillArtifactUploadUrlRequestSchema, SkillArtifactUploadUrlSchema, PushSkillFromFileRequestSchema, ListSkillsRequestSchema, SkillListSchema, GetArtifactRequestSchema, GetArtifactResponseSchema, SkillArtifactDownloadUrlSchema, ListSkillFilesInputSchema, SkillFileListSchema, ReadSkillFileInputSchema, SkillFileContentSchema, ListSkillVersionsInputSchema, ListSkillVersionsResponseSchema, type PushSkillRequest, type CreateSkillArtifactUploadUrlRequest, type SkillArtifactUploadUrl, type PushSkillFromFileRequest, type ListSkillsRequest, type SkillList, type GetArtifactRequest, type GetArtifactResponse, type SkillArtifactDownloadUrl, type ListSkillFilesInput, type SkillFileList, type ReadSkillFileInput, type SkillFileContent, type ListSkillVersionsInput, type ListSkillVersionsResponse } from "@stigmer/apis/ai/stigmer/agentic/skill/v1/io_pb";
 import { SkillQueryController } from "@stigmer/apis/ai/stigmer/agentic/skill/v1/query_pb";
 import { SkillSpecSchema } from "@stigmer/apis/ai/stigmer/agentic/skill/v1/spec_pb";
 import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
@@ -96,6 +96,18 @@ export class SkillClient {
   async getArtifactDownloadUrl(input: MessageInitShape<typeof GetArtifactRequestSchema>): Promise<SkillArtifactDownloadUrl> {
     try {
       return await this.query.getArtifactDownloadUrl(input);
+    } catch (e) { throw wrapError(e); }
+  }
+
+  async listFiles(input: MessageInitShape<typeof ListSkillFilesInputSchema>): Promise<SkillFileList> {
+    try {
+      return await this.query.listFiles(input);
+    } catch (e) { throw wrapError(e); }
+  }
+
+  async readFile(input: MessageInitShape<typeof ReadSkillFileInputSchema>): Promise<SkillFileContent> {
+    try {
+      return await this.query.readFile(input);
     } catch (e) { throw wrapError(e); }
   }
 

@@ -231,3 +231,56 @@ message PluginList {
   // A page may be short, even empty, and still carry a token.
   string next_page_token = 2;
 }
+
+// ListPluginFilesInput names one version of a plugin whose files to list.
+message ListPluginFilesInput {
+  // System-generated ID of the plugin.
+  string plugin_id = 1 [(buf.validate.field).required = true];
+
+  // The version to read, by its SHA-256 digest: the plugin's installed
+  // version or one in its history.
+  string digest = 2 [(buf.validate.field).string.pattern = "^[0-9a-f]{64}$"];
+}
+
+// PluginFileList is the files of one version of a plugin.
+message PluginFileList {
+  // The files, in path order.
+  repeated PluginFile files = 1;
+}
+
+// PluginFile is one file of a plugin version.
+message PluginFile {
+  // Path of the file inside the plugin, with forward slashes and no
+  // leading slash (`skills/review/SKILL.md`, `hooks/check`).
+  string path = 1;
+
+  // Size of the file in bytes.
+  int64 size_bytes = 2;
+
+  // SHA-256 of the file's bytes, lowercase hex.
+  string sha256 = 3;
+
+  // Whether the file is a script a command may run directly.
+  bool executable = 4;
+}
+
+// ReadPluginFileInput names one file of one version of a plugin.
+message ReadPluginFileInput {
+  // System-generated ID of the plugin.
+  string plugin_id = 1 [(buf.validate.field).required = true];
+
+  // The version to read, as ListPluginFilesInput.digest.
+  string digest = 2 [(buf.validate.field).string.pattern = "^[0-9a-f]{64}$"];
+
+  // The file's path, exactly as the version's file list names it.
+  string path = 3 [(buf.validate.field).string = {
+    min_len: 1
+    max_len: 4096
+  }];
+}
+
+// PluginFileContent is the bytes of one plugin file.
+message PluginFileContent {
+  // The file's bytes.
+  bytes content = 1;
+}

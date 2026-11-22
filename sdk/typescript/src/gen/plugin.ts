@@ -7,7 +7,7 @@ import { create, type MessageInitShape } from "@bufbuild/protobuf";
 import { createClient, type Client, type Transport } from "@connectrpc/connect";
 import { PluginSchema, type Plugin } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/api_pb";
 import { PluginCommandController } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/command_pb";
-import { PluginIdSchema, PushPluginRequestSchema, CreatePluginArtifactUploadUrlRequestSchema, PluginArtifactUploadUrlSchema, ListPluginToolsInputSchema, ListPluginToolsOutputSchema, ListPluginsRequestSchema, PluginListSchema, GetArtifactRequestSchema, GetArtifactResponseSchema, PluginArtifactDownloadUrlSchema, ListPluginVersionsInputSchema, ListPluginVersionsResponseSchema, type PushPluginRequest, type CreatePluginArtifactUploadUrlRequest, type PluginArtifactUploadUrl, type ListPluginToolsInput, type ListPluginToolsOutput, type ListPluginsRequest, type PluginList, type GetArtifactRequest, type GetArtifactResponse, type PluginArtifactDownloadUrl, type ListPluginVersionsInput, type ListPluginVersionsResponse } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/io_pb";
+import { PluginIdSchema, PushPluginRequestSchema, CreatePluginArtifactUploadUrlRequestSchema, PluginArtifactUploadUrlSchema, ListPluginToolsInputSchema, ListPluginToolsOutputSchema, ListPluginsRequestSchema, PluginListSchema, GetArtifactRequestSchema, GetArtifactResponseSchema, PluginArtifactDownloadUrlSchema, ListPluginFilesInputSchema, PluginFileListSchema, ReadPluginFileInputSchema, PluginFileContentSchema, ListPluginVersionsInputSchema, ListPluginVersionsResponseSchema, type PushPluginRequest, type CreatePluginArtifactUploadUrlRequest, type PluginArtifactUploadUrl, type ListPluginToolsInput, type ListPluginToolsOutput, type ListPluginsRequest, type PluginList, type GetArtifactRequest, type GetArtifactResponse, type PluginArtifactDownloadUrl, type ListPluginFilesInput, type PluginFileList, type ReadPluginFileInput, type PluginFileContent, type ListPluginVersionsInput, type ListPluginVersionsResponse } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/io_pb";
 import { PluginQueryController } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/query_pb";
 import { PluginSpecSchema, PluginDialect, PluginAuthorSchema } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/spec_pb";
 import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
@@ -96,6 +96,18 @@ export class PluginClient {
   async getArtifactDownloadUrl(input: MessageInitShape<typeof GetArtifactRequestSchema>): Promise<PluginArtifactDownloadUrl> {
     try {
       return await this.query.getArtifactDownloadUrl(input);
+    } catch (e) { throw wrapError(e); }
+  }
+
+  async listFiles(input: MessageInitShape<typeof ListPluginFilesInputSchema>): Promise<PluginFileList> {
+    try {
+      return await this.query.listFiles(input);
+    } catch (e) { throw wrapError(e); }
+  }
+
+  async readFile(input: MessageInitShape<typeof ReadPluginFileInputSchema>): Promise<PluginFileContent> {
+    try {
+      return await this.query.readFile(input);
     } catch (e) { throw wrapError(e); }
   }
 

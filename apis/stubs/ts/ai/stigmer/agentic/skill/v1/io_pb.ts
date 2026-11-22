@@ -19,7 +19,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/skill/v1/io.proto.
  */
 export const file_ai_stigmer_agentic_skill_v1_io: GenFile = /*@__PURE__*/
-  fileDesc("CiRhaS9zdGlnbWVyL2FnZW50aWMvc2tpbGwvdjEvaW8ucHJvdG8SG2FpLnN0aWdtZXIuYWdlbnRpYy5za2lsbC52MSIgCgdTa2lsbElkEhUKBXZhbHVlGAEgASgJQga6SAPIAQEi4QYKEFB1c2hTa2lsbFJlcXVlc3QSEwoDb3JnGAEgASgJQga6SAPIAQESEAoIYXJ0aWZhY3QYAiABKAwSKAoDdGFnGAMgASgJQhu6SBhyFjIUXiR8XlthLXpBLVowLTkuXy1dKyQSQgoOZ2l0X3Byb3ZlbmFuY2UYBCABKAsyKi5haS5zdGlnbWVyLmFnZW50aWMuc2tpbGwudjEuR2l0UHJvdmVuYW5jZRIPCgdtZXNzYWdlGAYgASgJEhsKE2FydGlmYWN0X3VwbG9hZF9yZWYYByABKAkSoQMKBmxhYmVscxgIIAMoCzI5LmFpLnN0aWdtZXIuYWdlbnRpYy5za2lsbC52MS5QdXNoU2tpbGxSZXF1ZXN0LkxhYmVsc0VudHJ5QtUCukjRAroBiAEKGWxhYmVscy5rZXlfcHJlZml4X21heF9sZW4SLmEgbGFiZWwga2V5J3MgcHJlZml4IGlzIGF0IG1vc3QgMjUzIGNoYXJhY3RlcnMaO3RoaXMuYWxsKGssICFrLmNvbnRhaW5zKCcvJykgfHwgay5tYXRjaGVzKCdeW14vXXsxLDI1M30vJykpmgHBARBAIoQBcoEBGL0CMnxeKFthLXowLTldKFstYS16MC05XXswLDYxfVthLXowLTldKT8oXC5bYS16MC05XShbLWEtejAtOV17MCw2MX1bYS16MC05XSk/KSovKT9bQS1aYS16MC05XShbLUEtWmEtejAtOV8uXXswLDYxfVtBLVphLXowLTldKT8kKjZyNDIyXihbQS1aYS16MC05XShbLUEtWmEtejAtOV8uXXswLDYxfVtBLVphLXowLTldKT8pPyQaLQoLTGFiZWxzRW50cnkSCwoDa2V5GAEgASgJEg0KBXZhbHVlGAIgASgJOgI4ATq2AbpIsgEarwEKInB1c2hfc2tpbGxfcmVxdWVzdC5hcnRpZmFjdF9zb3VyY2USSWV4YWN0bHkgb25lIG9mIGFydGlmYWN0IChpbmxpbmUgYnl0ZXMpIG9yIGFydGlmYWN0X3VwbG9hZF9yZWYgbXVzdCBiZSBzZXQaPih0aGlzLmFydGlmYWN0LnNpemUoKSA+IDApICE9ICh0aGlzLmFydGlmYWN0X3VwbG9hZF9yZWYgIT0gJycpIlcKI0NyZWF0ZVNraWxsQXJ0aWZhY3RVcGxvYWRVcmxSZXF1ZXN0EhMKA29yZxgBIAEoCUIGukgDyAEBEhsKCnNpemVfYnl0ZXMYAiABKANCB7pIBCICIAAiVwoWU2tpbGxBcnRpZmFjdFVwbG9hZFVybBILCgN1cmwYASABKAkSGwoTYXJ0aWZhY3RfdXBsb2FkX3JlZhgCIAEoCRITCgt0dGxfc2Vjb25kcxgDIAEoBSJQChhTa2lsbEFydGlmYWN0RG93bmxvYWRVcmwSCwoDdXJsGAEgASgJEhMKC3R0bF9zZWNvbmRzGAIgASgFEhIKCnNpemVfYnl0ZXMYAyABKAMicwoYUHVzaFNraWxsRnJvbUZpbGVSZXF1ZXN0EhMKA29yZxgBIAEoCUIGukgDyAEBEhgKB2ZpbGVfaWQYAiABKAlCB7pIBHICEAESKAoDdGFnGAMgASgJQhu6SBhyFjIUXiR8XlthLXpBLVowLTkuXy1dKyQiOgoSR2V0QXJ0aWZhY3RSZXF1ZXN0EiQKFGFydGlmYWN0X3N0b3JhZ2Vfa2V5GAEgASgJQga6SAPIAQEiJwoTR2V0QXJ0aWZhY3RSZXNwb25zZRIQCghhcnRpZmFjdBgBIAEoDCJ9ChZMaXN0U2tpbGxWZXJzaW9uc0lucHV0EhMKA29yZxgBIAEoCUIGukgDyAEBEhQKBHNsdWcYAiABKAlCBrpIA8gBARIcCgpwYWdlX3Rva2VuGAMgASgJQgi6SAVyAxiACBIaCglwYWdlX3NpemUYBCABKAVCB7pIBBoCKAAitgIKEVNraWxsVmVyc2lvbkVudHJ5EhQKDHZlcnNpb25faGFzaBgBIAEoCRItCglwdXNoZWRfYXQYAiABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEkgKCXB1c2hlZF9ieRgDIAEoCzI1LmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZUF1ZGl0QWN0b3ISCwoDdGFnGAQgASgJEhIKCmlzX2N1cnJlbnQYBSABKAgSQgoOZ2l0X3Byb3ZlbmFuY2UYBiABKAsyKi5haS5zdGlnbWVyLmFnZW50aWMuc2tpbGwudjEuR2l0UHJvdmVuYW5jZRIPCgdtZXNzYWdlGAcgASgJEhwKFGFydGlmYWN0X3N0b3JhZ2Vfa2V5GAggASgJInUKGUxpc3RTa2lsbFZlcnNpb25zUmVzcG9uc2USPwoHZW50cmllcxgBIAMoCzIuLmFpLnN0aWdtZXIuYWdlbnRpYy5za2lsbC52MS5Ta2lsbFZlcnNpb25FbnRyeRIXCg9uZXh0X3BhZ2VfdG9rZW4YAiABKAki3gEKEUxpc3RTa2lsbHNSZXF1ZXN0EhQKA29yZxgBIAEoCUIHukgEcgIQARIaCglwYWdlX3NpemUYAiABKAVCB7pIBBoCKAASHAoKcGFnZV90b2tlbhgDIAEoCUIIukgFcgMYgAgSSgoGbGFiZWxzGAQgAygLMjouYWkuc3RpZ21lci5hZ2VudGljLnNraWxsLnYxLkxpc3RTa2lsbHNSZXF1ZXN0LkxhYmVsc0VudHJ5Gi0KC0xhYmVsc0VudHJ5EgsKA2tleRgBIAEoCRINCgV2YWx1ZRgCIAEoCToCOAEiWQoJU2tpbGxMaXN0EjMKB2VudHJpZXMYASADKAsyIi5haS5zdGlnbWVyLmFnZW50aWMuc2tpbGwudjEuU2tpbGwSFwoPbmV4dF9wYWdlX3Rva2VuGAIgASgJYgZwcm90bzM", [file_ai_stigmer_agentic_skill_v1_api, file_ai_stigmer_agentic_skill_v1_status, file_ai_stigmer_commons_apiresource_status, file_buf_validate_validate, file_google_protobuf_timestamp]);
+  fileDesc("CiRhaS9zdGlnbWVyL2FnZW50aWMvc2tpbGwvdjEvaW8ucHJvdG8SG2FpLnN0aWdtZXIuYWdlbnRpYy5za2lsbC52MSIgCgdTa2lsbElkEhUKBXZhbHVlGAEgASgJQga6SAPIAQEi4QYKEFB1c2hTa2lsbFJlcXVlc3QSEwoDb3JnGAEgASgJQga6SAPIAQESEAoIYXJ0aWZhY3QYAiABKAwSKAoDdGFnGAMgASgJQhu6SBhyFjIUXiR8XlthLXpBLVowLTkuXy1dKyQSQgoOZ2l0X3Byb3ZlbmFuY2UYBCABKAsyKi5haS5zdGlnbWVyLmFnZW50aWMuc2tpbGwudjEuR2l0UHJvdmVuYW5jZRIPCgdtZXNzYWdlGAYgASgJEhsKE2FydGlmYWN0X3VwbG9hZF9yZWYYByABKAkSoQMKBmxhYmVscxgIIAMoCzI5LmFpLnN0aWdtZXIuYWdlbnRpYy5za2lsbC52MS5QdXNoU2tpbGxSZXF1ZXN0LkxhYmVsc0VudHJ5QtUCukjRAroBiAEKGWxhYmVscy5rZXlfcHJlZml4X21heF9sZW4SLmEgbGFiZWwga2V5J3MgcHJlZml4IGlzIGF0IG1vc3QgMjUzIGNoYXJhY3RlcnMaO3RoaXMuYWxsKGssICFrLmNvbnRhaW5zKCcvJykgfHwgay5tYXRjaGVzKCdeW14vXXsxLDI1M30vJykpmgHBARBAIoQBcoEBGL0CMnxeKFthLXowLTldKFstYS16MC05XXswLDYxfVthLXowLTldKT8oXC5bYS16MC05XShbLWEtejAtOV17MCw2MX1bYS16MC05XSk/KSovKT9bQS1aYS16MC05XShbLUEtWmEtejAtOV8uXXswLDYxfVtBLVphLXowLTldKT8kKjZyNDIyXihbQS1aYS16MC05XShbLUEtWmEtejAtOV8uXXswLDYxfVtBLVphLXowLTldKT8pPyQaLQoLTGFiZWxzRW50cnkSCwoDa2V5GAEgASgJEg0KBXZhbHVlGAIgASgJOgI4ATq2AbpIsgEarwEKInB1c2hfc2tpbGxfcmVxdWVzdC5hcnRpZmFjdF9zb3VyY2USSWV4YWN0bHkgb25lIG9mIGFydGlmYWN0IChpbmxpbmUgYnl0ZXMpIG9yIGFydGlmYWN0X3VwbG9hZF9yZWYgbXVzdCBiZSBzZXQaPih0aGlzLmFydGlmYWN0LnNpemUoKSA+IDApICE9ICh0aGlzLmFydGlmYWN0X3VwbG9hZF9yZWYgIT0gJycpIlcKI0NyZWF0ZVNraWxsQXJ0aWZhY3RVcGxvYWRVcmxSZXF1ZXN0EhMKA29yZxgBIAEoCUIGukgDyAEBEhsKCnNpemVfYnl0ZXMYAiABKANCB7pIBCICIAAiVwoWU2tpbGxBcnRpZmFjdFVwbG9hZFVybBILCgN1cmwYASABKAkSGwoTYXJ0aWZhY3RfdXBsb2FkX3JlZhgCIAEoCRITCgt0dGxfc2Vjb25kcxgDIAEoBSJQChhTa2lsbEFydGlmYWN0RG93bmxvYWRVcmwSCwoDdXJsGAEgASgJEhMKC3R0bF9zZWNvbmRzGAIgASgFEhIKCnNpemVfYnl0ZXMYAyABKAMicwoYUHVzaFNraWxsRnJvbUZpbGVSZXF1ZXN0EhMKA29yZxgBIAEoCUIGukgDyAEBEhgKB2ZpbGVfaWQYAiABKAlCB7pIBHICEAESKAoDdGFnGAMgASgJQhu6SBhyFjIUXiR8XlthLXpBLVowLTkuXy1dKyQiOgoSR2V0QXJ0aWZhY3RSZXF1ZXN0EiQKFGFydGlmYWN0X3N0b3JhZ2Vfa2V5GAEgASgJQga6SAPIAQEiJwoTR2V0QXJ0aWZhY3RSZXNwb25zZRIQCghhcnRpZmFjdBgBIAEoDCJ9ChZMaXN0U2tpbGxWZXJzaW9uc0lucHV0EhMKA29yZxgBIAEoCUIGukgDyAEBEhQKBHNsdWcYAiABKAlCBrpIA8gBARIcCgpwYWdlX3Rva2VuGAMgASgJQgi6SAVyAxiACBIaCglwYWdlX3NpemUYBCABKAVCB7pIBBoCKAAitgIKEVNraWxsVmVyc2lvbkVudHJ5EhQKDHZlcnNpb25faGFzaBgBIAEoCRItCglwdXNoZWRfYXQYAiABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEkgKCXB1c2hlZF9ieRgDIAEoCzI1LmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZUF1ZGl0QWN0b3ISCwoDdGFnGAQgASgJEhIKCmlzX2N1cnJlbnQYBSABKAgSQgoOZ2l0X3Byb3ZlbmFuY2UYBiABKAsyKi5haS5zdGlnbWVyLmFnZW50aWMuc2tpbGwudjEuR2l0UHJvdmVuYW5jZRIPCgdtZXNzYWdlGAcgASgJEhwKFGFydGlmYWN0X3N0b3JhZ2Vfa2V5GAggASgJInUKGUxpc3RTa2lsbFZlcnNpb25zUmVzcG9uc2USPwoHZW50cmllcxgBIAMoCzIuLmFpLnN0aWdtZXIuYWdlbnRpYy5za2lsbC52MS5Ta2lsbFZlcnNpb25FbnRyeRIXCg9uZXh0X3BhZ2VfdG9rZW4YAiABKAki3gEKEUxpc3RTa2lsbHNSZXF1ZXN0EhQKA29yZxgBIAEoCUIHukgEcgIQARIaCglwYWdlX3NpemUYAiABKAVCB7pIBBoCKAASHAoKcGFnZV90b2tlbhgDIAEoCUIIukgFcgMYgAgSSgoGbGFiZWxzGAQgAygLMjouYWkuc3RpZ21lci5hZ2VudGljLnNraWxsLnYxLkxpc3RTa2lsbHNSZXF1ZXN0LkxhYmVsc0VudHJ5Gi0KC0xhYmVsc0VudHJ5EgsKA2tleRgBIAEoCRINCgV2YWx1ZRgCIAEoCToCOAEiWQoJU2tpbGxMaXN0EjMKB2VudHJpZXMYASADKAsyIi5haS5zdGlnbWVyLmFnZW50aWMuc2tpbGwudjEuU2tpbGwSFwoPbmV4dF9wYWdlX3Rva2VuGAIgASgJIl8KE0xpc3RTa2lsbEZpbGVzSW5wdXQSGAoIc2tpbGxfaWQYASABKAlCBrpIA8gBARIuCgx2ZXJzaW9uX2hhc2gYAiABKAlCGLpIFXITMhFeJHxeWzAtOWEtZl17NjR9JCJGCg1Ta2lsbEZpbGVMaXN0EjUKBWZpbGVzGAEgAygLMiYuYWkuc3RpZ21lci5hZ2VudGljLnNraWxsLnYxLlNraWxsRmlsZSJRCglTa2lsbEZpbGUSDAoEcGF0aBgBIAEoCRISCgpzaXplX2J5dGVzGAIgASgDEg4KBnNoYTI1NhgDIAEoCRISCgpleGVjdXRhYmxlGAQgASgIIngKElJlYWRTa2lsbEZpbGVJbnB1dBIYCghza2lsbF9pZBgBIAEoCUIGukgDyAEBEi4KDHZlcnNpb25faGFzaBgCIAEoCUIYukgVchMyEV4kfF5bMC05YS1mXXs2NH0kEhgKBHBhdGgYAyABKAlCCrpIB3IFEAEYgCAiIwoQU2tpbGxGaWxlQ29udGVudBIPCgdjb250ZW50GAEgASgMYgZwcm90bzM", [file_ai_stigmer_agentic_skill_v1_api, file_ai_stigmer_agentic_skill_v1_status, file_ai_stigmer_commons_apiresource_status, file_buf_validate_validate, file_google_protobuf_timestamp]);
 
 /**
  * SkillId wraps a skill identifier.
@@ -558,4 +558,153 @@ export type SkillList = Message<"ai.stigmer.agentic.skill.v1.SkillList"> & {
  */
 export const SkillListSchema: GenMessage<SkillList> = /*@__PURE__*/
   messageDesc(file_ai_stigmer_agentic_skill_v1_io, 12);
+
+/**
+ * ListSkillFilesInput names one version of a skill whose files to list.
+ *
+ * @generated from message ai.stigmer.agentic.skill.v1.ListSkillFilesInput
+ */
+export type ListSkillFilesInput = Message<"ai.stigmer.agentic.skill.v1.ListSkillFilesInput"> & {
+  /**
+   * System-generated ID of the skill.
+   *
+   * @generated from field: string skill_id = 1;
+   */
+  skillId: string;
+
+  /**
+   * The version to read, by its SHA-256 version hash: the skill's current
+   * version or one in its history. Empty reads the current version.
+   *
+   * @generated from field: string version_hash = 2;
+   */
+  versionHash: string;
+};
+
+/**
+ * Describes the message ai.stigmer.agentic.skill.v1.ListSkillFilesInput.
+ * Use `create(ListSkillFilesInputSchema)` to create a new message.
+ */
+export const ListSkillFilesInputSchema: GenMessage<ListSkillFilesInput> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_agentic_skill_v1_io, 13);
+
+/**
+ * SkillFileList is the files of one version of a skill.
+ *
+ * @generated from message ai.stigmer.agentic.skill.v1.SkillFileList
+ */
+export type SkillFileList = Message<"ai.stigmer.agentic.skill.v1.SkillFileList"> & {
+  /**
+   * The files, in path order.
+   *
+   * @generated from field: repeated ai.stigmer.agentic.skill.v1.SkillFile files = 1;
+   */
+  files: SkillFile[];
+};
+
+/**
+ * Describes the message ai.stigmer.agentic.skill.v1.SkillFileList.
+ * Use `create(SkillFileListSchema)` to create a new message.
+ */
+export const SkillFileListSchema: GenMessage<SkillFileList> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_agentic_skill_v1_io, 14);
+
+/**
+ * SkillFile is one file of a skill version.
+ *
+ * @generated from message ai.stigmer.agentic.skill.v1.SkillFile
+ */
+export type SkillFile = Message<"ai.stigmer.agentic.skill.v1.SkillFile"> & {
+  /**
+   * Path of the file inside the skill, with forward slashes and no leading
+   * slash (`SKILL.md`, `scripts/run.sh`).
+   *
+   * @generated from field: string path = 1;
+   */
+  path: string;
+
+  /**
+   * Size of the file in bytes.
+   *
+   * @generated from field: int64 size_bytes = 2;
+   */
+  sizeBytes: bigint;
+
+  /**
+   * SHA-256 of the file's bytes, lowercase hex.
+   *
+   * @generated from field: string sha256 = 3;
+   */
+  sha256: string;
+
+  /**
+   * Whether the file is a script a command may run directly.
+   *
+   * @generated from field: bool executable = 4;
+   */
+  executable: boolean;
+};
+
+/**
+ * Describes the message ai.stigmer.agentic.skill.v1.SkillFile.
+ * Use `create(SkillFileSchema)` to create a new message.
+ */
+export const SkillFileSchema: GenMessage<SkillFile> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_agentic_skill_v1_io, 15);
+
+/**
+ * ReadSkillFileInput names one file of one version of a skill.
+ *
+ * @generated from message ai.stigmer.agentic.skill.v1.ReadSkillFileInput
+ */
+export type ReadSkillFileInput = Message<"ai.stigmer.agentic.skill.v1.ReadSkillFileInput"> & {
+  /**
+   * System-generated ID of the skill.
+   *
+   * @generated from field: string skill_id = 1;
+   */
+  skillId: string;
+
+  /**
+   * The version to read, as ListSkillFilesInput.version_hash.
+   *
+   * @generated from field: string version_hash = 2;
+   */
+  versionHash: string;
+
+  /**
+   * The file's path, exactly as the version's file list names it.
+   *
+   * @generated from field: string path = 3;
+   */
+  path: string;
+};
+
+/**
+ * Describes the message ai.stigmer.agentic.skill.v1.ReadSkillFileInput.
+ * Use `create(ReadSkillFileInputSchema)` to create a new message.
+ */
+export const ReadSkillFileInputSchema: GenMessage<ReadSkillFileInput> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_agentic_skill_v1_io, 16);
+
+/**
+ * SkillFileContent is the bytes of one skill file.
+ *
+ * @generated from message ai.stigmer.agentic.skill.v1.SkillFileContent
+ */
+export type SkillFileContent = Message<"ai.stigmer.agentic.skill.v1.SkillFileContent"> & {
+  /**
+   * The file's bytes.
+   *
+   * @generated from field: bytes content = 1;
+   */
+  content: Uint8Array;
+};
+
+/**
+ * Describes the message ai.stigmer.agentic.skill.v1.SkillFileContent.
+ * Use `create(SkillFileContentSchema)` to create a new message.
+ */
+export const SkillFileContentSchema: GenMessage<SkillFileContent> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_agentic_skill_v1_io, 17);
 

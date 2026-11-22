@@ -17,7 +17,6 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { MOUNT_MARKER_FILE } from "../../../shared/skill-mount.js";
 import type { SkillMetadata } from "../../../shared/skill-resolver.js";
 import { OWN_SKILLS_PLUGIN, SKILL_PLUGINS_SUBDIR, SkillNameClash, bodyOf, engineSkillOf, skillFileOf, spellingsOf, turnSkillsOf, writeSkillPlugins } from "../skill-plugins.js";
 
@@ -118,7 +117,6 @@ describe("writeSkillPlugins", () => {
     mount(".stigmer/skills/platform.x", {
       "SKILL.md": "---\nname: platform.x\nhooks: {}\n---\nUse the reference.\n",
       "references/a.md": "A",
-      [MOUNT_MARKER_FILE]: "{}",
     });
     mount(".stigmer/plugins/d1/skills/lint", { "SKILL.md": "Lint.\n", "run.sh": "#!/bin/sh\n" });
     const workspace = join(root, "ws");
@@ -137,7 +135,6 @@ describe("writeSkillPlugins", () => {
     expect(lstatSync(join(ownDir, "references")).isSymbolicLink()).toBe(true);
     expect(readlinkSync(join(ownDir, "references"))).toBe(join(workspace, ".stigmer/skills/platform.x/references"));
     expect(readFileSync(join(ownDir, "references/a.md"), "utf8")).toBe("A");
-    expect(existsSync(join(ownDir, MOUNT_MARKER_FILE)), "the mount's own marker is not the skill's").toBe(false);
     expect(readFileSync(join(home, "plugins/acme/skills/lint/SKILL.md"), "utf8")).toBe('---\nname: "lint"\ndescription: "About lint."\n---\n\nLint.\n');
     expect(readlinkSync(join(home, "plugins/acme/skills/lint/run.sh"))).toBe(join(workspace, ".stigmer/plugins/d1/skills/lint/run.sh"));
   });

@@ -110,9 +110,12 @@ import { injectSynthesizedAttachment } from "../shared/synthesized-attachment.js
 import { buildMcpApprovalDefault, deriveActiveLeases, NOTHING_LISTED, type LeaseGrant } from "../shared/approval-policy.js";
 import { ToolScope } from "../shared/tool-lists.js";
 import { fetchRunFileMounts, mountFiles, offerMountedImage, splitMessageFiles, type MessageFile } from "../shared/file-mount.js";
-import { resolveSkills, type SkillMetadata } from "../shared/skill-resolver.js";
+import { resolveSkills, type ResolvedSkill, type SkillMetadata } from "../shared/skill-resolver.js";
 import { prepareOutputsFolder } from "../shared/outputs.js";
-import { holdPlatformMounts, NO_MOUNTS, type PlatformMounts } from "../shared/platform-hold.js";
+import { holdPlatformMounts, mergeMounts, NO_MOUNTS, type PlatformMounts } from "../shared/platform-hold.js";
+import { hasComputer } from "../shared/computer.js";
+import { pluginTreeKey, sessionTreesDir } from "../shared/archive-tree.js";
+import { newTurnArchives, type ArchiveSource, type TurnArchives } from "../shared/archive-reader.js";
 import type { ApiResourceReference } from "@stigmer/apis/ai/stigmer/commons/apiresource/io_pb";
 import { loadedVersionsOf } from "./loaded-versions.js";
 import { mountPlugin, PluginMountError } from "../shared/plugin-mount.js";
@@ -1181,16 +1184,23 @@ export async function mountSkills(
     /** The main scope ({@link mainToolScope}), which decides whether skills are hidden. */
     readonly toolScope: ToolScope;
   },
-): Promise<{ readonly skills: TurnSkills; readonly loaded: readonly ApiResourceReference[]; readonly mounts: PlatformMounts }> {
+): Promise<{
+  readonly skills: TurnSkills;
+  readonly loaded: readonly ApiResourceReference[];
+  readonly mounts: PlatformMounts;
+  readonly sources: readonly ArchiveSource[];
+}> {
   deps.enterPhase("resolve_skills");
   await deps.reportProgress("Resolving skills");
-  const options = { sessionId: args.sessionId, primaryWorkspaceDir: args.primaryDir };
+  const mount = hasComputer(args.blueprint.session);
+  const options = { sessionId: args.sessionId, primaryWorkspaceDir: args.primaryDir, mount };
   const { toolScope } = args;
   if (toolScope.hidesSkills) {
     console.log(`[resolveSkills] execution=${deps.input.executionId}: the tool lists deny Skill; no skills this turn`);
   }
   const resolved = toolScope.hidesSkills ? [] : await resolveSkills(deps.client, args.blueprint.mergedSkillRefs, options);
   const root = resolved.map((skill) => skill.metadata);
+  const sources: ArchiveSource[] = resolved.map((skill) => skill.source);
   const pluginDigests: string[] = [];
   const bySubAgent = new Map<string, readonly SkillMetadata[]>();
   for (const plugin of args.blueprint.plugins) {
@@ -1206,8 +1216,9 @@ export async function mountSkills(
         )
       : [];
     if (toolScope.hidesSkills && agents.length === 0) continue;
-    const { skills, digest } = await mountPluginSkills(deps, plugin, args.sessionId, args.primaryDir);
+    const { skills, digest, source } = await mountPluginSkills(deps, plugin, args.sessionId, args.primaryDir, mount);
     if (digest !== undefined) pluginDigests.push(digest);
+    if (source !== undefined) sources.push(source);
     if (!toolScope.hidesSkills) root.push(...skills.values());
     for (const agent of agents) {
       const own = agent.skills.flatMap((name) => skills.get(name) ?? []);
@@ -1218,37 +1229,62 @@ export async function mountSkills(
   return {
     skills: { root, bySubAgent },
     loaded: resolved.map((skill) => skill.loaded),
-    mounts: { skills: resolved.map((skill) => skill.metadata.name), plugins: pluginDigests },
+    mounts: mountsOf(resolved, pluginDigests),
+    sources,
+  };
+}
+
+/** What a phase mounted on disk, by the names the platform hold keeps: nothing for skills resolved without a computer. */
+function mountsOf(skills: readonly ResolvedSkill[], pluginDigests: readonly string[]): PlatformMounts {
+  const mounted = skills.filter((skill) => skill.mounted !== undefined);
+  return {
+    skills: mounted.map((skill) => skill.metadata.name),
+    plugins: pluginDigests,
+    archives: [...mounted.flatMap((skill) => (skill.mounted?.archive === undefined ? [] : [skill.mounted.archive])), ...pluginDigests],
+    trees: [...mounted.map((skill) => skill.mounted!.treeKey), ...pluginDigests.map(pluginTreeKey)],
   };
 }
 
 /**
  * A plugin's skills by their name in the plugin, as a prompt renders them:
  * `<plugin>:<skill>`, with the path of the skill's SKILL.md inside the
- * plugin's mounted tree, reached from the workspace through `.stigmer`. A
- * plugin that cannot be mounted contributes none, warned.
+ * plugin's tree, reached from the workspace through `.stigmer`, and the
+ * plugin as a source of the turn's reader (`shared/archive-reader.ts`).
+ * With a computer (`mount`) the tree is mounted on disk; a plugin that
+ * cannot be mounted contributes none, warned. Without one nothing is
+ * written, and the reader serves the same paths from the store.
  */
 async function mountPluginSkills(
   deps: ResolutionDeps,
   plugin: Plugin,
   sessionId: string,
   primaryDir: string,
-): Promise<{ readonly skills: ReadonlyMap<string, SkillMetadata>; readonly digest: string | undefined }> {
+  mount: boolean,
+): Promise<{ readonly skills: ReadonlyMap<string, SkillMetadata>; readonly digest: string | undefined; readonly source: ArchiveSource | undefined }> {
   const skills = plugin.status?.skills ?? [];
-  if (skills.length === 0) return { skills: new Map(), digest: undefined };
+  if (skills.length === 0) return { skills: new Map(), digest: undefined, source: undefined };
   const pluginName = plugin.metadata?.name ?? "";
-  try {
-    const platformDir = getPlatformDir(sessionId);
-    await ensureStigmerSymlink(primaryDir, platformDir);
-    await mountPlugin(deps.client, plugin, platformDir);
-  } catch (err) {
-    console.warn(
-      `[turn-context] the skills of plugin '${pluginName}' are missing this turn: its archive could not be mounted: ${errorText(err)}`,
-    );
-    return { skills: new Map(), digest: undefined };
-  }
   const digest = plugin.status?.digest ?? "";
+  if (digest === "") {
+    // A head whose version failed to archive names no digest: nothing to
+    // mount or read, as the mount itself refuses such a plugin.
+    console.warn(`[turn-context] the skills of plugin '${pluginName}' are missing this turn: it records no installed archive`);
+    return { skills: new Map(), digest: undefined, source: undefined };
+  }
+  if (mount) {
+    try {
+      const platformDir = getPlatformDir(sessionId);
+      await ensureStigmerSymlink(primaryDir, platformDir);
+      await mountPlugin(deps.client, plugin, platformDir, sessionId);
+    } catch (err) {
+      console.warn(
+        `[turn-context] the skills of plugin '${pluginName}' are missing this turn: its archive could not be mounted: ${errorText(err)}`,
+      );
+      return { skills: new Map(), digest: undefined, source: undefined };
+    }
+  }
   return {
+    source: pluginSourceOf(plugin),
     skills: new Map(
       skills.map((skill): [string, SkillMetadata] => [
         skill.name,
@@ -1259,8 +1295,14 @@ async function mountPluginSkills(
         },
       ]),
     ),
-    digest,
+    digest: mount ? digest : undefined,
   };
+}
+
+/** A plugin as a source of the turn's reader, at its installed digest. */
+function pluginSourceOf(plugin: Plugin): ArchiveSource {
+  const digest = plugin.status?.digest ?? "";
+  return { kind: "plugin", dir: `${PLUGINS_SUBDIR}/${digest}`, id: plugin.metadata?.id ?? "", digest };
 }
 
 /** No hooks: the record of a turn whose plugins carry none and whose agent writes none. */
@@ -1269,6 +1311,12 @@ const NO_HOOKS: TurnHooks = { sources: [], serverNames: new Map() };
 /** The digests of plugins the hook sources mounted: the names of their trees under `plugins/`. */
 function pluginDigests(plugins: readonly Plugin[]): string[] {
   return plugins.map((plugin) => plugin.status?.digest ?? "");
+}
+
+/** What mounting `plugins` for their hooks put on disk: their trees and cached archives. */
+function pluginMounts(plugins: readonly Plugin[]): PlatformMounts {
+  const digests = pluginDigests(plugins);
+  return { skills: [], plugins: digests, archives: digests, trees: digests.map(pluginTreeKey) };
 }
 
 /** The plugins among `plugins` that carry hooks. */
@@ -1331,12 +1379,12 @@ export async function resolveHooks(
     readonly servers: readonly ResolvedMcpServer[];
   },
 ): Promise<
-  | { readonly kind: "ready"; readonly hooks: TurnHooks; readonly mounts: PlatformMounts }
+  | { readonly kind: "ready"; readonly hooks: TurnHooks; readonly mounts: PlatformMounts; readonly sources: readonly ArchiveSource[] }
   | { readonly kind: "settled"; readonly settlement: TurnSettlement }
 > {
   const plugins = pluginsWithHooks(args.blueprint.plugins);
   const inline = args.blueprint.agent?.spec?.hooks ?? [];
-  if (plugins.length === 0 && inline.length === 0) return { kind: "ready", hooks: NO_HOOKS, mounts: NO_MOUNTS };
+  if (plugins.length === 0 && inline.length === 0) return { kind: "ready", hooks: NO_HOOKS, mounts: NO_MOUNTS, sources: [] };
   deps.enterPhase("resolve_hooks");
   await deps.reportProgress("Resolving hooks");
 
@@ -1347,7 +1395,9 @@ export async function resolveHooks(
   return {
     kind: "ready",
     hooks: { sources: resolved.sources, serverNames: hookServerNamesOf(args.servers) },
-    mounts: { skills: [], plugins: pluginDigests(plugins) },
+    mounts: pluginMounts(plugins),
+    // Every plugin here mounted, so each records its digest.
+    sources: plugins.map(pluginSourceOf),
   };
 }
 
@@ -1371,7 +1421,7 @@ async function hookSources(
   for (const plugin of plugins) {
     const hooks = plugin.status!.hooks!;
     try {
-      sources.push({ plugin: await mountPlugin(deps.client, plugin, platformDir), format: formatOf(hooks.format), groups: hooks.groups });
+      sources.push({ plugin: await mountPlugin(deps.client, plugin, platformDir, sessionId), format: formatOf(hooks.format), groups: hooks.groups });
     } catch (err) {
       if (!ownersToFix(err)) throw err;
       return {
@@ -1455,22 +1505,26 @@ export async function resolveSubagents(
       readonly subagents: readonly TurnSubagent[];
       readonly loadedSkills: readonly ApiResourceReference[];
       readonly mounts: PlatformMounts;
+      readonly sources: readonly ArchiveSource[];
     }
   | { readonly kind: "settled"; readonly settlement: TurnSettlement }
 > {
   const { blueprint, values, sessionId } = args;
   if (blueprint.subagents.length === 0 || !args.capabilities.subAgents) {
-    return { kind: "ready", subagents: [], loadedSkills: [], mounts: NO_MOUNTS };
+    return { kind: "ready", subagents: [], loadedSkills: [], mounts: NO_MOUNTS, sources: [] };
   }
   deps.enterPhase("resolve_subagents");
   await deps.reportProgress("Resolving subagents");
   const transportPosture = resolveMcpTransportPosture(deps.config.mode);
   const platformValues = turnPlatformValues(blueprint, args.session, sessionId);
-  const options = { sessionId, primaryWorkspaceDir: args.primaryDir };
+  const mount = hasComputer(args.session);
+  const options = { sessionId, primaryWorkspaceDir: args.primaryDir, mount };
   const subagents: TurnSubagent[] = [];
   const loadedSkills: ApiResourceReference[] = [];
-  const mountedSkills: string[] = [];
+  const resolvedSkills: ResolvedSkill[] = [];
   const mountedPlugins: string[] = [];
+  const sources: ArchiveSource[] = [];
+  const hookMounts: PlatformMounts[] = [];
   // Every server named so far: the main agent's, then each subagent's.
   const named: ResolvedMcpServer[] = [...args.mainServers];
   for (const subagent of blueprint.subagents) {
@@ -1491,17 +1545,20 @@ export async function resolveSubagents(
       const own = await resolveSkills(deps.client, spec.skillRefs, options);
       skills.push(...own.map((skill) => skill.metadata));
       loadedSkills.push(...own.map((skill) => skill.loaded));
-      mountedSkills.push(...own.map((skill) => skill.metadata.name));
+      resolvedSkills.push(...own);
+      sources.push(...own.map((skill) => skill.source));
       for (const plugin of subagent.plugins) {
-        const mounted = await mountPluginSkills(deps, plugin, sessionId, args.primaryDir);
+        const mounted = await mountPluginSkills(deps, plugin, sessionId, args.primaryDir, mount);
         skills.push(...mounted.skills.values());
         if (mounted.digest !== undefined) mountedPlugins.push(mounted.digest);
+        if (mounted.source !== undefined) sources.push(mounted.source);
       }
     }
     const hookPlugins = pluginsWithHooks(subagent.plugins);
     const hooks = await hookSources(deps, hookPlugins, spec.hooks, sessionId);
     if (hooks.kind === "settled") return hooks;
-    mountedPlugins.push(...pluginDigests(hookPlugins));
+    hookMounts.push(pluginMounts(hookPlugins));
+    sources.push(...hookPlugins.map(pluginSourceOf));
     subagents.push({
       name: subagent.name,
       description: spec.description,
@@ -1521,7 +1578,7 @@ export async function resolveSubagents(
     });
   }
   deps.timing.mark("resolve_subagents");
-  return { kind: "ready", subagents, loadedSkills, mounts: { skills: mountedSkills, plugins: mountedPlugins } };
+  return { kind: "ready", subagents, loadedSkills, mounts: mergeMounts([mountsOf(resolvedSkills, mountedPlugins), ...hookMounts]), sources };
 }
 
 /** A recorded hook format as the evaluator names it; an unset format is Claude Code's, as apply fills it. */
@@ -1572,11 +1629,23 @@ export async function holdPlatformToTurnPhase(
   mounts: readonly PlatformMounts[],
 ): Promise<void> {
   deps.enterPhase("hold_platform_mounts");
-  await holdPlatformMounts(getPlatformDir(sessionId), {
-    skills: mounts.flatMap((mount) => mount.skills),
-    plugins: mounts.flatMap((mount) => mount.plugins),
-  });
+  await holdPlatformMounts(sessionId, getPlatformDir(sessionId), mergeMounts(mounts));
   deps.timing.mark("hold_platform_mounts");
+}
+
+/**
+ * The turn's reader of its skill and plugin files (`shared/archive-reader.ts`):
+ * the root's, its hooks' plugins' and each saved subagent's, the union the
+ * platform hold keeps, each at the version the turn resolved, for a turn of
+ * the run's organization. Undefined on a turn with none.
+ */
+export function turnArchivesOf(
+  deps: ResolutionDeps,
+  execution: Run,
+  sources: readonly (readonly ArchiveSource[])[],
+): TurnArchives | undefined {
+  const all = sources.flat();
+  return all.length === 0 ? undefined : newTurnArchives(deps.client, execution.metadata?.org ?? "", all);
 }
 
 /**
@@ -1797,6 +1866,8 @@ export interface TurnFrame {
    * engine's turn begins by saying so.
    */
   lostRunner: boolean;
+  /** The turn's reader of its skill and plugin files, set once the skills are resolved: the runtime logs what it read when the turn ends. */
+  archives?: TurnArchives;
 }
 
 /** What the composer answers: the whole record, or a settlement the caller writes and returns. */
@@ -1900,6 +1971,9 @@ export async function resolveTurnContext(
   });
   if (subagentResolution.kind === "settled") return subagentResolution;
   await holdPlatformToTurnPhase(deps, sessionId, [mounted.mounts, hookResolution.mounts, subagentResolution.mounts]);
+  const archives = turnArchivesOf(deps, execution, [mounted.sources, hookResolution.sources, subagentResolution.sources]);
+  frame.archives = archives;
+  const treesDir = sessionTreesDir(sessionId);
   const mountedFiles = await mountTurnFiles(deps, {
     execution,
     session,
@@ -1934,7 +2008,11 @@ export async function resolveTurnContext(
       values,
       workspace,
       mcp,
-      skills: mounted.skills,
+      skills: {
+        ...mounted.skills,
+        ...(archives !== undefined && { archives }),
+        ...(treesDir !== undefined && { treesDir }),
+      },
       hooks: hookResolution.hooks,
       subagents: subagentResolution.subagents,
       files,

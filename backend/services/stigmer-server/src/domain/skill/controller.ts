@@ -45,6 +45,9 @@ import { FileIdSchema } from "@stigmer/apis/ai/stigmer/agentic/file/v1/io_pb";
 import {
   GetArtifactResponseSchema,
   PushSkillFromFileRequestSchema,
+  SkillFileContentSchema,
+  SkillFileListSchema,
+  SkillFileSchema,
   PushSkillRequestSchema,
   SkillArtifactDownloadUrlSchema,
   SkillArtifactUploadUrlSchema,
@@ -53,12 +56,16 @@ import type {
   CreateSkillArtifactUploadUrlRequest,
   GetArtifactRequest,
   GetArtifactResponse,
+  ListSkillFilesInput,
   ListSkillVersionsInput,
   ListSkillVersionsResponse,
   PushSkillFromFileRequest,
   PushSkillRequest,
+  ReadSkillFileInput,
   SkillArtifactDownloadUrl,
   SkillArtifactUploadUrl,
+  SkillFileContent,
+  SkillFileList,
   SkillId,
 } from "@stigmer/apis/ai/stigmer/agentic/skill/v1/io_pb";
 import type {
@@ -127,6 +134,7 @@ import type { Store } from "../../store/interface.js";
 import { MAX_ZIP_SIZE, TRANSFER_LANE_NOT_CONFIGURED } from "./constants.js";
 import {
   EXISTING_SKILL_KEY,
+  EXTRACT_RESULT_KEY,
   SKILL_KEY,
   newArchiveCurrentSkillStep,
   newBuildInitialSkillStep,
@@ -143,6 +151,8 @@ import {
   newStoreSkillStep,
 } from "./push.js";
 import { skillSearchExtractor } from "./search-extractor.js";
+import type { ExtractSkillMdResult } from "./storage/zip-gate.js";
+import { newStoreArchiveIndexStep } from "../../pipeline/steps/store-archive-index.js";
 import { ArtifactNotFoundError, SKILL_ARTIFACT_KEY_PREFIX } from "./storage/artifact-storage.js";
 import type { SkillArtifactStorage } from "./storage/artifact-storage.js";
 import type {
@@ -160,6 +170,15 @@ import {
 import { runGuardedWrite } from "../../pipeline/guarded-write.js";
 import { ARTIFACT_BYTES_KEY } from "../../pipeline/steps/resolve-artifact-source.js";
 import type { FileBlobs } from "../file/blobs.js";
+import { newArchiveFileReads } from "../../archive/file-reads.js";
+import type { ArchiveFileReads } from "../../archive/file-reads.js";
+import {
+  listServedFiles,
+  loadServedResource,
+  readServedFile,
+  resolveServedVersion,
+} from "../../archive/serve-files.js";
+import type { ServedArchiveBinding, ServedVersion } from "../../archive/serve-files.js";
 
 /**
  * pushFromFile's read deadline: bounds the File's read, sized for the
@@ -194,6 +213,7 @@ export function registerSkillServices(
   router: ConnectRouter,
   deps: SkillControllerDeps,
 ): void {
+  const fileReads = newArchiveFileReads(deps.artifactStorage, "skill", deps.logger);
   router.service(SkillCommandController, {
     push: (req, ctx) =>
       push(deps, req, ctx, SkillCommandController.method.push),
@@ -211,6 +231,8 @@ export function registerSkillServices(
     getArtifactDownloadUrl: (req, ctx) =>
       getArtifactDownloadUrl(deps, req, ctx),
     listVersions: (req, ctx) => listVersions(deps, req, ctx),
+    listFiles: (req, ctx) => listFiles(deps, fileReads, req, ctx),
+    readFile: (req, ctx) => readFile(deps, fileReads, req, ctx),
   });
 }
 
@@ -262,6 +284,14 @@ async function push(
       .addStep(newFindExistingBySlugStep(deps.store))
       .addStep(newGenerateIdIfNeededStep())
       .addStep(newCheckAndStoreArtifactStep(deps.artifactStorage))
+      .addStep(
+        newStoreArchiveIndexStep<typeof PushSkillRequestSchema>(
+          deps.artifactStorage,
+          "skill",
+          deps.logger,
+          (stepCtx) => (stepCtx.get(EXTRACT_RESULT_KEY) as ExtractSkillMdResult).hash,
+        ),
+      )
       .addStep(newPopulateSkillFieldsStep())
       // The reserved-namespace guard every write boundary runs, positioned
       // after the populate step because the skill rides SKILL_KEY (not
@@ -724,6 +754,71 @@ async function getByReference(
     .build()
     .execute(reqCtx);
   return reqCtx.get(TARGET_RESOURCE_KEY) as Skill;
+}
+
+/** How a skill's files are served (archive/serve-files.ts). */
+const servedSkill: ServedArchiveBinding<typeof SkillSchema> = {
+  kind: ApiResourceKind.skill,
+  schema: SkillSchema,
+  noun: "skill",
+  headHashOf: (skill) => skill.status?.versionHash ?? "",
+  storageKeyOf: (skill) => skill.status?.artifactStorageKey ?? "",
+  suiteDirOf: () => undefined,
+  keyForHash: (hash) => `${SKILL_ARTIFACT_KEY_PREFIX}${hash}.zip`,
+  nameOf: (skill) => skill.metadata?.slug || skill.metadata?.id || "",
+};
+
+/**
+ * Authorizes a file read by its annotation (can_view on skill_id), then
+ * loads the skill and resolves the version it names.
+ */
+async function servedSkillVersion(
+  deps: SkillControllerDeps,
+  method: typeof SkillQueryController.method.listFiles | typeof SkillQueryController.method.readFile,
+  req: ListSkillFilesInput | ReadSkillFileInput,
+  ctx: HandlerContext,
+): Promise<ServedVersion> {
+  const reqCtx = new RequestContext(method.input, req, callerIdentityOf(ctx), kindOf(ctx));
+  await newPipeline<typeof method.input>(`skill-${method.localName}`, deps.logger)
+    .addStep(newAuthorizeStep(method, deps.authorizer))
+    .addStep(newValidateProtoStep())
+    .build()
+    .execute(reqCtx);
+  const skill = await loadServedResource(deps.store, servedSkill, req.skillId);
+  return resolveServedVersion(deps.store, servedSkill, skill, req.skillId, req.versionHash);
+}
+
+/** ListFiles — one version's files, its eval suite left out (archive/serve-files.ts). */
+async function listFiles(
+  deps: SkillControllerDeps,
+  fileReads: ArchiveFileReads,
+  req: ListSkillFilesInput,
+  ctx: HandlerContext,
+): Promise<SkillFileList> {
+  const version = await servedSkillVersion(deps, SkillQueryController.method.listFiles, req, ctx);
+  const files = await listServedFiles(fileReads, "skill", version);
+  return create(SkillFileListSchema, {
+    files: files.map((file) =>
+      create(SkillFileSchema, {
+        path: file.path,
+        sizeBytes: BigInt(file.size),
+        sha256: file.sha256,
+        executable: file.executable,
+      }),
+    ),
+  });
+}
+
+/** ReadFile — one file's bytes, read alone (archive/serve-files.ts). */
+async function readFile(
+  deps: SkillControllerDeps,
+  fileReads: ArchiveFileReads,
+  req: ReadSkillFileInput,
+  ctx: HandlerContext,
+): Promise<SkillFileContent> {
+  const version = await servedSkillVersion(deps, SkillQueryController.method.readFile, req, ctx);
+  const content = await readServedFile(fileReads, "skill", version, req.path);
+  return create(SkillFileContentSchema, { content });
 }
 
 /**

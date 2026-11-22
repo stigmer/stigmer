@@ -68,6 +68,7 @@
  * `registry.ts`, no barrel.
  */
 
+import type { TurnArchiveFiles } from "../shared/archive-reader.js";
 import type { TurnInputChannel } from "./turn-input.js";
 import type { TranscriptMessage } from "@stigmer/eval-runtime";
 import type { Run, RunStatus } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
@@ -272,6 +273,21 @@ export interface TurnMcp {
 export interface TurnSkills {
   readonly root: readonly SkillMetadata[];
   readonly bySubAgent: ReadonlyMap<string, readonly SkillMetadata[]>;
+  /**
+   * Every file of the turn's skills and plugins (the root's, its hooks'
+   * plugins', each saved subagent's), read from the store one file at a
+   * time (`shared/archive-reader.ts`); absent on a turn with none. The
+   * Stigmer engine's file tools read them through it in every conversation.
+   */
+  readonly archives?: TurnArchiveFiles;
+  /**
+   * The session's runner-owned skill and plugin trees (`shared/archive-tree.ts`
+   * `sessionTreesDir`), which the platform folder's `skills/` and `plugins/`
+   * link into where the runner separates; absent elsewhere. A confined read
+   * judges a path by its real path, so it reads this as a second root of
+   * platform content.
+   */
+  readonly treesDir?: string;
 }
 
 /**

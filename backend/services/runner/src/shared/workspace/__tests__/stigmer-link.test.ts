@@ -14,8 +14,10 @@ vi.mock("node:fs/promises", async (importOriginal) => {
 
 import {
   ensureStigmerSymlink,
+  platformReadRoot,
   readsPlatformContent,
   removeStigmerSymlink,
+  treesReadRoot,
   stigmerSymlinkPointsAt,
   STIGMER_LOCAL_STATE_DIR,
 } from "../stigmer-link.js";
@@ -83,6 +85,34 @@ describe("stigmer-link", () => {
       const root = await realpath(platformDir);
 
       expect(await readsPlatformContent(root, join(platformDir, "escape.md"))).toBe(false);
+    });
+  });
+
+  describe("the session's runner-owned trees, a second root", () => {
+    it("admits a skill reached through its link into the trees folder, and nothing beside that folder", async () => {
+      const trees = await mkdtemp(join(tmpdir(), "stigmer-link-trees-"));
+      try {
+        await mkdir(join(trees, "skill-x", "refs"), { recursive: true });
+        await writeFile(join(trees, "skill-x", "refs", "a.md"), "a");
+        await mkdir(join(platformDir, "skills"));
+        await symlink(join(trees, "skill-x"), join(platformDir, "skills", "notes"));
+        await writeFile(join(workspaceDir, "secret.md"), "the workspace's");
+        await symlink(join(workspaceDir, "secret.md"), join(platformDir, "escape.md"));
+        await ensureStigmerSymlink(workspaceDir, platformDir);
+        const root = await platformReadRoot(workspaceDir, platformDir);
+        const treesRoot = await treesReadRoot(workspaceDir, platformDir, trees);
+        const viaLink = join(linkPath(), "skills", "notes", "refs", "a.md");
+
+        expect(await readsPlatformContent(root, viaLink), "without the second root, the link points out of the platform folder").toBe(false);
+        expect(await readsPlatformContent(root, viaLink, treesRoot)).toBe(true);
+        expect(await readsPlatformContent(root, join(platformDir, "escape.md"), treesRoot), "any other link out still admits nothing").toBe(false);
+        expect(await treesReadRoot(workspaceDir, platformDir, undefined)).toBe("");
+        expect(await treesReadRoot(workspaceDir, platformDir, join(trees, "not-made-yet")), "a trees folder not made yet").toBe("");
+        await removeStigmerSymlink(workspaceDir);
+        expect(await treesReadRoot(workspaceDir, platformDir, trees), "a turn with no link has no second root").toBe("");
+      } finally {
+        await rm(trees, { recursive: true, force: true });
+      }
     });
   });
 

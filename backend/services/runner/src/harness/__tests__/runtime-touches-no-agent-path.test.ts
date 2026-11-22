@@ -40,6 +40,11 @@ const RUNNERS_OWN: ReadonlyMap<string, string> = new Map([
     "shared/workspace/runner-git.ts",
     "the runner's own repositories and bundle files under its state directory; git there carries the token and never runs on an agent path",
   ],
+  [
+    "shared/archive-tree.ts",
+    "unpacks skill and plugin trees under the runner's own root-owned /runner/mounts, checking every ancestor is root's and closed to others first; the agent's link to each is made through the agent's operations",
+  ],
+  ["shared/skill-mount.ts", "resolves the real path of the session's folder under the runner's own /runner/mounts, which holds only what the runner unpacked"],
   ["config.ts", "creates the configured workspace root at start-up, before any agent runs"],
   [
     "environment/install.ts",

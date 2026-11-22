@@ -657,3 +657,36 @@ describe("Plugin conformance — the vendored Cursor plugins", () => {
     }
   });
 });
+
+describe("Plugin conformance — one file at a time", () => {
+  it("[rpc:PluginQueryController.listFiles] [rpc:PluginQueryController.readFile] lists and reads a version's files, never its eval suite", async () => {
+    const name = uniqueName("plg-files");
+    const plugin = await install(
+      pluginArchive(
+        claudePlugin({
+          name,
+          skills: [{ name: `${name}-review`, body: "review body", files: { "refs/style.md": "the style" } }],
+          files: { "evals/basic/prompt.md": "a graded case", "hooks/check": "#!/bin/sh\nexit 0\n" },
+        }),
+      ),
+    );
+    const id = plugin.metadata!.id;
+    const digest = plugin.status!.digest;
+    const listed = await clients.pluginQuery.listFiles({ pluginId: id, digest });
+    const paths = listed.files.map((file) => file.path);
+    expect(paths).toContain(`skills/${name}-review/refs/style.md`);
+    expect(paths.some((path) => path.startsWith("evals/")), `no eval file listed (${paths.join(", ")})`).toBe(false);
+    expect(listed.files.find((file) => file.path === "hooks/check")?.executable).toBe(true);
+    const read = await clients.pluginQuery.readFile({ pluginId: id, digest, path: `skills/${name}-review/refs/style.md` });
+    expect(new TextDecoder().decode(read.content)).toBe("the style");
+    await expectGrpcCode(() => clients.pluginQuery.readFile({ pluginId: id, digest, path: "evals/basic/prompt.md" }), Code.NotFound, "an eval file");
+  });
+
+  it("[rpc:PluginQueryController.listFiles] refuses a digest that is not the plugin's own, and a missing one", async () => {
+    const a = await install(pluginArchive(thermosLike(uniqueName("plg-files-a"))));
+    const b = await install(pluginArchive(thermosLike(uniqueName("plg-files-b"))));
+    await expectGrpcCode(() => clients.pluginQuery.listFiles({ pluginId: a.metadata!.id, digest: b.status!.digest }), Code.NotFound, "a digest another plugin holds");
+    await expectGrpcCode(() => clients.pluginQuery.listFiles({ pluginId: a.metadata!.id, digest: "" }), Code.InvalidArgument, "no digest");
+    await expectGrpcCode(() => clients.pluginQuery.readFile({ pluginId: "plg_missing", digest: a.status!.digest, path: "x" }), Code.NotFound, "an unknown plugin");
+  });
+});

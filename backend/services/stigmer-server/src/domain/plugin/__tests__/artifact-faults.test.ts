@@ -14,7 +14,7 @@ import { describe, expect, it } from "vitest";
 
 import { PluginQueryController } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/query_pb";
 
-import type { ContentAddressedArchiveStore } from "../../../archive/content-store.js";
+import type { IndexedArchiveStore } from "../../../archive/content-store.js";
 import { createLogger } from "../../../boot/logger.js";
 import { createApiResourceInterceptor } from "../../../pipeline/interceptors/apiresource.js";
 import { createVerifierChainInterceptor } from "../../../pipeline/interceptors/auth.js";
@@ -31,26 +31,32 @@ const KEY = `plugins/${"a".repeat(64)}.zip`;
 const DISK_FULL = (): Error => new Error("EIO: i/o error, read");
 
 /** An archive store whose every read fails with `fault`. */
-function failingArchives(fault: () => Error): ContentAddressedArchiveStore {
+function failingArchives(fault: () => Error): IndexedArchiveStore {
   return {
     store: () => Promise.reject(fault()),
     get: () => Promise.reject(fault()),
     exists: () => Promise.reject(fault()),
     getStorageKey: (hash) => `plugins/${hash}.zip`,
     size: () => Promise.reject(fault()),
+    readRange: () => Promise.reject(fault()),
+    loadIndex: () => Promise.reject(fault()),
+    storeIndex: () => Promise.reject(fault()),
   };
 }
 
 /** An archive store that holds every key, one byte each. */
-const presentArchives: ContentAddressedArchiveStore = {
+const presentArchives: IndexedArchiveStore = {
   store: (hash) => Promise.resolve(`plugins/${hash}.zip`),
   get: () => Promise.resolve(new Uint8Array([1])),
   exists: () => Promise.resolve(true),
   getStorageKey: (hash) => `plugins/${hash}.zip`,
   size: () => Promise.resolve(1),
+  readRange: () => Promise.resolve(new Uint8Array([1])),
+  loadIndex: () => Promise.resolve(undefined),
+  storeIndex: () => Promise.resolve(),
 };
 
-function pluginQuery(artifactStorage: ContentAddressedArchiveStore, staging?: ArchiveStaging): Client<typeof PluginQueryController> {
+function pluginQuery(artifactStorage: IndexedArchiveStore, staging?: ArchiveStaging): Client<typeof PluginQueryController> {
   const transport = createRouterTransport(
     (router) => {
       registerPluginServices(router, {

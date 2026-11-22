@@ -25,6 +25,8 @@ const (
 	PluginQueryController_List_FullMethodName                   = "/ai.stigmer.agentic.plugin.v1.PluginQueryController/list"
 	PluginQueryController_GetArtifact_FullMethodName            = "/ai.stigmer.agentic.plugin.v1.PluginQueryController/getArtifact"
 	PluginQueryController_GetArtifactDownloadUrl_FullMethodName = "/ai.stigmer.agentic.plugin.v1.PluginQueryController/getArtifactDownloadUrl"
+	PluginQueryController_ListFiles_FullMethodName              = "/ai.stigmer.agentic.plugin.v1.PluginQueryController/listFiles"
+	PluginQueryController_ReadFile_FullMethodName               = "/ai.stigmer.agentic.plugin.v1.PluginQueryController/readFile"
 	PluginQueryController_ListVersions_FullMethodName           = "/ai.stigmer.agentic.plugin.v1.PluginQueryController/listVersions"
 )
 
@@ -57,6 +59,17 @@ type PluginQueryControllerClient interface {
 	// message-size cap (10MB): the bytes ride HTTP. Callers try this first and
 	// fall back to getArtifact against servers that predate it (UNIMPLEMENTED).
 	GetArtifactDownloadUrl(ctx context.Context, in *GetArtifactRequest, opts ...grpc.CallOption) (*PluginArtifactDownloadUrl, error)
+	// List the files of one version of a plugin.
+	//
+	// Returns each file's path, size, SHA-256 and whether it is executable,
+	// in path order. The plugin's eval suite is left out.
+	ListFiles(ctx context.Context, in *ListPluginFilesInput, opts ...grpc.CallOption) (*PluginFileList, error)
+	// Read one file of one version of a plugin.
+	//
+	// Returns the file's bytes, up to 8 MB; a larger file is refused with
+	// FailedPrecondition. The path is matched exactly against the version's
+	// file list.
+	ReadFile(ctx context.Context, in *ReadPluginFileInput, opts ...grpc.CallOption) (*PluginFileContent, error)
 	// List version history for a plugin.
 	//
 	// Returns every installed version ordered by push time (newest first), with
@@ -122,6 +135,26 @@ func (c *pluginQueryControllerClient) GetArtifactDownloadUrl(ctx context.Context
 	return out, nil
 }
 
+func (c *pluginQueryControllerClient) ListFiles(ctx context.Context, in *ListPluginFilesInput, opts ...grpc.CallOption) (*PluginFileList, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(PluginFileList)
+	err := c.cc.Invoke(ctx, PluginQueryController_ListFiles_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *pluginQueryControllerClient) ReadFile(ctx context.Context, in *ReadPluginFileInput, opts ...grpc.CallOption) (*PluginFileContent, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(PluginFileContent)
+	err := c.cc.Invoke(ctx, PluginQueryController_ReadFile_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *pluginQueryControllerClient) ListVersions(ctx context.Context, in *ListPluginVersionsInput, opts ...grpc.CallOption) (*ListPluginVersionsResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(ListPluginVersionsResponse)
@@ -161,6 +194,17 @@ type PluginQueryControllerServer interface {
 	// message-size cap (10MB): the bytes ride HTTP. Callers try this first and
 	// fall back to getArtifact against servers that predate it (UNIMPLEMENTED).
 	GetArtifactDownloadUrl(context.Context, *GetArtifactRequest) (*PluginArtifactDownloadUrl, error)
+	// List the files of one version of a plugin.
+	//
+	// Returns each file's path, size, SHA-256 and whether it is executable,
+	// in path order. The plugin's eval suite is left out.
+	ListFiles(context.Context, *ListPluginFilesInput) (*PluginFileList, error)
+	// Read one file of one version of a plugin.
+	//
+	// Returns the file's bytes, up to 8 MB; a larger file is refused with
+	// FailedPrecondition. The path is matched exactly against the version's
+	// file list.
+	ReadFile(context.Context, *ReadPluginFileInput) (*PluginFileContent, error)
 	// List version history for a plugin.
 	//
 	// Returns every installed version ordered by push time (newest first), with
@@ -189,6 +233,12 @@ func (UnimplementedPluginQueryControllerServer) GetArtifact(context.Context, *Ge
 }
 func (UnimplementedPluginQueryControllerServer) GetArtifactDownloadUrl(context.Context, *GetArtifactRequest) (*PluginArtifactDownloadUrl, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetArtifactDownloadUrl not implemented")
+}
+func (UnimplementedPluginQueryControllerServer) ListFiles(context.Context, *ListPluginFilesInput) (*PluginFileList, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ListFiles not implemented")
+}
+func (UnimplementedPluginQueryControllerServer) ReadFile(context.Context, *ReadPluginFileInput) (*PluginFileContent, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ReadFile not implemented")
 }
 func (UnimplementedPluginQueryControllerServer) ListVersions(context.Context, *ListPluginVersionsInput) (*ListPluginVersionsResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ListVersions not implemented")
@@ -303,6 +353,42 @@ func _PluginQueryController_GetArtifactDownloadUrl_Handler(srv interface{}, ctx 
 	return interceptor(ctx, in, info, handler)
 }
 
+func _PluginQueryController_ListFiles_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListPluginFilesInput)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PluginQueryControllerServer).ListFiles(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: PluginQueryController_ListFiles_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PluginQueryControllerServer).ListFiles(ctx, req.(*ListPluginFilesInput))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _PluginQueryController_ReadFile_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ReadPluginFileInput)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PluginQueryControllerServer).ReadFile(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: PluginQueryController_ReadFile_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PluginQueryControllerServer).ReadFile(ctx, req.(*ReadPluginFileInput))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _PluginQueryController_ListVersions_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(ListPluginVersionsInput)
 	if err := dec(in); err != nil {
@@ -347,6 +433,14 @@ var PluginQueryController_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "getArtifactDownloadUrl",
 			Handler:    _PluginQueryController_GetArtifactDownloadUrl_Handler,
+		},
+		{
+			MethodName: "listFiles",
+			Handler:    _PluginQueryController_ListFiles_Handler,
+		},
+		{
+			MethodName: "readFile",
+			Handler:    _PluginQueryController_ReadFile_Handler,
 		},
 		{
 			MethodName: "listVersions",

@@ -25,6 +25,8 @@ const (
 	SkillQueryController_List_FullMethodName                   = "/ai.stigmer.agentic.skill.v1.SkillQueryController/list"
 	SkillQueryController_GetArtifact_FullMethodName            = "/ai.stigmer.agentic.skill.v1.SkillQueryController/getArtifact"
 	SkillQueryController_GetArtifactDownloadUrl_FullMethodName = "/ai.stigmer.agentic.skill.v1.SkillQueryController/getArtifactDownloadUrl"
+	SkillQueryController_ListFiles_FullMethodName              = "/ai.stigmer.agentic.skill.v1.SkillQueryController/listFiles"
+	SkillQueryController_ReadFile_FullMethodName               = "/ai.stigmer.agentic.skill.v1.SkillQueryController/readFile"
 	SkillQueryController_ListVersions_FullMethodName           = "/ai.stigmer.agentic.skill.v1.SkillQueryController/listVersions"
 )
 
@@ -58,6 +60,18 @@ type SkillQueryControllerClient interface {
 	// limit is deliverable. Callers should try this first and fall back to
 	// getArtifact against servers that predate it (UNIMPLEMENTED).
 	GetArtifactDownloadUrl(ctx context.Context, in *GetArtifactRequest, opts ...grpc.CallOption) (*SkillArtifactDownloadUrl, error)
+	// List the files of one version of a skill.
+	//
+	// Returns each file's path, size, SHA-256 and whether it is executable,
+	// in path order. A plugin's eval suite, when the skill's archive is a
+	// whole plugin, is left out.
+	ListFiles(ctx context.Context, in *ListSkillFilesInput, opts ...grpc.CallOption) (*SkillFileList, error)
+	// Read one file of one version of a skill.
+	//
+	// Returns the file's bytes, up to 8 MB; a larger file is refused with
+	// FailedPrecondition. The path is matched exactly against the version's
+	// file list.
+	ReadFile(ctx context.Context, in *ReadSkillFileInput, opts ...grpc.CallOption) (*SkillFileContent, error)
 	// List version history for a skill.
 	//
 	// Returns all historical versions ordered by push time (newest first).
@@ -124,6 +138,26 @@ func (c *skillQueryControllerClient) GetArtifactDownloadUrl(ctx context.Context,
 	return out, nil
 }
 
+func (c *skillQueryControllerClient) ListFiles(ctx context.Context, in *ListSkillFilesInput, opts ...grpc.CallOption) (*SkillFileList, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(SkillFileList)
+	err := c.cc.Invoke(ctx, SkillQueryController_ListFiles_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *skillQueryControllerClient) ReadFile(ctx context.Context, in *ReadSkillFileInput, opts ...grpc.CallOption) (*SkillFileContent, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(SkillFileContent)
+	err := c.cc.Invoke(ctx, SkillQueryController_ReadFile_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *skillQueryControllerClient) ListVersions(ctx context.Context, in *ListSkillVersionsInput, opts ...grpc.CallOption) (*ListSkillVersionsResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(ListSkillVersionsResponse)
@@ -164,6 +198,18 @@ type SkillQueryControllerServer interface {
 	// limit is deliverable. Callers should try this first and fall back to
 	// getArtifact against servers that predate it (UNIMPLEMENTED).
 	GetArtifactDownloadUrl(context.Context, *GetArtifactRequest) (*SkillArtifactDownloadUrl, error)
+	// List the files of one version of a skill.
+	//
+	// Returns each file's path, size, SHA-256 and whether it is executable,
+	// in path order. A plugin's eval suite, when the skill's archive is a
+	// whole plugin, is left out.
+	ListFiles(context.Context, *ListSkillFilesInput) (*SkillFileList, error)
+	// Read one file of one version of a skill.
+	//
+	// Returns the file's bytes, up to 8 MB; a larger file is refused with
+	// FailedPrecondition. The path is matched exactly against the version's
+	// file list.
+	ReadFile(context.Context, *ReadSkillFileInput) (*SkillFileContent, error)
 	// List version history for a skill.
 	//
 	// Returns all historical versions ordered by push time (newest first).
@@ -193,6 +239,12 @@ func (UnimplementedSkillQueryControllerServer) GetArtifact(context.Context, *Get
 }
 func (UnimplementedSkillQueryControllerServer) GetArtifactDownloadUrl(context.Context, *GetArtifactRequest) (*SkillArtifactDownloadUrl, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetArtifactDownloadUrl not implemented")
+}
+func (UnimplementedSkillQueryControllerServer) ListFiles(context.Context, *ListSkillFilesInput) (*SkillFileList, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ListFiles not implemented")
+}
+func (UnimplementedSkillQueryControllerServer) ReadFile(context.Context, *ReadSkillFileInput) (*SkillFileContent, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ReadFile not implemented")
 }
 func (UnimplementedSkillQueryControllerServer) ListVersions(context.Context, *ListSkillVersionsInput) (*ListSkillVersionsResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ListVersions not implemented")
@@ -307,6 +359,42 @@ func _SkillQueryController_GetArtifactDownloadUrl_Handler(srv interface{}, ctx c
 	return interceptor(ctx, in, info, handler)
 }
 
+func _SkillQueryController_ListFiles_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListSkillFilesInput)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(SkillQueryControllerServer).ListFiles(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: SkillQueryController_ListFiles_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(SkillQueryControllerServer).ListFiles(ctx, req.(*ListSkillFilesInput))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _SkillQueryController_ReadFile_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ReadSkillFileInput)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(SkillQueryControllerServer).ReadFile(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: SkillQueryController_ReadFile_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(SkillQueryControllerServer).ReadFile(ctx, req.(*ReadSkillFileInput))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _SkillQueryController_ListVersions_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(ListSkillVersionsInput)
 	if err := dec(in); err != nil {
@@ -351,6 +439,14 @@ var SkillQueryController_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "getArtifactDownloadUrl",
 			Handler:    _SkillQueryController_GetArtifactDownloadUrl_Handler,
+		},
+		{
+			MethodName: "listFiles",
+			Handler:    _SkillQueryController_ListFiles_Handler,
+		},
+		{
+			MethodName: "readFile",
+			Handler:    _SkillQueryController_ReadFile_Handler,
 		},
 		{
 			MethodName: "listVersions",

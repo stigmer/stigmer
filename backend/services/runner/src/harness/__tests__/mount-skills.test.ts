@@ -26,11 +26,14 @@
  * temp platform dir and nothing touches the developer's `~/.stigmer`.
  */
 
+import { SessionSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/api_pb";
+import { SessionStatusSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/status_pb";
+import { Computer } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { createHash } from "node:crypto";
 import { mkdirSync } from "node:fs";
 import { join } from "node:path";
-import { create } from "@bufbuild/protobuf";
+import { clone, create } from "@bufbuild/protobuf";
 import { RunStatusSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 import { AgentSpecSchema } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/spec_pb";
 import { SkillSchema, type Skill } from "@stigmer/apis/ai/stigmer/agentic/skill/v1/api_pb";
@@ -288,6 +291,27 @@ describe("mountSkills: a plugin's skills", () => {
     });
     expect(skills.root).toEqual([]);
     expect(skills.bySubAgent.size).toBe(0);
+  });
+
+  it("without a computer, mounts nothing and names each plugin to the turn's reader; a plugin with no installed archive contributes nothing, warned", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    const computerless = (plugin: Plugin) => {
+      const blueprint = pluginBlueprint(plugin);
+      const session = clone(SessionSchema, blueprint.session);
+      session.status = create(SessionStatusSchema, { computer: Computer.NONE });
+      return { ...blueprint, session };
+    };
+    const { deps } = depsWith(pluginClient(), sessionId);
+    const read = await mountSkills(deps, { blueprint: computerless(kitPlugin()), sessionId, primaryDir, subAgents: false, toolScope: ToolScope.unrestricted() });
+    expect(read.skills.root.map((s) => s.name)).toEqual(["kit:triage", "kit:release"]);
+    expect(read.sources).toEqual([{ kind: "plugin", dir: `${PLUGINS_SUBDIR}/${PLUGIN_DIGEST}`, id: "plg_kit", digest: PLUGIN_DIGEST }]);
+    expect(read.mounts).toEqual({ skills: [], plugins: [], archives: [], trees: [] });
+
+    const none = await mountSkills(deps, { blueprint: computerless(kitPlugin("")), sessionId, primaryDir, subAgents: false, toolScope: ToolScope.unrestricted() });
+    expect(none.skills.root).toEqual([]);
+    expect(none.sources).toEqual([]);
+    expect(warn.mock.calls.some(([line]) => String(line).includes("it records no installed archive"))).toBe(true);
+    warn.mockRestore();
   });
 
   it("a plugin whose archive cannot be mounted contributes no skills, warned", async () => {

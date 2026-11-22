@@ -42,7 +42,6 @@ import { mkdir, readdir, readFile, symlink, writeFile } from "node:fs/promises";
 import { dirname, join, sep } from "node:path";
 import type { SdkPluginConfig } from "@anthropic-ai/claude-agent-sdk";
 
-import { MOUNT_MARKER_FILE } from "../../shared/skill-mount.js";
 import type { SkillMetadata } from "../../shared/skill-resolver.js";
 import { PLUGINS_SUBDIR } from "../../shared/plugin-mount.js";
 
@@ -153,7 +152,7 @@ async function writeSkillDir(dir: string, skill: EngineSkill): Promise<void> {
   const mounted = await readFile(join(skill.sourceDir, "SKILL.md"), "utf8");
   await writeFile(join(dir, "SKILL.md"), skillFileOf(skill, mounted));
   for (const entry of await readdir(skill.sourceDir)) {
-    if (entry === "SKILL.md" || entry === MOUNT_MARKER_FILE) continue;
+    if (entry === "SKILL.md") continue;
     await symlink(join(skill.sourceDir, entry), join(dir, entry));
   }
 }

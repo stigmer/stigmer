@@ -44,6 +44,7 @@
  * - Empty subagent list returns null (no subagents configured)
  */
 
+import type { TurnArchiveFiles } from "../../shared/archive-reader.js";
 import { randomUUID } from "node:crypto";
 import { createDeepAgent, FilesystemBackend, LocalShellBackend, DEFAULT_SUBAGENT_PROMPT } from "deepagents";
 import type { AnyBackendProtocol, CompiledSubAgent, FilesystemPermission } from "deepagents";
@@ -264,6 +265,8 @@ export interface SubagentTransformOptions {
    * section. A saved subagent's are on its context.
    */
   readonly skills: ReadonlyMap<string, readonly SkillMetadata[]>;
+  /** The turn's skill and plugin files from the store, routed under `.stigmer/` for every sub-agent as for the parent (`platform-route.ts`). */
+  readonly archives?: TurnArchiveFiles;
   readonly workspaceBackend: WorkspaceBackend;
   /**
    * The parent's approval-gate config, inherited verbatim so a mutating tool
@@ -564,6 +567,8 @@ export async function compileSubagents(
     readonly workspaceRootDir: string;
     /** The session's platform dir, mounted read-only at `.stigmer/` (`platform-route.ts`). */
     readonly platformDir?: string;
+    /** The turn's skill and plugin files from the store (`platform-route.ts`). */
+    readonly archives?: TurnArchiveFiles;
     /** Shared CAS observer (capture mode only); see {@link SubagentTransformOptions.casObserver}. */
     readonly casObserver?: CasCaptureObserver;
     /** See {@link SubagentTransformOptions.mcpIndex}. */
@@ -597,7 +602,11 @@ export async function compileSubagents(
       const approvalGate = spec.own ? spec.own.approvalGate : opts.approvalGate;
       const shellEnv = spec.own ? spec.own.shellEnv : opts.shellEnv;
       const workspace = await buildSubagentWorkspaceBackend({ ...opts, shellEnv });
-      const backend = await mountPlatformRoute(workspace, { workspaceDir: opts.workspaceRootDir, platformDir: opts.platformDir });
+      const backend = await mountPlatformRoute(workspace, {
+        workspaceDir: opts.workspaceRootDir,
+        platformDir: opts.platformDir,
+        ...(opts.archives !== undefined && { archives: opts.archives }),
+      });
       // The sub-agent's own shell over its own backend (its values, never the
       // parent's), shared by every invocation as the backend is.
       const shell = workspace instanceof CasCaptureShellBackend && opts.shellStreaming
@@ -723,6 +732,7 @@ export async function transformAndCompileSubagents(
     parentScope,
     scopeBase,
     skills,
+    archives,
     workspaceBackend,
     approvalGate,
     casObserver,
@@ -797,6 +807,7 @@ export async function transformAndCompileSubagents(
     parentModelName,
     workspaceRootDir: workspaceBackend.rootDir,
     platformDir: workspaceBackend.platformDir,
+    ...(archives !== undefined && { archives }),
     casObserver,
     mcpIndex,
     modelFactory,

@@ -17,17 +17,17 @@
  *   rebuilt from scratch, so a file the new content no longer carries never
  *   lingers, and every entry must resolve inside the mount.
  * - {@link archiveFileMode}: the ZIP layer is mode-blind (path and bytes
- *   only, `zip-extract.ts`), so the executable bit is inferred: a script
- *   extension, or a file that opens with `#!`. Claude Code plugins run
- *   extensionless scripts directly (`hooks/check`, `bin/tool`), so the
- *   shebang is the signal that matters for them; skills gain it too.
+ *   only, `zip-extract.ts`), so the executable bit is inferred, by the one
+ *   rule the server's file table shares (`@stigmer/zip-structure`
+ *   `entry-mode.ts`).
  *
  * Extracted from `skill-mount.ts` when the plugin mount arrived, so the two
  * mounts cannot drift.
  */
 
 import { agentFs } from "./agent-fs.js";
-import { dirname, extname, resolve } from "node:path";
+import { dirname, resolve } from "node:path";
+import { entryFileMode } from "@stigmer/zip-structure";
 import { ConnectError, type Code } from "@connectrpc/connect";
 import type { ZipFileEntry } from "./zip-extract.js";
 
@@ -92,16 +92,13 @@ function withoutQuery(url: string): string {
   }
 }
 
-/** Extensions written executable whatever their first bytes say. */
-const SCRIPT_EXTENSIONS = new Set([".sh", ".py", ".js", ".ts", ".rb", ".pl"]);
-
-/** `#!`, the two bytes that make a file runnable as `./file`. */
-const SHEBANG = [0x23, 0x21] as const;
-
-/** The mode an archive entry is written with: 0755 for a script, 0644 otherwise. */
+/**
+ * The mode an archive entry is written with: 0755 for a script, 0644
+ * otherwise, by the rule the server's file table also reads
+ * (`@stigmer/zip-structure` `entryFileMode`).
+ */
 export function archiveFileMode(path: string, content: Uint8Array): number {
-  const shebang = content.length >= 2 && content[0] === SHEBANG[0] && content[1] === SHEBANG[1];
-  return shebang || SCRIPT_EXTENSIONS.has(extname(path)) ? 0o755 : 0o644;
+  return entryFileMode(path, content);
 }
 
 /** Remove a mount directory and create it empty. */

@@ -42,6 +42,16 @@ class PluginQueryControllerStub(object):
                 request_serializer=ai_dot_stigmer_dot_agentic_dot_plugin_dot_v1_dot_io__pb2.GetArtifactRequest.SerializeToString,
                 response_deserializer=ai_dot_stigmer_dot_agentic_dot_plugin_dot_v1_dot_io__pb2.PluginArtifactDownloadUrl.FromString,
                 _registered_method=True)
+        self.listFiles = channel.unary_unary(
+                '/ai.stigmer.agentic.plugin.v1.PluginQueryController/listFiles',
+                request_serializer=ai_dot_stigmer_dot_agentic_dot_plugin_dot_v1_dot_io__pb2.ListPluginFilesInput.SerializeToString,
+                response_deserializer=ai_dot_stigmer_dot_agentic_dot_plugin_dot_v1_dot_io__pb2.PluginFileList.FromString,
+                _registered_method=True)
+        self.readFile = channel.unary_unary(
+                '/ai.stigmer.agentic.plugin.v1.PluginQueryController/readFile',
+                request_serializer=ai_dot_stigmer_dot_agentic_dot_plugin_dot_v1_dot_io__pb2.ReadPluginFileInput.SerializeToString,
+                response_deserializer=ai_dot_stigmer_dot_agentic_dot_plugin_dot_v1_dot_io__pb2.PluginFileContent.FromString,
+                _registered_method=True)
         self.listVersions = channel.unary_unary(
                 '/ai.stigmer.agentic.plugin.v1.PluginQueryController/listVersions',
                 request_serializer=ai_dot_stigmer_dot_agentic_dot_plugin_dot_v1_dot_io__pb2.ListPluginVersionsInput.SerializeToString,
@@ -101,6 +111,27 @@ class PluginQueryControllerServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def listFiles(self, request, context):
+        """List the files of one version of a plugin.
+
+        Returns each file's path, size, SHA-256 and whether it is executable,
+        in path order. The plugin's eval suite is left out.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def readFile(self, request, context):
+        """Read one file of one version of a plugin.
+
+        Returns the file's bytes, up to 8 MB; a larger file is refused with
+        FailedPrecondition. The path is matched exactly against the version's
+        file list.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
     def listVersions(self, request, context):
         """List version history for a plugin.
 
@@ -138,6 +169,16 @@ def add_PluginQueryControllerServicer_to_server(servicer, server):
                     servicer.getArtifactDownloadUrl,
                     request_deserializer=ai_dot_stigmer_dot_agentic_dot_plugin_dot_v1_dot_io__pb2.GetArtifactRequest.FromString,
                     response_serializer=ai_dot_stigmer_dot_agentic_dot_plugin_dot_v1_dot_io__pb2.PluginArtifactDownloadUrl.SerializeToString,
+            ),
+            'listFiles': grpc.unary_unary_rpc_method_handler(
+                    servicer.listFiles,
+                    request_deserializer=ai_dot_stigmer_dot_agentic_dot_plugin_dot_v1_dot_io__pb2.ListPluginFilesInput.FromString,
+                    response_serializer=ai_dot_stigmer_dot_agentic_dot_plugin_dot_v1_dot_io__pb2.PluginFileList.SerializeToString,
+            ),
+            'readFile': grpc.unary_unary_rpc_method_handler(
+                    servicer.readFile,
+                    request_deserializer=ai_dot_stigmer_dot_agentic_dot_plugin_dot_v1_dot_io__pb2.ReadPluginFileInput.FromString,
+                    response_serializer=ai_dot_stigmer_dot_agentic_dot_plugin_dot_v1_dot_io__pb2.PluginFileContent.SerializeToString,
             ),
             'listVersions': grpc.unary_unary_rpc_method_handler(
                     servicer.listVersions,
@@ -281,6 +322,60 @@ class PluginQueryController(object):
             '/ai.stigmer.agentic.plugin.v1.PluginQueryController/getArtifactDownloadUrl',
             ai_dot_stigmer_dot_agentic_dot_plugin_dot_v1_dot_io__pb2.GetArtifactRequest.SerializeToString,
             ai_dot_stigmer_dot_agentic_dot_plugin_dot_v1_dot_io__pb2.PluginArtifactDownloadUrl.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def listFiles(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/ai.stigmer.agentic.plugin.v1.PluginQueryController/listFiles',
+            ai_dot_stigmer_dot_agentic_dot_plugin_dot_v1_dot_io__pb2.ListPluginFilesInput.SerializeToString,
+            ai_dot_stigmer_dot_agentic_dot_plugin_dot_v1_dot_io__pb2.PluginFileList.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def readFile(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/ai.stigmer.agentic.plugin.v1.PluginQueryController/readFile',
+            ai_dot_stigmer_dot_agentic_dot_plugin_dot_v1_dot_io__pb2.ReadPluginFileInput.SerializeToString,
+            ai_dot_stigmer_dot_agentic_dot_plugin_dot_v1_dot_io__pb2.PluginFileContent.FromString,
             options,
             channel_credentials,
             insecure,

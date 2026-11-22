@@ -34,20 +34,27 @@ import {
   GetArtifactResponseSchema,
   PluginArtifactDownloadUrlSchema,
   PluginArtifactUploadUrlSchema,
+  PluginFileContentSchema,
+  PluginFileListSchema,
+  PluginFileSchema,
   PushPluginRequestSchema,
 } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/io_pb";
 import type {
   CreatePluginArtifactUploadUrlRequest,
   GetArtifactRequest,
   GetArtifactResponse,
+  ListPluginFilesInput,
   ListPluginToolsInput,
   ListPluginToolsOutput,
   ListPluginVersionsInput,
   ListPluginVersionsResponse,
   PluginArtifactDownloadUrl,
   PluginArtifactUploadUrl,
+  PluginFileContent,
+  PluginFileList,
   PluginId,
   PushPluginRequest,
+  ReadPluginFileInput,
 } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/io_pb";
 import { PluginQueryController } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/query_pb";
 import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
@@ -64,7 +71,7 @@ import type {
 } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/io_pb";
 
 import { ArtifactNotFoundError } from "../../archive/content-store.js";
-import type { ContentAddressedArchiveStore } from "../../archive/content-store.js";
+import type { IndexedArchiveStore } from "../../archive/content-store.js";
 import { MAX_ZIP_SIZE } from "../../archive/limits.js";
 import type { Logger } from "../../boot/logger.js";
 import type { Authorizer } from "../../extensions/authorizer.js";
@@ -150,6 +157,7 @@ import {
 import {
   CONVERGED_KEY,
   EXISTING_PUSHED_RESOURCE_KEY,
+  OPENED_ARCHIVE_KEY,
   PUSHED_RESOURCE_KEY,
   newCheckAndStoreArtifactStep,
   newClaimPushedNameStep,
@@ -171,6 +179,17 @@ import {
 import type { EvalRunCascadeDeps } from "../eval-run/cascade.js";
 import { runGuardedWrite } from "../../pipeline/guarded-write.js";
 import { ARTIFACT_BYTES_KEY } from "../../pipeline/steps/resolve-artifact-source.js";
+import { newStoreArchiveIndexStep } from "../../pipeline/steps/store-archive-index.js";
+import { newArchiveFileReads } from "../../archive/file-reads.js";
+import type { ArchiveFileReads } from "../../archive/file-reads.js";
+import {
+  listServedFiles,
+  loadServedResource,
+  readServedFile,
+  resolveServedVersion,
+} from "../../archive/serve-files.js";
+import type { ServedArchiveBinding, ServedVersion } from "../../archive/serve-files.js";
+import type { OpenedArchive } from "../../archive/open-files.js";
 
 export interface PluginControllerDeps {
   readonly store: Store;
@@ -179,7 +198,7 @@ export interface PluginControllerDeps {
   readonly authorizationLifecycle: ResourceAuthorizationLifecycle | undefined;
   /** The composed list read scope — list narrows through it; undefined = the OSS full scan. */
   readonly listReadScope: ListReadScope | undefined;
-  readonly artifactStorage: ContentAddressedArchiveStore;
+  readonly artifactStorage: IndexedArchiveStore;
   /** The one fetch install's sign-in probe dials a plugin's server addresses with, under the edition's egress policy. */
   readonly outboundFetch: OutboundFetch;
   /** The skill lane's staging port (one upload surface for every archive); absent, the lane answers FailedPrecondition. */
@@ -195,6 +214,7 @@ export function registerPluginServices(
   router: ConnectRouter,
   deps: PluginControllerDeps,
 ): void {
+  const fileReads = newArchiveFileReads(deps.artifactStorage, "plugin", deps.logger);
   router.service(PluginCommandController, {
     push: (req, ctx) => push(deps, req, ctx),
     createArtifactUploadUrl: (req, ctx) =>
@@ -212,6 +232,8 @@ export function registerPluginServices(
     getArtifact: (req, ctx) => getArtifact(deps, req, ctx),
     getArtifactDownloadUrl: (req, ctx) =>
       getArtifactDownloadUrl(deps, req, ctx),
+    listFiles: (req, ctx) => listFiles(deps, fileReads, req, ctx),
+    readFile: (req, ctx) => readFile(deps, fileReads, req, ctx),
   });
 }
 
@@ -293,6 +315,14 @@ async function push(
         }),
       )
       .addStep(newCheckAndStoreArtifactStep(deps.artifactStorage))
+      .addStep(
+        newStoreArchiveIndexStep<typeof PushPluginRequestSchema>(
+          deps.artifactStorage,
+          "plugin",
+          deps.logger,
+          (stepCtx) => (stepCtx.get(OPENED_ARCHIVE_KEY) as OpenedArchive).digest,
+        ),
+      )
       .addStep(newPopulatePluginFieldsStep())
       .addStep(newClaimPushedNameStep(deps.store, pluginPushBinding))
       .addStep(newStorePushedStep(deps.store, pluginPushBinding, "StorePlugin"))
@@ -602,6 +632,71 @@ async function getByReference(
     .build()
     .execute(reqCtx);
   return reqCtx.get(TARGET_RESOURCE_KEY) as Plugin;
+}
+
+/** How a plugin's files are served (archive/serve-files.ts). */
+const servedPlugin: ServedArchiveBinding<typeof PluginSchema> = {
+  kind: ApiResourceKind.plugin,
+  schema: PluginSchema,
+  noun: "plugin",
+  headHashOf: (plugin) => plugin.status?.digest ?? "",
+  storageKeyOf: (plugin) => plugin.status?.artifactStorageKey ?? "",
+  suiteDirOf: (plugin) => plugin.status?.evals?.dir,
+  keyForHash: (hash) => `${PLUGIN_ARTIFACT_KEY_PREFIX}${hash}.zip`,
+  nameOf: (plugin) => plugin.metadata?.slug || plugin.metadata?.id || "",
+};
+
+/**
+ * Authorizes a file read by its annotation (can_view on plugin_id), then
+ * loads the plugin and resolves the version its digest names.
+ */
+async function servedPluginVersion(
+  deps: PluginControllerDeps,
+  method: typeof PluginQueryController.method.listFiles | typeof PluginQueryController.method.readFile,
+  req: ListPluginFilesInput | ReadPluginFileInput,
+  ctx: HandlerContext,
+): Promise<ServedVersion> {
+  const reqCtx = new RequestContext(method.input, req, callerIdentityOf(ctx), kindOf(ctx));
+  await newPipeline<typeof method.input>(`plugin-${method.localName}`, deps.logger)
+    .addStep(newAuthorizeStep(method, deps.authorizer))
+    .addStep(newValidateProtoStep())
+    .build()
+    .execute(reqCtx);
+  const plugin = await loadServedResource(deps.store, servedPlugin, req.pluginId);
+  return resolveServedVersion(deps.store, servedPlugin, plugin, req.pluginId, req.digest);
+}
+
+/** ListFiles — one version's files, its eval suite left out (archive/serve-files.ts). */
+async function listFiles(
+  deps: PluginControllerDeps,
+  fileReads: ArchiveFileReads,
+  req: ListPluginFilesInput,
+  ctx: HandlerContext,
+): Promise<PluginFileList> {
+  const version = await servedPluginVersion(deps, PluginQueryController.method.listFiles, req, ctx);
+  const files = await listServedFiles(fileReads, "plugin", version);
+  return create(PluginFileListSchema, {
+    files: files.map((file) =>
+      create(PluginFileSchema, {
+        path: file.path,
+        sizeBytes: BigInt(file.size),
+        sha256: file.sha256,
+        executable: file.executable,
+      }),
+    ),
+  });
+}
+
+/** ReadFile — one file's bytes, read alone (archive/serve-files.ts). */
+async function readFile(
+  deps: PluginControllerDeps,
+  fileReads: ArchiveFileReads,
+  req: ReadPluginFileInput,
+  ctx: HandlerContext,
+): Promise<PluginFileContent> {
+  const version = await servedPluginVersion(deps, PluginQueryController.method.readFile, req, ctx);
+  const content = await readServedFile(fileReads, "plugin", version, req.path);
+  return create(PluginFileContentSchema, { content });
 }
 
 /**

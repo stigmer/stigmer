@@ -172,6 +172,7 @@ function facts(over: Partial<GateFacts> = {}): GateFacts {
     engineHome: HOME,
     readsSkillContent: async (path) => /^\/\.stigmer\/(skills|plugins)\//i.test(path),
     platformReadRoot: "",
+    treesReadRoot: "",
     hooks: NO_HOOKS,
     decisions: new Map(),
     denyMessages: new Map(),
@@ -714,7 +715,7 @@ describe("the gate's facts", () => {
     const read = gateFactsOf(input, {
       agents: { root: ROOT_REACH, subagents },
       bridge: { serverOf, mcpDefault: mcpDefault() },
-      paths: { platformDir: PLATFORM, engineHome: HOME, readsSkillContent, platformReadRoot: "/real/platform" },
+      paths: { platformDir: PLATFORM, engineHome: HOME, readsSkillContent, platformReadRoot: "/real/platform", treesReadRoot: "" },
       isCapturablePath,
       hooks: NO_HOOKS,
       waitingCallOf,
