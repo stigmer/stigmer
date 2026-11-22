@@ -53,7 +53,7 @@ import { Code, ConnectError } from "@connectrpc/connect";
 import type { Plugin } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/api_pb";
 import type { Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 import { RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
-import { ExecutionTarget, Harness } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
+import { Computer, ExecutionTarget, Harness } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
 import { readAnthropicRequest } from "@stigmer/test-support/llm-wire";
 import type { MockLlmProxy } from "@stigmer/test-support/mock-llm";
 import { anthropicText, anthropicToolUse, anthropicToolUses } from "@stigmer/test-support/mock-llm";
@@ -469,13 +469,18 @@ describe("Run — a subagent runs its own definition", () => {
 });
 
 describe("Run — what a subagent is not given", () => {
-  it("a saved subagent reads its own skill, one the parent does not list, from the store", async () => {
+  it("a saved subagent reads its own skill, one the parent does not list, from the store, with no copy on disk", async () => {
     const { org } = await target.provisionTenancy();
     const skillName = uniqueName("sub-notes");
     const body = "Only the subagent's own skill says this.";
     const skill = await clients.skillCommand.push({ org, artifact: zipFiles({ "SKILL.md": `---\nname: ${skillName}\ndescription: d\n---\n${body}`, "refs/own.md": "the subagent's reference" }) });
     fixtures.defer(() => clients.skillCommand.delete({ value: skill.metadata!.id }));
-    const { agent, subagents } = await parentWith(org, [{ name: uniqueName("helper"), skillRefs: [skill.metadata!.slug] }]);
+    // Without a computer, so no copy of the skill is on disk: the read can only come from the store.
+    const { agent, subagents } = await parentWith(
+      org,
+      [{ name: uniqueName("helper"), skillRefs: [skill.metadata!.slug], computer: Computer.NONE }],
+      { computer: Computer.NONE },
+    );
     const name = subagents[0]!.metadata!.slug;
 
     mock.enqueue(handOff("toolu_task_skill", name));
