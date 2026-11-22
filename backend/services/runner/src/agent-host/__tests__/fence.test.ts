@@ -5,9 +5,11 @@
  * enforcing it (`fenced-host.test.ts`); the built entry's boot under it is
  * `scripts/verify-agent-host-boot.mjs --fenced`.
  */
+import { spawnSync } from "node:child_process";
 import { mkdirSync, mkdtempSync, realpathSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 import { afterEach, describe, expect, it } from "vitest";
 
 import {
@@ -15,7 +17,8 @@ import {
   currentFence,
   fenceReadRoot,
   fencedHostEnvironment,
-  fencedNodeFlags,
+  NO_LANGSMITH_PROFILE,
+  fencedHostLaunch,
   judgeFence,
   permissionFlag,
   type HostFenceReport,
@@ -94,17 +97,50 @@ describe("the install root the locked host may read", () => {
 });
 
 describe("the locked host's flags", () => {
-  it("are the permission flag and one read grant of the install root", () => {
-    expect(fencedNodeFlags("/opt/runner/dist/main.js", new Set(["--permission"]), () => "/opt/runner/dist")).toEqual([
-      "--permission",
-      "--allow-fs-read=/opt/runner/dist",
-    ]);
+  it("are the permission flag and one read grant of the install root, with LangSmith's profile named inside it", () => {
+    expect(fencedHostLaunch("/opt/runner/dist/main.js", new Set(["--permission"]), () => "/opt/runner/dist")).toEqual({
+      execArgv: ["--permission", "--allow-fs-read=/opt/runner/dist"],
+      env: { LANGSMITH_CONFIG_FILE: join("/opt/runner/dist", NO_LANGSMITH_PROFILE) },
+    });
   });
 
   it("are refused from source, naming the built runner, and on a Node without the model", () => {
-    expect(() => fencedNodeFlags("/repo/src/main.ts", new Set(["--permission"]), () => "/repo")).toThrow(FenceRefusedError);
-    expect(() => fencedNodeFlags("/repo/src/main.ts", new Set(["--permission"]), () => "/repo")).toThrow(/node dist\/main\.js/);
-    expect(() => fencedNodeFlags("/opt/runner/main.js", new Set(), () => "/opt/runner")).toThrow(/no permission model/);
+    expect(() => fencedHostLaunch("/repo/src/main.ts", new Set(["--permission"]), () => "/repo")).toThrow(FenceRefusedError);
+    expect(() => fencedHostLaunch("/repo/src/main.ts", new Set(["--permission"]), () => "/repo")).toThrow(/node dist\/main\.js/);
+    expect(() => fencedHostLaunch("/opt/runner/main.js", new Set(), () => "/opt/runner")).toThrow(/no permission model/);
+  });
+});
+
+describe("a graph step under the real lock", () => {
+  // LangChain builds a LangSmith run tree for every graph step, tracing off
+  // included, and its client probes for a profile in the home folder. This
+  // runs that construction in a Node started with the locked host's flags
+  // and environment, the runner's own install as its read grant, and a home
+  // folder outside it.
+  const runnerDir = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
+  const buildRunTree = (env: Readonly<Record<string, string>>): { status: number | null; output: string } => {
+    const launch = fencedHostLaunch(join(runnerDir, "package.json"));
+    const home = realpathSync(mkdtempSync(join(tmpdir(), "fence-home-")));
+    made.push(home);
+    const result = spawnSync(
+      process.execPath,
+      [...launch.execArgv, "--input-type=module", "-e", 'const { RunTree } = await import("langsmith"); new RunTree({ name: "step", tracingEnabled: false }); console.log("built");'],
+      { cwd: runnerDir, env: { PATH: process.env["PATH"] ?? "", HOME: home, ...env }, encoding: "utf8", timeout: 60_000 },
+    );
+    return { status: result.status, output: `${result.stdout}${result.stderr}` };
+  };
+
+  it("builds with the locked host's environment", () => {
+    const launch = fencedHostLaunch(join(runnerDir, "package.json"));
+    const built = buildRunTree(launch.env);
+    expect(built.output).toContain("built");
+    expect(built.status).toBe(0);
+  });
+
+  it("is refused a read of the home folder without it (the control: the lock is real)", () => {
+    const refused = buildRunTree({});
+    expect(refused.output).toContain("ERR_ACCESS_DENIED");
+    expect(refused.status).not.toBe(0);
   });
 });
 

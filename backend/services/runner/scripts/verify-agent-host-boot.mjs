@@ -101,8 +101,13 @@ function fenceFlags() {
 
 const flags = fenced ? fenceFlags() : [];
 const env = { ...process.env, HOME: home, USERPROFILE: home };
-// The locked host starts without Node's options, so nothing re-grants (`fencedHostEnvironment`).
-if (fenced) delete env.NODE_OPTIONS;
+// The locked host starts without Node's options, so nothing re-grants, and
+// with LangSmith's profile named inside its grant (`fencedHostEnvironment`,
+// `fencedHostLaunch`).
+if (fenced) {
+  delete env.NODE_OPTIONS;
+  env.LANGSMITH_CONFIG_FILE = join(fenceReadRoot(), ".stigmer-locked-host-no-langsmith-profile.json");
+}
 
 const child = spawn(nodeBinary, [...flags, entry, "agent-host"], {
   env,

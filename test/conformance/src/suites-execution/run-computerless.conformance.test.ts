@@ -53,6 +53,7 @@ import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import type { ConformanceClients } from "../harness/clients";
 import { FixtureTracker } from "../harness/fixtures";
 import { mcpToolName } from "../harness/mcp-server";
+import { provisionOrgWithFacts } from "../support/memories";
 import { claudePlugin, oneServerPlugin, pushPlugin } from "../support/plugins";
 import { agentRefOf, makeAgent } from "../support/agents";
 import { uniqueName } from "../support/naming";
@@ -282,13 +283,18 @@ describe("A turn without a computer — locked, and off its machine", () => {
   }
 
   it("runs in the locked agent host, and its memory tool reaches the server's lane: the fact it proposes is listed", async () => {
-    const { org } = await target.provisionTenancy();
+    // Memory is the organization's switch: founded on, as the memory suites found theirs.
+    const { org } = await provisionOrgWithFacts(clients, fixtures, [], async (slug) => {
+      await target.keyTenancy?.(slug);
+    });
     const agent = await agentOn(org, Computer.NONE);
     const fact = `Prefers answers that name the source (${uniqueName("fact")}).`;
     mock.enqueue(anthropicToolUse("call_remember", mcpToolName("stigmer-memory", "remember"), { fact }));
     mock.enqueue(anthropicText("Noted."));
     const run = await completed({ org, name: uniqueName("run-remember"), agentRef: agentRefOf(agent), message: "Remember how I like answers." });
 
+    const offered = (readAnthropicRequest(mock.scriptedRequests()[0]!.body).tools ?? []).map((tool) => tool.name);
+    expect(offered, "the platform's memory tool is offered").toContain(mcpToolName("stigmer-memory", "remember"));
     const call = await answered(run, "call_remember");
     expect(call.state, `the remember call completes (${call.text})`).toBe("completed");
     const listed = await clients.memoryQuery.list({ org, pageSize: 50 });

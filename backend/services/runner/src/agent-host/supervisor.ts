@@ -52,7 +52,7 @@ import { telemetrySettings } from "../otel-export.js";
 import { RUNNER_ENTRY_URL } from "../runner-entry.js";
 import { agentIdentity, programOnPath, setprivArgs, type AgentIdentity } from "../shared/agent-identity.js";
 import { Peer, streamChannel, type LineChannel } from "./channel.js";
-import { FenceRefusedError, fencedNodeFlags, judgeFence } from "./fence.js";
+import { FenceRefusedError, fencedHostLaunch, judgeFence } from "./fence.js";
 import {
   AGENT_HOST_CHANNEL_FD,
   AGENT_HOST_MODE_ARG,
@@ -442,14 +442,17 @@ export function agentHostCommand(
   readonly execArgv?: readonly string[];
 } {
   const entry = options.entry ?? fileURLToPath(RUNNER_ENTRY_URL);
-  const fence = options.fenced ? fencedNodeFlags(entry) : undefined;
+  const fence = options.fenced ? fencedHostLaunch(entry) : undefined;
   // Running from source (the tests' spawned hosts, `npm start`): the entry
   // is TypeScript, loaded the way the runner itself was. A locked host never
-  // runs from source (`fencedNodeFlags` refuses it above).
+  // runs from source (`fencedHostLaunch` refuses it above).
   const loader = entry.endsWith(".ts") ? ["--import", "tsx"] : [];
-  const node = [process.execPath, ...(fence ?? []), ...loader, entry, AGENT_HOST_MODE_ARG];
-  const withFence = fence === undefined ? {} : { execArgv: fence };
-  const runtime: Readonly<Record<string, string>> = versions.electron === undefined ? {} : { ELECTRON_RUN_AS_NODE: "1" };
+  const node = [process.execPath, ...(fence?.execArgv ?? []), ...loader, entry, AGENT_HOST_MODE_ARG];
+  const withFence = fence === undefined ? {} : { execArgv: fence.execArgv };
+  const runtime: Readonly<Record<string, string>> = {
+    ...(versions.electron === undefined ? {} : { ELECTRON_RUN_AS_NODE: "1" }),
+    ...(fence?.env ?? {}),
+  };
   if (identity === null) return { command: node[0]!, args: node.slice(1), env: runtime, ...withFence };
   // By its absolute path on the runner's own PATH, never a bare name: the
   // host's environment may lead with the agent's install folders

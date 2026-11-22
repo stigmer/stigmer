@@ -126,15 +126,34 @@ function deepestCommonAncestor(paths: readonly string[]): string {
 }
 
 /**
- * The Node flags that start the locked host: the permission flag in the
- * spelling this Node takes, and one read grant of the install root.
- * Throws a {@link FenceRefusedError} where the lock cannot be built.
+ * Where the locked host's LangSmith client looks for a profile, relative to
+ * the install root: a name the runner never ships, inside the read grant.
+ *
+ * Why: LangChain builds a LangSmith run tree for every graph step, tracing
+ * on or off, and its client probes `$HOME/.langsmith/config.json` with
+ * `existsSync`. Under the lock that probe is not an answer but a throw
+ * (ERR_ACCESS_DENIED: the home folder is outside the grant), which fails
+ * every turn. `LANGSMITH_CONFIG_FILE` names the file it probes instead, and
+ * a missing file inside the grant answers no.
  */
-export function fencedNodeFlags(
+export const NO_LANGSMITH_PROFILE = ".stigmer-locked-host-no-langsmith-profile.json";
+
+/** How the locked host is started: its Node flags, and what its environment needs beside the open host's. */
+export interface FencedHostLaunch {
+  /** The permission flag in the spelling this Node takes, and one read grant of the install root. */
+  readonly execArgv: readonly string[];
+  readonly env: Readonly<Record<string, string>>;
+}
+
+/**
+ * How the locked host is started (the module header). Throws a
+ * {@link FenceRefusedError} where the lock cannot be built.
+ */
+export function fencedHostLaunch(
   entry: string,
   allowed: ReadonlySet<string> = process.allowedNodeEnvironmentFlags,
   readRoot: (entry: string) => string = fenceReadRoot,
-): readonly string[] {
+): FencedHostLaunch {
   if (entry.endsWith(".ts")) {
     throw new FenceRefusedError(
       "the runner is running from source (TypeScript under tsx), which can't run under Node's permission model; run the built runner (`npm run build && node dist/main.js`)",
@@ -142,10 +161,11 @@ export function fencedNodeFlags(
   }
   const flag = permissionFlag(allowed);
   if (flag === null) throw new FenceRefusedError(`this Node (${process.version}) has no permission model`);
-  return [flag, `--allow-fs-read=${readRoot(entry)}`];
+  const root = readRoot(entry);
+  return { execArgv: [flag, `--allow-fs-read=${root}`], env: { LANGSMITH_CONFIG_FILE: join(root, NO_LANGSMITH_PROFILE) } };
 }
 
-/** The environment names the locked host never starts with: Node's own options (nothing re-grants), and LangChain's tracer, which would try a worker thread. */
+/** The environment names the locked host never starts with: Node's own options (nothing re-grants), and LangChain's tracer, which would try a worker thread ({@link fencedHostLaunch} sets the one LangSmith name it needs). */
 function droppedFromFencedHost(name: string): boolean {
   return name === "NODE_OPTIONS" || name.startsWith("LANGSMITH_") || name.startsWith("LANGCHAIN_");
 }
