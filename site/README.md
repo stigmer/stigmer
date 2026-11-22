@@ -49,6 +49,8 @@ The built site's accessibility audit runs from the repository root: `make test-s
 
 The build and the dev server first run `scripts/generate-screens.ts`, which converts the screens the visual suite approves for the site (`test/visual/src/shown.ts`) into `public/screens`, a 1x and a 2x WebP each, and fails when a picture is missing, the wrong size, or over the image budget in `test/bundle-budgets.json`. `<Screen name alt />` embeds one.
 
+The build also reads the repository's releases for the Releases page (`src/lib/releases.ts`) from GitHub's public API, and fails when it cannot, rather than build an empty page. To build offline, or when GitHub refuses the read, save the list once and name the file: `gh api "repos/stigmer/stigmer/releases?per_page=100" > /tmp/releases.json`, then `STIGMER_RELEASES_FILE=/tmp/releases.json make build`.
+
 ### Custom Port
 
 ```bash

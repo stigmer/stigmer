@@ -206,6 +206,28 @@ jobs:
           draft: false
           prerelease: false
 
+  # stigmer.ai/releases lists every release from GitHub's releases, read when
+  # the website builds, so a published release redeploys the website. The
+  # release above is published with this run's GITHUB_TOKEN, and an event made
+  # with that token starts no workflow, so `on: release` in
+  # release.website.yaml would never fire; `workflow_dispatch` is the one
+  # event that token may start. The deploy runs from main, the only ref its
+  # `website` environment admits.
+  deploy-website:
+    needs: [determine-version, release]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    # Starts release.website.yaml; nothing else.
+    permissions:
+      actions: write
+    if: needs.determine-version.outputs.should_release == 'true'
+    steps:
+      - name: Start the website release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: gh workflow run release.website.yaml --ref main
+
 # NOTE: The Homebrew tap is intentionally NOT bumped here. Homebrew runs
 # formula npm installs with `--min-release-age=1`, which rejects the
 # same-day @stigmer/* dependency versions for ~24h and breaks

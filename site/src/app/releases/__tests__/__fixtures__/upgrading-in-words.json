@@ -1,0 +1,10 @@
+[
+  {
+    "tag_name": "v9.9.9",
+    "draft": false,
+    "prerelease": false,
+    "published_at": "2026-11-22T08:00:00Z",
+    "html_url": "https://github.com/stigmer/stigmer/releases/tag/v9.9.9",
+    "body": "## Upgrading\n\nNothing to change.\n\n## What's Changed\n\n- chore: a release with no Highlights\n"
+  }
+]

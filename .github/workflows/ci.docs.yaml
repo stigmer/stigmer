@@ -118,7 +118,23 @@ jobs:
       - name: Verify docs inventory
         run: make check-docs-inventory
 
+      # The Releases page lists GitHub's releases, and a build that cannot
+      # read them fails. As in build.website.yaml, the list is read with this
+      # run's read-only token in a step of its own and handed to the build as
+      # a file: the build's own read carries no token, and the runner's
+      # address shares its small allowance with every other job on it.
+      - name: Save the releases list
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh api --paginate "repos/${GITHUB_REPOSITORY}/releases?per_page=100" --jq '.[]' \
+            | jq --slurp '.' > "${RUNNER_TEMP}/releases.json"
+          echo "Saved $(jq length "${RUNNER_TEMP}/releases.json") releases."
+
       - name: Build documentation site
+        env:
+          STIGMER_RELEASES_FILE: ${{ runner.temp }}/releases.json
         run: make build-site
 
       # The built site's browser suite (test/site): its static server's unit
