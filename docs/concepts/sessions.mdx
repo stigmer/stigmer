@@ -209,7 +209,7 @@ See [Harnesses](/docs/concepts/harnesses) for a full comparison.
 ## Session-level additions
 
 Sessions can customize an Agent's behavior for a specific conversation without
-changing the Agent definition. Four key additions:
+changing the Agent definition. Five key additions:
 
 ### Skills
 
@@ -243,6 +243,43 @@ Session-level plugins join the Agent's, one entry per plugin; from the CLI,
 `tools` list does not name `mcp__plugin_payroll_payroll` cannot use that server.
 To narrow what an Agent can do, change its lists. A conversation with no Agent
 gets its tools from these plugins alone.
+
+### Your app's own tools
+
+Give the Agent tools your own app answers, for this conversation only. Say your
+app has a form that registers a service: the Agent calls the tool with what it
+found, your app opens the form prefilled, and once your user submits it, your
+app answers and the Agent carries on.
+
+```yaml validate-as="Session"
+spec:
+  custom_tools:
+    - name: show_registration_form
+      description:
+        Open the service registration form beside the chat, prefilled.
+      input_schema:
+        type: object
+        properties:
+          service: { type: string }
+          repo: { type: string }
+        required: [service]
+```
+
+The Agent sees each tool by its name. A call whose input doesn't match
+`input_schema` is refused to the Agent, which reads why and can try again; a
+call that matches waits for your app's answer, as a call waits for an
+[approval](/docs/concepts/approval-flows#your-apps-own-tools-wait-the-same-way).
+Your app answers with the Session's `answerCustomToolUse`: text the Agent reads
+as the result, marked as an error when the tool failed.
+
+- Only the main Agent is offered them, never a subagent.
+- A conversation nobody can answer offers none: a chat link's visitor, a
+  messaging channel or a routine's schedule.
+- The Agent's `tools` and `disallowed_tools` lists don't apply to them.
+- A name is letters, digits, `_` and `-`, at most 64, and can't be a built-in
+  tool's name or start with `mcp__`. A conversation holds at most 32 tools and
+  64 KB of schemas, and keeps the tools it started with: changing them after its
+  first turn is refused.
 
 ### Environment
 

@@ -101,7 +101,7 @@ falls behind only lags; its stream is not ended for it.
 
 ## Send events
 
-`send` takes the events a person sends to a Session. Stigmer accepts three:
+`send` takes the events a person sends to a Session. Stigmer accepts four:
 
 - `user.message` starts a turn, or, while a turn works, waits for it. Its
   content is text blocks.
@@ -109,6 +109,8 @@ falls behind only lags; its stream is not ended for it.
   `result: "allow"` runs it, `result: "deny"` refuses it, with an optional
   `deny_message` the Agent reads. The calls that wait are the `event_ids` of the
   newest `session.status_idle` event whose stop reason is `requires_action`.
+- `user.custom_tool_result` answers a call of one of your app's own tools, an
+  `agent.custom_tool_use` ([Your app's own tools](#your-apps-own-tools)).
 - `user.interrupt` stops the Session's unfinished work.
 
 ```typescript
@@ -160,6 +162,68 @@ declare const events: EventSendParams["events"];
 await client.beta.sessions.events.send(sessionId, { events }, { maxRetries: 0 });
 ```
 
+## Your app's own tools
+
+Managed Agents' custom tools carry over: your app declares tools, the Agent
+calls them, and your app answers. The events are Managed Agents' own, so the
+code that handles them stays as it is.
+
+Declare the tools when you create the Session, in its `custom_tools` field on
+Stigmer's API, rather than in Managed Agents' `agent_with_overrides`. That
+override replaces the Agent's whole tool list, so adding one tool there would
+mean listing every tool the Agent already has. Stigmer adds the Session's tools
+to the Agent's own instead, as it adds a Session's skills and plugins. Each tool
+has a `name` (letters, digits, `_` and `-`, at most 64, not a built-in tool's
+name and not starting `mcp__`), a `description` and an `input_schema`, which
+must describe an object. A Session holds at most 32 tools and 64 KB of schemas.
+The tools can't change once the Session has run a turn, because a call already
+made must keep meaning the same tool.
+
+When the Agent calls one, the call is an `agent.custom_tool_use` with the tool's
+`name` and `input`, and the Session goes idle with stop reason
+`requires_action` naming it, as a call that waits for an approval does. Answer
+it with a `user.custom_tool_result`:
+
+```typescript
+import Anthropic from "@anthropic-ai/sdk";
+
+declare const client: Anthropic;
+declare const sessionId: string;
+declare const customToolUseId: string;
+// ---cut---
+await client.beta.sessions.events.send(sessionId, {
+  events: [
+    {
+      type: "user.custom_tool_result",
+      custom_tool_use_id: customToolUseId,
+      content: [{ type: "text", text: "Registered as svc_payments." }],
+    },
+  ],
+});
+```
+
+The Agent reads your text as the tool's result and carries on. Set
+`is_error: true` when the tool failed: the Agent reads the text as the error.
+You can answer at once or hours later, after your user has acted; the call
+waits, with no time limit, until you answer or someone stops the Session.
+
+What differs from Managed Agents:
+
+- **The content is text blocks.** An image, document or search result block is
+  refused with `invalid_request_error`.
+- **Input that doesn't match the schema never reaches you.** The Agent is told
+  what is wrong and can call again; you see only calls that match.
+- **Only the main Agent calls them.** A subagent is not offered your tools, so
+  `session_thread_id` is always empty, and sending one is refused.
+- **A conversation nobody can answer offers none.** A chat link's visitor, a
+  messaging channel and a routine's schedule run without a person who may
+  answer, so the Agent is not offered your tools there.
+- **Only the Session's owner answers**, as only the owner approves a tool call.
+  To answer from your own server, send the answer with the owner's own
+  credential.
+- **The Agent's tool lists don't apply to them.** The lists are written for the
+  Agent and can't know a page's tools.
+
 ## Call it without the SDK
 
 The same paths answer plain HTTP. The Anthropic headers are optional:
@@ -200,9 +264,9 @@ different:
 
 Stigmer never writes these Managed Agents events, so don't wait for one:
 
-- **`agent.custom_tool_use`, `user.custom_tool_result` and `user.tool_result`.**
-  Stigmer runs every tool itself; a call's result is its `agent.tool_result` or
-  `agent.mcp_tool_result`.
+- **`user.tool_result`.** Stigmer runs every tool but your app's own itself; a
+  call's result is its `agent.tool_result` or `agent.mcp_tool_result`, and a
+  call of your app's tool is answered with `user.custom_tool_result`.
 - **`user.define_outcome`, `system.message` and the `span.outcome_evaluation_start`,
   `span.outcome_evaluation_ongoing` and `span.outcome_evaluation_end` events.**
   A session has no outcome to grade against a rubric; how good a finished run
@@ -223,8 +287,8 @@ Stigmer never writes these Managed Agents events, so don't wait for one:
   [Environment](/docs/concepts/environments) takes Managed Agents' `networking`
   and `packages` fields as they are, and is made through Stigmer's own API, with
   `stigmer apply` or in the console.
-- **`user.tool_result`, `user.custom_tool_result`, `user.define_outcome` and
-  `system.message`.** Sending one is refused with `invalid_request_error`.
+- **`user.tool_result`, `user.define_outcome` and `system.message`.** Sending one
+  is refused with `invalid_request_error`.
 - **Image and document blocks.** Give a run its files through Stigmer's own API.
 - **Stigmer's own events**, such as file review and permission grants. They are
   in the same log, but only Stigmer's API returns them, and

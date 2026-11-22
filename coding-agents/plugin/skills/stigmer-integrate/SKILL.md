@@ -213,8 +213,11 @@ https://stigmer.ai/docs/concepts/coming-from-claude-managed-agents, https://stig
   tool confirmations included.
 - Creating Sessions does not: they are created through Stigmer's SDK or
   console, and their ids then used with Anthropic's SDK.
-- Custom tools have no counterpart (Stigmer runs every tool; serve it from
-  an MCP server), and neither do outcomes (Scores grade a finished run).
+- Custom tools carry over: the app declares them on the Session it creates
+  (`custom_tools` through Stigmer's SDK, not `agent_with_overrides`), and
+  `agent.custom_tool_use` and `user.custom_tool_result` keep their shape, so
+  the handler stays. The answer is text, and only the Session's owner sends
+  it. Outcomes have no counterpart (Scores grade a finished run).
 - Name only the SDK versions the page names as tested.
 
 ## Before calling it done

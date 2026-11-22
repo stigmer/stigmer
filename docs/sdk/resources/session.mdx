@@ -13,7 +13,9 @@ never change an open conversation; an update with `agent_ref.version: latest`
 moves it to the agent's current version, and a tag or hash pins that version.
 `plugins` adds plugins to the agent's for this conversation, each whole (a chat
 with no agent gets its tools from these); the agent's tool lists govern them
-like its own.
+like its own. `custom_tools` gives the agent tools the host app answers itself:
+a call waits for the app's `answerCustomToolUse`, as a call waits for an
+approval, and the agent reads the answer as the tool's result.
 
 ```yaml
 apiVersion: agentic.stigmer.ai/v1
@@ -83,6 +85,7 @@ session = client.sessions.get("ses_01j5q3k7m8r2s4tnz2hfp0q0c3")
 </Tab>
 <Tab value="Java">
 ```java prelude
+import ai.stigmer.agentic.session.v1.AnswerCustomToolUseInput;
 import ai.stigmer.agentic.session.v1.Attention;
 import ai.stigmer.agentic.session.v1.ConfirmToolUseInput;
 import ai.stigmer.agentic.session.v1.ExecutionTarget;
@@ -132,6 +135,7 @@ Session session = client.session.get("ses_01j5q3k7m8r2s4tnz2hfp0q0c3");
 | [`update`](#update) | Update a session: the fields update_mask names change, every other field keeps its stored value. | |
 | [`updateSubject`](#updatesubject) | Set the session subject. | |
 | [`delete`](#delete) | Delete a session. | |
+| [`answerCustomToolUse`](#answercustomtooluse) | Answer a call of one of the host app's own tools. | |
 | [`confirmToolUse`](#confirmtooluse) | Allow or deny a tool use that waits for an answer. | |
 | [`grantPermission`](#grantpermission) | Allow a tool use, and every call of its class for the rest of the turn. | |
 | [`interrupt`](#interrupt) | Stop the session's unfinished work. | |
@@ -425,6 +429,7 @@ const session = await stigmer.session.apply({
   fileReview: false,
   environmentRef: { org: "acme", slug: "..." },
   resources: [],
+  customTools: [],
 });
 ```
 </Tab>
@@ -447,6 +452,7 @@ session, err := client.Session.Apply(ctx, &stigmer.SessionInput{
   FileReview:      false,
   EnvironmentRef:  stigmer.ResourceRef{Org: "acme", Slug: "..."},
   Resources:       []*stigmer.SessionResourceInput{},
+  CustomTools:     []*stigmer.CustomToolInput{},
 })
 ```
 </Tab>
@@ -469,6 +475,7 @@ session = client.sessions.apply(SessionInput(
     file_review=False,
     environment_ref=ResourceRef(org="acme", slug="..."),
     resources=[],
+    custom_tools=[],
 ))
 ```
 </Tab>
@@ -491,6 +498,7 @@ Session session = client.session.apply(SessionInput.builder()
     .fileReview(false)
     .environmentRef(ResourceRef.of("acme", "..."))
     .resources(List.of())
+    .customTools(List.of())
     .build());
 ```
 </Tab>
@@ -524,6 +532,7 @@ const session = await stigmer.session.create({
   fileReview: false,
   environmentRef: { org: "acme", slug: "..." },
   resources: [],
+  customTools: [],
 });
 ```
 </Tab>
@@ -546,6 +555,7 @@ session, err := client.Session.Create(ctx, &stigmer.SessionInput{
   FileReview:      false,
   EnvironmentRef:  stigmer.ResourceRef{Org: "acme", Slug: "..."},
   Resources:       []*stigmer.SessionResourceInput{},
+  CustomTools:     []*stigmer.CustomToolInput{},
 })
 ```
 </Tab>
@@ -568,6 +578,7 @@ session = client.sessions.create(SessionInput(
     file_review=False,
     environment_ref=ResourceRef(org="acme", slug="..."),
     resources=[],
+    custom_tools=[],
 ))
 ```
 </Tab>
@@ -590,6 +601,7 @@ Session session = client.session.create(SessionInput.builder()
     .fileReview(false)
     .environmentRef(ResourceRef.of("acme", "..."))
     .resources(List.of())
+    .customTools(List.of())
     .build());
 ```
 </Tab>
@@ -733,6 +745,59 @@ Session session = client.session.delete("ses_01j5q3k7m8r2s4tnz2hfp0q0c3");
 | `id` | `string` | Session identifier. |
 
 **Returns**: [`Session`](#session)
+
+### answerCustomToolUse
+
+Answer a call of one of the host app's own tools.
+
+A call the agent makes to a tool in the session's custom_tools is an agent.custom_tool_use, and the session goes idle with stop_reason requires_action naming it. The answer is appended as a user.custom_tool_result, which the agent reads as the tool's result; is_error tells it the tool failed. When every waiting call of the turn is answered, the turn resumes; until then the session re-states requires_action with the calls still waiting. The host answers from its own server as the person whose conversation it is, as it would answer an approval.
+
+<SDKTabs>
+<Tab value="TypeScript">
+```typescript
+const sessionEvent = await stigmer.session.answerCustomToolUse({
+  sessionId: "...",
+  customToolUseId: "...",
+  content: [],
+  isError: false,
+});
+```
+</Tab>
+<Tab value="Go">
+```go
+sessionEvent, err := client.Session.AnswerCustomToolUse(ctx, &sessionv1.AnswerCustomToolUseInput{
+  SessionId:       "...",
+  CustomToolUseId: "...",
+  Content:         []*sessionv1.ContentBlock{},
+  IsError:         false,
+})
+```
+</Tab>
+<Tab value="Python">
+```python
+session_event = client.sessions.answer_custom_tool_use(io_pb2.AnswerCustomToolUseInput(
+    session_id="...",
+    custom_tool_use_id="...",
+    content=[],
+    is_error=False,
+))
+```
+</Tab>
+<Tab value="Java">
+```java
+SessionEvent sessionEvent = client.session.answerCustomToolUse(AnswerCustomToolUseInput.newBuilder()
+    .setSessionId("...")
+    .setCustomToolUseId("...")
+    .addAllContent(List.of())
+    .setIsError(false)
+    .build());
+```
+</Tab>
+</SDKTabs>
+
+**Parameters**: [`AnswerCustomToolUseInput`](#answercustomtooluseinput)
+
+**Returns**: [`SessionEvent`](#sessionevent)
 
 ### confirmToolUse
 
@@ -1155,6 +1220,7 @@ Input for creating or updating a Session.
     fileReview: { type: "boolean", description: "Whether each turn's file edits are offered for review, Keep or Undo, after the turn." },
     environmentRef: { type: "ResourceRef", description: "The Environment this conversation runs in: the packages its sandboxes get and the websites they may reach.", typeDescriptionLink: "#resourceref" },
     resources: { type: "SessionResourceInput[]", description: "What the conversation holds: Files the agent finds under .stigmer/uploads/ on every turn, git repositories cloned into its workspace, and folders on the person's own machine.", typeDescriptionLink: "#sessionresourceinput" },
+    customTools: { type: "CustomToolInput[]", description: "Tools the host app answers itself, offered to the agent beside its own.", typeDescriptionLink: "#customtoolinput" },
   }}
 />
 
@@ -1217,6 +1283,18 @@ LocalPathResource uses a folder on the person's own machine as it is: the agent 
 <TypeTable
   type={{
     path: { type: "string", description: "Absolute path of an existing folder." },
+  }}
+/>
+
+### CustomToolInput
+
+CustomTool is one tool the host app answers itself (SessionSpec.custom_tools): Claude Managed Agents' custom tool, its type implied.
+
+<TypeTable
+  type={{
+    name: { type: "string", description: "The tool's name as the agent sees it: letters, digits, _ and -, at most 64." },
+    description: { type: "string", description: "What the tool does and when to call it, for the agent." },
+    inputSchema: { type: "object", description: "The JSON Schema the tool's input must match: an object schema.", required: true },
   }}
 />
 
@@ -1310,6 +1388,8 @@ SessionEvent is one entry in a session's ordered event log.
     agentThreadContextCompacted: { type: "AgentThreadContextCompactedEventInput", description: "A thread's context was compacted." },
     userToolConfirmation: { type: "UserToolConfirmationEventInput", description: "A person allowed or denied a tool use that waited for an answer." },
     userInterrupt: { type: "UserInterruptEventInput", description: "A person stopped the session's unfinished work." },
+    agentCustomToolUse: { type: "AgentCustomToolUseEventInput", description: "The agent called one of the host app's own tools (SessionSpec.custom_tools)." },
+    userCustomToolResult: { type: "UserCustomToolResultEventInput", description: "The host app answered a call to one of its own tools." },
     stigmerAgentThinking: { type: "StigmerAgentThinkingEventInput", description: "The text of the agent's thinking." },
     stigmerPermissionAsked: { type: "StigmerPermissionAskedEventInput", description: "Why a tool use waits for a person's answer." },
     stigmerHarnessNote: { type: "StigmerHarnessNoteEventInput", description: "A line the platform added to the conversation in its own voice." },
@@ -1324,6 +1404,19 @@ SessionEvent is one entry in a session's ordered event log.
     stigmerBackgroundCommandStatus: { type: "StigmerBackgroundCommandStatusEventInput", description: "A command the agent started in the background began running, or ended and how." },
     stigmerBackgroundCommandStopRequested: { type: "StigmerBackgroundCommandStopRequestedEventInput", description: "A person asked to stop a command running in the background." },
     stigmerMcpToolDefinition: { type: "StigmerMcpToolDefinitionEventInput", description: "An MCP tool the turn called, as the model was offered it: its description and input schema." },
+  }}
+/>
+
+### AnswerCustomToolUseInput
+
+AnswerCustomToolUseInput answers a call of one of the host app's own tools: Managed Agents' user.custom_tool_result parameters, with the session.
+
+<TypeTable
+  type={{
+    sessionId: { type: "string", description: "The conversation." },
+    customToolUseId: { type: "string", description: "The agent.custom_tool_use event to answer, as the requires_action idle's event_ids name it." },
+    content: { type: "ContentBlockInput[]", description: "The answer the agent reads: text blocks, at most 100,000 characters in all." },
+    isError: { type: "boolean", description: "Whether the tool failed; the agent reads the content as the error." },
   }}
 />
 

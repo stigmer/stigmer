@@ -317,16 +317,52 @@ function is `finalAnswerId` (same file): the scores sit wherever the lead does,
 so a turn Stigmer stopped carries them at its foot. A custom tool waiting on the
 host is not an ending: the turn resumes after the answer.
 
-## Custom tools: the host's side (designed; stigmer/stigmer#973; C4)
+## Custom tools: the host's side (wire and engines built; the kit designed; stigmer/stigmer#973; C4)
 
-The host gives a session tools of its own, and answers them. The wire (the
-session create request, the two events, each engine) is designed with the build;
-this is what the host writes.
+The host gives a session tools of its own, and answers them. The wire and both
+engines are built; the kit's side below is designed.
+
+What is built, and where it lives:
+
+- **Declared on the session.** `SessionSpec.custom_tools`
+  (`apis/ai/stigmer/agentic/session/v1/spec.proto`), added to the agent's own
+  tools as a session's `plugins` and `skill_refs` are. Managed Agents'
+  `agent_with_overrides` was not taken: its `tools` replaces the agent's whole
+  list. The server and the runner run one check
+  (`backend/libs/ts/tool-vocabulary/src/custom-tools.ts`): names of letters,
+  digits, `_` and `-`, at most 64, never a built-in's or `mcp__`; object
+  schemas; at most 32 tools and 64 KB of schemas. The tools are fixed once a
+  turn has run.
+- **Two events, Managed Agents' own.** `agent.custom_tool_use` (the runner's)
+  opens a gate and idles the session `requires_action`;
+  `user.custom_tool_result` (the server's, from `answerCustomToolUse` or the
+  Managed Agents send) closes it. The log's fold reads a waiting call as
+  `waiting_on_host`, lists it in `Turn.customToolUses` apart from `asks`, and
+  keeps `ToolUse.custom` after the answer
+  (`backend/libs/ts/session-log/src/fold.ts`).
+- **Each engine pauses as for an approval.** The turn ends, nothing is held, and
+  a fresh run hands the model the host's answer as the call's result
+  (`backend/services/runner/src/shared/custom-tools.ts`,
+  `backend/services/runner/src/harness/custom-tool-answers.ts`). Claude reaches
+  the tools through one more loopback server, `stigmer-host`, listed with the
+  engine's own tools (the model sees `mcp__stigmer-host__<name>`); the Stigmer
+  harness binds the bare name and pauses in its own middleware ahead of the
+  approval gate (`backend/services/runner/src/middleware/custom-tools.ts`),
+  since an `interrupt()` inside a tool body reaches the error hints. Every row,
+  event and card carries the declared name. One contract states the behaviour
+  for both engines
+  (`backend/services/runner/src/__test-utils__/custom-tool-contract/contract.ts`).
+- **Offered only where someone can answer.** Only the main agent, never a
+  sub-agent; never on an unattended turn (a chat link's visitor, a channel, a
+  schedule); whatever the agent's tool lists say.
+
+The kit's side, designed:
 
 - **Declared once, drawn by name.** `defineCustomTool` declares a tool (its
-  name, description and input schema); its card, if any, is a tool card
-  registered in the provider's `toolCards` under the same name, so a tool's look
-  has one home:
+  name, description and input schema; built in `@stigmer/client`,
+  `sdk/typescript/src/custom-tools.ts`, and re-exported by the kit); its card,
+  if any, is a tool card registered in the provider's `toolCards` under the same
+  name, so a tool's look has one home:
 
   ```tsx
   const showRegistration = defineCustomTool({
@@ -351,22 +387,21 @@ this is what the host writes.
   that already exists: it declares nothing, and its docs say so.
 
 - **Answering**: in the browser, `answer(text)`, at once or after the person
-  acts; from the host's backend, a generated method of the SDK's session client
-  (`stigmer.session`) that takes one input message, beside `confirmToolUse`. Its
-  name and payload are settled with the wire; the payload is text until then.
-  Who may answer in the viewer follows the approval rule exactly: an observer, a
-  guest and a participant may not (`onAnswerToolUse` in
+  acts; from the host's backend, `stigmer.session.answerCustomToolUse` (built)
+  with `AnswerCustomToolUseInput`: text blocks and `is_error`. Only the
+  session's owner answers (`can_edit`), so a backend answers with the person's
+  own credential. Who may answer in the viewer follows the approval rule
+  exactly: an observer, a guest and a participant may not (`onAnswerToolUse` in
   `sdk/react/src/session/SessionViewer.tsx`).
-- **A call nobody in the viewer may answer** (a guest's session, where gated
-  tools are skipped server-side so no approval waits) is settled with the wire,
-  with stigmer/stigmer#973's open question on a call nobody answers: the host's
-  backend answers it, or the server's rule ends the wait.
+- **A call nobody may answer** never exists: an unattended turn is offered no
+  custom tools (built). A call nobody answers in an attended session waits, as
+  an approval does, until someone stops the session.
 - **Listening**: `onCustomToolUse(call, answer)` fires for each call that waits
   on the host, live or found waiting when a session opens, never for a call
   already answered on replay (the card draws that one as history). Two open tabs
   each hear it, so a handler must be idempotent.
 - **Errors**: a call that fails its `inputSchema` never reaches the host; it
-  returns to the agent as a tool error it can fix.
+  returns to the agent as a tool error it can fix (built, on both engines).
 - **Runtime cost**: `defineCustomTool` is a runtime export. The light chat entry
   (`sdk/react/src/chat.ts`) has its own size budget
   (`test/bundle-budgets.json`), so it is measured before it lands there. Type

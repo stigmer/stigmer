@@ -1260,6 +1260,7 @@ SessionSpec defines the configurable properties of a session.
     fileReview: { type: "boolean", description: "Whether each turn's file edits are offered for review, Keep or Undo, after the turn." },
     environmentRef: { type: "ResourceRef", description: "The Environment this conversation runs in: the packages its sandboxes get and the websites they may reach.", typeDescriptionLink: "#resourceref" },
     resources: { type: "SessionResourceInput[]", description: "What the conversation holds: Files the agent finds under .stigmer/uploads/ on every turn, git repositories cloned into its workspace, and folders on the person's own machine.", typeDescriptionLink: "#sessionresourceinput" },
+    customTools: { type: "CustomToolInput[]", description: "Tools the host app answers itself, offered to the agent beside its own.", typeDescriptionLink: "#customtoolinput" },
   }}
 />
 
@@ -1322,6 +1323,18 @@ LocalPathResource uses a folder on the person's own machine as it is: the agent 
 <TypeTable
   type={{
     path: { type: "string", description: "Absolute path of an existing folder." },
+  }}
+/>
+
+### CustomToolInput
+
+CustomTool is one tool the host app answers itself (SessionSpec.custom_tools): Claude Managed Agents' custom tool, its type implied.
+
+<TypeTable
+  type={{
+    name: { type: "string", description: "The tool's name as the agent sees it: letters, digits, _ and -, at most 64." },
+    description: { type: "string", description: "What the tool does and when to call it, for the agent." },
+    inputSchema: { type: "object", description: "The JSON Schema the tool's input must match: an object schema.", required: true },
   }}
 />
 
