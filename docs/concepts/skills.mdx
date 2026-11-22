@@ -132,6 +132,20 @@ message channel, and the CLI and SDKs handle the switch transparently. If your
 server sits behind a proxy or serves remote clients, see the
 `SKILL_TRANSFER_BASE_URL` setting on the server.
 
+## How an Agent reads a Skill
+
+An Agent opens a Skill's files one at a time, as it needs them. It reads
+`SKILL.md` first, then only the references the job calls for, and each file is
+fetched alone and checked against the version you pushed. A 50 MB Skill whose
+Agent opens one 4 KB reference moves about 4 KB, not the whole archive.
+
+An Agent without a [computer](/docs/concepts/agents#a-computer-or-none) keeps no
+copy of its Skills at all. An Agent with a computer also gets each Skill as
+files its commands can run, such as the Skill's `scripts/`. That copy is
+read-only: a command that tries to change a Skill's file is refused, and every
+message starts from the Skill as it was pushed. A plugin's hooks get their own
+writable folder for anything they need to keep.
+
 ## Attaching Skills to Agents
 
 Skills connect to [Agents](/docs/concepts/agents) through `skill_refs` in the

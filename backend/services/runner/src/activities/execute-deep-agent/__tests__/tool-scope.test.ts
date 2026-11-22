@@ -546,6 +546,22 @@ describe("tool scope attribution, on the middleware itself", () => {
       expect(await callRefused(cfg, "read_file", { file_path: "/src/a.ts" }), "outside the route").toBe(false);
     });
 
+    it("refuses a read that lands in the session's runner-owned trees, the folder a mounted skill links into", async () => {
+      const trees = await mkdtemp(join(tmpdir(), "skill-read-trees-"));
+      try {
+        await mkdir(join(trees, "skill-x"), { recursive: true });
+        await writeFile(join(trees, "skill-x", "SKILL.md"), "a linked skill's body");
+        await symlink(join(trees, "skill-x", "SKILL.md"), join(platformDir, "plugin-data", "p", "tree-link"));
+        const withTrees: ToolScopeConfig = { ...config({ tools: [], disallowedTools: ["Skill"] }), readsSkillContent: skillContentReadCheck(platformDir, trees) };
+        const withoutTrees: ToolScopeConfig = { ...config({ tools: [], disallowedTools: ["Skill"] }), readsSkillContent: skillContentReadCheck(platformDir) };
+        expect(await callRefused(withTrees, "read_file", { file_path: "/.stigmer/plugin-data/p/tree-link" })).toBe(true);
+        expect(await callRefused(withoutTrees, "read_file", { file_path: "/.stigmer/plugin-data/p/tree-link" }), "the platform folder alone does not see it").toBe(false);
+        expect(await callRefused(withTrees, "read_file", { file_path: "/.stigmer/plugin-data/p/own.txt" })).toBe(false);
+      } finally {
+        await rm(trees, { recursive: true, force: true });
+      }
+    });
+
     it("reads the same links when the scope keeps Skill", async () => {
       const cfg: ToolScopeConfig = {
         ...config({ tools: [], disallowedTools: [] }),

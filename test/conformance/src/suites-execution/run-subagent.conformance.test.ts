@@ -86,6 +86,7 @@ import {
   requireMcpFixture,
 } from "../support/runs";
 import { STIGMER_STDIO_SERVER, stigmerMcpPlugin } from "../support/stigmer-mcp-stdio";
+import { zipFiles } from "../support/skills";
 import { threadsOf, toolUseByCallId, toolUsesOf, turnOfRun } from "../support/turn";
 import { readConversation } from "@stigmer/test-support/claude-engine-wire";
 import { CLAUDE_ARM, type ArmStep, claudeTurnsOnly } from "../support/engine-arms";
@@ -468,6 +469,31 @@ describe("Run — a subagent runs its own definition", () => {
 });
 
 describe("Run — what a subagent is not given", () => {
+  it("[rpc:SkillQueryController.readFile] a saved subagent reads its own skill, one the parent does not list, from the store", async () => {
+    const { org } = await target.provisionTenancy();
+    const skillName = uniqueName("sub-notes");
+    const body = "Only the subagent's own skill says this.";
+    const skill = await clients.skillCommand.push({ org, artifact: zipFiles({ "SKILL.md": `---\nname: ${skillName}\ndescription: d\n---\n${body}`, "refs/own.md": "the subagent's reference" }) });
+    fixtures.defer(() => clients.skillCommand.delete({ value: skill.metadata!.id }));
+    const { agent, subagents } = await parentWith(org, [{ name: uniqueName("helper"), skillRefs: [skill.metadata!.slug] }]);
+    const name = subagents[0]!.metadata!.slug;
+
+    mock.enqueue(handOff("toolu_task_skill", name));
+    mock.enqueue(
+      anthropicToolUses([
+        { toolCallId: "call_sub_skill", toolName: "read_file", toolInput: { file_path: `/.stigmer/skills/${skillName}/SKILL.md` } },
+        { toolCallId: "call_sub_ref", toolName: "read_file", toolInput: { file_path: `/.stigmer/skills/${skillName}/refs/own.md` } },
+      ]),
+    );
+    mock.enqueue(anthropicText(SUBAGENT_ANSWER));
+    mock.enqueue(anthropicText("Done."));
+
+    const final = await completedTurn({ org, agentRef: agentRefOf(agent) });
+    const turn = await turnOfRun(clients, final);
+    expect(toolUseByCallId(turn, "call_sub_skill")?.result?.text, "the subagent's own SKILL.md").toContain(body);
+    expect(toolUseByCallId(turn, "call_sub_ref")?.result?.text, "its reference file, from the store").toContain("the subagent's reference");
+  });
+
   it("a subagent is not given the conversation's own plugin", async () => {
     const { org } = await target.provisionTenancy();
     const plugin = await pushFixturePlugin(clients, mcp, fixtures, {
