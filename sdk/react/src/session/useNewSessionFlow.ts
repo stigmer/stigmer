@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { getUserMessage, type ResourceRef } from "@stigmer/client";
+import { getUserMessage, type CustomToolInput, type ResourceRef } from "@stigmer/client";
 import { accountDefaultModel, type AccountExecutionDefaults } from "../identity-account/useAccountExecutionDefaults.js";
 import type { AgentResolution } from "../agent/index.js";
 import { useModelRegistry } from "../models/index.js";
@@ -89,6 +89,17 @@ export interface UseNewSessionFlowOptions {
    * `"endUser"` and `"guest"`; a conversation keeps what it started with.
    */
   readonly fileReview?: boolean;
+  /**
+   * The app's own tools the created conversation offers its agent (the
+   * session's `custom_tools`; make each with `defineCustomTool` from
+   * `@stigmer/client`). A call of one waits for the app's answer: a tool
+   * card registered under the tool's name draws it, and the session
+   * viewer's `onCustomToolUse` hears it. Read once, when the conversation
+   * is created: the tools are fixed once a turn has run. The server refuses
+   * a declaration it cannot offer, naming the rule, and the refusal reaches
+   * `onError`.
+   */
+  readonly customTools?: readonly CustomToolInput[];
   /**
    * Shared vaults the created conversation uses, in order, after the
    * sender's My vault when it is included. A pick the person makes in the
@@ -382,6 +393,7 @@ export function useNewSessionFlow(
     onError,
     includeMyVault: includeMyVaultOption,
     fileReview: fileReviewOption,
+    customTools,
     vaults: vaultsOption,
     defaultHarness,
     metadata,
@@ -686,6 +698,7 @@ export function useNewSessionFlow(
           // edits its own work (the Console, the desktop app) unless the
           // host says otherwise; off is the wire default.
           fileReview: (fileReviewOption ?? fileReviewByDefault(options.audience ?? "integrator")) || undefined,
+          customTools: customTools?.length ? customTools : undefined,
           // The typed-wins merge happens downstream in useCreateRun;
           // both fields are forwarded verbatim here.
           metadata,
@@ -792,6 +805,7 @@ export function useNewSessionFlow(
       adapter,
       includeMyVaultOption,
       fileReviewOption,
+      customTools,
       vaultsOption,
       options.audience,
       effectiveModelId,

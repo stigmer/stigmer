@@ -16,8 +16,9 @@ import type { JsonObject } from "@bufbuild/protobuf";
  * - `running`: the tool works.
  * - `needs-approval`: a person must allow the call first; the decision is
  *   the kit's, drawn in the row (the card gets no way to answer it).
- * - `waiting-on-host`: a custom tool's call, until the host answers it.
- *   Declared so a card's `switch` is total; no call reaches it yet.
+ * - `waiting-on-host`: a call of one of the app's own tools (the session's
+ *   `custom_tools`), until the app answers it. The card's `answer` answers
+ *   it, for a viewer who may.
  * - `completed`: the tool returned.
  * - `failed`: the tool returned an error, or its result says it failed.
  * - `denied`: a person said no; the tool never ran.
@@ -60,21 +61,38 @@ export interface ToolCallInfo {
   readonly runId: string;
 }
 
+/**
+ * Answers one waiting call of the app's own tools, bound to its session and
+ * call. The text is what the agent reads as the tool's result; `isError`
+ * tells it the tool failed (a save that failed, or a person who cancelled),
+ * so it can try again or say so.
+ *
+ * Resolves when the server recorded the answer; the row turns answered
+ * when the result arrives on the stream. The same answer sent again
+ * resolves; a different one rejects, since a call is answered once. It
+ * stays callable after the chat unmounts, for a host's panel that
+ * outlives it.
+ */
+export type CustomToolAnswer = (text: string, options?: { readonly isError?: boolean }) => Promise<void>;
+
 /** Props a host's tool card receives. */
 export interface ToolCardProps {
   /** The call to draw. */
   readonly call: ToolCallInfo;
   /**
-   * Answers a custom tool's waiting call, for a viewer who may answer it.
-   * Reserved: no call is answered through a card yet.
+   * Answers the call, while it waits on the app (`waiting-on-host`) and only
+   * for a viewer who may answer it (the conversation's owner, as for an
+   * approval). Undefined otherwise: a card drawn for someone only watching
+   * shows the call and offers no answer.
    */
-  readonly answer?: (text: string) => Promise<void>;
+  readonly answer?: CustomToolAnswer;
 }
 
 /**
  * A host's own cards, keyed by a tool's public name: `mcp__<server>__<tool>`
- * for a connected server's tool (`toolPublicName` in `@stigmer/client`).
- * Built-in tools stay the kit's and take no card.
+ * for a connected server's tool, and the declared name for one of the app's
+ * own tools (`toolPublicName` in `@stigmer/client`). Built-in tools stay the
+ * kit's and take no card.
  *
  * Define each card at module level: the rows rely on `React.memo`, and a
  * component recreated on every render remounts its card.

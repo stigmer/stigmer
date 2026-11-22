@@ -21,6 +21,11 @@ export { type RunnerAdapter, useRunnerAdapter } from "@stigmer/react-core";
 // here so React embedders import it alongside the adapter interface.
 export { type RunnerWorkerHost, createRunnerAdapter } from "@stigmer/client";
 
+// The app's own tools are declared with the client's helper, re-exported for
+// the same reason: `customTools` on `AgentChat`, `NewSessionViewer` and
+// `useCreateSession` takes what it makes.
+export { type CustomToolInput, defineCustomTool } from "@stigmer/client";
+
 // Fetch cache
 export type { FetchCacheOptions } from "@stigmer/react-core";
 
@@ -264,6 +269,7 @@ export {
   useRunActions,
   useResolveRunSession,
   useAnswerToolUse,
+  useAnswerCustomToolUse,
   useStopBackgroundCommand,
   useReviewFileChanges,
   useChangeSetCapture,
@@ -346,6 +352,8 @@ export type {
   UseRunActionsReturn,
   UseResolveRunSessionReturn,
   UseAnswerToolUseReturn,
+  UseAnswerCustomToolUseReturn,
+  CustomToolAnswerOptions,
   UseStopBackgroundCommandReturn,
   ToolUseAnswer,
   UseReviewFileChangesReturn,

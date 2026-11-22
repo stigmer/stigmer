@@ -163,6 +163,22 @@ export function targetOf(tool: Pick<ToolUse, "name" | "mcpServerName" | "input">
 }
 
 /**
+ * Whether `tool` waits on someone's answer: a person's approval
+ * (`waiting`) or the app's answer to a call of its own tool
+ * (`waiting_on_host`). A waiting call is open, never settled, whoever it
+ * waits on; only an approval offers a decision.
+ *
+ * @example
+ * ```ts
+ * awaitsAnswer({ state: "waiting_on_host" }); // true
+ * awaitsAnswer({ state: "completed" }); // false
+ * ```
+ */
+export function awaitsAnswer(tool: Pick<ToolUse, "state">): boolean {
+  return tool.state === "waiting" || tool.state === "waiting_on_host";
+}
+
+/**
  * How `tool` stands: open, returned, failed (an error result, a denial, or a
  * command that exited non-zero), or stopped before it returned. A background
  * command's own end is its status line's to say, never the step's.

@@ -30,6 +30,7 @@ import type { Token } from "marked";
 import type { Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 import type { RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 import {
+  awaitsAnswer,
   isTodoTool,
   syntheticUserPrompt,
   type FileReviewSet,
@@ -91,8 +92,6 @@ export interface ThreadInput {
 /** The phases a turn ends with a badge for: everything but a completion. */
 const BADGED_END_PHASES: ReadonlySet<string> = new Set(["failed", "cancelled", "terminated"]);
 
-/** The states in which a tool call can still change. */
-const OPEN_TOOL_STATES: ReadonlySet<ToolUse["state"]> = new Set(["running", "waiting"]);
 
 /**
  * Whether a folded turn is a turn of the conversation: not a reconcile turn
@@ -129,7 +128,9 @@ export function buildTurnSegment(turn: Turn, run: Run | undefined, includeFileRe
   let group: ToolUse[] = [];
   const flush = (): void => {
     if (group.length === 0) return;
-    const open = group.some((toolUse) => OPEN_TOOL_STATES.has(toolUse.state));
+    // A call can still change while it runs or waits on an answer (a
+    // person's approval, or the app's to a call of its own tools).
+    const open = group.some((toolUse) => toolUse.state === "running" || awaitsAnswer(toolUse));
     seg.push({ kind: "tool-group", toolUses: group, key: `${group[0]!.id}-tc`, settled: ended || !open });
     group = [];
   };

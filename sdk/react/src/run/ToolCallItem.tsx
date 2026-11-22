@@ -44,6 +44,7 @@ import { HelperMark, SubagentSection } from "./SubagentSection.js";
 import { underOutputs, useOutputFileOpener } from "./OutputFileContext.js";
 import { useStepPlace } from "./step-place.js";
 import { holdsToolCard, toolCallInfoOf, useHasToolCard, useHostCard } from "./tool-card.js";
+import { useCustomToolAnswer } from "./CustomToolAnswerContext.js";
 import { HostPartBoundary } from "../internal/HostPartBoundary.js";
 
 /** Props for {@link ToolCallItem}. */
@@ -187,7 +188,7 @@ export const ToolCallItem = memo(function ToolCallItem({
   // A step waiting with no decision on its row (one on a person this viewer
   // is not, or one answered in its own card): drawn running, its line
   // saying whom it waits on.
-  const waitingWords = useWaitingWords();
+  const waitingWords = useWaitingWords(toolUse.custom ? "app" : "person");
   const waitsWithoutDecision = status === "waiting" && approval == null;
   // A step at work now: a call running or waiting on someone else, or a
   // helper still working (its mark follows the helper, so its band does).
@@ -205,6 +206,9 @@ export const ToolCallItem = memo(function ToolCallItem({
   const HostCard = isSubagent ? undefined : hostCard;
   const sessionId = presentation.sessionId ?? "";
   const cardCall = useMemo(() => (HostCard === undefined ? undefined : toolCallInfoOf(toolUse, sessionId)), [HostCard, toolUse, sessionId]);
+  // A call of the app's own tools answers through the card, only while it
+  // waits and only for a viewer who may answer it.
+  const cardAnswer = useCustomToolAnswer(toolUse);
   // A helper holding a step with a host card, at any depth, stays open after
   // it stops running.
   const hasCard = useHasToolCard();
@@ -289,6 +293,13 @@ export const ToolCallItem = memo(function ToolCallItem({
       return <BackgroundCommandStatusWords toolUse={toolUse} />;
     }
     if (category === "shell" || category === "background-stop" || category === "unknown") {
+      // A call of the app's own tools (an `unknown` kind to the kit) says
+      // whom it waits on, as every other waiting step does.
+      if (category === "unknown" && waitsWithoutDecision) {
+        if (primaryArg !== null) parts.push(primaryArg);
+        parts.push(waitingWords);
+        return joinParts(parts);
+      }
       if (primaryArg === null) return null;
       return category === "shell" ? <span className="stg:font-mono stg:text-foreground">{primaryArg}</span> : primaryArg;
     }
@@ -416,7 +427,7 @@ export const ToolCallItem = memo(function ToolCallItem({
       // A card that threw while its call ran tries again once the call's
       // state moves (its result landed).
       <HostPartBoundary resetKey={cardCall.state} fallback={ours}>
-        <HostCard call={cardCall} />
+        <HostCard call={cardCall} answer={cardAnswer} />
       </HostPartBoundary>
     );
   }
