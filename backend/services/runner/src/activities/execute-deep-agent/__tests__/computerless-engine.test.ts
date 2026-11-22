@@ -6,7 +6,12 @@
  */
 import { describe, expect, it } from "vitest";
 
-import { captureInputsOf, NO_TREE_CAPTURE, skillReadCheckOf } from "../turn-setup.js";
+import { mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+
+import { turnInputFixture } from "../../../__test-utils__/turn-input-fixture.js";
+import { buildDeepAgentWorkspace, captureInputsOf, NO_TREE_CAPTURE, skillReadCheckOf } from "../turn-setup.js";
 
 describe("the engine setup without a tree", () => {
   it("gives the gate inert capture inputs", async () => {
@@ -22,5 +27,22 @@ describe("the engine setup without a tree", () => {
     const reads = skillReadCheckOf(undefined, undefined);
     expect(await reads("/.stigmer/skills/notes/SKILL.md")).toBe(true);
     expect(await reads("/notes.md")).toBe(false);
+  });
+
+  it("hands the gate the tree's own capture inputs when there is one", async () => {
+    const root = mkdtempSync(join(tmpdir(), "capture-inputs-"));
+    try {
+      const input = turnInputFixture({ workspaceDir: root });
+      const disk = buildDeepAgentWorkspace(input);
+      if (disk.kind !== "disk") throw new Error("a turn with a computer has a disk");
+      const inputs = captureInputsOf(disk);
+      expect(await inputs.isCapturablePath!("/notes.md")).toBe(false);
+      expect(await inputs.inGitDirectory!("/notes.md")).toBe(false);
+      await inputs.recordBlockedSecret!("/.env");
+      await inputs.captureDeleteBefore!("/notes.md");
+      expect(disk.casObserver.snapshot().blockedSecretPaths).toContain(".env");
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
   });
 });

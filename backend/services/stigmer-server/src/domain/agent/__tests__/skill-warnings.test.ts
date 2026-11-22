@@ -170,6 +170,22 @@ describe("RecordAgentWarnings", () => {
     expect((await save(bare)).status).toBeUndefined();
   });
 
+  it("keeps its skills' warnings when the store cannot load its plugins", async () => {
+    const faulty = new Proxy(fx.store, {
+      get(target, prop, receiver) {
+        const value = Reflect.get(target, prop, receiver) as unknown;
+        if (prop !== "getResource" || typeof value !== "function") return typeof value === "function" ? value.bind(target) : value;
+        return (kind: ApiResourceKind, ...rest: unknown[]) =>
+          kind === ApiResourceKind.plugin ? Promise.reject(new Error("store down")) : (value as (...args: unknown[]) => unknown).call(target, kind, ...rest);
+      },
+    });
+    const agent = agentWith(Computer.NONE, ["skl_01scripted"], ["plg_01ops"]);
+    const ctx = new RequestContext(AgentSchema, agent, testCallerIdentity(), ApiResourceKind.agent);
+    ctx.setNewState(agent);
+    await newRecordAgentWarningsStep(faulty, { skill: reads, plugin: reads }, silentLogger).execute(ctx);
+    expect(ctx.newState.status?.warnings).toEqual([warning("scripted")]);
+  });
+
   it("writes status only: the spec it hashes is untouched", async () => {
     const agent = agentWith(Computer.NONE, ["skl_01scripted"], ["plg_01ops"]);
     const before = clone(AgentSchema, agent).spec;

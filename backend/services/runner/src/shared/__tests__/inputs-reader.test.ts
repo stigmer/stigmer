@@ -138,6 +138,13 @@ describe("the turn's inputs reader", () => {
       blind,
     );
     expect(outcome.kind).toBe("degraded");
+    const seeing = new VisionBudget(DEEP_AGENT_VISION_PROFILE, { modelVision: true });
+    const oversized = await offerStoredImage(
+      { fileId: "file_a", mountPath: "brief.txt", filename: "brief.txt", mimeType: "image/png", sizeBytes: 64 * 1024 * 1024, relativePath: ".stigmer/uploads/brief.txt" },
+      reader,
+      seeing,
+    );
+    expect(oversized.kind).toBe("degraded");
     expect(fetch.urls).toEqual([]);
     const failing = newTurnInputs({ org: "org_1", sets: SETS, refetch: async () => SETS, fetch: served({}, () => 500), cache: newInputCache(1024) });
     expect(await readStoredFile(failing, "file_a")).toBeUndefined();

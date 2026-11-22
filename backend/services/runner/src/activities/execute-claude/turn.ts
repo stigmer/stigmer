@@ -97,7 +97,7 @@ import { InteractionMode, ServiceTier } from "@stigmer/apis/ai/stigmer/agentic/r
 import type { Config } from "../../config.js";
 import type { TurnInputChannel } from "../../harness/turn-input.js";
 import type { ComputerTurnInput, TurnInput, TurnOutcome, TurnSink } from "../../harness/types.js";
-import { NoComputerError, requireComputer } from "../../harness/computer-turn.js";
+import { computerTurnOf, NoComputerError } from "../../harness/computer-turn.js";
 import { ToolCallStatus } from "../../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
 import { CasCaptureObserver } from "../../shared/filereview/cas-capture-observer.js";
 import { HookSetupError } from "../../shared/hooks/setup.js";
@@ -210,12 +210,10 @@ export async function runClaudeTurn(turn: TurnInput, sink: TurnSink, config: Cla
   // The Claude engine always runs on a computer: the server never plans
   // it for a conversation without one, and a turn that reaches here
   // without one is refused in that sentence, as the server would.
-  let input: ComputerTurnInput;
-  try {
-    input = requireComputer(turn, "The Claude engine");
-  } catch (err) {
-    if (!(err instanceof NoComputerError)) throw err;
-    return { kind: "failed", surface: "actionable", message: err.message, cause: err };
+  const input = computerTurnOf(turn);
+  if (input === undefined) {
+    const refusal = new NoComputerError("The Claude engine");
+    return { kind: "failed", surface: "actionable", message: refusal.message, cause: refusal };
   }
   let bridge: McpBridge | undefined;
   const home = getClaudeInvocationDir(input.sessionId, input.executionId, input.turnSeq);

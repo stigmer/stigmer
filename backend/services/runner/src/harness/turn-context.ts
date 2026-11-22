@@ -2133,9 +2133,15 @@ export async function resolveTurnContext(
     workspace = provisioned.workspace;
     frame.primaryDir = workspace.primaryDir;
     frame.writeback = provisioned.writeback;
-
-    const held = await holdTurnLock(deps, frame, await acquireWorkspaceTurnLock(deps, workspace.primaryDir));
-    if (held !== undefined) return { kind: "settled", settlement: held };
+  }
+  // The turn's lock: the workspace's, or the conversation's when it has none.
+  const held = await holdTurnLock(
+    deps,
+    frame,
+    workspace !== undefined ? await acquireWorkspaceTurnLock(deps, workspace.primaryDir) : await acquireConversationTurnLock(deps, sessionId),
+  );
+  if (held !== undefined) return { kind: "settled", settlement: held };
+  if (workspace !== undefined) {
     await reconcileOwedUndosPhase(deps, { sessionId, workspace, reconcileTurn: false });
 
     const evalCase = await prepareEvalCasePhase(deps, { spec, sessionId, workspace, values });
@@ -2149,8 +2155,6 @@ export async function resolveTurnContext(
 
     await prepareOutputsPhase(deps, { sessionId, primaryDir: workspace.primaryDir });
   } else {
-    const held = await holdTurnLock(deps, frame, await acquireConversationTurnLock(deps, sessionId));
-    if (held !== undefined) return { kind: "settled", settlement: held };
     const evalCase = await prepareEvalCaseWithoutComputerPhase(deps, { spec, values });
     if (evalCase.kind === "settled") return { kind: "settled", settlement: evalCase.settlement };
     if (evalCase.prepared !== undefined) {

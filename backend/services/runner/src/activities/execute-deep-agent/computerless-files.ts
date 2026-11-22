@@ -63,7 +63,7 @@ import type { TurnStoreFiles } from "../../harness/types.js";
 import type { TurnArchiveFiles } from "../../shared/archive-reader.js";
 import { OUTPUTS_SUBDIR } from "../../shared/outputs.js";
 import type { TurnOutputFiles } from "../../shared/outputs-buffer.js";
-import { InputFileNotFoundError, type TurnInputFiles } from "../../shared/inputs-reader.js";
+import type { TurnInputFiles } from "../../shared/inputs-reader.js";
 import type { TurnOffloads } from "../../shared/offload-store.js";
 import { editLoosely } from "./loose-edit.js";
 import {
@@ -362,32 +362,34 @@ function keyPathOf(prefix: string, routedPath: string): string {
   return `${OFFLOAD_KEYS_ROOT}${prefix.slice(1, -1)}${routedPath.startsWith("/") ? routedPath : `/${routedPath}`}`;
 }
 
-/** The set-aside results under one offload root, by their keys in the saved state. */
+/**
+ * The set-aside results under one offload root, by their keys in the saved
+ * state. The tree reads only a path it listed (`store-content-backend.ts`),
+ * so a read finds its key; a key the state lost reads as the store's own
+ * refusal of an empty key.
+ */
 function setAsideSource(prefix: string, offloads: TurnOffloads, state: StateBackend): StoreFileSource {
   const folder = prefix.slice(1, -1);
   const keysDir = `${OFFLOAD_KEYS_ROOT}${folder}/`;
-  const keyOf = async (path: string): Promise<{ readonly key: string; readonly size: number } | undefined> => {
-    const raw = await state.readRaw(`${OFFLOAD_KEYS_ROOT}${path}`);
-    const content = raw.data?.content;
-    if (typeof content !== "string") return undefined;
-    const [key = "", size = "0"] = content.split("\n");
-    return { key, size: Number(size) };
+  const entries = async (): Promise<ReadonlyMap<string, { readonly key: string; readonly size: number }>> => {
+    const kept = await Promise.all(
+      ((await state.glob("**", keysDir)).files ?? []).map(async (file) => ({
+        path: `${folder}/${file.path.slice(keysDir.length)}`,
+        content: (await state.readRaw(file.path)).data?.content,
+      })),
+    );
+    return new Map(
+      kept
+        .filter((entry): entry is { readonly path: string; readonly content: string } => typeof entry.content === "string")
+        .map((entry) => {
+          const [key = "", size = "0"] = entry.content.split("\n");
+          return [entry.path, { key, size: Number(size) }];
+        }),
+    );
   };
   return {
-    async list() {
-      const files: StoreFileInfo[] = [];
-      for (const file of (await state.glob("**", keysDir)).files ?? []) {
-        const path = `${folder}/${file.path.slice(keysDir.length)}`;
-        const found = await keyOf(path);
-        if (found !== undefined) files.push({ path, size: found.size });
-      }
-      return files;
-    },
-    async read(path) {
-      const found = await keyOf(path);
-      if (found === undefined) throw new InputFileNotFoundError(path);
-      return offloads.read(found.key);
-    },
+    list: async () => [...(await entries())].map(([path, entry]) => ({ path, size: entry.size })),
+    read: async (path) => offloads.read((await entries()).get(path)?.key ?? ""),
   };
 }
 

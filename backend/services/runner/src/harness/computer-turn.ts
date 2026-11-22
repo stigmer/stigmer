@@ -17,8 +17,7 @@ export class NoComputerError extends Error {
   }
 }
 
-/** `input` as a turn with a computer, or {@link NoComputerError} naming what needed one. */
-export function requireComputer(input: TurnInput, what: string): ComputerTurnInput {
-  if (!input.workspace.computer) throw new NoComputerError(what);
-  return input as ComputerTurnInput;
+/** `input` as a turn with a computer, or `undefined` for a turn without one. */
+export function computerTurnOf(input: TurnInput): ComputerTurnInput | undefined {
+  return input.workspace.computer ? (input as ComputerTurnInput) : undefined;
 }
