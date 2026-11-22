@@ -1294,6 +1294,7 @@ const THREAD_TITLES: Readonly<Record<(typeof THREAD_STATES)[number], string>> = 
   streaming: "the agent's reply streaming",
   tools: "tool calls: one returned, one still running",
   approval: "a tool call waiting for approval, with its decision",
+  "waiting-on-app": "a call of the app's own tool waiting for the app's answer, opened to what it asked",
   "file-review": "a finished turn with two file edits, each one it can undo",
   "subagent-running": "a subagent at work",
   "subagent-finished": "a subagent finished",
