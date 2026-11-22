@@ -8,7 +8,7 @@
 import { createHash } from "node:crypto";
 
 import { create } from "@bufbuild/protobuf";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { PluginFileListSchema } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/io_pb";
 import { SkillFileListSchema } from "@stigmer/apis/ai/stigmer/agentic/skill/v1/io_pb";
 
@@ -108,6 +108,38 @@ describe("newTurnArchives", () => {
     await other.read("skills/notes/refs/a.md");
     expect(other.report()).toEqual({ filesRead: 1, bytesReceived: "same bytes".length, cacheHits: 0 });
     expect(calls.filter((call) => call.startsWith("read"))).toEqual(["read skill skl_a@v1 refs/a.md", "read skill skl_b@v1 refs/a.md"]);
+  });
+
+  it("costs a source whose listing fails that source alone: a skill keeps its SKILL.md, the others still answer, and the next turn asks again", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    let down = true;
+    const { client, calls } = storeClient({ "skill:skl_ok:v1": { "refs/ok.md": "fine" } });
+    const flaky: ArchiveFileClient = {
+      ...client,
+      listSkillFiles: async (id, version) => {
+        if (id === "skl_gone" && down) throw new Error("skill archive not found: gone");
+        return client.listSkillFiles(id, version);
+      },
+      listPluginFiles: async () => Promise.reject(new Error("unavailable")),
+    };
+    const sources: ArchiveSource[] = [
+      { ...notes("skl_gone", "# Gone"), dir: "skills/gone" },
+      { ...notes("skl_ok", "# Ok"), dir: "skills/ok" },
+      kit,
+    ];
+    const cache = newArchiveCache(1 << 20);
+    const archives = newTurnArchives(flaky, "org_a", sources, cache);
+    expect((await archives.list()).map((file) => file.path)).toEqual(["skills/gone/SKILL.md", "skills/ok/SKILL.md", "skills/ok/refs/ok.md"]);
+    expect(text(await archives.read("skills/gone/SKILL.md"))).toBe("# Gone");
+    expect(text(await archives.read("skills/ok/refs/ok.md"))).toBe("fine");
+    expect(warn.mock.calls.flat().join(" ")).toContain("the files of skill skl_gone are not listed this turn (its SKILL.md still is)");
+    await archives.list();
+    expect(calls.filter((call) => call === "list skill skl_ok@v1"), "asked once per turn").toHaveLength(1);
+
+    down = false;
+    const next = newTurnArchives(flaky, "org_a", sources, cache);
+    await next.list();
+    warn.mockRestore();
   });
 
   it("serves a skill without an archive as its SKILL.md alone, asking the server nothing", async () => {

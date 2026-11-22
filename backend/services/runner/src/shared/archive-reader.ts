@@ -24,6 +24,11 @@
  * file a prompt names first costs no read; a plugin's skills have no spec,
  * so theirs is read like any other file.
  *
+ * One source's listing that fails (its archive gone from storage, a fault on
+ * the way) costs that source alone, for that turn: a skill keeps its
+ * spec-served SKILL.md, as a skill whose archive could not be downloaded
+ * always kept it, and the turn's other skills and plugins still answer.
+ *
  * Listings and file bytes sit in one process-wide cache bounded by bytes
  * ({@link DEFAULT_ARCHIVE_CACHE_BYTES}, `STIGMER_RUNNER_ARCHIVE_CACHE_BYTES`).
  * Every key carries the run's organization, so no turn is served from an
@@ -160,7 +165,26 @@ export function newTurnArchives(
   for (const source of sources) byDir.set(source.dir, source);
   const stats = { filesRead: 0, bytesReceived: 0, cacheHits: 0 };
 
-  async function listingOf(source: ArchiveSource): Promise<readonly ArchiveFileInfo[]> {
+  // Each source's listing, asked once per turn. A listing that fails costs
+  // that source alone: a skill keeps the SKILL.md its spec serves, a plugin
+  // lists nothing, every other source still answers, and the failure is
+  // logged, never cached, so the next turn asks again.
+  const listings = new Map<string, Promise<readonly ArchiveFileInfo[]>>();
+  function listingOf(source: ArchiveSource): Promise<readonly ArchiveFileInfo[]> {
+    let listing = listings.get(source.dir);
+    if (listing === undefined) {
+      listing = fetchListing(source).catch((err: unknown) => {
+        console.warn(
+          `[archive-reader] the files of ${source.kind} ${source.id} are not listed this turn${source.kind === "skill" ? " (its SKILL.md still is)" : ""}: ${err instanceof Error ? err.message : String(err)}`,
+        );
+        return source.kind === "skill" ? [skillMdInfo(source)] : [];
+      });
+      listings.set(source.dir, listing);
+    }
+    return listing;
+  }
+
+  async function fetchListing(source: ArchiveSource): Promise<readonly ArchiveFileInfo[]> {
     if (source.kind === "skill" && !source.hasArchive) return [skillMdInfo(source)];
     const version = source.kind === "skill" ? source.version : source.digest;
     const key = `listing:${org}:${source.kind}:${source.id}:${version}`;

@@ -230,6 +230,15 @@ describe("the store route refuses every change", () => {
     expect(matches.length).toBeGreaterThan(0);
   });
 
+  it("asks for the listing again after a failed one, keeping no failure", async () => {
+    let fails = 1;
+    const reader = readerOver(files);
+    const once: TurnArchiveFiles = { ...reader, list: async () => (fails-- > 0 ? Promise.reject(new Error("unavailable")) : reader.list()) };
+    const backend = new StoreContentBackend("skills", once);
+    await expect(backend.ls("/notes")).rejects.toThrow("unavailable");
+    expect((await backend.ls("/notes")).files?.length).toBeGreaterThan(0);
+  });
+
   it("answers a reader's failure as a read error, never a crash", async () => {
     const failing = new CompositeBackend(new FilesystemBackend({ rootDir: root, virtualMode: true }), {
       [ROUTE]: new ArchiveRoutedPlatform(join(root, "empty-platform"), readerOver(files, `${SKILL}/SKILL.md`)),

@@ -235,12 +235,19 @@ export class StoreContentBackend implements BackendProtocolV2 {
     return responses;
   }
 
-  /** The listing under this route, by route-relative path; read once per backend. */
+  /** The listing under this route, by route-relative path; read once per backend, a failed read not kept. */
   private files_(): Promise<ReadonlyMap<string, ArchiveFileInfo>> {
-    this.listing ??= this.files.list().then((all) => {
-      const prefix = `${this.route}/`;
-      return new Map(all.filter((file) => file.path.startsWith(prefix)).map((file) => [`/${file.path.slice(prefix.length)}`, file]));
-    });
+    this.listing ??= this.files.list().then(
+      (all) => {
+        const prefix = `${this.route}/`;
+        return new Map(all.filter((file) => file.path.startsWith(prefix)).map((file) => [`/${file.path.slice(prefix.length)}`, file]));
+      },
+      (err: unknown) => {
+        // Never kept: the next call asks again.
+        this.listing = undefined;
+        throw err;
+      },
+    );
     return this.listing;
   }
 

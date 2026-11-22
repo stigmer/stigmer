@@ -1265,6 +1265,12 @@ async function mountPluginSkills(
   if (skills.length === 0) return { skills: new Map(), digest: undefined, source: undefined };
   const pluginName = plugin.metadata?.name ?? "";
   const digest = plugin.status?.digest ?? "";
+  if (digest === "") {
+    // A head whose version failed to archive names no digest: nothing to
+    // mount or read, as the mount itself refuses such a plugin.
+    console.warn(`[turn-context] the skills of plugin '${pluginName}' are missing this turn: it records no installed archive`);
+    return { skills: new Map(), digest: undefined, source: undefined };
+  }
   if (mount) {
     try {
       const platformDir = getPlatformDir(sessionId);
@@ -1390,6 +1396,7 @@ export async function resolveHooks(
     kind: "ready",
     hooks: { sources: resolved.sources, serverNames: hookServerNamesOf(args.servers) },
     mounts: pluginMounts(plugins),
+    // Every plugin here mounted, so each records its digest.
     sources: plugins.map(pluginSourceOf),
   };
 }

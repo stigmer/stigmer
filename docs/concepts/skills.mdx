@@ -136,15 +136,18 @@ server sits behind a proxy or serves remote clients, see the
 
 An Agent opens a Skill's files one at a time, as it needs them. It reads
 `SKILL.md` first, then only the references the job calls for, and each file is
-fetched alone and checked against the version you pushed. A 50 MB Skill whose
-Agent opens one 4 KB reference moves about 4 KB, not the whole archive.
+fetched alone and checked against the version you pushed. An Agent without a
+[computer](/docs/concepts/agents#a-computer-or-none) keeps no copy of its Skills
+at all, so if its 50 MB Skill's job needs one 4 KB reference, it moves about 4
+KB, not the whole archive.
 
-An Agent without a [computer](/docs/concepts/agents#a-computer-or-none) keeps no
-copy of its Skills at all. An Agent with a computer also gets each Skill as
-files its commands can run, such as the Skill's `scripts/`. That copy is
-read-only: a command that tries to change a Skill's file is refused, and every
-message starts from the Skill as it was pushed. A plugin's hooks get their own
-writable folder for anything they need to keep.
+An Agent with a computer, which every Agent on the Claude harness has, also gets
+each Skill as files its commands can run, such as the Skill's `scripts/`, so it
+still downloads the whole archive once. Every message starts from the Skill as
+it was pushed: on Stigmer's runners a command that tries to change a Skill's
+file is refused, and on your own machine, where the Agent's commands run as you,
+a changed file is put back before the next message. A plugin's hooks get their
+own writable folder for anything they need to keep.
 
 ## Attaching Skills to Agents
 
