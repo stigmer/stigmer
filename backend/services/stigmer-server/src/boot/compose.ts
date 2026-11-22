@@ -193,6 +193,7 @@ import {
   MAX_ZIP_SIZE,
   STAGING_KEY_PREFIX,
 } from "../domain/skill/constants.js";
+import { newArchiveFileReads } from "../archive/file-reads.js";
 import { newSkillArtifactStorage } from "../domain/skill/storage/artifact-storage.js";
 import { newContentAddressedArchiveStore, newIndexedArchiveStore } from "../archive/content-store.js";
 import { fileIndexKeyPrefix } from "../archive/file-index.js";
@@ -1585,6 +1586,11 @@ export async function composeServer(
     PLUGIN_ARTIFACT_KEY_PREFIX,
     fileIndexKeyPrefix("plugin"),
   );
+  // One file-reads cache per kind, shared by the kind's own listFiles and
+  // readFile and the agent's save, which reads the same indexes for its
+  // warnings (domain/agent/skill-warnings.ts).
+  const skillFileReads = newArchiveFileReads(skillArtifactStorage, "skill", logger);
+  const pluginFileReads = newArchiveFileReads(pluginArtifactStorage, "plugin", logger);
   // Eval archives the same way, under `evals/`.
   const evalArtifactStorage = newContentAddressedArchiveStore(
     skillStorageDriver,
@@ -2118,6 +2124,7 @@ export async function composeServer(
       // routines' artifacts through the routine clock.
       channelRuntime: extensions.drivers.channelRuntime,
       routineClock: () => routineSyncer,
+      archiveFileReads: { skill: skillFileReads, plugin: pluginFileReads },
     });
     registerSessionServices(router, {
       store,
@@ -2308,6 +2315,7 @@ export async function composeServer(
       authorizationLifecycle,
       listReadScope,
       artifactStorage: skillArtifactStorage,
+      fileReads: skillFileReads,
       fileBlobs,
       staging: skillArchiveStaging,
     });
@@ -2342,6 +2350,7 @@ export async function composeServer(
       authorizationLifecycle,
       listReadScope,
       artifactStorage: pluginArtifactStorage,
+      fileReads: pluginFileReads,
       outboundFetch,
       staging: skillArchiveStaging,
       tools: {

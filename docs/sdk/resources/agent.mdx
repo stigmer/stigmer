@@ -1073,6 +1073,19 @@ AgentStatus contains system-managed state for an agent.
   type={{
     audit: { type: "ApiResourceAudit", description: "Standard audit information (created_at, updated_at, created_by, etc.).", typeDescriptionLink: "/docs/sdk/resources/commons#apiresourceaudit" },
     versionHash: { type: "string", description: "Content hash of the agent's current version: the SHA-256 of the canonical JSON rendering of the stored AgentSpec (unset and default fields omitted, object keys sorted at every depth, enums as numbers)." },
+    warnings: { type: "AgentWarning[]", description: "Warnings the last save recorded: what the agent's skills carry that it cannot use as configured, such as scripts an agent without a computer cannot run.", typeDescriptionLink: "#agentwarning" },
+  }}
+/>
+
+### AgentWarning
+
+AgentWarning is one thing an agent's save noticed and did not refuse.
+
+<TypeTable
+  type={{
+    kind: { type: "string", description: "Stable warning kind, e.g. \"skill-scripts\"." },
+    message: { type: "string", description: "The warning as one user-facing sentence." },
+    skill: { type: "string", description: "The skill the warning names, as the agent's prompt names it: the skill's slug, or \"<plugin>:<skill>\" for a plugin's skill." },
   }}
 />
 

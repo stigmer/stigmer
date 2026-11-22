@@ -22,8 +22,10 @@
  * files of one name in two folders are two Files a person can tell apart.
  * It is owned by the person who started the run, private, and reached by
  * the conversation's people through the conversation, as an upload into
- * it is. It is not added to the conversation's resources: the agent still
- * finds it in its outputs folder, where it saved it.
+ * it is. It is not added to the conversation's resources: an agent with a
+ * computer still finds it in its outputs folder, where it saved it, and
+ * the mount lists it again for one without (mount.ts), whose folder is on
+ * no disk.
  *
  * Retries. A staged reference is spent by its first promotion, so a
  * registration that is retried after it promoted must not promote again.

@@ -36,7 +36,8 @@ const (
 type RunFileControllerClient interface {
 	// The Files a run's conversation holds (SessionSpec.resources), each with
 	// where the agent finds it under .stigmer/uploads/ and a link to its
-	// bytes, valid for an hour.
+	// bytes, valid for an hour, and the newest File the conversation's agent
+	// saved at each path of its outputs folder.
 	Mount(ctx context.Context, in *MountRunFilesInput, opts ...grpc.CallOption) (*RunFileMounts, error)
 	// One upload link per file the turn saved in .stigmer/outputs/ and
 	// changed since it was last returned, each valid for an hour. The runner
@@ -98,7 +99,8 @@ func (c *runFileControllerClient) RegisterOutputs(ctx context.Context, in *Regis
 type RunFileControllerServer interface {
 	// The Files a run's conversation holds (SessionSpec.resources), each with
 	// where the agent finds it under .stigmer/uploads/ and a link to its
-	// bytes, valid for an hour.
+	// bytes, valid for an hour, and the newest File the conversation's agent
+	// saved at each path of its outputs folder.
 	Mount(context.Context, *MountRunFilesInput) (*RunFileMounts, error)
 	// One upload link per file the turn saved in .stigmer/outputs/ and
 	// changed since it was last returned, each valid for an hour. The runner

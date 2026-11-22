@@ -53,4 +53,53 @@ public interface RunFileMountsOrBuilder extends
    */
   ai.stigmer.agentic.file.v1.FileMountOrBuilder getEntriesOrBuilder(
       int index);
+
+  /**
+   * <pre>
+   * The newest File the conversation's agent saved at each path of its
+   * outputs folder, each with mount_path relative to .stigmer/outputs/.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.file.v1.FileMount outputs = 2 [json_name = "outputs"];</code>
+   */
+  java.util.List<ai.stigmer.agentic.file.v1.FileMount> 
+      getOutputsList();
+  /**
+   * <pre>
+   * The newest File the conversation's agent saved at each path of its
+   * outputs folder, each with mount_path relative to .stigmer/outputs/.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.file.v1.FileMount outputs = 2 [json_name = "outputs"];</code>
+   */
+  ai.stigmer.agentic.file.v1.FileMount getOutputs(int index);
+  /**
+   * <pre>
+   * The newest File the conversation's agent saved at each path of its
+   * outputs folder, each with mount_path relative to .stigmer/outputs/.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.file.v1.FileMount outputs = 2 [json_name = "outputs"];</code>
+   */
+  int getOutputsCount();
+  /**
+   * <pre>
+   * The newest File the conversation's agent saved at each path of its
+   * outputs folder, each with mount_path relative to .stigmer/outputs/.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.file.v1.FileMount outputs = 2 [json_name = "outputs"];</code>
+   */
+  java.util.List<? extends ai.stigmer.agentic.file.v1.FileMountOrBuilder> 
+      getOutputsOrBuilderList();
+  /**
+   * <pre>
+   * The newest File the conversation's agent saved at each path of its
+   * outputs folder, each with mount_path relative to .stigmer/outputs/.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.file.v1.FileMount outputs = 2 [json_name = "outputs"];</code>
+   */
+  ai.stigmer.agentic.file.v1.FileMountOrBuilder getOutputsOrBuilder(
+      int index);
 }

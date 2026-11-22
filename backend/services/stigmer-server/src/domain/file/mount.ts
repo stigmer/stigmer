@@ -17,12 +17,24 @@
  * original's later access says nothing here; who may read a link is the
  * runner that asked.
  *
+ * Beside them, the conversation's outputs: the Files its agent saved in
+ * its outputs folder (outputs.ts), which are not among its resources. A
+ * conversation without a computer keeps no folder on disk, so a later turn
+ * finds what an earlier one saved only here. They are read through the
+ * File list index's session key, every page of it (a conversation holds at
+ * most a few hundred Files), the query itself held to the run's
+ * organization and conversation (the index is exact, store/list-index.ts);
+ * the index's order is newest first, so
+ * the first File seen at an output path is the one answered for it, and
+ * an earlier version of the same path is left out. A File whose bytes went
+ * is left out, as a resource's is.
+ *
  * The service is registered with its outbound half in run-files.ts.
  *
  * Proven by __tests__/mount.test.ts.
  */
 import type { HandlerContext } from "@connectrpc/connect";
-import { create } from "@bufbuild/protobuf";
+import { create, fromBinary } from "@bufbuild/protobuf";
 
 import { FileSchema } from "@stigmer/apis/ai/stigmer/agentic/file/v1/api_pb";
 import { FileMountSchema, RunFileMountsSchema } from "@stigmer/apis/ai/stigmer/agentic/file/v1/run_files_pb";
@@ -46,10 +58,15 @@ import { isRunnerForRun } from "../../runnerauth/runner-for-run.js";
 import { ResourceNotFoundError } from "../../store/interface.js";
 import type { Store } from "../../store/interface.js";
 import { isTerminalExecutionPhase } from "../run/phases.js";
+import type { ListIndexRow } from "../../store/list-index.js";
 import type { FileBlobs } from "./blobs.js";
+import { fileListIndex } from "./list-index.js";
 
 /** The one refusal every caller outside the gate gets, whatever the reason. */
 export const NOT_THE_RUNS_RUNNER_MOUNT_MESSAGE = "only the runner acting for this run may mount its files";
+
+/** How many of a conversation's Files one read of the index takes. */
+const OUTPUTS_PAGE = 200;
 
 export interface FileMountDeps {
   readonly store: Store;
@@ -124,7 +141,56 @@ export async function mountRunFiles(
       }),
     );
   }
-  return create(RunFileMountsSchema, { entries });
+  return create(RunFileMountsSchema, { entries, outputs: await outputMounts(deps, org, sessionId) });
+}
+
+/**
+ * The newest output File at each output path of the conversation (the
+ * header), in the index's order.
+ */
+async function outputMounts(deps: FileMountDeps, org: string, sessionId: string): Promise<FileMount[]> {
+  const seen = new Set<string>();
+  const outputs: FileMount[] = [];
+  let after: ListIndexRow["cursor"] | undefined;
+  for (;;) {
+    let rows: ListIndexRow[];
+    try {
+      rows = await deps.store.queryResources(fileListIndex, {
+        org,
+        anyKey: [{ name: "session", value: sessionId }],
+        limit: OUTPUTS_PAGE,
+        ...(after === undefined ? {} : { after }),
+      });
+    } catch (error) {
+      throw internalError(error, "failed to list the conversation's outputs");
+    }
+    for (const row of rows) {
+      const file = fromBinary(FileSchema, row.data);
+      const outputPath = file.status?.outputPath ?? "";
+      if (outputPath === "" || seen.has(outputPath)) {
+        continue;
+      }
+      seen.add(outputPath);
+      const url = await deps.blobs.mountUrl(row.id);
+      if (url === undefined) {
+        continue;
+      }
+      outputs.push(
+        create(FileMountSchema, {
+          fileId: row.id,
+          mountPath: outputPath,
+          filename: file.spec?.filename ?? "",
+          mimeType: file.spec?.mimeType ?? "",
+          sizeBytes: file.status?.sizeBytes ?? 0n,
+          url,
+        }),
+      );
+    }
+    if (rows.length < OUTPUTS_PAGE) {
+      return outputs;
+    }
+    after = rows[rows.length - 1]!.cursor;
+  }
 }
 
 async function loadRun(store: Store, runId: string): Promise<Run> {

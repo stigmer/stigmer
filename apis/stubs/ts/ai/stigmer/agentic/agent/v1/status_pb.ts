@@ -12,7 +12,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/agent/v1/status.proto.
  */
 export const file_ai_stigmer_agentic_agent_v1_status: GenFile = /*@__PURE__*/
-  fileDesc("CihhaS9zdGlnbWVyL2FnZW50aWMvYWdlbnQvdjEvc3RhdHVzLnByb3RvEhthaS5zdGlnbWVyLmFnZW50aWMuYWdlbnQudjEiZAoLQWdlbnRTdGF0dXMSPwoFYXVkaXQYYyABKAsyMC5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuQXBpUmVzb3VyY2VBdWRpdBIUCgx2ZXJzaW9uX2hhc2gYAyABKAliBnByb3RvMw", [file_ai_stigmer_commons_apiresource_status]);
+  fileDesc("CihhaS9zdGlnbWVyL2FnZW50aWMvYWdlbnQvdjEvc3RhdHVzLnByb3RvEhthaS5zdGlnbWVyLmFnZW50aWMuYWdlbnQudjEioQEKC0FnZW50U3RhdHVzEj8KBWF1ZGl0GGMgASgLMjAuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLkFwaVJlc291cmNlQXVkaXQSFAoMdmVyc2lvbl9oYXNoGAMgASgJEjsKCHdhcm5pbmdzGAQgAygLMikuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50LnYxLkFnZW50V2FybmluZyI8CgxBZ2VudFdhcm5pbmcSDAoEa2luZBgBIAEoCRIPCgdtZXNzYWdlGAIgASgJEg0KBXNraWxsGAMgASgJYgZwcm90bzM", [file_ai_stigmer_commons_apiresource_status]);
 
 /**
  * AgentStatus contains system-managed state for an agent.
@@ -44,6 +44,15 @@ export type AgentStatus = Message<"ai.stigmer.agentic.agent.v1.AgentStatus"> & {
    * @generated from field: string version_hash = 3;
    */
   versionHash: string;
+
+  /**
+   * Warnings the last save recorded: what the agent's skills carry that it
+   * cannot use as configured, such as scripts an agent without a computer
+   * cannot run. A save never fails over one.
+   *
+   * @generated from field: repeated ai.stigmer.agentic.agent.v1.AgentWarning warnings = 4;
+   */
+  warnings: AgentWarning[];
 };
 
 /**
@@ -52,4 +61,40 @@ export type AgentStatus = Message<"ai.stigmer.agentic.agent.v1.AgentStatus"> & {
  */
 export const AgentStatusSchema: GenMessage<AgentStatus> = /*@__PURE__*/
   messageDesc(file_ai_stigmer_agentic_agent_v1_status, 0);
+
+/**
+ * AgentWarning is one thing an agent's save noticed and did not refuse.
+ *
+ * @generated from message ai.stigmer.agentic.agent.v1.AgentWarning
+ */
+export type AgentWarning = Message<"ai.stigmer.agentic.agent.v1.AgentWarning"> & {
+  /**
+   * Stable warning kind, e.g. "skill-scripts".
+   *
+   * @generated from field: string kind = 1;
+   */
+  kind: string;
+
+  /**
+   * The warning as one user-facing sentence.
+   *
+   * @generated from field: string message = 2;
+   */
+  message: string;
+
+  /**
+   * The skill the warning names, as the agent's prompt names it: the
+   * skill's slug, or "<plugin>:<skill>" for a plugin's skill.
+   *
+   * @generated from field: string skill = 3;
+   */
+  skill: string;
+};
+
+/**
+ * Describes the message ai.stigmer.agentic.agent.v1.AgentWarning.
+ * Use `create(AgentWarningSchema)` to create a new message.
+ */
+export const AgentWarningSchema: GenMessage<AgentWarning> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_agentic_agent_v1_status, 1);
 

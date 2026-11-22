@@ -959,10 +959,62 @@
         },
         "description": "Content hash of the agent's current version: the SHA-256 of the\n canonical JSON rendering of the stored AgentSpec (unset and default\n fields omitted, object keys sorted at every depth, enums as numbers).\n\n Every write whose spec differs from every version the agent has had\n records a new version under this hash; a write that reproduces an\n earlier spec points back to that version, and an unchanged write\n records none. The history is read through AgentQueryController's\n listVersions and getVersion.\n\n Empty when the version could not be recorded (the write still\n succeeds).",
         "required": false
+      },
+      {
+        "name": "Warnings",
+        "jsonName": "warnings",
+        "protoField": "warnings",
+        "type": {
+          "kind": "array",
+          "elementType": {
+            "kind": "message",
+            "messageType": "AgentWarning"
+          }
+        },
+        "description": "Warnings the last save recorded: what the agent's skills carry that it\n cannot use as configured, such as scripts an agent without a computer\n cannot run. A save never fails over one.",
+        "required": false
       }
     ]
   },
   "statusNestedTypes": [
+    {
+      "name": "AgentWarning",
+      "description": "AgentWarning is one thing an agent's save noticed and did not refuse.",
+      "protoType": "ai.stigmer.agentic.agent.v1.AgentWarning",
+      "protoFile": "apis/ai/stigmer/agentic/agent/v1/status.proto",
+      "fields": [
+        {
+          "name": "Kind",
+          "jsonName": "kind",
+          "protoField": "kind",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Stable warning kind, e.g. \"skill-scripts\".",
+          "required": false
+        },
+        {
+          "name": "Message",
+          "jsonName": "message",
+          "protoField": "message",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The warning as one user-facing sentence.",
+          "required": false
+        },
+        {
+          "name": "Skill",
+          "jsonName": "skill",
+          "protoField": "skill",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The skill the warning names, as the agent's prompt names it: the\n skill's slug, or \"\u003cplugin\u003e:\u003cskill\u003e\" for a plugin's skill.",
+          "required": false
+        }
+      ]
+    },
     {
       "name": "ApiResourceAudit",
       "description": "ApiResourceAudit contains both spec-level and status-level audit details.",

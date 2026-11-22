@@ -22,4 +22,28 @@ message AgentStatus {
   // Empty when the version could not be recorded (the write still
   // succeeds).
   string version_hash = 3;
+
+  // Warnings the last save recorded: what the agent's skills carry that it
+  // cannot use as configured, such as scripts an agent without a computer
+  // cannot run. A save never fails over one.
+  //
+  // @internal
+  // Computed at every save from the agent's spec and the file indexes of
+  // the skills and plugins it names, after the computer refusals; status,
+  // so it is outside the hashed spec and never moves version_hash. Cleared
+  // for an agent with a computer.
+  repeated AgentWarning warnings = 4;
+}
+
+// AgentWarning is one thing an agent's save noticed and did not refuse.
+message AgentWarning {
+  // Stable warning kind, e.g. "skill-scripts".
+  string kind = 1;
+
+  // The warning as one user-facing sentence.
+  string message = 2;
+
+  // The skill the warning names, as the agent's prompt names it: the
+  // skill's slug, or "<plugin>:<skill>" for a plugin's skill.
+  string skill = 3;
 }

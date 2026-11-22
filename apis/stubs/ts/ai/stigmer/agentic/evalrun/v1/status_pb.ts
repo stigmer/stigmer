@@ -297,8 +297,9 @@ export type EvalRunCase = Message<"ai.stigmer.agentic.evalrun.v1.EvalRunCase"> &
 
   /**
    * Why the case is not run, as in "not run: plugins" for a feature
-   * Stigmer does not run yet, or "not run: scaffold skipped"; empty when
-   * the case runs.
+   * Stigmer does not run yet, "not run: scaffold skipped", or "not run:
+   * needs a computer" for a case with a scaffold on an agent without one;
+   * empty when the case runs.
    *
    * @generated from field: string not_run_reason = 4;
    */

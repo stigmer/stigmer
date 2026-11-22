@@ -24,6 +24,7 @@
 import { create, type Message } from "@bufbuild/protobuf";
 import { Code, ConnectError } from "@connectrpc/connect";
 import { AgentSchema } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb";
+import { AgentStatusSchema } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/status_pb";
 import { SessionSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/api_pb";
 import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiResourceVisibility } from "@stigmer/apis/ai/stigmer/commons/apiresource/enum_pb";
@@ -452,6 +453,19 @@ describe("applyMessage on an organization beside other kinds", () => {
     expect((sent[0] as { metadata?: { org?: string } }).metadata?.org).toBe("");
     expect(outcome.warning).toBeUndefined();
     expect(preview.warning).toBeUndefined();
+  });
+});
+
+describe("applyMessage the save's own warnings", () => {
+  it("prints an agent's status warnings beside the command's own", async () => {
+    const message = "skill 'deploy' has scripts this agent can't run without a computer; it can still read them";
+    const saved = agent(ApiResourceVisibility.visibility_org);
+    saved.status = create(AgentStatusSchema, { warnings: [{ kind: "skill-scripts", message, skill: "deploy" }] });
+    const { handler } = handlerWith({ applyReturns: saved });
+
+    const outcome = await applyMessage(controller, handler, agent(ApiResourceVisibility.api_resource_visibility_unspecified), "acme", false);
+
+    expect(outcome.warning).toBe(message);
   });
 });
 

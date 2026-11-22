@@ -39,7 +39,11 @@ type AgentStatus struct {
 	//
 	// Empty when the version could not be recorded (the write still
 	// succeeds).
-	VersionHash   string `protobuf:"bytes,3,opt,name=version_hash,json=versionHash,proto3" json:"version_hash,omitempty"`
+	VersionHash string `protobuf:"bytes,3,opt,name=version_hash,json=versionHash,proto3" json:"version_hash,omitempty"`
+	// Warnings the last save recorded: what the agent's skills carry that it
+	// cannot use as configured, such as scripts an agent without a computer
+	// cannot run. A save never fails over one.
+	Warnings      []*AgentWarning `protobuf:"bytes,4,rep,name=warnings,proto3" json:"warnings,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -88,14 +92,91 @@ func (x *AgentStatus) GetVersionHash() string {
 	return ""
 }
 
+func (x *AgentStatus) GetWarnings() []*AgentWarning {
+	if x != nil {
+		return x.Warnings
+	}
+	return nil
+}
+
+// AgentWarning is one thing an agent's save noticed and did not refuse.
+type AgentWarning struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Stable warning kind, e.g. "skill-scripts".
+	Kind string `protobuf:"bytes,1,opt,name=kind,proto3" json:"kind,omitempty"`
+	// The warning as one user-facing sentence.
+	Message string `protobuf:"bytes,2,opt,name=message,proto3" json:"message,omitempty"`
+	// The skill the warning names, as the agent's prompt names it: the
+	// skill's slug, or "<plugin>:<skill>" for a plugin's skill.
+	Skill         string `protobuf:"bytes,3,opt,name=skill,proto3" json:"skill,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AgentWarning) Reset() {
+	*x = AgentWarning{}
+	mi := &file_ai_stigmer_agentic_agent_v1_status_proto_msgTypes[1]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AgentWarning) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AgentWarning) ProtoMessage() {}
+
+func (x *AgentWarning) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_agentic_agent_v1_status_proto_msgTypes[1]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AgentWarning.ProtoReflect.Descriptor instead.
+func (*AgentWarning) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_agent_v1_status_proto_rawDescGZIP(), []int{1}
+}
+
+func (x *AgentWarning) GetKind() string {
+	if x != nil {
+		return x.Kind
+	}
+	return ""
+}
+
+func (x *AgentWarning) GetMessage() string {
+	if x != nil {
+		return x.Message
+	}
+	return ""
+}
+
+func (x *AgentWarning) GetSkill() string {
+	if x != nil {
+		return x.Skill
+	}
+	return ""
+}
+
 var File_ai_stigmer_agentic_agent_v1_status_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_agent_v1_status_proto_rawDesc = "" +
 	"\n" +
-	"(ai/stigmer/agentic/agent/v1/status.proto\x12\x1bai.stigmer.agentic.agent.v1\x1a+ai/stigmer/commons/apiresource/status.proto\"x\n" +
+	"(ai/stigmer/agentic/agent/v1/status.proto\x12\x1bai.stigmer.agentic.agent.v1\x1a+ai/stigmer/commons/apiresource/status.proto\"\xbf\x01\n" +
 	"\vAgentStatus\x12F\n" +
 	"\x05audit\x18c \x01(\v20.ai.stigmer.commons.apiresource.ApiResourceAuditR\x05audit\x12!\n" +
-	"\fversion_hash\x18\x03 \x01(\tR\vversionHashB\xfc\x01\n" +
+	"\fversion_hash\x18\x03 \x01(\tR\vversionHash\x12E\n" +
+	"\bwarnings\x18\x04 \x03(\v2).ai.stigmer.agentic.agent.v1.AgentWarningR\bwarnings\"R\n" +
+	"\fAgentWarning\x12\x12\n" +
+	"\x04kind\x18\x01 \x01(\tR\x04kind\x12\x18\n" +
+	"\amessage\x18\x02 \x01(\tR\amessage\x12\x14\n" +
+	"\x05skill\x18\x03 \x01(\tR\x05skillB\xfc\x01\n" +
 	"\x1fcom.ai.stigmer.agentic.agent.v1B\vStatusProtoP\x01Z;go.stigmer.ai/sdk/proto/ai/stigmer/agentic/agent/v1;agentv1\xa2\x02\x04ASAA\xaa\x02\x1bAi.Stigmer.Agentic.Agent.V1\xca\x02\x1bAi\\Stigmer\\Agentic\\Agent\\V1\xe2\x02'Ai\\Stigmer\\Agentic\\Agent\\V1\\GPBMetadata\xea\x02\x1fAi::Stigmer::Agentic::Agent::V1b\x06proto3"
 
 var (
@@ -110,18 +191,20 @@ func file_ai_stigmer_agentic_agent_v1_status_proto_rawDescGZIP() []byte {
 	return file_ai_stigmer_agentic_agent_v1_status_proto_rawDescData
 }
 
-var file_ai_stigmer_agentic_agent_v1_status_proto_msgTypes = make([]protoimpl.MessageInfo, 1)
+var file_ai_stigmer_agentic_agent_v1_status_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
 var file_ai_stigmer_agentic_agent_v1_status_proto_goTypes = []any{
 	(*AgentStatus)(nil),                  // 0: ai.stigmer.agentic.agent.v1.AgentStatus
-	(*apiresource.ApiResourceAudit)(nil), // 1: ai.stigmer.commons.apiresource.ApiResourceAudit
+	(*AgentWarning)(nil),                 // 1: ai.stigmer.agentic.agent.v1.AgentWarning
+	(*apiresource.ApiResourceAudit)(nil), // 2: ai.stigmer.commons.apiresource.ApiResourceAudit
 }
 var file_ai_stigmer_agentic_agent_v1_status_proto_depIdxs = []int32{
-	1, // 0: ai.stigmer.agentic.agent.v1.AgentStatus.audit:type_name -> ai.stigmer.commons.apiresource.ApiResourceAudit
-	1, // [1:1] is the sub-list for method output_type
-	1, // [1:1] is the sub-list for method input_type
-	1, // [1:1] is the sub-list for extension type_name
-	1, // [1:1] is the sub-list for extension extendee
-	0, // [0:1] is the sub-list for field type_name
+	2, // 0: ai.stigmer.agentic.agent.v1.AgentStatus.audit:type_name -> ai.stigmer.commons.apiresource.ApiResourceAudit
+	1, // 1: ai.stigmer.agentic.agent.v1.AgentStatus.warnings:type_name -> ai.stigmer.agentic.agent.v1.AgentWarning
+	2, // [2:2] is the sub-list for method output_type
+	2, // [2:2] is the sub-list for method input_type
+	2, // [2:2] is the sub-list for extension type_name
+	2, // [2:2] is the sub-list for extension extendee
+	0, // [0:2] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_agentic_agent_v1_status_proto_init() }
@@ -135,7 +218,7 @@ func file_ai_stigmer_agentic_agent_v1_status_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ai_stigmer_agentic_agent_v1_status_proto_rawDesc), len(file_ai_stigmer_agentic_agent_v1_status_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   1,
+			NumMessages:   2,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

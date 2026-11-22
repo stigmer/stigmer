@@ -14,7 +14,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/file/v1/run_files.proto.
  */
 export const file_ai_stigmer_agentic_file_v1_run_files: GenFile = /*@__PURE__*/
-  fileDesc("CiphaS9zdGlnbWVyL2FnZW50aWMvZmlsZS92MS9ydW5fZmlsZXMucHJvdG8SGmFpLnN0aWdtZXIuYWdlbnRpYy5maWxlLnYxIi0KEk1vdW50UnVuRmlsZXNJbnB1dBIXCgZydW5faWQYASABKAlCB7pIBHICEAEiRwoNUnVuRmlsZU1vdW50cxI2CgdlbnRyaWVzGAEgAygLMiUuYWkuc3RpZ21lci5hZ2VudGljLmZpbGUudjEuRmlsZU1vdW50InYKCUZpbGVNb3VudBIPCgdmaWxlX2lkGAEgASgJEhIKCm1vdW50X3BhdGgYAiABKAkSEAoIZmlsZW5hbWUYAyABKAkSEQoJbWltZV90eXBlGAQgASgJEhIKCnNpemVfYnl0ZXMYBSABKAMSCwoDdXJsGAYgASgJIoIBChhDcmVhdGVPdXRwdXRVcGxvYWRzSW5wdXQSFwoGcnVuX2lkGAEgASgJQge6SARyAhABEk0KB2VudHJpZXMYAiADKAsyLy5haS5zdGlnbWVyLmFnZW50aWMuZmlsZS52MS5PdXRwdXRVcGxvYWRSZXF1ZXN0Qgu6SAiSAQUIARD0AyJTChNPdXRwdXRVcGxvYWRSZXF1ZXN0Eh8KC291dHB1dF9wYXRoGAEgASgJQgq6SAdyBRABGIAIEhsKCnNpemVfYnl0ZXMYAiABKANCB7pIBCICIAAiSgoNT3V0cHV0VXBsb2FkcxI5CgdlbnRyaWVzGAEgAygLMiguYWkuc3RpZ21lci5hZ2VudGljLmZpbGUudjEuT3V0cHV0VXBsb2FkIlkKDE91dHB1dFVwbG9hZBITCgtvdXRwdXRfcGF0aBgBIAEoCRISCgp1cGxvYWRfcmVmGAIgASgJEgsKA3VybBgDIAEoCRITCgt0dGxfc2Vjb25kcxgEIAEoBSJ7ChRSZWdpc3Rlck91dHB1dHNJbnB1dBIXCgZydW5faWQYASABKAlCB7pIBHICEAESSgoHZW50cmllcxgCIAMoCzIsLmFpLnN0aWdtZXIuYWdlbnRpYy5maWxlLnYxLk91dHB1dFRvUmVnaXN0ZXJCC7pICJIBBQgBEPQDIn8KEE91dHB1dFRvUmVnaXN0ZXISHwoLb3V0cHV0X3BhdGgYASABKAlCCrpIB3IFEAEYgAgSGwoKdXBsb2FkX3JlZhgCIAEoCUIHukgEcgIQARItCg5jb250ZW50X3NoYTI1NhgDIAEoCUIVukgSchAyDl5bMC05YS1mXXs2NH0kIkQKEVJlZ2lzdGVyZWRPdXRwdXRzEi8KBWZpbGVzGAEgAygLMiAuYWkuc3RpZ21lci5hZ2VudGljLmZpbGUudjEuRmlsZTKCAwoRUnVuRmlsZUNvbnRyb2xsZXISbAoFbW91bnQSLi5haS5zdGlnbWVyLmFnZW50aWMuZmlsZS52MS5Nb3VudFJ1bkZpbGVzSW5wdXQaKS5haS5zdGlnbWVyLmFnZW50aWMuZmlsZS52MS5SdW5GaWxlTW91bnRzIgjQuBgB2LgYARKAAQoTY3JlYXRlT3V0cHV0VXBsb2FkcxI0LmFpLnN0aWdtZXIuYWdlbnRpYy5maWxlLnYxLkNyZWF0ZU91dHB1dFVwbG9hZHNJbnB1dBopLmFpLnN0aWdtZXIuYWdlbnRpYy5maWxlLnYxLk91dHB1dFVwbG9hZHMiCNC4GAHYuBgBEnwKD3JlZ2lzdGVyT3V0cHV0cxIwLmFpLnN0aWdtZXIuYWdlbnRpYy5maWxlLnYxLlJlZ2lzdGVyT3V0cHV0c0lucHV0Gi0uYWkuc3RpZ21lci5hZ2VudGljLmZpbGUudjEuUmVnaXN0ZXJlZE91dHB1dHMiCNC4GAHYuBgBYgZwcm90bzM", [file_ai_stigmer_agentic_file_v1_api, file_ai_stigmer_commons_rpc_method_options, file_buf_validate_validate]);
+  fileDesc("CiphaS9zdGlnbWVyL2FnZW50aWMvZmlsZS92MS9ydW5fZmlsZXMucHJvdG8SGmFpLnN0aWdtZXIuYWdlbnRpYy5maWxlLnYxIi0KEk1vdW50UnVuRmlsZXNJbnB1dBIXCgZydW5faWQYASABKAlCB7pIBHICEAEifwoNUnVuRmlsZU1vdW50cxI2CgdlbnRyaWVzGAEgAygLMiUuYWkuc3RpZ21lci5hZ2VudGljLmZpbGUudjEuRmlsZU1vdW50EjYKB291dHB1dHMYAiADKAsyJS5haS5zdGlnbWVyLmFnZW50aWMuZmlsZS52MS5GaWxlTW91bnQidgoJRmlsZU1vdW50Eg8KB2ZpbGVfaWQYASABKAkSEgoKbW91bnRfcGF0aBgCIAEoCRIQCghmaWxlbmFtZRgDIAEoCRIRCgltaW1lX3R5cGUYBCABKAkSEgoKc2l6ZV9ieXRlcxgFIAEoAxILCgN1cmwYBiABKAkiggEKGENyZWF0ZU91dHB1dFVwbG9hZHNJbnB1dBIXCgZydW5faWQYASABKAlCB7pIBHICEAESTQoHZW50cmllcxgCIAMoCzIvLmFpLnN0aWdtZXIuYWdlbnRpYy5maWxlLnYxLk91dHB1dFVwbG9hZFJlcXVlc3RCC7pICJIBBQgBEPQDIlMKE091dHB1dFVwbG9hZFJlcXVlc3QSHwoLb3V0cHV0X3BhdGgYASABKAlCCrpIB3IFEAEYgAgSGwoKc2l6ZV9ieXRlcxgCIAEoA0IHukgEIgIgACJKCg1PdXRwdXRVcGxvYWRzEjkKB2VudHJpZXMYASADKAsyKC5haS5zdGlnbWVyLmFnZW50aWMuZmlsZS52MS5PdXRwdXRVcGxvYWQiWQoMT3V0cHV0VXBsb2FkEhMKC291dHB1dF9wYXRoGAEgASgJEhIKCnVwbG9hZF9yZWYYAiABKAkSCwoDdXJsGAMgASgJEhMKC3R0bF9zZWNvbmRzGAQgASgFInsKFFJlZ2lzdGVyT3V0cHV0c0lucHV0EhcKBnJ1bl9pZBgBIAEoCUIHukgEcgIQARJKCgdlbnRyaWVzGAIgAygLMiwuYWkuc3RpZ21lci5hZ2VudGljLmZpbGUudjEuT3V0cHV0VG9SZWdpc3RlckILukgIkgEFCAEQ9AMifwoQT3V0cHV0VG9SZWdpc3RlchIfCgtvdXRwdXRfcGF0aBgBIAEoCUIKukgHcgUQARiACBIbCgp1cGxvYWRfcmVmGAIgASgJQge6SARyAhABEi0KDmNvbnRlbnRfc2hhMjU2GAMgASgJQhW6SBJyEDIOXlswLTlhLWZdezY0fSQiRAoRUmVnaXN0ZXJlZE91dHB1dHMSLwoFZmlsZXMYASADKAsyIC5haS5zdGlnbWVyLmFnZW50aWMuZmlsZS52MS5GaWxlMoIDChFSdW5GaWxlQ29udHJvbGxlchJsCgVtb3VudBIuLmFpLnN0aWdtZXIuYWdlbnRpYy5maWxlLnYxLk1vdW50UnVuRmlsZXNJbnB1dBopLmFpLnN0aWdtZXIuYWdlbnRpYy5maWxlLnYxLlJ1bkZpbGVNb3VudHMiCNC4GAHYuBgBEoABChNjcmVhdGVPdXRwdXRVcGxvYWRzEjQuYWkuc3RpZ21lci5hZ2VudGljLmZpbGUudjEuQ3JlYXRlT3V0cHV0VXBsb2Fkc0lucHV0GikuYWkuc3RpZ21lci5hZ2VudGljLmZpbGUudjEuT3V0cHV0VXBsb2FkcyII0LgYAdi4GAESfAoPcmVnaXN0ZXJPdXRwdXRzEjAuYWkuc3RpZ21lci5hZ2VudGljLmZpbGUudjEuUmVnaXN0ZXJPdXRwdXRzSW5wdXQaLS5haS5zdGlnbWVyLmFnZW50aWMuZmlsZS52MS5SZWdpc3RlcmVkT3V0cHV0cyII0LgYAdi4GAFiBnByb3RvMw", [file_ai_stigmer_agentic_file_v1_api, file_ai_stigmer_commons_rpc_method_options, file_buf_validate_validate]);
 
 /**
  * Which run's Files to mount.
@@ -49,6 +49,14 @@ export type RunFileMounts = Message<"ai.stigmer.agentic.file.v1.RunFileMounts"> 
    * @generated from field: repeated ai.stigmer.agentic.file.v1.FileMount entries = 1;
    */
   entries: FileMount[];
+
+  /**
+   * The newest File the conversation's agent saved at each path of its
+   * outputs folder, each with mount_path relative to .stigmer/outputs/.
+   *
+   * @generated from field: repeated ai.stigmer.agentic.file.v1.FileMount outputs = 2;
+   */
+  outputs: FileMount[];
 };
 
 /**
@@ -59,7 +67,8 @@ export const RunFileMountsSchema: GenMessage<RunFileMounts> = /*@__PURE__*/
   messageDesc(file_ai_stigmer_agentic_file_v1_run_files, 1);
 
 /**
- * FileMount is one File to place under .stigmer/uploads/.
+ * FileMount is one File to place under .stigmer/uploads/, or one output
+ * to show under .stigmer/outputs/.
  *
  * @generated from message ai.stigmer.agentic.file.v1.FileMount
  */
@@ -72,7 +81,8 @@ export type FileMount = Message<"ai.stigmer.agentic.file.v1.FileMount"> & {
   fileId: string;
 
   /**
-   * Where the agent finds it, relative to .stigmer/uploads/.
+   * Where the agent finds it, relative to .stigmer/uploads/ (an output:
+   * relative to .stigmer/outputs/).
    *
    * @generated from field: string mount_path = 2;
    */
@@ -331,7 +341,8 @@ export const RunFileController: GenService<{
   /**
    * The Files a run's conversation holds (SessionSpec.resources), each with
    * where the agent finds it under .stigmer/uploads/ and a link to its
-   * bytes, valid for an hour.
+   * bytes, valid for an hour, and the newest File the conversation's agent
+   * saved at each path of its outputs folder.
    *
    * @generated from rpc ai.stigmer.agentic.file.v1.RunFileController.mount
    */

@@ -14,7 +14,12 @@
  *   - a case that needs a feature Stigmer does not run yet is planned with
  *     `not run: <feature>` and no cells, never run degraded; so is a case
  *     with a scaffold script when the eval skips scaffolds (`not run:
- *     scaffold skipped`, Claude Code's `--no-scaffold`);
+ *     scaffold skipped`, Claude Code's `--no-scaffold`), and one with a
+ *     scaffold script in an eval run of an agent without a computer (`not
+ *     run: needs a computer`): a scaffold is a shell script that builds the
+ *     try's starting folder, and such an agent's conversations have neither
+ *     a shell nor a folder. Its reference folders need neither, so a case
+ *     without a scaffold runs;
  *   - the targets are the spec's; with none, an eval run about an agent's
  *     one target is the agent as it runs (`agentTarget`: its engine, its
  *     model as the label, and no model on the run, so its own tier and
@@ -89,6 +94,8 @@ export type MatrixSpec = Pick<EvalRunSpec, "caseGlob" | "caseTags" | "runs" | "s
 export interface AgentTarget {
   readonly harness: Harness;
   readonly modelName: string;
+  /** Whether the agent's conversations have a computer: without one, a case with a scaffold does not run. */
+  readonly computer: boolean;
 }
 
 /** One case the filter kept, with its targets. */
@@ -140,6 +147,9 @@ export function unsupportedFeatureReason(feature: string): string {
 
 /** The not-run copy for a case with a scaffold in an eval that skips scaffolds. */
 export const SCAFFOLD_SKIPPED_REASON = "not run: scaffold skipped";
+
+/** The not-run copy for a case with a scaffold in an eval run of an agent without a computer. */
+export const NEEDS_A_COMPUTER_REASON = "not run: needs a computer";
 
 /** The not-run copy for a target whose harness cannot run one of the case's features. */
 export function engineUnsupportedReason(engine: string, feature: string): string {
@@ -211,6 +221,10 @@ function walkMatrix(
     }
     if (spec.skipScaffold && evalCase.context.scaffoldScript !== undefined) {
       cases.push({ evalCase, notRunReason: SCAFFOLD_SKIPPED_REASON, targets: [] });
+      continue;
+    }
+    if (agentTarget?.computer === false && evalCase.context.scaffoldScript !== undefined) {
+      cases.push({ evalCase, notRunReason: NEEDS_A_COMPUTER_REASON, targets: [] });
       continue;
     }
     const targets = targetsOf(evalCase, spec, catalog, runs, agentTarget);
