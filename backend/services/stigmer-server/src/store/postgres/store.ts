@@ -3,7 +3,9 @@
  * method-for-method against sqlite/store.ts so the two drivers
  * stay contract-twins: same typed errors, same full-scan find* semantics
  * (shared scanners in ../proto-fields.ts), same ledger string formats.
- * Selected at boot when DATABASE_URL is set (boot/config.ts precedence).
+ * Selected at boot when DATABASE_URL is set (boot/config.ts precedence);
+ * opening waits a bounded time for a database that does not answer yet
+ * (pool.ts, `firstConnection`).
  *
  * Concurrency model (a deliberate semantic widening): atomicity is
  * per-resource, not global. updateResource runs
@@ -94,7 +96,7 @@ import type {
 } from "../list-index.js";
 import { provenReads } from "./list-index-read.js";
 import { NOOP_STORE_LOGGER } from "../logger.js";
-import { newBoundedPool } from "./pool.js";
+import { firstConnection, newBoundedPool } from "./pool.js";
 import type { BoundedPool, PoolStats } from "./pool.js";
 import {
   QueuedSessionMessageGoneError,
@@ -313,6 +315,8 @@ type RowJudgement =
 export interface PostgresStoreOpenOptions extends StoreOpenOptions {
   readonly poolMax?: number;
   readonly poolCheckoutTimeoutMs?: number;
+  /** How long the first connection may keep failing (pool.ts, DEFAULT_FIRST_CONNECTION_WAIT_MS); a test shortens it. */
+  readonly firstConnectionWaitMs?: number;
 }
 
 export class PostgresStore implements Store {
@@ -400,7 +404,18 @@ export class PostgresStore implements Store {
 
     // Migrations run on a dedicated client: pg_advisory_lock is
     // session-scoped, so lock and unlock must ride the same connection.
-    const client = await pool.connect();
+    // It is the boot's first connection, so it waits a bounded time for a
+    // database that does not answer yet (pool.ts says why).
+    let client: PoolClient;
+    try {
+      client = await firstConnection(pool, {
+        waitMs: options.firstConnectionWaitMs,
+        logger,
+      });
+    } catch (error) {
+      await pool.end();
+      throw error;
+    }
     try {
       await runMigrations(client, { logger });
     } catch (error) {
