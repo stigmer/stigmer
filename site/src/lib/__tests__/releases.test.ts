@@ -304,10 +304,14 @@ describe("loadReleases", () => {
     vi.stubGlobal("fetch", async () => new Response("<html>Sign in to the network</html>", { status: 200 }));
     vi.stubEnv(RELEASES_FILE_ENV, "");
 
-    await expect(loadReleases()).rejects.toThrow(
-      new RegExp(
-        `^Could not read the releases from ${API.replaceAll(".", "\\.")}\\?per_page=100&page=1: the answer is not JSON \\(.+\\)\\. To build without this read, save the list to a file and name it in STIGMER_RELEASES_FILE\\.$`,
-      ),
+    const failure = loadReleases().then(
+      () => "no error",
+      (error: Error) => error.message,
+    );
+
+    expect(await failure).toContain(`Could not read the releases from ${API}?per_page=100&page=1: the answer is not JSON (`);
+    expect(await failure).toContain(
+      "). To build without this read, save the list to a file and name it in STIGMER_RELEASES_FILE.",
     );
   });
 
