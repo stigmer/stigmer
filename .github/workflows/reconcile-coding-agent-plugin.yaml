@@ -189,13 +189,13 @@ jobs:
       # adhoc-packages is waived here). Pinned to exact versions, the ones
       # whose plugin commands were measured; raise them by hand.
       - name: Install Claude Code and Codex
-        run: npm install -g --registry=https://registry.npmjs.org/ @anthropic-ai/claude-code@2.1.325 @openai/codex@0.161.0 # zizmor: ignore[adhoc-packages]
+        run: npm install -g --registry=https://registry.npmjs.org/ @anthropic-ai/claude-code@2.1.330 @openai/codex@0.161.0 # zizmor: ignore[adhoc-packages]
 
       - name: Install the plugin from stigmer/coding-agent-plugin
         env:
           VERSION: ${{ needs.reconcile.outputs.version }}
         run: |
-          echo "### stigmer/coding-agent-plugin at ${VERSION}, installed in Claude Code 2.1.325 and Codex 0.161.0" >> "$GITHUB_STEP_SUMMARY"
+          echo "### stigmer/coding-agent-plugin at ${VERSION}, installed in Claude Code 2.1.330 and Codex 0.161.0" >> "$GITHUB_STEP_SUMMARY"
           node test/install/coding-agent-plugin-install.mjs --version="$VERSION" | tee -a "$GITHUB_STEP_SUMMARY"
 
   # Scheduled and release runs are unattended; manual dispatches are watched.

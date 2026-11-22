@@ -3,15 +3,19 @@
 /**
  * Installs Stigmer's plugin for coding agents the way a person does, from its
  * public repository, in Claude Code and in Codex, and fails unless each tool
- * reports the plugin at the expected version. No model, no key and no
- * sign-in: only the tools' own plugin commands.
+ * reports the plugin at the expected version. Before installing, Claude
+ * Code's validator reads the tree with `--strict`, as Anthropic's plugin
+ * directory starts from it: a warning fails, not only an error. No model, no
+ * key and no sign-in: only the tools' own plugin commands.
  *
  * The reconcile lane runs it after every reconcile of stigmer/coding-agent-plugin
  * (.github/workflows/reconcile-coding-agent-plugin.yaml), on a release and
  * daily, so a tool that stops accepting the plugin's format, or a repository
  * that stops carrying the release, turns the lane red before a person meets
  * it. Cursor installs a plugin only by a folder copy and a window reload, so
- * it has no step here.
+ * it has no step here: its command line installs through Cursor's own script,
+ * not from npm at a pinned version, and Cursor's Marketplace reviews every
+ * update by hand before it reaches a person.
  *
  *   node test/install/coding-agent-plugin-install.mjs --version=<v> [--source=<owner/repo | git URL | path>]
  *
@@ -86,15 +90,17 @@ export function checkInstalls({ source, version }) {
     mkdirSync(env.CODEX_HOME);
     run("git", ["init", "-q"], { cwd: project, env });
 
-    // Claude Code validates the tree a person's install reads, so a manifest
-    // it would refuse fails here by name, then installs as the docs say.
+    // Claude Code validates the tree a person's install reads, warnings
+    // included (an unknown field, a listing image that is not there), so a
+    // manifest the directory would hold fails here by name; then it installs
+    // as the docs say.
     let tree = localSource(source);
     if (tree === undefined) {
       tree = join(scratch, "clone");
       const url = /^[\w.-]+\/[\w.-]+$/.test(source) ? `https://github.com/${source}` : source;
       run("git", ["clone", "-q", "--depth", "1", url, tree], { cwd: scratch, env });
     }
-    run("claude", ["plugin", "validate", tree], { cwd: project, env });
+    run("claude", ["plugin", "validate", "--strict", tree], { cwd: project, env });
     run("claude", ["plugin", "install", "stigmer", "--marketplace", localSource(source) ?? source, "--scope", "project"], { cwd: project, env });
     const claude = claudeInstalledVersion(run("claude", ["plugin", "list", "--json"], { cwd: project, env }));
 

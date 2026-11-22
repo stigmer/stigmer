@@ -54,15 +54,26 @@ one is for the coding agent on a person's laptop.
   first, a service account's key saved to a file and never shown.
 - `plugin/.mcp.json`: the bundled `stigmer mcp-server`, for making, running and
   reading agents once setup is done.
-- `plugin/hooks/`: the guard. `hooks.json` is Claude Code's: a `PreToolUse`
-  hook (`guard.mjs`, deciding in `decide.mjs`) that asks the person before a
-  destructive tool, before answering a run's approval with allow, and before a
-  `stigmer` command forced past its own question, even after they allowed the
-  plugin's tools. Codex and Cursor each load `hooks/hooks.json` when their
-  manifest names no hooks file, and would run Claude Code's hook wrongly, so
-  their manifests name an empty file each (`codex-hooks.json`,
-  `cursor-hooks.json`). Codex asks before the tools from their marks
-  (`mcp-server/src/domains/toolmarks.ts`).
+- `plugin/hooks/`: the guard. It asks the person before a destructive tool,
+  before answering a run's approval with allow, and before a `stigmer` command
+  forced past its own question, even after they allowed the plugin's tools.
+  `decide.mjs` holds the one decision (`reasonFor`) and each tool's side:
+  - `hooks.json` is Claude Code's: a `PreToolUse` hook (`guard.mjs`, through
+    `decide`);
+  - `cursor-hooks.json` is Cursor's: `beforeShellExecution` alone
+    (`cursor-guard.mjs`, through `decideCursor`), the one event on which Cursor
+    turns an `ask` into a prompt. Its MCP executor acts on a
+    `beforeMCPExecution` answer only when it is `deny`, and any MCP hook makes it
+    refuse every server's call that carries a file path, so the plugin hooks no
+    MCP call there and Cursor's own tool approval asks before the tool server's
+    tools. Both entries fail open. A Cursor run that allows every command
+    (`agent -p --force`) passes over an ask, as the person chose;
+  - Codex's hooks cannot ask, so `codex-hooks.json` is empty and Codex asks
+    before the tools from their marks (`mcp-server/src/domains/toolmarks.ts`).
+
+  Each tool would load `hooks/hooks.json` when its manifest names no hooks
+  file, and would run Claude Code's hook wrongly, so Codex's and Cursor's
+  manifests each name their own file.
 - The manifests and marketplace files of each tool, one plugin named `stigmer`
   at the folder's root: `.claude-plugin/` (Claude Code), `.cursor-plugin/`
   (Cursor), `.codex-plugin/plugin.json` and `.agents/plugins/marketplace.json`
@@ -143,12 +154,11 @@ the person's words, and `graders/`:
   opposite, denies it or warns against it does not do it:", then names the
   wrong claim exactly. A line that is a judgement ("runs Claude Managed
   Agents down", "a price other than these") says in its point what does not
-  count ("saying plainly what it lacks", "leaving a price out"). Cases whose
-  job has not been re-probed since still open with the older "PASS unless
-  the answer does this:"; a job moves when its cases are next scored, after
-  the same probe: its misgraded answers and a wrong answer for each line,
-  through `claude plugin eval` on a scratch plugin whose case repeats a
-  given answer word for word;
+  count ("saying plainly what it lacks", "leaving a price out"). The question
+  was probed once (misgraded answers and a wrong answer for each line,
+  through `claude plugin eval` on a scratch plugin whose case repeats a given
+  answer word for word); every job then moved to it, each line re-read
+  against the docs and the job scored by the bank;
 - `cites-the-page.md`: the answer links a page that answers it, as published
   (`stigmer\.ai/docs/<page>`, or several as `stigmer\.ai/docs/(<page>|<page>)`;
   a link to the docs' source on GitHub doesn't count). The list names every
@@ -165,7 +175,10 @@ the person's words, and `graders/`:
   when the agent asks the person first.
 
 `make bank-coding-agent` (`test/install/coding-agent-bank.mjs`) runs the bank
-in Claude Code, with the plugin and without it, against a hermetic local
+in Claude Code, with the plugin and without it, on the plugin as a release
+publishes it (the CLI's pack carries the package, and the plugin is copied
+from the stage's own `node_modules/@stigmer/coding-agent-plugin/plugin/`,
+stamped with the pack's version), against a hermetic local
 Stigmer seeded with `evals/_fixture/` (an agent with a finished run, one whose
 runs fail, a skill), its runner on the fake model, and prints the score per
 job. An acting try starts in a set-up person's project: the fixture agents'
@@ -176,7 +189,17 @@ and the command exits non-zero, so such a run is never taken as a score. It
 calls a real
 model on your own Claude Code sign-in, so it is by hand, in no lane;
 `BANK_ARGS` narrows it (`--tag=<job>`, `--case=<glob>`, `--runs=<n>`) and
-bounds it (`--max-cost-usd`, default $60 API-equivalent).
+bounds it (`--max-cost-usd`, default $60 API-equivalent). When passing a
+`{a,b}` glob through `make`, quote it or call the script directly: the shell
+expands an unquoted brace into separate `--case` arguments and only the last
+is kept.
+
+The bank is proven in one coding agent, Claude Code. Codex and Cursor read the
+same skills, tool server and docs, so an answer proven there carries over; what
+differs between the tools is how each loads the plugin (its manifest, its hooks
+file), and that is held by this package's unit tests, not by a bank run in each
+tool. A problem a person reports in Codex or Cursor is fixed when it is
+reported.
 
 To add a case: write the question in the person's own words under its job's
 folder, read the docs page that answers it, and write the rubric from that

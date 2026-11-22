@@ -1,6 +1,15 @@
-// What the plugin's Claude Code guard (guard.mjs, a PreToolUse hook) decides
-// about one tool call: ask the person first, or say nothing and let Claude
-// Code's own permissions decide.
+// What the plugin's guard decides about one call: ask the person first, or
+// say nothing and let the coding agent's own permissions decide. The
+// decision is the tool's own (reasonFor); each coding agent's side reads its
+// hook input and writes its answer: decide() for Claude Code's PreToolUse
+// hook (guard.mjs), decideCursor() for Cursor's beforeShellExecution hook
+// (cursor-guard.mjs). Cursor turns a shell hook's `ask` into a prompt, but
+// acts on a beforeMCPExecution answer only when it is `deny`, and any MCP
+// hook makes it refuse every server's tool call that carries a file path
+// (read in cursor-agent 2026.11.19's bundled executor), so the plugin hooks
+// no MCP call there: Cursor's own tool approval asks before the tool
+// server's tools. Codex's hooks cannot ask, so Codex asks from the tool
+// server's own marks.
 //
 // It asks before an act that can't be undone, or that is the person's to
 // give, even when they once chose "always allow" for the plugin's tools:
@@ -58,8 +67,20 @@ const VALUE_GLOBALS = new Set(["--org", "--api-key"]);
 const AGENT_LINE = "If the person hasn't approved exactly this in the conversation, stop and ask them first.";
 
 /**
- * The hook's answer to one PreToolUse input: an `ask` with its reason, or
- * `null` to say nothing. Never throws.
+ * Why to ask before one call, whichever coding agent makes it, or null:
+ * `{ kind: "tool", name, args }` for a tool of this plugin's server (`name`
+ * bare, as the server names it), `{ kind: "shell", command }` for a shell
+ * line. Throws only on hostile input; each side catches.
+ */
+export function reasonFor(call) {
+  if (call.kind === "shell") return shellReason(call.command);
+  if (call.kind === "tool") return toolReason(call.name, call.args);
+  return null;
+}
+
+/**
+ * Claude Code's side: the answer to one PreToolUse input, an `ask` with its
+ * reason, or `null` to say nothing. Never throws.
  */
 export function decide(input) {
   try {
@@ -68,14 +89,31 @@ export function decide(input) {
     const args = input.tool_input !== null && typeof input.tool_input === "object" ? input.tool_input : {};
     if (tool === "Bash") {
       const command = typeof args.command === "string" ? args.command : "";
-      const reason = shellReason(command);
+      const reason = reasonFor({ kind: "shell", command });
       return reason === null ? null : ask(reason);
     }
     if (!tool.startsWith(TOOL_PREFIX)) return null;
-    const reason = toolReason(tool.slice(TOOL_PREFIX.length), args);
+    const reason = reasonFor({ kind: "tool", name: tool.slice(TOOL_PREFIX.length), args });
     return reason === null ? null : ask(reason);
   } catch {
     return null;
+  }
+}
+
+/**
+ * Cursor's side: the answer to one beforeShellExecution input, `{
+ * permission: "ask", user_message, agent_message }`, or `{}` to say
+ * nothing. Any other event says nothing. Never throws. Cursor asks the
+ * person in its window; a run that allows every command (`--force`) passes
+ * over an ask, which is the person's own choice.
+ */
+export function decideCursor(input) {
+  try {
+    if (input === null || typeof input !== "object" || input.hook_event_name !== "beforeShellExecution") return {};
+    const reason = reasonFor({ kind: "shell", command: typeof input.command === "string" ? input.command : "" });
+    return reason === null ? {} : { permission: "ask", user_message: reason, agent_message: `${reason} ${AGENT_LINE}` };
+  } catch {
+    return {};
   }
 }
 

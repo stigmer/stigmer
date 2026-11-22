@@ -28,9 +28,8 @@
 //     a model of its own"), so the fail-if question says an answer that
 //     says the opposite, denies it or warns against it does not do it;
 //     probed on five such answers and five wrong ones, it graded all ten
-//     right. A case's fail-if lines all ask one question; the older one is
-//     still read for jobs whose cases have not been re-probed under the new
-//     one, and the jobs that have may not go back;
+//     right. Every case's fail-if lines ask that question: each job moved to
+//     it, setup last, its lines re-read against the docs, and none may go back;
 //   - a case cites the published page (`stigmer.ai/docs/<page>`), never a
 //     bare `docs/<page>` that a link to the docs' source on GitHub would
 //     also match, and every page it cites exists, by the site's own URL rule
@@ -71,13 +70,8 @@ const CITE_PATTERN = /^stigmer\\\.ai\/docs\/(?:\(([a-z0-9\-/]+(?:\|[a-z0-9\-/]+)
 const MUST_QUESTION = "PASS if the answer makes this point, in substance (in its own words):";
 /** The question every fail-if grader asks the judge, before its one point: what fails, and that its denial does not. */
 const FAIL_IF_QUESTION = "PASS unless the answer does this; an answer that says the opposite, denies it or warns against it does not do it:";
-/** The fail-if question before the denial rule, read for cases not yet re-probed under it. */
+/** The fail-if question before the denial rule, which every job has been re-probed out of; no grader asks it. */
 const FAIL_IF_QUESTION_BEFORE = "PASS unless the answer does this:";
-/** The cases re-probed under the denial rule: these jobs' cases, and these cases by folder. */
-const REPROBED: { readonly jobs: readonly string[]; readonly cases: readonly string[] } = {
-  jobs: ["deciding", "stuck", "run-fix", "quality", "integrate", "design", "reach", "own-server", "admin"],
-  cases: [],
-};
 const MIN_MUST = 2;
 const MAX_MUST = 4;
 /** A provider or Stigmer key, or a long unbroken run of letters and digits a token would be (a docs path breaks at its slashes and hyphens). */
@@ -210,15 +204,9 @@ describe("the question bank", () => {
   it("asks the judge one point per grader: two to four Must points and at least one fail-if line", () => {
     for (const c of cases) {
       const judged = c.graders.filter((g) => g.check.type === "llm");
-      const firstFailIf = grader(c, "fail-if-1")?.check;
-      const failIfQuestion =
-        firstFailIf?.type === "llm" && firstFailIf.criteria.trim().startsWith(`${FAIL_IF_QUESTION_BEFORE}\n`) ? FAIL_IF_QUESTION_BEFORE : FAIL_IF_QUESTION;
-      if (REPROBED.cases.includes(c.dir) || REPROBED.jobs.includes(c.dir.split("/")[0] ?? "")) {
-        expect(failIfQuestion, `${c.dir}: re-probed, so its fail-if lines ask with the denial rule`).toBe(FAIL_IF_QUESTION);
-      }
       const kinds: [string, string][] = [
         ["must", MUST_QUESTION],
-        ["fail-if", failIfQuestion],
+        ["fail-if", FAIL_IF_QUESTION],
       ];
       for (const [kind, question] of kinds) {
         const named = judged.filter((g) => new RegExp(`^${kind}-\\d+$`).test(g.name)).map((g) => g.name);
