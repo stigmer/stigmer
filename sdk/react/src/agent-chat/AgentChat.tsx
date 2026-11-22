@@ -40,7 +40,7 @@ import {
 } from "react";
 import { createPortal } from "react-dom";
 import { Check, ChevronDown, LoaderCircle, MessageCircle, SquarePen, X } from "lucide-react";
-import type { ResourceRef } from "@stigmer/client";
+import type { CustomToolInput, ResourceRef } from "@stigmer/client";
 import { cn } from "@stigmer/design-tokens";
 import { useAgent } from "../agent/useAgent.js";
 import { DialogShell } from "../internal/DialogShell.js";
@@ -52,6 +52,7 @@ import type { SessionAudience } from "../session/audience.js";
 import type { SessionInspectorProps } from "../session/inspector/SessionInspector.js";
 import { NewSessionViewer } from "../session/NewSessionViewer.js";
 import type { SessionRunConfig } from "../session/run-config.js";
+import type { OnCustomToolUse } from "../session/useCustomToolUseCallback.js";
 import {
   agentChatReducer,
   initialAgentChatState,
@@ -144,6 +145,22 @@ export interface AgentChatProps {
    */
   readonly fileReview?: boolean;
   /**
+   * The app's own tools the conversation offers its agent (make each with
+   * `defineCustomTool` from `@stigmer/client`). A call of one waits for
+   * your app's answer: register a card for the tool's name on
+   * `StigmerProvider`'s `toolCards` to draw and answer it in the chat, or
+   * hear it with {@link onCustomToolUse}. Read once, when the conversation
+   * is created; a conversation keeps the tools it started with.
+   */
+  readonly customTools?: readonly CustomToolInput[];
+  /**
+   * Hears each call of your app's own tools that waits for its answer, to
+   * answer it outside the chat, in your own panel (see `SessionViewer`'s
+   * `onCustomToolUse`): once for each waiting call, and again for one still
+   * waiting when the conversation is opened again.
+   */
+  readonly onCustomToolUse?: OnCustomToolUse;
+  /**
    * Whether the composer offers the model picker, on the first message and
    * on every reply. `false` hides it, for a host that wants a bare chat:
    * each turn asks for the model it would without the picker (see
@@ -203,6 +220,8 @@ export function AgentChat({
   enableGitHub,
   includeMyVault,
   fileReview,
+  customTools,
+  onCustomToolUse,
   showModelSelector,
   showInteractionModePicker,
   onError,
@@ -282,6 +301,7 @@ export function AgentChat({
           inspector={pageInspector}
           threadSlots={threadSlots}
           messageActions={messageActions}
+          onCustomToolUse={onCustomToolUse}
           enableGitHub={enableGitHub}
           showModelSelector={showModelSelector}
           showInteractionModePicker={showInteractionModePicker}
@@ -299,6 +319,7 @@ export function AgentChat({
         enableGitHub={enableGitHub}
         includeMyVault={includeMyVault}
         fileReview={fileReview}
+        customTools={customTools}
         showModelSelector={showModelSelector}
         showInteractionModePicker={showInteractionModePicker}
         // A panel or popup never takes focus from the host's page by itself.

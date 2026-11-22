@@ -4,6 +4,7 @@ import { useCallback, useState } from "react";
 import {
   PENDING_SUBJECT,
   mergeSessionContext,
+  type CustomToolInput,
   type ResourceRef,
   type SessionResourceInput,
 } from "@stigmer/client";
@@ -43,6 +44,14 @@ export interface SharedSessionFields {
    * edits are applied, and an Undo puts a file back.
    */
   readonly fileReview?: boolean;
+  /**
+   * The app's own tools the conversation offers its agent (`custom_tools`;
+   * make each with `defineCustomTool` from `@stigmer/client`). A call of one
+   * waits for the app's answer. Read once, when the conversation is
+   * created: the tools are fixed once a turn has run. The server refuses a
+   * declaration it cannot offer, naming the rule.
+   */
+  readonly customTools?: readonly CustomToolInput[];
   /**
    * Custom key-value pairs stored on `SessionSpec.metadata`.
    *
@@ -172,6 +181,7 @@ export function useCreateSession(): UseCreateSessionReturn {
           skillRefs: input.skillRefs,
           environmentRef: input.environmentRef,
           fileReview: input.fileReview,
+          customTools: input.customTools ? [...input.customTools] : undefined,
           metadata: mergeSessionContext(input.metadata, input.sessionContext),
           agentRef: input.agentRef,
           harness: input.harness ? toProtoHarness(input.harness) : undefined,

@@ -3,7 +3,7 @@
 // expanded, each tool use's row.
 import React, { useContext, useState } from "react";
 import { Box, Text, useInput } from "ink";
-import type { ToolUse } from "@stigmer/client";
+import { awaitsAnswer, type ToolUse } from "@stigmer/client";
 import {
   FileReviewContext,
   fileReviewRowState,
@@ -30,12 +30,13 @@ type AggregateStatus = "running" | "failed" | "denied" | "completed" | "pending"
  * settled (returned, failed, denied, or stopped when its turn ended — issue
  * #207) is settled, so it never pins to a live-looking "pending". A settled
  * group with a denied call reads as denied, not as a success. A call waiting
- * for a person leaves it pending.
+ * for a person, or for the app's answer to a call of its own tools,
+ * leaves it pending.
  */
 function deriveAggregateStatus(toolUses: readonly ToolUse[]): AggregateStatus {
   if (toolUses.some((tu) => tu.state === "running")) return "running";
   if (toolUses.some((tu) => tu.state === "failed")) return "failed";
-  if (toolUses.some((tu) => tu.state === "waiting")) return "pending";
+  if (toolUses.some(awaitsAnswer)) return "pending";
   return toolUses.some((tu) => tu.state === "denied") ? "denied" : "completed";
 }
 

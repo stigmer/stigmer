@@ -175,8 +175,10 @@ export interface StigmerProviderProps {
   /**
    * Your own card for your own tool, drawn in that tool's step wherever the
    * chat shows it, keyed by the tool's public name: `mcp__<server>__<tool>`
-   * for a tool of a server you connected (`toolPublicName` in
-   * `@stigmer/client`). The step's line stays the kit's (it still says the
+   * for a tool of a server you connected, and the declared name for one of
+   * your app's own tools (`customTools`; `toolPublicName` in
+   * `@stigmer/client`). A card for your app's own tool also gets `answer`
+   * while the call waits on your app, for a person who may answer it. The step's line stays the kit's (it still says the
    * step is running, done or failed, and any approval stays the kit's); the
    * card replaces the table of inputs and result under it, opens by
    * default, and is never folded away: once the turn finishes it shows

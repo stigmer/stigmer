@@ -11,6 +11,7 @@ import { create, type JsonObject } from "@bufbuild/protobuf";
 import { toolUseOf } from "./tool-use.js";
 import {
   type ToolKind,
+  resolveToolKind,
   resolveToolKindByName,
   normalizeToolResult,
   extractShellIntent,
@@ -205,6 +206,12 @@ describe("resolveToolKind reads the name", () => {
     const output = "done\n[Command succeeded]";
     expect(normalizeToolResult(toolUseOf({ name: "Bash", result: output, status: "completed" })).type).toBe("terminal");
     expect(normalizeToolResult(toolUseOf({ name: "some_unknown_name", result: output, status: "completed" })).type).toBe("text");
+  });
+
+  it("reads a call of the app's own tools as unknown, whatever its name reads like", () => {
+    expect(resolveToolKind({ name: "search", mcpServerName: "" })).toBe("search");
+    expect(resolveToolKind({ name: "search", mcpServerName: "", custom: true })).toBe("unknown");
+    expect(resolveToolKind({ name: "shell", mcpServerName: "", custom: true })).toBe("unknown");
   });
 
   it("degrades unknown results to json or text", () => {

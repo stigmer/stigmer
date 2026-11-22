@@ -79,6 +79,16 @@ export function use(
   });
 }
 
+/** A call `call` of run `runId` to the app's own tool `name`, waiting for the app's answer. */
+export function customUse(runId: string, call: string, name: string, input: JsonObject = {}): SessionEvent {
+  return samples.customToolUseEvent(name, input, { runId, id: toolId(runId, call) });
+}
+
+/** The app's answer to call `call`. */
+export function customResult(runId: string, call: string, text: string, extra: { isError?: boolean } = {}): SessionEvent {
+  return samples.customToolResultEvent(toolId(runId, call), text, { runId, isError: extra.isError ?? false });
+}
+
 /** Call `call`'s result. */
 export function result(runId: string, call: string, output: string, extra: { isError?: boolean; threadId?: string } = {}): SessionEvent {
   return samples.toolResultEvent(toolId(runId, call), output, {

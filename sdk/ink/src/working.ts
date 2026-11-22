@@ -50,7 +50,8 @@ export const STOPPING_PHRASE = "Stopping…";
 export function workingWords(turn: Turn | null, nowMs: number, state: WorkingState = {}): WorkingWords {
   if (turn === null) return { phrase: state.isStopping === true ? STOPPING_PHRASE : "Starting", elapsed: "", waiting: false };
   const progress = describeTurnActivity(turn, nowMs);
-  const waiting = progress.activity.kind === "waiting_for_you";
+  // Parked on an answer: a person's, or the app's to a call of its own tools.
+  const waiting = progress.activity.kind === "waiting_for_you" || progress.activity.kind === "waiting_for_app";
   if (progress.activity.kind === "waiting_for_sandbox" && state.isStopping !== true) {
     const waitedMs = progress.activity.waitedMs + Math.max(0, state.livenessAgeMs ?? 0);
     return { phrase: activityPhrase(progress.activity), elapsed: formatElapsed(waitedMs), waiting: false };

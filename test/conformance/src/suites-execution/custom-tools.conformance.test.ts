@@ -11,7 +11,8 @@
 //
 // Asserted contract:
 // - A session refuses a declaration the shared check refuses (a built-in's
-//   name), as INVALID_ARGUMENT naming the rule.
+//   name; an input property named like a secret, whose value every stored
+//   row redacts), as INVALID_ARGUMENT naming the rule.
 // - A call whose input matches is one agent.custom_tool_use under the
 //   declared name with the call's input, and the session goes idle with
 //   requires_action naming it; the turn's fold lists it as a custom call
@@ -140,6 +141,17 @@ describe("a session declares the host app's own tools", () => {
       .then(() => undefined, (e: unknown) => ConnectError.from(e));
     expect(err?.code).toBe(Code.InvalidArgument);
     expect(err?.rawMessage).toContain("The name of custom tool 'Bash' is a built-in tool's");
+  });
+
+  it("[rpc:SessionCommandController.create] refuses an input property named like a secret, naming the field", async () => {
+    const { org } = await target.provisionTenancy();
+    const inputSchema = { ...FORM.inputSchema, properties: { ...FORM.inputSchema.properties, auth: { type: "string" } } };
+    const err = await clients.sessionCommand
+      .create(makeSession({ org, name: uniqueName("custom-tools-secret"), customTools: [{ ...FORM, inputSchema }] }))
+      .then(() => undefined, (e: unknown) => ConnectError.from(e));
+    expect(err?.code).toBe(Code.InvalidArgument);
+    expect(err?.rawMessage).toContain(`custom tool '${FORM.name}' has a property named "auth"`);
+    expect(err?.rawMessage).toContain("[REDACTED]");
   });
 });
 

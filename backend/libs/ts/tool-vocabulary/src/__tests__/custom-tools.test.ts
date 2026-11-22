@@ -41,6 +41,18 @@ describe("customToolsProblem", () => {
     expect(isReservedCustomToolName("show_form")).toBe(false);
   });
 
+  it("refuses a top-level input property named like a secret, in any case, and keeps one that only contains the word", () => {
+    const refusal = (name: string): string =>
+      `The input_schema of custom tool 'show_registration_form' has a property named ${JSON.stringify(name)}, a name whose value the platform redacts from every tool call, so the app would read [REDACTED] in its place; rename it to say what it holds (as "auth_method" says it for "auth").`;
+    for (const name of ["auth", "Token", "PASSWORD", "api_key"]) {
+      expect(customToolsProblem([tool({ inputSchema: { type: "object", properties: { service: { type: "string" }, [name]: { type: "string" } } } })]), name).toBe(refusal(name));
+    }
+    expect(customToolsProblem([tool({ inputSchema: { type: "object", properties: { auth_method: { enum: ["role", "keys"] }, token_count: { type: "integer" } } } })])).toBeUndefined();
+    // Only the declared top level: a nested property is kept whole by the redaction, and a schema with no properties declares none.
+    expect(customToolsProblem([tool({ inputSchema: { type: "object", properties: { headers: { type: "object", properties: { token: { type: "string" } } } } } })])).toBeUndefined();
+    expect(customToolsProblem([tool({ inputSchema: { type: "object" } })])).toBeUndefined();
+  });
+
   it("refuses a repeated name and an empty or long description", () => {
     expect(customToolsProblem([FORM, FORM])).toBe("Two custom tools are named 'show_registration_form'; each name may appear once.");
     expect(customToolsProblem([tool({ description: "  " })])).toBe("The description of custom tool 'show_registration_form' is empty; the agent reads it to know when to call the tool.");

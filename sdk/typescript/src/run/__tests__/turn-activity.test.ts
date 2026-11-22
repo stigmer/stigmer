@@ -70,12 +70,13 @@ function todo(content: string, status: Todo["status"]): Todo {
 interface TurnInit {
   readonly items?: readonly TurnItem[];
   readonly asks?: readonly ToolUse[];
+  readonly customToolUses?: readonly ToolUse[];
   readonly todos?: readonly Todo[];
   readonly messageAtMs?: number | null;
   readonly endedAtMs?: number;
 }
 
-function turn({ items = [], asks = [], todos = [], messageAtMs = 0, endedAtMs }: TurnInit = {}): Turn {
+function turn({ items = [], asks = [], customToolUses = [], todos = [], messageAtMs = 0, endedAtMs }: TurnInit = {}): Turn {
   return {
     runId: "run_1",
     userMessage: messageAtMs === null ? undefined : { id: "run_1.user", text: "Fix it", processedAt: at(messageAtMs) },
@@ -86,7 +87,7 @@ function turn({ items = [], asks = [], todos = [], messageAtMs = 0, endedAtMs }:
         : { phase: "completed", stopCause: "", error: "", processedAt: at(endedAtMs) },
     ended: endedAtMs !== undefined,
     asks,
-    customToolUses: [],
+    customToolUses,
     todos,
     structuredOutput: undefined,
     memory: undefined,
@@ -128,6 +129,16 @@ describe("describeTurnActivity", () => {
     const progress = describeTurnActivity(turn({ items: [open], asks: [open, open] }), T0 + 2_000);
     expect(progress.activity).toEqual({ kind: "waiting_for_you", count: 2 });
     expect(activityPhrase(progress.activity)).toBe("Waiting for you");
+  });
+
+  it("says the app is awaited while a call of its own tools waits, after any ask of the person", () => {
+    const call = { ...tool("register_cloud_account", { account_name: "payments-prod" }, 1_000), custom: true, state: "waiting_on_host" as const };
+    const progress = describeTurnActivity(turn({ items: [call], customToolUses: [call] }), T0 + 2_000);
+    expect(progress.activity).toEqual({ kind: "waiting_for_app", count: 1 });
+    expect(activityPhrase(progress.activity)).toBe("Waiting for the app");
+
+    const ask = tool("execute", { command: "rm -rf build" }, 1_000);
+    expect(describeTurnActivity(turn({ items: [ask, call], asks: [ask], customToolUses: [call] }), T0).activity).toEqual({ kind: "waiting_for_you", count: 1 });
   });
 
   it("says the answer is being written, or thought about, while it streams", () => {
@@ -265,6 +276,7 @@ describe("activityPhrase", () => {
     [{ kind: "thinking" }, "Thinking"],
     [{ kind: "waiting_on_model" }, "Working"],
     [{ kind: "waiting_for_you", count: 1 }, "Waiting for you"],
+    [{ kind: "waiting_for_app", count: 1 }, "Waiting for the app"],
     [{ kind: "waiting_for_sandbox", waitedMs: 80_000 }, "Waiting for a sandbox"],
   ])("says %o as %s", (activity, words) => {
     expect(activityPhrase(activity)).toBe(words);

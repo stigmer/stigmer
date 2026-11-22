@@ -30,19 +30,20 @@
  * loses the value's size.
  */
 
+import { SECRET_ARG_KEYS, isSecretArgKey } from "@stigmer/tool-vocabulary";
+
 /**
  * Argument keys whose values are secrets and must never appear in a preview,
  * on a row's `args`, or in an approval message (stigmer#1119). Matched
- * case-insensitively against the top-level key name. Clients mirror this set
+ * case-insensitively against the top-level key name. The table is
+ * `@stigmer/tool-vocabulary`'s, which the custom-tool check also reads to
+ * refuse a host tool whose input declares one of these names (its host
+ * would read the marker where the agent wrote a value). Clients mirror it
  * to hide the values on rows persisted before the runner redacted `args`
- * (`@stigmer/client`'s `isSecretArgKey`); the shared, machine-checked contract is
- * `test/fixtures/tool-view/secret-args.json` — keep this set and that fixture
- * in lockstep.
+ * (`@stigmer/client`'s `isSecretArgKey`); the shared, machine-checked
+ * contract is `test/fixtures/tool-view/secret-args.json`.
  */
-export const SENSITIVE_ARG_KEYS: ReadonlySet<string> = new Set([
-  "password", "token", "secret", "api_key", "apikey",
-  "credentials", "auth", "authorization",
-]);
+export const SENSITIVE_ARG_KEYS: ReadonlySet<string> = SECRET_ARG_KEYS;
 
 /**
  * Top-level tool-argument fields, in priority order, that identify the specific
@@ -67,7 +68,7 @@ export function redactSensitiveArgs(
 ): Record<string, unknown> {
   const redacted: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(args)) {
-    redacted[key] = SENSITIVE_ARG_KEYS.has(key.toLowerCase()) ? "[REDACTED]" : value;
+    redacted[key] = isSecretArgKey(key) ? "[REDACTED]" : value;
   }
   return redacted;
 }
@@ -101,7 +102,7 @@ export function buildElidedArgsPreview(
 ): string {
   const out: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(args)) {
-    if (SENSITIVE_ARG_KEYS.has(key.toLowerCase())) {
+    if (isSecretArgKey(key)) {
       out[key] = "[REDACTED]";
       continue;
     }

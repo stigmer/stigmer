@@ -235,9 +235,12 @@ const NAME_TO_KIND: ReadonlyMap<string, ToolKind> = new Map<string, ToolKind>([
 /**
  * Resolves the harness-agnostic kind of a tool use, from its name and MCP
  * server ({@link resolveToolKindByName}). An unknown name with an MCP
- * server is an MCP tool.
+ * server is an MCP tool. A call of the app's own tools (`custom`) is always
+ * `unknown`: its name is the app's, and one that reads like a built-in's
+ * (`search`, `shell`) never takes the built-in's words or look.
  */
-export function resolveToolKind(tool: Pick<ToolUse, "name" | "mcpServerName">): ToolKind {
+export function resolveToolKind(tool: Pick<ToolUse, "name" | "mcpServerName"> & { readonly custom?: boolean }): ToolKind {
+  if (tool.custom === true) return "unknown";
   return resolveToolKindByName(tool.name, tool.mcpServerName);
 }
 

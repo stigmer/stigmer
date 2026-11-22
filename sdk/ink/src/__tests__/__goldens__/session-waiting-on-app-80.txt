@@ -1,0 +1,15 @@
+ Fix invoice rounding
+
+ You
+ Connect our payments production AWS account, 482100937716 in us-east-1. Use the
+  deploy role, no keys.
+
+ Agent
+ I'll fill in the registration form for you to check.
+
+  ○ ▶ register_cloud_account
+
+ ○ Waiting for the app · 1m 30s · Esc to stop
+
+ ❯ Reply...
+   Enter send · \⏎ newline · Shift+Tab plan mode · Ctrl+C leave · ? keys

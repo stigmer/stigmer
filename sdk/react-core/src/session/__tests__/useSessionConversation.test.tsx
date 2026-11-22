@@ -145,6 +145,7 @@ interface Methods {
   interrupt: ReturnType<typeof vi.fn>;
   reviewFileChanges: ReturnType<typeof vi.fn>;
   stopBackgroundCommand: ReturnType<typeof vi.fn>;
+  answerCustomToolUse: ReturnType<typeof vi.fn>;
 }
 
 let methods: Methods;
@@ -163,6 +164,7 @@ function client(): Stigmer {
       interrupt: methods.interrupt,
       reviewFileChanges: methods.reviewFileChanges,
       stopBackgroundCommand: methods.stopBackgroundCommand,
+      answerCustomToolUse: methods.answerCustomToolUse,
     },
     run: {
       listBySession: methods.listBySession,
@@ -209,6 +211,7 @@ beforeEach(() => {
     interrupt: vi.fn().mockResolvedValue({ stoppedRunIds: [] }),
     reviewFileChanges: vi.fn().mockResolvedValue({}),
     stopBackgroundCommand: vi.fn().mockResolvedValue({}),
+    answerCustomToolUse: vi.fn().mockResolvedValue({}),
   };
   stigmerClient = client();
 });
@@ -599,6 +602,60 @@ describe("useSessionConversation — sending", () => {
 // ---------------------------------------------------------------------------
 // Asks
 // ---------------------------------------------------------------------------
+
+describe("useSessionConversation — the app's own tools", () => {
+  async function waitingOnApp() {
+    listing(makeRun("run_live", RunPhase.RUN_WAITING_FOR_APPROVAL));
+    events.push(...turnOpen("run_live", "waiting"), samples.customToolUseEvent("register_account", { account_name: "payments-prod" }, { runId: "run_live" }));
+    const rendered = open();
+    await waitFor(() => expect(rendered.result.current.customToolUses).toHaveLength(1));
+    return rendered;
+  }
+
+  it("lists the live turn's calls waiting on the app apart from its asks, and answers one", async () => {
+    const { result } = await waitingOnApp();
+    const call = result.current.customToolUses[0]!;
+    expect(call.state).toBe("waiting_on_host");
+    expect(call.custom).toBe(true);
+    expect(result.current.asks).toHaveLength(0);
+
+    await act(async () => {
+      await result.current.answerCustomToolUse(call.id, "Registered", { isError: false });
+    });
+    expect(methods.answerCustomToolUse).toHaveBeenCalledWith(
+      expect.objectContaining({ sessionId: "session-1", customToolUseId: call.id, content: [expect.objectContaining({ text: "Registered" })], isError: false }),
+    );
+  });
+
+  it("keeps a refused answer per call", async () => {
+    methods.answerCustomToolUse.mockRejectedValue(new Error("already answered"));
+    const { result } = await waitingOnApp();
+    const call = result.current.customToolUses[0]!;
+
+    await act(async () => {
+      await expect(result.current.answerCustomToolUse(call.id, "different")).rejects.toThrow("already answered");
+    });
+    expect(result.current.customToolAnswerErrors.get(call.id)?.message).toBe("already answered");
+    expect(result.current.answeringCustomToolUseIds.size).toBe(0);
+  });
+
+  it("drops a call once the app answered it, so a replay lists nothing", async () => {
+    listing(makeRun("run_live", RunPhase.RUN_WAITING_FOR_APPROVAL));
+    const use = samples.customToolUseEvent("register_account", {}, { runId: "run_live" });
+    events.push(...turnOpen("run_live", "waiting"), use, samples.customToolResultEvent(use.event.value!.id, "Registered", { runId: "run_live" }));
+    const { result } = open();
+    await waitFor(() => expect(result.current.turns).toHaveLength(1));
+    expect(result.current.customToolUses).toHaveLength(0);
+  });
+
+  it("answers nothing without a session", async () => {
+    const { result } = open(null);
+    await act(async () => {
+      await result.current.answerCustomToolUse("ctu-1", "ok");
+    });
+    expect(methods.answerCustomToolUse).not.toHaveBeenCalled();
+  });
+});
 
 describe("useSessionConversation — asks", () => {
   async function waiting() {

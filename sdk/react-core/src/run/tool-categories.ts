@@ -9,7 +9,7 @@ import {
 } from "@stigmer/client";
 
 /** What the presentation helpers read of a tool use: its name, MCP server and input. */
-export type ToolIdentity = Pick<ToolUse, "name" | "mcpServerName">;
+export type ToolIdentity = Pick<ToolUse, "name" | "mcpServerName"> & { readonly custom?: boolean };
 
 /**
  * Discriminated tool categories for type-aware rendering.

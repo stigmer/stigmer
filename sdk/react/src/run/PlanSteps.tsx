@@ -22,7 +22,7 @@
 // white but for status.
 
 import { useId } from "react";
-import { type PlanItem, type ToolUse, type TurnEndingTone, type TurnSteps } from "@stigmer/client";
+import { awaitsAnswer, type PlanItem, type ToolUse, type TurnEndingTone, type TurnSteps } from "@stigmer/client";
 import { isInternalTool } from "@stigmer/react-core/internal";
 import { cn } from "@stigmer/design-tokens";
 import { useAutoDisclosure } from "../internal/useAutoDisclosure.js";
@@ -62,10 +62,20 @@ export interface PlanStepsProps {
 /** The tone of the ending a turn stopped its plan on: the turn ending's own tones. */
 export type PlanStoppedTone = TurnEndingTone;
 
-/** Whether a step waits for a person, or a helper it started has a step that does, at any depth. */
+/**
+ * Whether a step waits on an answer (a person's approval, or the app's
+ * answer to a call of its own tools), or a helper it started has a step
+ * that does, at any depth.
+ */
 function waitsWithin(tool: ToolUse): boolean {
-  if (tool.state === "waiting") return true;
+  if (awaitsAnswer(tool)) return true;
   return tool.thread?.items.some((item) => item.kind === "tool_use" && !isInternalTool(item.name) && waitsWithin(item)) === true;
+}
+
+/** Whether a step waiting within waits on a person's approval: a decision someone can make outranks one only the app makes. */
+function waitsOnPerson(tool: ToolUse): boolean {
+  if (tool.state === "waiting") return true;
+  return tool.thread?.items.some((item) => item.kind === "tool_use" && !isInternalTool(item.name) && waitsOnPerson(item)) === true;
 }
 
 /** The steps a plan draws: all but those whose ask the thread draws as its own card. */
@@ -129,7 +139,7 @@ function PlanItemRow({
   const { cardedAsks } = useThreadPresentation();
   const calls = uncarded(item.calls, cardedAsks);
   const waiting = item.calls.some(waitsWithin);
-  const waitingWords = useWaitingWords();
+  const waitingWords = useWaitingWords(item.calls.some(waitsOnPerson) ? "person" : "app");
   const status = item.todo.status;
   const live = status === "in_progress" && working;
   // A host's card under the item, its own step's or a helper's, keeps the

@@ -1,7 +1,7 @@
 "use client";
 
 import { memo, useMemo } from "react";
-import type { ToolUse } from "@stigmer/client";
+import { awaitsAnswer, type ToolUse } from "@stigmer/client";
 import { useRenderTracer } from "../internal/dev/index.js";
 import { useAutoDisclosure } from "../internal/useAutoDisclosure.js";
 import { ToolCallItem } from "./ToolCallItem.js";
@@ -153,7 +153,8 @@ type AggregateStatus = "running" | "waiting" | "failed" | "completed";
  */
 function deriveAggregateStatus(toolUses: readonly ToolUse[]): AggregateStatus {
   if (toolUses.some((tu) => tu.state === "running")) return "running";
-  if (toolUses.some((tu) => tu.state === "waiting")) return "waiting";
+  // A call waiting on a person's approval or on the app's answer is open.
+  if (toolUses.some(awaitsAnswer)) return "waiting";
   if (toolUses.some((tu) => tu.state === "failed")) return "failed";
   return "completed";
 }

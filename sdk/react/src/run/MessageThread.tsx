@@ -77,6 +77,12 @@ import { FilePathContext, type FilePathContextValue } from "./FilePathContext.js
 import type { ResolvedPathAction } from "./file-path-resolver.js";
 import { SandboxContext, type SandboxContextValue } from "./SandboxContext.js";
 import { ApprovalContext, type ApprovalContextValue } from "./ApprovalContext.js";
+import {
+  CustomToolAnswerContext,
+  useCustomToolAnswers,
+  type AnswerCustomToolUse,
+  type CustomToolAnswerContextValue,
+} from "./CustomToolAnswerContext.js";
 import { BackgroundCommandContext, type BackgroundCommandContextValue } from "./BackgroundCommandContext.js";
 import { FileReviewContext, type FileReviewContextValue } from "@stigmer/react-core";
 import {
@@ -315,6 +321,15 @@ export interface MessageThreadProps {
    * `errorsByToolUseId`. Only meaningful when `onAnswerToolUse` is provided.
    */
   readonly answerErrors?: ReadonlyMap<string, Error>;
+  /**
+   * Answers a call of the app's own tools (the session's `custom_tools`) by
+   * its id: the text is what the agent reads as the tool's result, and
+   * `isError` says the tool failed. When provided, a host's tool card for
+   * a waiting call gets an `answer` bound to that call; when omitted (a
+   * viewer only watching), the card gets none. Wire
+   * `useSessionConversation`'s `answerCustomToolUse`.
+   */
+  readonly onAnswerCustomToolUse?: AnswerCustomToolUse;
   /**
    * Stops one command the agent runs in the background, by the tool use
    * that started it. When provided, a running command's row, and the
@@ -1288,12 +1303,13 @@ export function buildThreadItems(
   // dead frame while the agent works. Emitted only when the live turn is
   // running (waiting or paused means the agent is NOT working), past the
   // pre-first-content window, nothing else on screen carries its own live
-  // signal, and no call waits for a person.
+  // signal, and no call waits for a person or for the app's answer.
   if (
     activeTurn &&
     hasStartedResponding(activeTurn) &&
     activeTurn.status?.phase === "running" &&
     activeTurn.asks.length === 0 &&
+    activeTurn.customToolUses.length === 0 &&
     !hasVisiblyRunningActivity(activeTurn.items)
   ) {
     // Held for its background commands alone: the agent's reply has ended
@@ -1401,6 +1417,7 @@ export function MessageThread({
   approverName,
   answeringToolUseIds,
   answerErrors,
+  onAnswerCustomToolUse,
   onStopBackgroundCommand,
   stoppingBackgroundToolUseIds,
   stopBackgroundErrors,
@@ -1551,10 +1568,18 @@ export function MessageThread({
   // cards, so the bar reuses the existing scroll machine without a new observer.
   const unresolvedApprovalCount = includeApprovals ? (turns.at(-1)?.asks.length ?? 0) : 0;
 
+  // The answer to a call of the app's own tools, one stable function per
+  // call, for a host's card (see CustomToolAnswerContext); apart from the
+  // approvals', as on the wire.
+  const answerFor = useCustomToolAnswers(onAnswerCustomToolUse, sessionId ?? "");
+  const customToolAnswerCtx = useMemo<CustomToolAnswerContextValue>(() => ({ answerFor }), [answerFor]);
+
   const withRunScores = (thread: ReactNode): ReactNode => (
     <ThreadPresentationContext.Provider value={presentation}>
       <BackgroundCommandContext.Provider value={backgroundCtx}>
-        {runScores ? <RunScoresProvider runs={runs}>{thread}</RunScoresProvider> : thread}
+        <CustomToolAnswerContext.Provider value={customToolAnswerCtx}>
+          {runScores ? <RunScoresProvider runs={runs}>{thread}</RunScoresProvider> : thread}
+        </CustomToolAnswerContext.Provider>
       </BackgroundCommandContext.Provider>
     </ThreadPresentationContext.Provider>
   );

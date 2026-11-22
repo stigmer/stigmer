@@ -700,6 +700,36 @@ export const samples = {
       : sessionEvent(o, { case: "agentToolResult", value: { ...value, toolUseId } });
   },
 
+  /**
+   * A call of one of the app's own tools (`agent.custom_tool_use`): it
+   * waits for the app's answer, never a person's approval. Id:
+   * `<run>.ctu-<name>`.
+   */
+  customToolUseEvent(name: string, input: JsonObject = {}, o?: SessionEventOverrides): SessionEvent {
+    const runId = o?.runId ?? SAMPLE_RUN_ID;
+    return sessionEvent(o, {
+      case: "agentCustomToolUse",
+      value: { id: o?.id ?? `${runId}.ctu-${name}`, name, input, processedAt: at(o) },
+    });
+  },
+
+  /**
+   * The app's answer to a call of its own tool (`user.custom_tool_result`),
+   * 1.2s after {@link SAMPLE_INSTANT}. Id: `<custom tool use>.r`.
+   */
+  customToolResultEvent(customToolUseId: string, text: string, o?: ToolResultEventOverrides): SessionEvent {
+    return sessionEvent(o, {
+      case: "userCustomToolResult",
+      value: {
+        id: o?.id ?? `${customToolUseId}.r`,
+        customToolUseId,
+        content: textContent(text),
+        isError: o?.isError ?? false,
+        processedAt: o?.processedAt ?? SAMPLE_TOOL_RESULT_AT,
+      },
+    });
+  },
+
   /** Why a tool call waits for a person (`stigmer.permission.asked`). Id: `<tool use>.ask`. */
   permissionAskedEvent(toolUseId: string, o?: PermissionAskedOverrides): SessionEvent {
     return sessionEvent(o, {

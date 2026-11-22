@@ -4,7 +4,9 @@
  *
  *   - a viewer may neither send nor decide;
  *   - a participant sends but leaves stopping and approving to the owners;
- *   - an owner does both;
+ *   - an owner does both, and the decision is confirmed only once the
+ *     server said yes (never while the check is in flight, nor after it
+ *     failed, though both fail open);
  *   - asked about no conversation, it asks the server nothing and hides
  *     nothing (a guest's or an observer's presentation is decided already).
  */
@@ -47,19 +49,19 @@ describe("useSessionAccess", () => {
     const client = serverGranting([]);
     const { result } = accessOf(client, "ses_1");
     await waitFor(() => expect(client.grant.checkMyPermission).toHaveBeenCalledTimes(2));
-    await waitFor(() => expect(result.current).toEqual({ canSend: false, canDecide: false }));
+    await waitFor(() => expect(result.current).toEqual({ canSend: false, canDecide: false, decisionConfirmed: false }));
   });
 
   it("lets a participant send, and leaves decisions to the owners", async () => {
     const { result } = accessOf(serverGranting(["can_create_run_in"]), "ses_1");
-    await waitFor(() => expect(result.current).toEqual({ canSend: true, canDecide: false }));
+    await waitFor(() => expect(result.current).toEqual({ canSend: true, canDecide: false, decisionConfirmed: false }));
   });
 
   it("lets an owner send and decide, asking about that conversation", async () => {
     const client = serverGranting(["can_create_run_in", "can_edit"]);
     const { result } = accessOf(client, "ses_1");
     await waitFor(() => expect(client.grant.checkMyPermission).toHaveBeenCalledTimes(2));
-    expect(result.current).toEqual({ canSend: true, canDecide: true });
+    await waitFor(() => expect(result.current).toEqual({ canSend: true, canDecide: true, decisionConfirmed: true }));
     const asked = client.grant.checkMyPermission.mock.calls.map((call) => call[0]);
     expect(asked.map((input) => input.relation).sort()).toEqual(["can_create_run_in", "can_edit"]);
     for (const input of asked) {
@@ -70,7 +72,22 @@ describe("useSessionAccess", () => {
   it("asks nothing about no conversation and hides nothing", () => {
     const client = serverGranting([]);
     const { result } = accessOf(client, null);
-    expect(result.current).toEqual({ canSend: true, canDecide: true });
+    expect(result.current).toMatchObject({ canSend: true, canDecide: true });
     expect(client.grant.checkMyPermission).not.toHaveBeenCalled();
+  });
+
+  it("confirms no decision while the check is in flight or after it failed, though it draws as allowed", async () => {
+    let answer: (value: { isAuthorized: boolean }) => void = () => {};
+    const pending = { grant: { checkMyPermission: vi.fn(() => new Promise<{ isAuthorized: boolean }>((resolve) => { answer = resolve; })) } };
+    const inFlight = accessOf(pending, "ses_1");
+    expect(inFlight.result.current).toMatchObject({ canDecide: true, decisionConfirmed: false });
+    answer({ isAuthorized: true });
+    cleanup();
+
+    const failing = { grant: { checkMyPermission: vi.fn(async () => Promise.reject(new Error("unavailable"))) } };
+    const failed = accessOf(failing, "ses_1");
+    await waitFor(() => expect(failing.grant.checkMyPermission).toHaveBeenCalled());
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(failed.result.current).toMatchObject({ canDecide: true, decisionConfirmed: false });
   });
 });

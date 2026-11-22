@@ -121,6 +121,102 @@ through the React components; the chat link dialog's **Developer** tab and the
 [Sign your product's users in](/docs/guides/authentication/product-users) guide
 cover authentication for your own users.
 
+## The app's own tools
+
+With the React SDK the Agent can also call tools your app answers itself, for
+the conversations your chat starts (what they are and how a call waits:
+[Your app's own tools](/docs/concepts/sessions#your-apps-own-tools)). Declare
+each with `defineCustomTool` and pass them as `customTools`. Register a card
+under the tool's name on `StigmerProvider`'s `toolCards`: it draws the call
+inside the chat, filled with what the Agent asked, and its `answer` sends your
+app's reply to the Agent. Or hear each waiting call with `onCustomToolUse` and
+answer from your own panel:
+
+```tsx
+import { useState } from "react";
+import { defineCustomTool, type Stigmer } from "@stigmer/client";
+import {
+  AgentChat,
+  StigmerProvider,
+  type ToolCardProps,
+} from "@stigmer/react-sdk/chat";
+
+declare const stigmer: Stigmer;
+declare function saveAccount(name: string): Promise<string>;
+// ---cut---
+const registerAccount = defineCustomTool({
+  name: "register_cloud_account",
+  description:
+    "Show the person the account registration form, filled in from the conversation.",
+  inputSchema: {
+    type: "object",
+    properties: {
+      account_name: { type: "string" },
+      auth_method: { enum: ["role", "keys"] },
+    },
+    required: ["account_name"],
+  },
+});
+
+function RegisterAccountCard({ call, answer }: ToolCardProps) {
+  const [name, setName] = useState(String(call.input.account_name ?? ""));
+  if (call.state !== "waiting-on-host")
+    return <p>{call.result?.text ?? "Not registered."}</p>;
+  if (answer === undefined)
+    return <p>Waiting for the account form to be sent.</p>;
+  return (
+    <form
+      onSubmit={async (event) => {
+        event.preventDefault();
+        await answer(`Registered ${name} as ${await saveAccount(name)}`);
+      }}
+    >
+      <input value={name} onChange={(event) => setName(event.target.value)} />
+      <button type="submit">Register</button>
+      <button
+        type="button"
+        onClick={() => answer("The person cancelled.", { isError: true })}
+      >
+        Cancel
+      </button>
+    </form>
+  );
+}
+
+export function Assistant() {
+  return (
+    <StigmerProvider
+      client={stigmer}
+      toolCards={{ register_cloud_account: RegisterAccountCard }}
+    >
+      <AgentChat
+        agent="acme/cloud-helper"
+        customTools={[registerAccount]}
+        onCustomToolUse={(call) =>
+          console.log("waiting on the app:", call.tool, call.id)
+        }
+      />
+    </StigmerProvider>
+  );
+}
+```
+
+- `answer` exists only while the call waits, and only for the person whose
+  conversation it is; someone watching sees the card with no `answer`. `isError`
+  tells the Agent the tool failed or the person cancelled.
+- `onCustomToolUse` fires once for each waiting call, and again when the
+  conversation is opened while the call still waits, so your panel comes back
+  after a reload. Two open tabs each hear it: make what it does safe to run
+  twice. The same answer sent twice is accepted; a different second one is
+  refused.
+- An input field named like a secret (`password`, `token`, `secret`, `api_key`,
+  `apikey`, `credentials`, `auth`, `authorization`) is refused when the
+  conversation is created, because Stigmer hides those values in everything it
+  stores; name it for what it holds (`auth_method`).
+- The tools are read once, when the conversation starts. Import
+  `defineCustomTool` from `@stigmer/client`, as you import the client; the light
+  chat entry carries only the types.
+
 ## Give the agent standing user context
 
 SDK integrations can hand the agent standing, per-user context — who the caller

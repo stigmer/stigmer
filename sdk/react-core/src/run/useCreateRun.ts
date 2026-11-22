@@ -2,7 +2,7 @@
 
 import { useCallback, useState } from "react";
 import type { JsonObject } from "@bufbuild/protobuf";
-import { mergeSessionContext, type ResourceRef, type RunConfigInput, type SessionResourceInput } from "@stigmer/client";
+import { mergeSessionContext, type CustomToolInput, type ResourceRef, type RunConfigInput, type SessionResourceInput } from "@stigmer/client";
 import { useStigmer } from "../hooks.js";
 import { toError } from "../internal/toError.js";
 import { toProtoInteractionMode } from "../composer/interaction-mode.js";
@@ -67,6 +67,14 @@ export interface BootstrapSessionSpec {
    * edits are applied, and an Undo puts a file back.
    */
   readonly fileReview?: boolean;
+  /**
+   * The app's own tools the conversation offers its agent (`custom_tools`;
+   * make each with `defineCustomTool` from `@stigmer/client`). A call of one
+   * waits for the app's answer (`answerCustomToolUse`). Read once, when the
+   * conversation is created: the tools are fixed once a turn has run. The
+   * server refuses a declaration it cannot offer, naming the rule.
+   */
+  readonly customTools?: readonly CustomToolInput[];
   /**
    * Custom key-value pairs stored on the created session's
    * `SessionSpec.metadata`.
@@ -400,6 +408,7 @@ export function useCreateRun(): UseCreateRunReturn {
               includeMyVault: input.sessionSpec.includeMyVault,
               environmentRef: input.sessionSpec.environmentRef,
               fileReview: input.sessionSpec.fileReview,
+              customTools: input.sessionSpec.customTools ? [...input.sessionSpec.customTools] : undefined,
               metadata: mergeSessionContext(
                 input.sessionSpec.metadata,
                 input.sessionSpec.sessionContext,

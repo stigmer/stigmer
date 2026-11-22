@@ -23,12 +23,18 @@ export interface SessionStatusView {
  * How the session stands from its newest turn; undefined before it has one.
  * `decides` is whether this reader answers what the turn waits on: one who
  * cannot (an observer, a participant) reads that it waits for an answer, not
- * for them.
+ * for them. A turn waiting only on the app's answer reads "Waiting for the
+ * app" to everyone.
  */
 export function sessionStatus(last: Turn | undefined, decides: boolean): SessionStatusView | undefined {
   if (last === undefined) return undefined;
   const phase = last.status?.phase;
   if (!last.ended) {
+    // A turn parked on the app's answer to a call of its own tools says so,
+    // whoever looks; one parked on a person says whom.
+    if (last.asks.length === 0 && last.customToolUses.length > 0) {
+      return { phase: "degraded", label: "Waiting for the app", timed: true };
+    }
     if (last.asks.length > 0 || phase === "waiting") {
       return { phase: "degraded", label: decides ? "Waiting for you" : "Waiting for an answer", timed: true };
     }

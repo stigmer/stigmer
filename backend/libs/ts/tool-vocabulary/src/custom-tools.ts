@@ -20,6 +20,20 @@
 //    object, and a schema the validator cannot read could never pass a call.
 //  - At most 32 tools and 64 KB of schemas in all, so the tool list the
 //    model reads stays within a turn's budget.
+//  - No top-level input property named like a secret (secret-args.ts:
+//    `password`, `token`, `auth`, ...): the runner redacts such an argument
+//    on every stored row, so the host would read `[REDACTED]` where the
+//    agent wrote a value, in its card, its callback and its own server's
+//    read of the log. The rule reads the schema's top-level `properties`
+//    only: a field named another way (through `allOf`, `anyOf`, `oneOf`,
+//    `if`/`then`, `dependentSchemas`, a top-level `$ref`, or `required`
+//    alone) is not refused and is still redacted, as is a property the model
+//    adds beyond those declared (where the schema allows extra properties).
+//    The rule runs wherever this check runs: where tools are declared
+//    (create and update) and each time the runner offers them, so a
+//    conversation that declared such a field before the rule is offered no
+//    custom tools from its next turn, and its next update is refused until
+//    the field is renamed.
 //
 // A call's input is checked against its tool's schema with
 // `@cfworker/json-schema` (draft 2020-12), the validator the Stigmer
@@ -39,6 +53,7 @@ import { createContext, Script, type Context } from "node:vm";
 
 import { Validator, type OutputUnit, type Schema } from "@cfworker/json-schema";
 
+import { isSecretArgKey } from "./secret-args.js";
 import { CLAUDE_TOOLS, CLAUDE_TOOL_ALIASES, STIGMER_TOOL_COVERS } from "./vocabulary.js";
 
 /** One tool the host app answers itself, as a conversation declares it. */
@@ -116,6 +131,10 @@ export function customToolsProblem(tools: readonly CustomToolDeclaration[]): str
     }
     const schema = schemaProblem(tool.inputSchema);
     if (schema !== undefined) return `The input_schema of ${label} ${schema}.`;
+    const secret = secretProperty(tool.inputSchema as Record<string, unknown>);
+    if (secret !== undefined) {
+      return `The input_schema of ${label} has a property named ${JSON.stringify(secret)}, a name whose value the platform redacts from every tool call, so the app would read [REDACTED] in its place; rename it to say what it holds (as "auth_method" says it for "auth").`;
+    }
     schemaBytes += new TextEncoder().encode(JSON.stringify(tool.inputSchema)).length;
   }
   if (schemaBytes > CUSTOM_TOOL_LIMITS.maxSchemaBytes) {
@@ -133,6 +152,14 @@ function schemaProblem(schema: unknown): string | undefined {
   const pattern = badPattern(schema);
   if (pattern !== undefined) return `cannot be read as a JSON Schema: its pattern ${JSON.stringify(pattern)} is not a regular expression`;
   return undefined;
+}
+
+/**
+ * The first top-level property `schema` declares whose name is a secret
+ * argument's (the header), as written; undefined when none is.
+ */
+function secretProperty(schema: Record<string, unknown>): string | undefined {
+  return isObject(schema.properties) ? Object.keys(schema.properties).find(isSecretArgKey) : undefined;
 }
 
 /**

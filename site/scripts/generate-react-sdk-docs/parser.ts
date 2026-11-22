@@ -313,6 +313,10 @@ const SOURCE_PATH_OVERRIDES: Record<string, string> = {
   root: "core",
   internal: "core",
   search: "library",
+  // A client type the kit re-exports at its root (`CustomToolInput`, beside
+  // `defineCustomTool`) is declared in the client's generated `gen/` files;
+  // it is documented with the root's other client re-exports.
+  gen: "core",
 };
 
 // Domains excluded from generated documentation: internal UI primitives
