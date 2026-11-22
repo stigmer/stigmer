@@ -38,6 +38,8 @@
  */
 
 import type { BaseCheckpointSaver } from "@langchain/langgraph-checkpoint";
+import { offeredCustomTools } from "../../shared/custom-tools.js";
+import { createCustomTools } from "./custom-tools.js";
 import type { DynamicStructuredTool } from "@langchain/core/tools";
 import type { Command } from "@langchain/langgraph";
 import { createDeepAgent } from "deepagents";
@@ -558,6 +560,7 @@ export async function buildEngine(
   // turn (`classifyThrown`), as Claude Code refuses to launch such an agent.
   const toolScope = input.mcp.toolScope;
   checkTurnToolLists(input, tools, toolScope, shellEnv !== undefined);
+  const customTools = offeredCustomTools(input);
   const scopeBase: SubagentScopeBase = {
     mcpIndex: tools.mcpIndex,
     platformServerSlugs: input.mcp.platformServerSlugs,
@@ -709,8 +712,9 @@ export async function buildEngine(
         }
       : null,
     otelSpans: { mcpIndex: gate.mcpIndex },
-    toolScope: { ...scopeBase, scope: toolScope },
-    approvalGate: approvalGateConfig,
+    toolScope: { ...scopeBase, scope: toolScope, customToolNames: new Set(customTools.map((tool) => tool.name)) },
+    customTools: { tools: customTools },
+    approvalGate: approvalGateConfig === null ? null : { ...approvalGateConfig, customToolNames: new Set(customTools.map((tool) => tool.name)) },
     // Every graph, every mode (issue #754): the dialect-repair seam that keeps
     // model-supplied paths canonical for the virtual-rooted backend and every
     // downstream consumer (gate, capture, spans).
@@ -727,7 +731,8 @@ export async function buildEngine(
   const webFetchPosture = resolveGuardPosture(config.mode);
   // No tool stands in for reasoning: a graph reasons before it acts through
   // its thinking mode, which every Stigmer row supports (#1976).
-  const graphTools = [...tools.mcpTools, createWebFetchTool({ posture: webFetchPosture })];
+  // The host app's own tools: the main agent's alone, never a sub-agent's (`shared/custom-tools.ts`).
+  const graphTools = [...tools.mcpTools, createWebFetchTool({ posture: webFetchPosture }), ...createCustomTools(customTools, input.customToolResults)];
 
   await sink.reportProgress("Configuring sub-agents…");
   const compiledSubagents = await transformAndCompileSubagents({
@@ -969,7 +974,7 @@ export async function composeGraphInput(
   engine: Pick<DeepAgentEngine, "graph" | "langgraphConfig" | "hasStructuredOutput">,
 ): Promise<DeepAgentGraphInput> {
   const graphState: GraphStateSnapshot = await engine.graph.getState(engine.langgraphConfig);
-  const resume = resolveResumeInput(input.approvalDecisions, graphState, input.approvalDenyMessages);
+  const resume = resolveResumeInput(input.approvalDecisions, graphState, input.approvalDenyMessages, input.customToolResults);
   if (resume.isResumeFromApproval) {
     return { kind: "resume", command: resume.graphInput };
   }

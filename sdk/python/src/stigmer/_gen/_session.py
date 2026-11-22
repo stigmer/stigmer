@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Iterator
+from typing import Any, Iterator
 
 import grpc
 
@@ -19,6 +19,7 @@ from google.protobuf import field_mask_pb2
 from ._errors import wrap_error
 from ._types import ResourceRef
 from ._routine import FileResourceInput, GitRepositoryResourceInput, LocalPathResourceInput, SessionResourceInput
+from ._run import CustomToolInput
 
 
 class SessionClient:
@@ -63,6 +64,12 @@ class SessionClient:
     def confirm_tool_use(self, input: io_pb2.ConfirmToolUseInput) -> event_pb2.SessionEvent:
         try:
             return self._command.confirmToolUse(input)
+        except grpc.RpcError as e:
+            raise wrap_error(e) from e
+
+    def answer_custom_tool_use(self, input: io_pb2.AnswerCustomToolUseInput) -> event_pb2.SessionEvent:
+        try:
+            return self._command.answerCustomToolUse(input)
         except grpc.RpcError as e:
             raise wrap_error(e) from e
 
@@ -193,6 +200,7 @@ class SessionInput:
     file_review: bool = False
     environment_ref: ResourceRef | None = None
     resources: list[SessionResourceInput] = field(default_factory=list)
+    custom_tools: list[CustomToolInput] = field(default_factory=list)
 
     def _to_proto(self) -> api_pb2.Session:
         spec = spec_pb2.SessionSpec(
@@ -226,6 +234,8 @@ class SessionInput:
             spec.environment_ref.CopyFrom(_ref)
         for item in self.resources:
             spec.resources.append(item._to_proto())
+        for item in self.custom_tools:
+            spec.custom_tools.append(item._to_proto())
         metadata = metadata_pb2.ApiResourceMetadata(
             name=self.name,
             org=self.org,

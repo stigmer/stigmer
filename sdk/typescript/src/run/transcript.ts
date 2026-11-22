@@ -643,6 +643,7 @@ function toolOutputText(
 const TOOL_STATE_LABELS: Readonly<Record<ToolUse["state"], string>> = {
   running: "running",
   waiting: "waiting for approval",
+  waiting_on_host: "waiting for the app",
   completed: "completed",
   failed: "failed",
   denied: "denied",

@@ -1,5 +1,5 @@
 {
-  "comment": "A tool call's public name: the key a host registers its own card under, and the name the agent's tool list, hooks and the console show. A connected server's tool is `mcp__<server>__<tool>` (the runner's mcpToolName, backend/services/runner/src/shared/mcp-tool-names.ts); a call the kit draws as its own kind (a built-in, the memory attachment's tools, a server tool named like a built-in) has none, written as null. Asserted by the runner's mcp-tool-names tests (writer side, the cases with a name) and the @stigmer/client tool-view tests (reader side, toolPublicName).",
+  "comment": "A tool call's public name: the key a host registers its own card under, and the name the agent's tool list, hooks and the console show. A connected server's tool is `mcp__<server>__<tool>` (the runner's mcpToolName, backend/services/runner/src/shared/mcp-tool-names.ts); a call of one of the host app's own tools (`custom: true`, the session's custom_tools) is its declared name, with no server; a call the kit draws as its own kind (a built-in, the memory attachment's tools, a server tool named like a built-in) has none, written as null. Asserted by the runner's mcp-tool-names tests (writer side, the server cases with a name) and the @stigmer/client tool-view tests (reader side, toolPublicName).",
   "cases": [
     { "name": "a_server_tool", "tool": "create_invoice", "mcpServerSlug": "billing", "publicName": "mcp__billing__create_invoice" },
     { "name": "a_plugin_server_tool", "tool": "search_code", "mcpServerSlug": "plugin_github_github", "publicName": "mcp__plugin_github_github__search_code" },
@@ -7,6 +7,8 @@
     { "name": "a_built_in_has_none", "tool": "Edit", "mcpServerSlug": "", "publicName": null },
     { "name": "a_server_tool_named_like_a_built_in_has_none", "tool": "read_file", "mcpServerSlug": "files", "publicName": null },
     { "name": "the_memory_attachment_has_none", "tool": "remember", "mcpServerSlug": "stigmer-memory", "publicName": null },
-    { "name": "another_server_remember_is_a_server_tool", "tool": "remember", "mcpServerSlug": "notes", "publicName": "mcp__notes__remember" }
+    { "name": "another_server_remember_is_a_server_tool", "tool": "remember", "mcpServerSlug": "notes", "publicName": "mcp__notes__remember" },
+    { "name": "a_custom_tool_is_its_declared_name", "tool": "show_registration_form", "mcpServerSlug": "", "custom": true, "publicName": "show_registration_form" },
+    { "name": "a_custom_tool_with_a_dash_and_capitals_is_its_name_as_written", "tool": "Pick-Date", "mcpServerSlug": "", "custom": true, "publicName": "Pick-Date" }
   ]
 }

@@ -87,6 +87,18 @@
  *     ask could ride it (`claude-capabilities.ts`); the main agent's other
  *     calls PAUSE.
  *
+ * The host app's own tools (`shared/custom-tools.ts`) are judged apart,
+ * right after the caller is named and before the closed world: they are
+ * the session's, never the agent's, so neither its tool lists nor its
+ * hooks govern them. A helper's call is refused
+ * ({@link SUBAGENT_CUSTOM_TOOL_MESSAGE}); a call whose input does not match
+ * the tool's schema is refused with the shared sentence
+ * (`@stigmer/tool-vocabulary` `customToolInputProblem`), so the model can
+ * fix it; a call the host has answered is allowed, and the host's server
+ * hands the model that answer (`turn.ts`); any other call PAUSES, as an ask
+ * does, under the same one-deferral rule, the refusal of a second saying
+ * why in the host's words ({@link CUSTOM_ASK_ALONE_MESSAGE}).
+ *
  * A pause is the engine's `defer`, one per invocation, since the engine
  * resumes one call: the first pause is deferred, every later one is
  * refused with {@link ASK_ALONE_MESSAGE}, and the model asks for it again
@@ -158,6 +170,10 @@ import { asJson, sameJson } from "../../shared/json-value.js";
 import { ELISION_MARKER } from "../../shared/status-offload.js";
 import { toolApprovalCategory, type ToolApprovalCategory } from "../../shared/tool-kind.js";
 import { readsPlatformContent } from "../../shared/workspace/stigmer-link.js";
+import { customToolInputProblem } from "@stigmer/tool-vocabulary/custom-tools";
+
+import type { CustomToolAnswer } from "../../harness/custom-tool-answers.js";
+import { CUSTOM_TOOL_WAITING_MESSAGE, customToolOfEngineName, type CustomToolOffer } from "../../shared/custom-tools.js";
 import { HOST_SHELL_TOOL, isHostShell } from "./host-shell.js";
 import { evaluatorFor, type TurnHookEvaluators } from "./hooks.js";
 import type { ServedCall } from "./loopback-mcp.js";
@@ -176,6 +192,14 @@ export function subagentHookAskMessage(hook: string): string {
 export function helperStartAskMessage(hook: string): string {
   return `${hookLabel(hook)} asks for a person's approval before this helper starts, which this harness cannot wait for; it was not run.`;
 }
+
+/** What a helper's call of the host app's own tools is refused with: a helper never waits for an answer. */
+export const SUBAGENT_CUSTOM_TOOL_MESSAGE =
+  "This tool is answered by the app the person is using, and a helper cannot wait for that answer; ask the agent that delegated to you to call it. It was not run.";
+
+/** What a call of the host app's own tools is refused with when another call already waits: the model calls it again, alone. */
+export const CUSTOM_ASK_ALONE_MESSAGE =
+  "Call this tool on its own: its answer comes from the app the person is using, and only one call can wait at a time. It was not run.";
 
 /** What a call that would wait while another already waits is refused with: the model asks for it again, alone. */
 export const ASK_ALONE_MESSAGE = "Ask for this call on its own: it needs a person's approval, and only one call can wait at a time. It was not run.";
@@ -299,9 +323,11 @@ export interface RefuseVerdict {
   readonly byPerson: boolean;
 }
 
-/** A main agent's call that waits for a person (the header, item 8). */
+/** A main agent's call that waits for a person (the header, item 8), or for the host app's answer to its own tool. */
 export interface PauseVerdict {
   readonly kind: "pause";
+  /** The declared name of the host app's own tool the call is to, which waits for the host's answer and never an approval; undefined for a person's ask. */
+  readonly customTool?: string;
   /** The approval card's message. */
   readonly message: string;
   readonly source: PolicySource | undefined;
@@ -372,6 +398,10 @@ export interface GateFacts {
   readonly resumesLeft: number;
   /** Where a write's before-bytes and a blocked secret's path are recorded for review (the header). */
   readonly observer: Pick<CasCaptureObserver, "recordBefore" | "recordBlockedSecret"> | undefined;
+  /** The host app's own tools this turn offers its main agent (`shared/custom-tools.ts`). */
+  readonly customTools: readonly CustomToolOffer[];
+  /** The host's answers to the custom calls still waiting, by call id (`TurnInput.customToolResults`). */
+  readonly customToolResults: ReadonlyMap<string, CustomToolAnswer>;
 }
 
 /** A call a person was asked about, as its WAITING row holds it. */
@@ -402,6 +432,7 @@ export interface GateFactSources {
   readonly pending: { readonly staleCallId: string | undefined; readonly unproposedCallId: string | undefined };
   readonly resumesLeft: number;
   readonly observer: GateFacts["observer"];
+  readonly customTools: GateFacts["customTools"];
 }
 
 /** The gate's facts for a turn, from the runtime's record and the turn's own pieces. */
@@ -434,6 +465,8 @@ export function gateFactsOf(input: TurnInput, sources: GateFactSources): GateFac
     unproposedCallId: sources.pending.unproposedCallId,
     resumesLeft: sources.resumesLeft,
     observer: sources.observer,
+    customTools: sources.customTools,
+    customToolResults: input.customToolResults,
   };
 }
 
@@ -578,6 +611,8 @@ export class ClaudeGate {
     if (this.halted()) return refusal(HALTED_MESSAGE, who?.caller);
     if (toolUseId === facts.staleCallId) return refusal(STALE_CALL_MESSAGE, who?.caller);
     if (who === undefined) return refusal(UNKNOWN_CALLER_MESSAGE, undefined);
+    const custom = customToolOfEngineName(facts.customTools, toolName);
+    if (custom !== undefined) return this.customTool(custom, toolName, toolUseId, input, who.caller);
     const { caller, reach } = who;
     const refuse = (message: string, source?: PolicySource, hook?: string): GateVerdict => refusal(message, caller, source, hook);
     if (toolName === HOST_SHELL_TOOL.engineName && caller.kind === "root" && this.isPausedShellCall(toolUseId)) return this.misnamedShell(toolUseId, input, agentId, who);
@@ -676,6 +711,18 @@ export class ClaudeGate {
   private isAsShown(toolUseId: string, name: string, mcpServerSlug: string, input: Record<string, unknown>): boolean {
     const shown = this.facts.waitingCallOf(toolUseId);
     return shown !== undefined && shown.name === name && shown.mcpServerSlug === mcpServerSlug && sameAsShown(shown.args, input);
+  }
+
+  /** A call of the host app's own tool (the header): refused, allowed on the host's answer, or paused for it. */
+  private customTool(tool: CustomToolOffer, toolName: string, toolUseId: string, input: Record<string, unknown>, caller: Caller): GateVerdict {
+    if (caller.kind === "subagent") return refusal(SUBAGENT_CUSTOM_TOOL_MESSAGE, caller);
+    const problem = customToolInputProblem(tool, input);
+    if (problem !== undefined) return refusal(problem, caller);
+    if (this.facts.customToolResults.has(toolUseId)) {
+      return { kind: "allow", source: undefined, caller, toolName, args: input, rewritten: false, hook: undefined, context: [] };
+    }
+    if (toolUseId === this.facts.unproposedCallId) return refusal(CUSTOM_ASK_ALONE_MESSAGE, caller);
+    return { kind: "pause", customTool: tool.name, message: CUSTOM_TOOL_WAITING_MESSAGE, source: undefined, caller, toolName, args: input, hook: undefined };
   }
 
   /** Item 8 of the header: what a call that asks a person comes to. */
@@ -876,7 +923,7 @@ export function gateHooks(gate: ClaudeGate): Partial<Record<HookEvent, HookCallb
       case "pause":
         return gate.claimDeferral(id)
           ? { hookSpecificOutput: { hookEventName: "PreToolUse", permissionDecision: "defer" } }
-          : { hookSpecificOutput: { hookEventName: "PreToolUse", permissionDecision: "deny", permissionDecisionReason: ASK_ALONE_MESSAGE } };
+          : { hookSpecificOutput: { hookEventName: "PreToolUse", permissionDecision: "deny", permissionDecisionReason: askAloneMessageOf(verdict) } };
       case "resume_again":
         return gate.claimDeferral(id)
           ? { hookSpecificOutput: { hookEventName: "PreToolUse", permissionDecision: "defer" } }
@@ -908,7 +955,7 @@ export function canUseToolOf(gate: ClaudeGate): CanUseTool {
         return { behavior: "deny", message: verdict.message };
       case "pause":
         gate.releaseDeferral(options.toolUseID);
-        return { behavior: "deny", message: ASK_ALONE_MESSAGE };
+        return { behavior: "deny", message: askAloneMessageOf(verdict) };
       case "resume_again":
         gate.releaseDeferral(options.toolUseID);
         console.warn(`[claude-gate] call=${options.toolUseID}: ${MISNAMED_AT_PERMISSION_LOG} (anthropics/claude-agent-sdk-typescript#532)`);
@@ -918,6 +965,11 @@ export function canUseToolOf(gate: ClaudeGate): CanUseTool {
         return exhaustive(verdict);
     }
   };
+}
+
+/** What a pause past the invocation's one deferral is refused with: a person's ask, or the host's tool, each in its own words. */
+function askAloneMessageOf(verdict: PauseVerdict): string {
+  return verdict.customTool === undefined ? ASK_ALONE_MESSAGE : CUSTOM_ASK_ALONE_MESSAGE;
 }
 
 /* v8 ignore next 3 -- @preserve: reached only by a verdict kind the union does not have */

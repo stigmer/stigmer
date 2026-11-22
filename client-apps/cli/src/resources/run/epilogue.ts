@@ -10,6 +10,9 @@
 // its last error event, the platform's last note, the first failed tool use's
 // output. The headless stream hands its folded turn over; after the Ink view,
 // the turn's events are listed only when the summary needs them.
+//
+// A turn the headless stream left waiting on the host app's own tools (which
+// only that app answers) says so, naming each call, above the resume line.
 
 import { create } from "@bufbuild/protobuf";
 import { RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
@@ -48,6 +51,11 @@ export async function runEpilogue(
   const s = styler(shouldColorize(process.stderr));
   write("");
   if (sessionId !== "") {
+    if (result.waitingOnHost.length > 0) {
+      write(s.yellow(`Waiting on the host app to answer ${result.waitingOnHost.length === 1 ? "its tool" : "its tools"}:`));
+      for (const call of result.waitingOnHost) write(`  ${call.name}  ${call.id}`);
+      write("The app answers these itself (answerCustomToolUse); the turn goes on once it has.");
+    }
     await printSessionExit(write, s, sessionId, exec, usage, failure);
   } else {
     await printCompletion(write, s, exec, failure);

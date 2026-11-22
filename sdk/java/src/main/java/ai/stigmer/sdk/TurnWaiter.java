@@ -38,7 +38,9 @@ import java.util.function.Function;
  *
  * <p>A turn is a run: the wait creates it ({@code run.create}, as every turn
  * starts) and follows the session's event log ({@code streamEvents}) until
- * the turn ends or waits for a person's answer. It is the Java form of the
+ * the turn ends or waits for an answer (a person's approval of one of its
+ * asks, or the host app's answer to one of its custom tool uses). It is the
+ * Java form of the
  * TypeScript client's {@code sendAndWait} and {@code waitForTurn}
  * ({@code sdk/typescript/src/session-events.ts}), with the same rules and
  * outcome.
@@ -52,7 +54,9 @@ import java.util.function.Function;
  *       completed, failed, cancelled or terminated;</li>
  *   <li>it waits when the session is idle with stop reason
  *       {@code requires_action} naming one of its tool uses that asks for
- *       permission and has neither a confirmation nor a result;</li>
+ *       permission and has neither a confirmation nor a result, or one of
+ *       its custom tool uses (a call of one of the host app's own tools)
+ *       that has no result;</li>
  *   <li>its answer is the text of its last stored message on its primary
  *       thread, the text blocks joined with nothing between them.</li>
  * </ul>
@@ -279,6 +283,8 @@ final class TurnWaiter {
         private final String runId;
         private final Set<String> seen = new HashSet<>();
         private final List<String[]> toolUses = new ArrayList<>();
+        /** The custom tool uses, in log order: each waits for the host's answer until its result comes. */
+        private final List<TurnCustomToolUse> customToolUses = new ArrayList<>();
         private final Set<String> answered = new HashSet<>();
         private long lastSeq;
         private StigmerRunStatusEvent status;
@@ -345,6 +351,13 @@ final class TurnWaiter {
                                 event.getAgentMcpToolUse().getEvaluatedPermission()});
                     }
                 }
+                case AGENT_CUSTOM_TOOL_USE -> {
+                    if (ours) {
+                        customToolUses.add(new TurnCustomToolUse(event.getAgentCustomToolUse().getId(),
+                                event.getAgentCustomToolUse().getName(), event.getAgentCustomToolUse().getInput()));
+                    }
+                }
+                case USER_CUSTOM_TOOL_RESULT -> answered.add(event.getUserCustomToolResult().getCustomToolUseId());
                 case USER_TOOL_CONFIRMATION -> answered.add(event.getUserToolConfirmation().getToolUseId());
                 case AGENT_TOOL_RESULT -> answered.add(event.getAgentToolResult().getToolUseId());
                 case AGENT_MCP_TOOL_RESULT -> answered.add(event.getAgentMcpToolResult().getMcpToolUseId());
@@ -369,11 +382,16 @@ final class TurnWaiter {
             return asks;
         }
 
+        private List<TurnCustomToolUse> openCustomToolUses() {
+            return customToolUses.stream().filter(call -> !answered.contains(call.id())).toList();
+        }
+
         private boolean waiting() {
             if (!idle || !stopReason.equals("requires_action")) {
                 return false;
             }
-            return openAsks().stream().anyMatch(ask -> waitingOn.contains(ask.id()));
+            return openAsks().stream().anyMatch(ask -> waitingOn.contains(ask.id()))
+                    || openCustomToolUses().stream().anyMatch(call -> waitingOn.contains(call.id()));
         }
 
         /** How the turn stands now. */
@@ -389,7 +407,8 @@ final class TurnWaiter {
                     status == null ? "" : status.getStopCause(),
                     status == null ? "" : status.getError(),
                     waiting ? openAsks() : List.of(),
-                    lastSeq);
+                    lastSeq,
+                    waiting ? openCustomToolUses() : List.of());
         }
 
         /** The id every event in the oneof carries. */

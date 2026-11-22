@@ -83,6 +83,17 @@ export function confirmed(runId: string, call: string, answer: "allow" | "deny")
   return ev(runId, { case: "userToolConfirmation", value: { id: `${toolUseId}.c`, toolUseId, result: answer } });
 }
 
+/** A call `<run>.<call>` of one of the host app's own tools, which waits for that app's answer. */
+export function customUse(runId: string, call: string, name: string, input: Record<string, unknown> = {}): SessionEvent {
+  return ev(runId, { case: "agentCustomToolUse", value: { id: `${runId}.${call}`, name, input: input as never } });
+}
+
+/** The host app's answer to its tool's call `<run>.<call>`. */
+export function customResult(runId: string, call: string, output: string, isError = false): SessionEvent {
+  const customToolUseId = `${runId}.${call}`;
+  return ev(runId, { case: "userCustomToolResult", value: { id: `${customToolUseId}.ctr`, customToolUseId, content: text(output), isError } });
+}
+
 /** The run's phase, as the server writes it. */
 export function phase(runId: string, word: string, error = ""): SessionEvent {
   return ev(runId, { case: "stigmerRunStatus", value: { id: `${runId}.status.${word}.${seq}`, phase: word, error } });

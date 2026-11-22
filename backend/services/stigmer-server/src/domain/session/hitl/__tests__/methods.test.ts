@@ -217,7 +217,7 @@ describe("the session's answer methods", () => {
     const served = servedMethods((router) => registerSessionServices(router, untouchable<SessionControllerDeps>("deps")))
       .filter((method) => method.parent.typeName === SessionCommandController.typeName)
       .map((method) => method.localName);
-    expect(served).toEqual(expect.arrayContaining(["confirmToolUse", "grantPermission", "interrupt"]));
+    expect(served).toEqual(expect.arrayContaining(["confirmToolUse", "grantPermission", "answerCustomToolUse", "interrupt"]));
   });
 
   it("ask can_edit on the session they name before reading anything, and a denial writes nothing", async () => {
@@ -465,6 +465,10 @@ describe("the answer core's edges", () => {
     );
     expect((await client.grantPermission({ sessionId: SESSION, toolUseId: use("tc-2") })).confirmations).toHaveLength(1);
     expect((await refusal(client.interrupt({ sessionId: SESSION, sessionThreadId: "x" }))).code).toBe(Code.InvalidArgument);
+    // An approval's call is no custom call: the host's answer method refuses it by name.
+    expect((await refusal(client.answerCustomToolUse({ sessionId: SESSION, customToolUseId: use("tc-2"), content: [{ type: "text", text: "x" }] }))).code).toBe(
+      Code.NotFound,
+    );
   });
 
   it("a store fault loading the run, or recording the answer, is Internal", async () => {

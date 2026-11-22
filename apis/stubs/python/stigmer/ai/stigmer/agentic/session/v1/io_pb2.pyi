@@ -1,5 +1,6 @@
 from ai.stigmer.agentic.session.v1 import api_pb2 as _api_pb2
 from ai.stigmer.agentic.session.v1 import event_pb2 as _event_pb2
+from ai.stigmer.agentic.session.v1 import event_content_pb2 as _event_content_pb2
 from ai.stigmer.commons.apiresource import field_options_pb2 as _field_options_pb2
 from buf.validate import validate_pb2 as _validate_pb2
 from google.protobuf import field_mask_pb2 as _field_mask_pb2
@@ -133,6 +134,18 @@ class ConfirmToolUseInput(_message.Message):
     result: str
     deny_message: str
     def __init__(self, session_id: _Optional[str] = ..., tool_use_id: _Optional[str] = ..., result: _Optional[str] = ..., deny_message: _Optional[str] = ...) -> None: ...
+
+class AnswerCustomToolUseInput(_message.Message):
+    __slots__ = ("session_id", "custom_tool_use_id", "content", "is_error")
+    SESSION_ID_FIELD_NUMBER: _ClassVar[int]
+    CUSTOM_TOOL_USE_ID_FIELD_NUMBER: _ClassVar[int]
+    CONTENT_FIELD_NUMBER: _ClassVar[int]
+    IS_ERROR_FIELD_NUMBER: _ClassVar[int]
+    session_id: str
+    custom_tool_use_id: str
+    content: _containers.RepeatedCompositeFieldContainer[_event_content_pb2.ContentBlock]
+    is_error: bool
+    def __init__(self, session_id: _Optional[str] = ..., custom_tool_use_id: _Optional[str] = ..., content: _Optional[_Iterable[_Union[_event_content_pb2.ContentBlock, _Mapping]]] = ..., is_error: bool = ...) -> None: ...
 
 class GrantPermissionInput(_message.Message):
     __slots__ = ("session_id", "tool_use_id")

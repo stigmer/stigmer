@@ -241,6 +241,13 @@ export interface ApprovalProposedEvent extends Scoped {
   readonly provenance?: PolicySource;
   /** The plugin whose hook asked (`""` for the agent's own hooks block); absent when no hook asked. */
   readonly policyHook?: string;
+  /**
+   * The call is to one of the host app's own tools (`shared/custom-tools.ts`):
+   * it waits for the host's answer, never a person's approval. `name` is the
+   * tool's declared name. The row is marked `custom_tool` and asks no
+   * approval, so the log records it as an `agent.custom_tool_use`.
+   */
+  readonly customTool?: boolean;
 }
 
 /**

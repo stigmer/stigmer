@@ -20,6 +20,14 @@
  *    (the message, the preview, the rule and hook that asked); the answers
  *    and grants are
  *    copied on afterwards (`approval-answers.ts` `copyAnswersOntoRows`);
+ *  - every call of the host app's own tools its engine has not yet been
+ *    handed the answer to: an `agent.custom_tool_use` with no
+ *    `user.custom_tool_result`, or with one the engine has written nothing
+ *    after, as a WAITING_APPROVAL row marked `custom_tool`. The host's
+ *    answer is the call's result in the log, and the runner writes none of
+ *    its own (`events/emitter.ts`), so the engine's own later writes are
+ *    what say the answer reached it: a call answered and then delivered is
+ *    seeded no more on a later resume of the same run;
  *  - in the root, the `task` call of every sub-agent thread that holds such
  *    an ask, RUNNING, so the thread's end and the call's result are written
  *    when the resumed sub-agent finishes;
@@ -73,6 +81,8 @@ export const RESUME_SEED_EVENT_TYPES = [
   "agent.mcp_tool_use",
   "agent.tool_result",
   "agent.mcp_tool_result",
+  "agent.custom_tool_use",
+  "user.custom_tool_result",
   "stigmer.permission.asked",
   "session.thread_created",
   "agent.thread_message_sent",
@@ -105,6 +115,8 @@ interface LoggedUse {
   readonly mcpServerSlug: string;
   readonly permission: string;
   readonly threadId: string;
+  /** A call of the host app's own tools (`agent.custom_tool_use`). */
+  readonly custom: boolean;
 }
 
 /** The policy source enum of a logged word; UNSPECIFIED for a word no source has. */
@@ -137,27 +149,42 @@ export function resumeSeedOf(runId: string, events: readonly SessionEvent[]): Re
   const threadInputs = new Map<string, string>();
   let answerText: string | undefined;
   let recalledMemoriesReport: RecalledMemoriesReport | undefined;
+  // Where each custom call's answer sits in the log, and the engine's last write.
+  const hostAnswerAt = new Map<string, number>();
+  let lastEngineWriteAt = -1;
+  const take = (use: LoggedUse): void => {
+    if (usesById.has(use.id)) return;
+    uses.push(use);
+    usesById.set(use.id, use);
+  };
 
-  for (const event of events) {
+  for (const [at, event] of events.entries()) {
     if (event.runId !== "" && event.runId !== runId) continue;
     switch (event.event.case) {
       case "agentToolUse":
       case "agentMcpToolUse": {
         const value = event.event.value;
-        const use: LoggedUse = {
+        lastEngineWriteAt = at;
+        take({
           id: value.id,
           name: value.name,
           input: value.input,
           mcpServerSlug: event.event.case === "agentMcpToolUse" ? event.event.value.mcpServerName : "",
           permission: value.evaluatedPermission,
           threadId: value.sessionThreadId,
-        };
-        if (!usesById.has(use.id)) {
-          uses.push(use);
-          usesById.set(use.id, use);
-        }
+          custom: false,
+        });
         break;
       }
+      case "agentCustomToolUse": {
+        const value = event.event.value;
+        lastEngineWriteAt = at;
+        take({ id: value.id, name: value.name, input: value.input, mcpServerSlug: "", permission: "", threadId: value.sessionThreadId, custom: true });
+        break;
+      }
+      case "userCustomToolResult":
+        if (!hostAnswerAt.has(event.event.value.customToolUseId)) hostAnswerAt.set(event.event.value.customToolUseId, at);
+        break;
       case "agentToolResult":
         finished.add(event.event.value.toolUseId);
         break;
@@ -174,6 +201,7 @@ export function resumeSeedOf(runId: string, events: readonly SessionEvent[]): Re
         threadInputs.set(event.event.value.toSessionThreadId, textOf(event.event.value.content));
         break;
       case "agentMessage":
+        lastEngineWriteAt = at;
         if (event.threadId === "") answerText = textOf(event.event.value.content);
         break;
       case "stigmerMemoryRecalled": {
@@ -190,7 +218,11 @@ export function resumeSeedOf(runId: string, events: readonly SessionEvent[]): Re
     }
   }
 
-  const openAsks = uses.filter((use) => use.permission === "ask" && !finished.has(use.id));
+  const undelivered = (use: LoggedUse): boolean => {
+    const answeredAt = hostAnswerAt.get(use.id);
+    return answeredAt === undefined || lastEngineWriteAt < answeredAt;
+  };
+  const openAsks = uses.filter((use) => (use.custom ? undelivered(use) : use.permission === "ask" && !finished.has(use.id)));
   const rootCalls: ToolCall[] = [];
   const subAgentRuns: SubAgentRun[] = [];
   const threadRows = new Map<string, ToolCall[]>();
@@ -237,7 +269,7 @@ function holder(calls: ToolCall[]): AgentMessage {
   return create(AgentMessageSchema, { type: MessageType.MESSAGE_AI, content: "", toolCalls: calls });
 }
 
-/** An asked call still waiting, as its tool use and its ask state it. */
+/** An asked call still waiting, as its tool use and its ask state it; a custom call as its tool use states it. */
 function askedRow(
   runId: string,
   use: LoggedUse,
@@ -247,12 +279,13 @@ function askedRow(
     id: rowIdOf(runId, use.id),
     name: use.name,
     status: ToolCallStatus.TOOL_CALL_WAITING_APPROVAL,
-    requiresApproval: true,
+    requiresApproval: !use.custom,
+    customTool: use.custom,
     mcpServerSlug: use.mcpServerSlug,
   });
   if (use.input !== undefined) row.args = use.input;
   row.toolKind = classifyTool(row.name, row.mcpServerSlug);
-  if (ask !== undefined) {
+  if (ask !== undefined && !use.custom) {
     row.approvalMessage = ask.message;
     row.argsPreview = ask.argsPreview;
     row.approvalPolicySource = POLICY_SOURCE_BY_WORD.get(ask.policySource) ?? ApprovalPolicySource.UNSPECIFIED;

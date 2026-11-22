@@ -24,7 +24,7 @@ import type { ListSessionEventsRequest } from "@stigmer/apis/ai/stigmer/agentic/
 import { foldSession, type Stigmer, type Turn } from "@stigmer/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { CliExitError, ExitCode } from "../../../errors/index.js";
-import { background, failure, note, phase, result, said, threadRunning, use, user } from "../../__test-utils__/session-events.js";
+import { background, customUse, failure, note, phase, result, said, threadRunning, use, user } from "../../__test-utils__/session-events.js";
 import type { HeadlessResult } from "../../stream/headless.js";
 import { runEpilogue } from "../epilogue.js";
 
@@ -81,7 +81,7 @@ function double(run: Run, usage: Usage | "fails" = NO_USAGE, events: SessionEven
 /** The turn of `events`, folded, as the headless stream hands it over. */
 function folded(events: SessionEvent[]): HeadlessResult {
   const turn = foldSession(events).turns[0] as Turn;
-  return { phase: turn.status?.phase ?? "", error: "", turn };
+  return { phase: turn.status?.phase ?? "", error: "", turn, waitingOnHost: [] };
 }
 
 let stderr: string[];
@@ -100,12 +100,12 @@ afterEach(() => {
   vi.unstubAllEnvs();
 });
 
-const ok: HeadlessResult = { phase: "completed", error: "", turn: undefined };
+const ok: HeadlessResult = { phase: "completed", error: "", turn: undefined, waitingOnHost: [] };
 
 describe("runEpilogue", () => {
   it("re-raises a stream that failed before any phase, reading nothing", async () => {
     const d = double(finalRun({ phase: RunPhase.RUN_COMPLETED }));
-    const raised = runEpilogue(d.client, "ses_1", "run_1", { phase: "", error: "stream reset", turn: undefined });
+    const raised = runEpilogue(d.client, "ses_1", "run_1", { phase: "", error: "stream reset", turn: undefined, waitingOnHost: [] });
     await expect(raised).rejects.toBeInstanceOf(CliExitError);
     await expect(raised).rejects.toMatchObject({ message: "stream reset", exitCode: ExitCode.General });
     expect(d.gets).toEqual([]);
@@ -121,6 +121,21 @@ describe("runEpilogue", () => {
     expect(d.usageRequests.map((r) => r.runId)).toEqual(["run_1"]);
     expect(stderr).toEqual(["\n", "✓ Completed (1m 30s · 18.4k tokens)\n", "\n", "  To continue:  stigmer resume ses_1\n"]);
     expect(d.eventRequests).toEqual([]);
+  });
+
+  it("names each call a turn left waiting on the host app above the resume line", async () => {
+    const d = double(finalRun({ phase: RunPhase.RUN_WAITING_FOR_APPROVAL }));
+    const turn = foldSession([user("run_1", "register"), customUse("run_1", "c1", "show_registration_form")]).turns[0] as Turn;
+    await runEpilogue(d.client, "ses_1", "run_1", { phase: "waiting", error: "", turn, waitingOnHost: turn.customToolUses });
+    expect(stderr).toEqual([
+      "\n",
+      "Waiting on the host app to answer its tool:\n",
+      "  show_registration_form  run_1.c1\n",
+      "The app answers these itself (answerCustomToolUse); the turn goes on once it has.\n",
+      "Exited (awaiting-approval)\n",
+      "\n",
+      "  To resume:    stigmer resume ses_1\n",
+    ]);
   });
 
   it("marks tokens counted from the runner's own report, with no metered calls, as estimated", async () => {

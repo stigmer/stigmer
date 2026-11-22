@@ -2,6 +2,7 @@
 
 package ai.stigmer.sdk.gen;
 
+import ai.stigmer.agentic.session.v1.CustomTool;
 import ai.stigmer.agentic.session.v1.ExecutionTarget;
 import ai.stigmer.agentic.session.v1.FileResource;
 import ai.stigmer.agentic.session.v1.GitRepositoryResource;
@@ -14,6 +15,7 @@ import ai.stigmer.agentic.session.v1.SessionSpec;
 import ai.stigmer.commons.apiresource.ApiResourceMetadata;
 import ai.stigmer.commons.apiresource.ApiResourceVisibility;
 import ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind;
+import com.google.protobuf.Struct;
 
 /** Input for creating or applying a Session. */
 public final class SessionInput {
@@ -35,6 +37,7 @@ public final class SessionInput {
     private final boolean fileReview;
     private final ResourceRef environmentRef;
     private final java.util.List<SessionResourceInput> resources;
+    private final java.util.List<CustomToolInput> customTools;
 
     private SessionInput(Builder builder) {
         this.id = builder.id;
@@ -55,6 +58,7 @@ public final class SessionInput {
         this.fileReview = builder.fileReview;
         this.environmentRef = builder.environmentRef;
         this.resources = builder.resources;
+        this.customTools = builder.customTools;
     }
 
     Session toProto() {
@@ -104,6 +108,11 @@ public final class SessionInput {
                 spec.addResources(item.toProto());
             }
         }
+        if (this.customTools != null) {
+            for (CustomToolInput item : this.customTools) {
+                spec.addCustomTools(item.toProto());
+            }
+        }
         ApiResourceMetadata.Builder metaBuilder = ApiResourceMetadata.newBuilder()
             .setName(this.name);
         if (this.org != null) {
@@ -150,6 +159,7 @@ public final class SessionInput {
         private boolean fileReview;
         private ResourceRef environmentRef;
         private java.util.List<SessionResourceInput> resources;
+        private java.util.List<CustomToolInput> customTools;
 
         private Builder() {}
 
@@ -176,6 +186,7 @@ public final class SessionInput {
         public Builder fileReview(boolean fileReview) { this.fileReview = fileReview; return this; }
         public Builder environmentRef(ResourceRef environmentRef) { this.environmentRef = environmentRef; return this; }
         public Builder resources(java.util.List<SessionResourceInput> resources) { this.resources = resources; return this; }
+        public Builder customTools(java.util.List<CustomToolInput> customTools) { this.customTools = customTools; return this; }
 
         public SessionInput build() { return new SessionInput(this); }
     }
@@ -349,6 +360,49 @@ public final class SessionInput {
             public Builder path(String path) { this.path = path; return this; }
 
             public LocalPathResourceInput build() { return new LocalPathResourceInput(this); }
+        }
+    }
+
+    /** SDK input type for CustomTool. */
+    public static final class CustomToolInput {
+        private final String name;
+        private final String description;
+        private final java.util.Map<String, Object> inputSchema;
+
+        private CustomToolInput(Builder builder) {
+            this.name = builder.name;
+            this.description = builder.description;
+            this.inputSchema = builder.inputSchema;
+        }
+
+        CustomTool toProto() {
+            CustomTool.Builder builder = CustomTool.newBuilder();
+            if (this.name != null) {
+                builder.setName(this.name);
+            }
+            if (this.description != null) {
+                builder.setDescription(this.description);
+            }
+            if (this.inputSchema != null) {
+                builder.setInputSchema(ProtoConvert.mapToStruct(this.inputSchema, "inputSchema"));
+            }
+            return builder.build();
+        }
+
+        public static Builder builder() { return new Builder(); }
+
+        public static final class Builder {
+            private String name;
+            private String description;
+            private java.util.Map<String, Object> inputSchema;
+
+            private Builder() {}
+
+            public Builder name(String name) { this.name = name; return this; }
+            public Builder description(String description) { this.description = description; return this; }
+            public Builder inputSchema(java.util.Map<String, Object> inputSchema) { this.inputSchema = inputSchema; return this; }
+
+            public CustomToolInput build() { return new CustomToolInput(this); }
         }
     }
 }

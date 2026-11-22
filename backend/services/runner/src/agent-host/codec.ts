@@ -75,6 +75,7 @@ import { ApiResourceReferenceSchema } from "@stigmer/apis/ai/stigmer/commons/api
 import { ToolCallOutputRefSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/message_pb";
 
 import type { ApprovalAsk } from "../harness/approval-answers.js";
+import type { CustomToolAnswer } from "../harness/custom-tool-answers.js";
 import type { TurnFiles, TurnInput, TurnHookSource, TurnSubagent } from "../harness/types.js";
 import type { ArtifactStorage } from "../shared/artifact-storage.js";
 import type { PluginSubagent } from "../shared/blueprint-resolver.js";
@@ -142,6 +143,7 @@ export interface WireTurnInput {
   readonly sessionId: string;
   readonly approvalDecisions: readonly (readonly [string, ApprovalAction])[];
   readonly approvalDenyMessages: readonly (readonly [string, string])[];
+  readonly customToolResults: readonly (readonly [string, CustomToolAnswer])[];
   readonly approvalAsks: readonly (readonly [string, ApprovalAsk])[];
   /** `TurnInput.continuation`: whether this invocation continues a turn its engine began. */
   readonly continuation: boolean;
@@ -242,6 +244,7 @@ export function encodeTurnInput(input: TurnInput): WireTurnInput {
     sessionId: input.sessionId,
     approvalDecisions: [...input.approvalDecisions],
     approvalDenyMessages: [...input.approvalDenyMessages],
+    customToolResults: [...input.customToolResults],
     approvalAsks: [...input.approvalAsks],
     continuation: input.continuation !== undefined,
     execution: encodeMessage(RunSchema, input.execution),
@@ -368,6 +371,7 @@ export function decodeTurnInput(wire: WireTurnInput, services: HostTurnServices)
     sessionId: wire.sessionId,
     approvalDecisions: new Map(wire.approvalDecisions),
     approvalDenyMessages: new Map(wire.approvalDenyMessages),
+    customToolResults: new Map(wire.customToolResults),
     approvalAsks: new Map(wire.approvalAsks),
     ...(wire.continuation ? { continuation: {} } : {}),
     execution: decodeMessage(RunSchema, wire.execution),

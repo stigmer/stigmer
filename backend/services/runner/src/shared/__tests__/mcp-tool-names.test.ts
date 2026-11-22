@@ -29,12 +29,13 @@ describe("mcpToolName", () => {
 
   // The clients compose the same name to match a host's card to a call
   // (`toolPublicName` in @stigmer/client); the shared fixture holds both
-  // sides equal. Cases with no public name are the clients' alone.
+  // sides equal. Cases with no public name are the clients' alone, and so
+  // are the host app's own tools, whose public name is the declared one.
   const here = dirname(fileURLToPath(import.meta.url));
   const fixture = JSON.parse(readFileSync(resolve(here, "../../../../../../test/fixtures/tool-view/public-names.json"), "utf8")) as {
-    cases: { name: string; tool: string; mcpServerSlug: string; publicName: string | null }[];
+    cases: { name: string; tool: string; mcpServerSlug: string; custom?: boolean; publicName: string | null }[];
   };
-  for (const c of fixture.cases.filter((c) => c.publicName !== null)) {
+  for (const c of fixture.cases.filter((c) => c.publicName !== null && c.custom !== true)) {
     it(`is the clients' public name: ${c.name}`, () => {
       expect(mcpToolName(c.mcpServerSlug, c.tool)).toBe(c.publicName);
     });

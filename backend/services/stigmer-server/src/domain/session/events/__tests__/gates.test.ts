@@ -1,7 +1,9 @@
 /**
  * Pins which ask each session event opens or closes (../gates.ts): a tool
  * use (built-in or MCP) opens its own gate only when it asks; its answer
- * and its result close it; every other event has none; and the declaration
+ * and its result close it; a call of one of the host app's own tools
+ * always opens its gate and the host's answer closes it; every other event
+ * has none; and the declaration
  * the store derives with reads the same from an event's bytes, lists every
  * type that can carry a gate, and gives bytes that do not decode none.
  */
@@ -56,6 +58,16 @@ const CASES = [
     gates: { opens: "", closes: "u2" },
   },
   {
+    name: "a call of one of the host app's own tools always opens its own gate",
+    event: event({ case: "agentCustomToolUse", value: { id: "u5", name: "show_form", input: {} } }),
+    gates: { opens: "u5", closes: "" },
+  },
+  {
+    name: "the host's answer closes the gate of the call it names",
+    event: event({ case: "userCustomToolResult", value: { id: "r5", customToolUseId: "u5", content: [{ type: "text", text: "done" }] } }),
+    gates: { opens: "", closes: "u5" },
+  },
+  {
     name: "any other event has no gate",
     event: event({ case: "agentMessage", value: { id: "m1" } }),
     gates: { opens: "", closes: "" },
@@ -71,6 +83,10 @@ describe("an event's gates", () => {
   it("the declaration lists every type that can carry a gate, and no other", () => {
     const gated = CASES.filter((c) => c.gates.opens !== "" || c.gates.closes !== "").map((c) => eventTypeOf(c.event));
     expect([...SESSION_EVENT_GATES.types].sort()).toEqual([...new Set(gated)].sort());
+  });
+
+  it("the rule's revision is 2, so a store opened over a log written before custom tools derives their gates again", () => {
+    expect(SESSION_EVENT_GATES.revision).toBe(2);
   });
 
   it("bytes that do not decode name no gate", () => {

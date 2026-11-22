@@ -4,6 +4,7 @@ package ai.stigmer.agentic.session.v1;
 
 import "ai/stigmer/agentic/session/v1/api.proto";
 import "ai/stigmer/agentic/session/v1/event.proto";
+import "ai/stigmer/agentic/session/v1/event_content.proto";
 import "ai/stigmer/commons/apiresource/field_options.proto";
 import "buf/validate/validate.proto";
 import "google/protobuf/field_mask.proto";
@@ -188,6 +189,25 @@ message ConfirmToolUseInput {
 
   // Why the call is denied, for the agent to read; only with deny.
   string deny_message = 4 [(buf.validate.field).string.max_len = 2000];
+}
+
+// AnswerCustomToolUseInput answers a call of one of the host app's own
+// tools: Managed Agents' user.custom_tool_result parameters, with the
+// session.
+message AnswerCustomToolUseInput {
+  // The conversation.
+  string session_id = 1 [(buf.validate.field).string.min_len = 1];
+
+  // The agent.custom_tool_use event to answer, as the requires_action
+  // idle's event_ids name it.
+  string custom_tool_use_id = 2 [(buf.validate.field).string.min_len = 1];
+
+  // The answer the agent reads: text blocks, at most 100,000 characters in
+  // all.
+  repeated ContentBlock content = 3 [(buf.validate.field).repeated.max_items = 100];
+
+  // Whether the tool failed; the agent reads the content as the error.
+  bool is_error = 4;
 }
 
 // GrantPermissionInput allows a tool use and every call of its class for

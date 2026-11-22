@@ -74,6 +74,12 @@ export interface ClaudeTranslatorDeps {
   readonly verdictOf: (toolUseId: string) => GateVerdict | undefined;
   /** The hooks' feedback section for a call, once its result is in; undefined for none. */
   readonly feedbackOf?: (toolUseId: string) => string | undefined;
+  /**
+   * The declared name of the host app's own tool an engine name stands for
+   * (`shared/custom-tools.ts`); undefined for any other tool. Its row carries
+   * the declared name, never the server-prefixed one the model was offered.
+   */
+  readonly customToolNameOf?: (engineName: string) => string | undefined;
 }
 
 /** One translator per turn: it remembers which calls streamed and which rows it opened. */
@@ -217,8 +223,9 @@ export class ClaudeTranslator {
 
   /** A call's row opened (or reconciled, when it is already open), with the sub-agent row an `Agent` call opens before it. */
   private toolStarted(callId: string, engineName: string, input: Record<string, unknown>, scope: Scope): StreamFact[] {
-    const server = isHostShell(engineName) ? undefined : this.deps.serverOf(engineName);
-    const name = isHostShell(engineName) ? HOST_SHELL_TOOL.engineName : (server?.tool ?? engineName);
+    const custom = this.deps.customToolNameOf?.(engineName);
+    const server = isHostShell(engineName) || custom !== undefined ? undefined : this.deps.serverOf(engineName);
+    const name = custom ?? (isHostShell(engineName) ? HOST_SHELL_TOOL.engineName : (server?.tool ?? engineName));
     const known = this.callNames.has(callId);
     this.callNames.set(callId, name);
     this.callPlaces.set(callId, { scope, mcpServerSlug: server?.slug ?? "" });

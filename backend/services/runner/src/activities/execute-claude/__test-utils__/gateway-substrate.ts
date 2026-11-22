@@ -190,6 +190,8 @@ function factsOf(world: DriveWorld, answer: { decision: ApprovalAction; shown: W
     // The drive's engine never hands the call back under its own shell's name.
     resumesLeft: 0,
     observer: undefined,
+    customTools: [],
+    customToolResults: new Map(),
   };
 }
 

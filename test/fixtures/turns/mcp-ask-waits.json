@@ -78,6 +78,7 @@
         "name": "create_issue"
       }
     ],
+    "customToolUses": [],
     "lastSeq": "4"
   }
 }

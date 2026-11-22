@@ -143,12 +143,14 @@ function finalAnswerOf(turn: Turn | undefined): string {
 /**
  * Each tool use state as the judge reads it: a person's or a rule's
  * refusal as skipped, a call its turn ended before it returned as
- * interrupted. A table over every state, so a state added to the fold
+ * interrupted, a call of one of the host app's own tools still waiting for
+ * the host's answer as pending (it waits for no approval). A table over every state, so a state added to the fold
  * does not compile until it is named here.
  */
 const STATUS_NAMES: Readonly<Record<ToolUseState, SubjectCallStatus>> = {
   running: "running",
   waiting: "waiting for approval",
+  waiting_on_host: "pending",
   completed: "completed",
   failed: "failed",
   denied: "skipped",

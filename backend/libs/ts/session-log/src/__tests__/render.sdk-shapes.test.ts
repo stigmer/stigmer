@@ -10,6 +10,7 @@
 import { create } from "@bufbuild/protobuf";
 import type { MessageInitShape } from "@bufbuild/protobuf";
 import type {
+  BetaManagedAgentsAgentCustomToolUseEvent,
   BetaManagedAgentsAgentMCPToolResultEvent,
   BetaManagedAgentsAgentMCPToolUseEvent,
   BetaManagedAgentsAgentMessageEvent,
@@ -26,6 +27,7 @@ import type {
   BetaManagedAgentsSessionThreadCreatedEvent,
   BetaManagedAgentsSessionThreadStatusIdleEvent,
   BetaManagedAgentsSessionThreadStatusRunningEvent,
+  BetaManagedAgentsUserCustomToolResultEvent,
   BetaManagedAgentsUserInterruptEvent,
   BetaManagedAgentsUserMessageEvent,
   BetaManagedAgentsUserToolConfirmationEvent,
@@ -367,6 +369,49 @@ const CASES: ReadonlyArray<Case> = [
       deny_message: "use make clean instead",
       session_thread_id: "run_1.task_1",
     } satisfies BetaManagedAgentsUserToolConfirmationEvent,
+  },
+  {
+    name: "agent.custom_tool_use",
+    proto: {
+      case: "agentCustomToolUse",
+      value: { id: "run_1.toolu_9", processedAt: AT, name: "show_registration_form", input: { service: "payments" } },
+    },
+    sdk: {
+      id: "run_1.toolu_9",
+      type: "agent.custom_tool_use",
+      processed_at: AT,
+      name: "show_registration_form",
+      input: { service: "payments" },
+    } satisfies BetaManagedAgentsAgentCustomToolUseEvent,
+  },
+  {
+    name: "user.custom_tool_result, text",
+    proto: {
+      case: "userCustomToolResult",
+      value: { id: "e33", processedAt: AT, customToolUseId: "run_1.toolu_9", content: [{ type: "text", text: "registered as svc_payments" }] },
+    },
+    sdk: {
+      id: "e33",
+      type: "user.custom_tool_result",
+      processed_at: AT,
+      custom_tool_use_id: "run_1.toolu_9",
+      content: [{ type: "text", text: "registered as svc_payments" }],
+    } satisfies BetaManagedAgentsUserCustomToolResultEvent,
+  },
+  {
+    name: "user.custom_tool_result, an error",
+    proto: {
+      case: "userCustomToolResult",
+      value: { id: "e34", processedAt: AT, customToolUseId: "run_1.toolu_9", content: [{ type: "text", text: "the person cancelled" }], isError: true },
+    },
+    sdk: {
+      id: "e34",
+      type: "user.custom_tool_result",
+      processed_at: AT,
+      custom_tool_use_id: "run_1.toolu_9",
+      content: [{ type: "text", text: "the person cancelled" }],
+      is_error: true,
+    } satisfies BetaManagedAgentsUserCustomToolResultEvent,
   },
   {
     name: "user.interrupt",

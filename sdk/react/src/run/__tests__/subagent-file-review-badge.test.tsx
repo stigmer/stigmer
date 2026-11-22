@@ -146,6 +146,7 @@ describe("subagent row badges (MessageThread integration)", () => {
       status: { phase: "running", stopCause: "", error: "", processedAt: "" },
       ended: false,
       asks: [],
+      customToolUses: [],
       todos: [],
       structuredOutput: undefined,
       memory: undefined,

@@ -176,6 +176,28 @@ script answers its own asks with `stigmer run --approve-default allow` (or
 `deny`, or `allow-all`); without it, a run with no one at a terminal denies each
 ask and carries on ([`stigmer run`](/docs/cli/commands/run)).
 
+## Your app's own tools wait the same way
+
+A Session can carry tools your app answers itself (its `custom_tools`, see
+[Sessions](/docs/concepts/sessions#your-apps-own-tools)). A call of one waits as
+an approval does, but for your app's answer rather than a person's yes or no:
+
+1. The log records the call as an `agent.custom_tool_use`, with the tool's name
+   and input. No `stigmer.permission.asked` comes with it: nobody is asked to
+   approve.
+2. The Session goes idle with the stop reason `requires_action`, naming the call
+   beside any approvals that wait.
+3. Your app answers with the Session's `answerCustomToolUse`, or a
+   `user.custom_tool_result` from Anthropic's SDK: text the Agent reads as the
+   tool's result, and `is_error` when the tool failed.
+4. Once every call and approval of the turn is answered, the Agent resumes.
+
+The same person answers: the conversation's owner, from your app or from your
+app's server with the owner's credential. An approval answer never answers a
+call of your app's tool, and the CLI's `stigmer runs approve` refuses one, since
+only your app knows the answer. A call nobody answers waits until someone stops
+the Session.
+
 ## Designing for approvals
 
 A few principles:

@@ -11,4 +11,4 @@ What a good answer may also say. Never graded: leaving any of it out fails nothi
 - Stigmer runs the control plane and session history as well as the agent's computer on their servers.
 - On open source each customer's keys live in a vault of their own instead.
 - An Environment takes Managed Agents' fields.
-- What stands in for the missing features: custom tools are served from an MCP server; Scores grade a finished run afterwards instead of outcomes.
+- What stands in for the missing features: Scores grade a finished run afterwards instead of outcomes. Custom tools carry over, declared on the Session.

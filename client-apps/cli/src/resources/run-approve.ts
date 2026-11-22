@@ -14,6 +14,12 @@
 //
 // A comment rides only a deny (the contract refuses it on an allow), so a
 // comment with any other action is refused before anything is sent.
+//
+// A call of one of the host app's own tools (the fold's
+// `Turn.customToolUses`) waits for that app's answer, which only the app
+// gives (the session's answerCustomToolUse), so it is never approved here:
+// naming one, or a run that waits on such calls alone, is refused with that
+// reason before anything is sent.
 
 import { foldSession, turnOf, type Stigmer, type ToolUse } from "@stigmer/client";
 import { UsageError } from "../errors/index.js";
@@ -41,6 +47,12 @@ export async function approveAgentToolCall(client: Stigmer, opts: ApproveAgentOp
   const run = await client.run.get(opts.runId);
   const sessionId = sessionOfRun(run);
   const turn = turnOf(foldSession(await listSessionEvents(client, sessionId, opts.runId)), opts.runId);
+  const hostCalls = turn?.customToolUses ?? [];
+  const hostCall = hostCalls.find((call) => call.id === opts.toolCallId);
+  if (hostCall !== undefined) throw new UsageError(hostCallMessage(hostCall));
+  if ((turn?.asks ?? []).length === 0 && hostCalls.length > 0) {
+    throw new UsageError(`run ${opts.runId} waits only on its host app's own tools, which that app answers, not an approval:\n${listAsks(hostCalls)}`);
+  }
   const ask = pickAsk(opts.runId, turn?.asks ?? [], opts.toolCallId);
   await submitAnswer(client, sessionId, ask.id, answer);
   return { toolUseId: ask.id, toolName: ask.name, answer: answer.kind };
@@ -75,6 +87,11 @@ function pickAsk(runId: string, asks: readonly ToolUse[], toolCallId: string): T
     throw new UsageError(`run ${runId} waits on ${asks.length} tool calls; name one with --tool-call:\n${listAsks(asks)}`);
   }
   return asks[0];
+}
+
+/** Why a call of one of the host app's own tools is not approved here. */
+export function hostCallMessage(call: ToolUse): string {
+  return `tool call ${call.id} is a call of ${call.name}, one of the host app's own tools: that app answers it (answerCustomToolUse), never an approval`;
 }
 
 function listAsks(asks: readonly ToolUse[]): string {

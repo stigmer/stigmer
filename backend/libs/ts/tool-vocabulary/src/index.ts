@@ -1,7 +1,10 @@
 // The package entry: re-exports the tool vocabulary (vocabulary.ts) and the
-// MCP server names (mcp-servers.ts) that the runner and the control plane
-// both read, so neither reaches into a file path. Nothing else lives here;
-// the tables and their trade-offs are documented and pinned beside them.
+// MCP server names (mcp-servers.ts) that the runner, the control plane and
+// the browser kits read, so none reaches into a file path. Nothing else
+// lives here; the tables and their trade-offs are documented and pinned
+// beside them. The custom-tool check is its own entry,
+// `@stigmer/tool-vocabulary/custom-tools`: it runs a JSON Schema validator
+// under `node:vm`, which neither a browser bundle can hold nor a kit needs.
 
 export {
   CLAUDE_TOOLS,

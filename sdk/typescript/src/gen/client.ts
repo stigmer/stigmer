@@ -134,7 +134,7 @@ export { ProviderKeyClient } from "./providerkey.js";
 export { RoutineClient } from "./routine.js";
 export { type RoutineInput, type AgentInvocationInput, type SessionResourceInput, type FileResourceInput, type GitRepositoryResourceInput, type LocalPathResourceInput } from "./routine.js";
 export { RunClient } from "./run.js";
-export { type RunInput, type SessionSpecInput, type ConversationCatchupInput, type EvalCaseContextInput, type EvalMockServerInput, type EvalMockToolInput, type EvalMockPluginHomeInput, type EvalMockAgentHomeInput } from "./run.js";
+export { type RunInput, type SessionSpecInput, type CustomToolInput, type ConversationCatchupInput, type EvalCaseContextInput, type EvalMockServerInput, type EvalMockToolInput, type EvalMockPluginHomeInput, type EvalMockAgentHomeInput } from "./run.js";
 export { ScoreClient } from "./score.js";
 export { type ScoreInput, type ScoreCriterionInput } from "./score.js";
 export { ScoringRuleClient } from "./scoringrule.js";

@@ -140,6 +140,7 @@ async function seedPendingInterrupts(deps: DeepAgentSettleDeps): Promise<boolean
       ...(args ? { args } : {}),
       ...(intr.policySource ? { provenance: intr.policySource } : {}),
       ...(intr.policyHook !== undefined ? { policyHook: intr.policyHook } : {}),
+      ...(intr.customTool ? { customTool: true } : {}),
     });
   }
   return sink.transcript.awaitingApproval;

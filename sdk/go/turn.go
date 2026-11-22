@@ -2,8 +2,9 @@
 //
 // A turn is a run: SendAndWait creates it (Run.Create, as every turn
 // starts) and follows the session's event log (Session.StreamEvents) until
-// the turn ends or waits for a person's answer, then returns how it stands.
-// WaitForTurn resumes that wait after the person answered. They are the Go
+// the turn ends or waits for an answer (a person's approval of one of its
+// Asks, or the host app's answer to one of its CustomToolUses), then
+// returns how it stands. WaitForTurn resumes that wait after the answer. They are the Go
 // form of the TypeScript client's sendAndWait and waitForTurn
 // (sdk/typescript/src/session-events.ts), with the same input rules and
 // the same outcome.
@@ -17,7 +18,8 @@
 //     completed, failed, cancelled or terminated;
 //   - it waits when the session is idle with stop reason requires_action
 //     naming one of its tool uses that asks for permission and has neither
-//     a confirmation nor a result;
+//     a confirmation nor a result, or one of its custom tool uses (a call
+//     of one of the host app's own tools) that has no result;
 //   - its answer is the text of its last stored message on its primary
 //     thread, the text blocks joined with nothing between them.
 //
@@ -49,8 +51,9 @@ import (
 	"google.golang.org/protobuf/reflect/protoreflect"
 )
 
-// TurnPhaseWaiting is the phase of a turn that waits for a person's answer
-// to one of its Asks.
+// TurnPhaseWaiting is the phase of a turn that waits for an answer: a
+// person's to one of its Asks, or the host app's to one of its
+// CustomToolUses.
 const TurnPhaseWaiting = "waiting"
 
 // TurnOutcome is how a waited-for turn stands when the wait returns.
@@ -70,12 +73,29 @@ type TurnOutcome struct {
 	// Error says what went wrong, when the turn failed or was stopped with
 	// a reason; "" otherwise.
 	Error string
-	// Asks are the tool uses that wait for an answer, when Phase is
-	// TurnPhaseWaiting; empty once the turn ended.
+	// Asks are the tool uses that wait for a person's approval, when Phase
+	// is TurnPhaseWaiting; empty once the turn ended.
 	Asks []TurnAsk
+	// CustomToolUses are the calls of the host app's own tools (the
+	// session's custom_tools) that wait for its answer, when Phase is
+	// TurnPhaseWaiting; empty once the turn ended. They are never Asks: an
+	// approval does not answer one.
+	CustomToolUses []TurnCustomToolUse
 	// LastSeq is the log's place when the wait returned: pass it to
-	// WaitForTurn to resume after answering the Asks.
+	// WaitForTurn to resume after answering the Asks and CustomToolUses.
 	LastSeq int64
+}
+
+// TurnCustomToolUse is a call of one of the host app's own tools that waits
+// for the host's answer. Answer it with the session's AnswerCustomToolUse,
+// which takes its ID, never with an approval.
+type TurnCustomToolUse struct {
+	// ID is the custom tool use's event id.
+	ID string `json:"id"`
+	// Name is the tool's name, as the session declares it.
+	Name string `json:"name"`
+	// Input is the call's input, which matched the tool's input schema.
+	Input map[string]any `json:"input"`
 }
 
 // TurnAsk is a tool use that waits for a person's answer. Answer it with
@@ -121,9 +141,9 @@ var turnEndedPhases = map[string]bool{
 // wait sees only this turn's events.
 //
 // It returns when the turn ends (Phase completed, failed, cancelled or
-// terminated) or waits for a person's answer (Phase TurnPhaseWaiting, with
-// its Asks); answer each ask, then call WaitForTurn with the outcome's
-// LastSeq. An error is the server's refusal (of the run, or of the stream
+// terminated) or waits for an answer (Phase TurnPhaseWaiting, with its
+// Asks and CustomToolUses); answer each, then call WaitForTurn with the
+// outcome's LastSeq. An error is the server's refusal (of the run, or of the stream
 // with a code a reconnect cannot fix) or the context's end.
 func (c *Client) SendAndWait(ctx context.Context, input *RunInput) (*TurnOutcome, error) {
 	if input == nil || input.Org == "" {
@@ -163,7 +183,7 @@ func (c *Client) SendAndWait(ctx context.Context, input *RunInput) (*TurnOutcome
 // WaitForTurn waits for one turn of a session: until it ends, or waits for
 // an answer. afterSeq is where in the log the turn's events begin, or
 // later: pass a previous outcome's LastSeq to resume after answering its
-// Asks, or 0 to read the whole log.
+// Asks and CustomToolUses, or 0 to read the whole log.
 func (c *Client) WaitForTurn(ctx context.Context, sessionID, runID string, afterSeq int64) (*TurnOutcome, error) {
 	return c.waitForTurn(ctx, sessionID, runID, afterSeq)
 }
@@ -272,6 +292,10 @@ type turnToolUse struct {
 	id   string
 	name string
 	asks bool
+	// custom marks a call of one of the host app's own tools, which waits
+	// for the host's answer until its result comes.
+	custom bool
+	input  map[string]any
 }
 
 func newTurnReader(runID string) *turnReader {
@@ -317,12 +341,18 @@ func (r *turnReader) read(frame *sessionv1.StreamSessionEventsResponse) bool {
 		}
 	case *sessionv1.SessionEvent_AgentToolUse:
 		if ours {
-			r.toolUses = append(r.toolUses, turnToolUse{e.AgentToolUse.GetId(), e.AgentToolUse.GetName(), e.AgentToolUse.GetEvaluatedPermission() == "ask"})
+			r.toolUses = append(r.toolUses, turnToolUse{id: e.AgentToolUse.GetId(), name: e.AgentToolUse.GetName(), asks: e.AgentToolUse.GetEvaluatedPermission() == "ask"})
 		}
 	case *sessionv1.SessionEvent_AgentMcpToolUse:
 		if ours {
-			r.toolUses = append(r.toolUses, turnToolUse{e.AgentMcpToolUse.GetId(), e.AgentMcpToolUse.GetName(), e.AgentMcpToolUse.GetEvaluatedPermission() == "ask"})
+			r.toolUses = append(r.toolUses, turnToolUse{id: e.AgentMcpToolUse.GetId(), name: e.AgentMcpToolUse.GetName(), asks: e.AgentMcpToolUse.GetEvaluatedPermission() == "ask"})
 		}
+	case *sessionv1.SessionEvent_AgentCustomToolUse:
+		if ours {
+			r.toolUses = append(r.toolUses, turnToolUse{id: e.AgentCustomToolUse.GetId(), name: e.AgentCustomToolUse.GetName(), custom: true, input: e.AgentCustomToolUse.GetInput().AsMap()})
+		}
+	case *sessionv1.SessionEvent_UserCustomToolResult:
+		r.answered[e.UserCustomToolResult.GetCustomToolUseId()] = true
 	case *sessionv1.SessionEvent_UserToolConfirmation:
 		r.answered[e.UserToolConfirmation.GetToolUseId()] = true
 	case *sessionv1.SessionEvent_AgentToolResult:
@@ -347,15 +377,30 @@ func (r *turnReader) openAsks() []TurnAsk {
 	return asks
 }
 
+func (r *turnReader) openCustomToolUses() []TurnCustomToolUse {
+	var calls []TurnCustomToolUse
+	for _, use := range r.toolUses {
+		if use.custom && !r.answered[use.id] {
+			calls = append(calls, TurnCustomToolUse{ID: use.id, Name: use.name, Input: use.input})
+		}
+	}
+	return calls
+}
+
 func (r *turnReader) waiting() bool {
 	if !r.idle || r.stopReason != "requires_action" {
 		return false
 	}
+	open := map[string]bool{}
 	for _, ask := range r.openAsks() {
-		for _, id := range r.waitingOn {
-			if ask.ID == id {
-				return true
-			}
+		open[ask.ID] = true
+	}
+	for _, call := range r.openCustomToolUses() {
+		open[call.ID] = true
+	}
+	for _, id := range r.waitingOn {
+		if open[id] {
+			return true
 		}
 	}
 	return false
@@ -376,6 +421,7 @@ func (r *turnReader) outcome() TurnOutcome {
 	case r.waiting():
 		outcome.Phase = TurnPhaseWaiting
 		outcome.Asks = r.openAsks()
+		outcome.CustomToolUses = r.openCustomToolUses()
 	default:
 		outcome.Phase = r.status.GetPhase()
 	}

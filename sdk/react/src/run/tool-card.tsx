@@ -88,6 +88,8 @@ function cardStateOf(tool: ToolUse): ToolCallState {
       return "stopped";
     case "waiting":
       return "needs-approval";
+    case "waiting_on_host":
+      return "waiting-on-host";
     case "failed":
       return "failed";
     case "running":

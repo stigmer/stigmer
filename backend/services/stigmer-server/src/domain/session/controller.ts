@@ -35,7 +35,8 @@
  * reviewFileChanges keeps or undoes a turn's file edits under can_edit on
  * the session (filereview/review-file-changes.ts, deciding through
  * filereview/decide.ts). confirmToolUse and grantPermission answer a tool
- * use that waits, and interrupt stops the session's unfinished turns, each
+ * use that waits, answerCustomToolUse answers a call of one of the host
+ * app's own tools, and interrupt stops the session's unfinished turns, each
  * under can_edit on the session (hitl/).
  */
 import type { ConnectRouter, HandlerContext } from "@connectrpc/connect";
@@ -181,6 +182,8 @@ import { streamAttention } from "./events/attention.js";
 import { streamSessionEvents } from "./events/stream.js";
 import type { ReconcileTurnCreatorProvider } from "./filereview/decide.js";
 import { reviewFileChanges } from "./filereview/review-file-changes.js";
+import { newValidateCustomToolsImmutabilityStep, newValidateCustomToolsStep } from "./custom-tools.js";
+import { answerCustomToolUse } from "./hitl/answer-custom-tool-use.js";
 import { confirmToolUse } from "./hitl/confirm-tool-use.js";
 import { grantPermission } from "./hitl/grant-permission.js";
 import { interrupt } from "./hitl/interrupt.js";
@@ -281,6 +284,7 @@ export function registerSessionServices(
       reviewFileChanges(deps, input, callerIdentityOf(ctx)),
     confirmToolUse: (input, ctx) => confirmToolUse(deps, input, callerIdentityOf(ctx)),
     grantPermission: (input, ctx) => grantPermission(deps, input, callerIdentityOf(ctx)),
+    answerCustomToolUse: (input, ctx) => answerCustomToolUse(deps, input, callerIdentityOf(ctx)),
     interrupt: (input, ctx) => interrupt(deps, input, callerIdentityOf(ctx)),
     stopBackgroundCommand: (input, ctx) => stopBackgroundCommand(deps, input, callerIdentityOf(ctx)),
   });
@@ -343,6 +347,7 @@ async function createSession(
       newAuthorizeStep(SessionCommandController.method.create, deps.authorizer),
     )
     .addStep(newValidateProtoStep())
+    .addStep(newValidateCustomToolsStep())
     .addStep(newNormalizeReferencesStep(deps.store))
     .addStep(newValidateVisibilityStep())
     .addStep(newResolveSlugStep())
@@ -452,6 +457,8 @@ async function update(
       .addStep(newRefuseUnofferedHarnessStep(sessionHarnesses))
       .addStep(newValidateHarnessImmutabilityStep(deps.store))
       .addStep(newValidateExecutionTargetImmutabilityStep(deps.temporalConfig, deps.store))
+      .addStep(newValidateCustomToolsStep())
+      .addStep(newValidateCustomToolsImmutabilityStep(deps.store))
       .addStep(newNormalizeReferencesStep(deps.store))
       .addStep(newValidateEnvironmentImmutabilityStep(deps.store))
       .addStep(newGuardReservedLabelsStep(deps.authorizer))

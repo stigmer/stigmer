@@ -465,6 +465,7 @@ interface TurnCase {
         readonly stopCause: string;
         readonly error: string;
         readonly asks: ReadonlyArray<{ readonly id: string; readonly name: string }>;
+        readonly customToolUses: ReadonlyArray<{ readonly id: string; readonly name: string; readonly input: JsonValue }>;
         readonly lastSeq: string;
       };
 }
@@ -516,6 +517,7 @@ describe("the shared turn cases (test/fixtures/turns)", () => {
       stopCause: outcome.stopCause,
       error: outcome.error,
       asks: outcome.asks.map((ask) => ({ id: ask.id, name: ask.name })),
+      customToolUses: outcome.customToolUses.map((call) => ({ id: call.id, name: call.name, input: call.input })),
       lastSeq: String(outcome.lastSeq),
     }).toEqual({
       phase: value.expect.phase,
@@ -523,6 +525,7 @@ describe("the shared turn cases (test/fixtures/turns)", () => {
       stopCause: value.expect.stopCause,
       error: value.expect.error,
       asks: value.expect.asks,
+      customToolUses: value.expect.customToolUses,
       lastSeq: value.expect.lastSeq,
     });
   });

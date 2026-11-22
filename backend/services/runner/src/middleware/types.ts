@@ -141,6 +141,8 @@ export type { ToolScopeConfig };
 // Same idiom: the folder-instructions middleware consumes it.
 import type { FolderInstructionsConfig } from "./folder-instructions.js";
 export type { FolderInstructionsConfig };
+import type { CustomToolGateConfig } from "./custom-tools.js";
+export type { CustomToolGateConfig };
 
 /**
  * Top-level configuration for buildMiddlewareStack().
@@ -160,6 +162,12 @@ export interface MiddlewareStackConfig {
    * carries a list, whether or not the approval gate is.
    */
   readonly toolScope?: ToolScopeConfig | null;
+  /**
+   * The host app's own tools the root graph offers (`custom-tools.ts`):
+   * every admitted call pauses for the host's answer. Absent or empty on
+   * every other graph.
+   */
+  readonly customTools?: CustomToolGateConfig | null;
   /**
    * Virtual-dialect path normalization (issues #429/#754). Set on every
    * Stigmer-harness graph: the backends are virtual-rooted, so every graph carries

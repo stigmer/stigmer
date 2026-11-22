@@ -103,6 +103,41 @@ const asUser = createNodeClient({
 The whole flow, and what the person's role allows, is in
 [From your backend, as the user](/docs/guides/authentication/product-users#from-your-backend-as-the-user).
 
+## Your app's own tools
+
+Give the Agent tools your app answers itself. Say your app has a form that
+registers a service: the Agent calls the tool with what it found, your app opens
+the form prefilled, and once your user submits it, your app answers and the
+Agent carries on. Declare the tools when you create the Session:
+
+```typescript
+import { defineCustomTool } from "@stigmer/client";
+
+const registrationForm = defineCustomTool({
+  name: "show_registration_form",
+  description: "Open the service registration form beside the chat, prefilled.",
+  inputSchema: {
+    type: "object",
+    properties: { service: { type: "string" }, repo: { type: "string" } },
+    required: ["service"],
+  },
+});
+
+const session = await stigmer.session.create({
+  name: "register-payments",
+  org: "acme",
+  agentRef: { org: "acme", slug: "platform-helper" },
+  customTools: [registrationForm],
+});
+```
+
+A call of the tool waits for your app's answer, as a call waits for an approval.
+[Answer a call of your app's own tool](/docs/sdk/streaming#answer-a-call-of-your-apps-own-tool)
+shows how to find the waiting calls and answer one. Only the Session's owner
+answers, so answer from your backend with a client built for the person, as
+above. The server checks each tool when the Session is created, and
+[Sessions](/docs/concepts/sessions#your-apps-own-tools) lists the rules.
+
 ## What's next
 
 <Cards>

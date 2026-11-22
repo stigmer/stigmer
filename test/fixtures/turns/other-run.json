@@ -99,6 +99,7 @@
     "stopCause": "end_turn",
     "error": "",
     "asks": [],
+    "customToolUses": [],
     "lastSeq": "6"
   }
 }

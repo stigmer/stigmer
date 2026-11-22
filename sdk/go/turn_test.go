@@ -1,4 +1,5 @@
-// Pins SendAndWait and WaitForTurn (turn.go).
+// Pins SendAndWait and WaitForTurn (turn.go), a custom tool use's wait
+// among the shared cases.
 //
 // The reader is held to the shared turn cases in test/fixtures/turns, which
 // the TypeScript client reads through the fold itself: a rule that drifts
@@ -18,6 +19,7 @@ import (
 	"net"
 	"os"
 	"path/filepath"
+	"reflect"
 	"regexp"
 	"sort"
 	"strconv"
@@ -40,13 +42,14 @@ type turnCase struct {
 	RunID       string            `json:"runId"`
 	Frames      []json.RawMessage `json:"frames"`
 	Expect      struct {
-		Decided   bool      `json:"decided"`
-		Phase     string    `json:"phase"`
-		Answer    string    `json:"answer"`
-		StopCause string    `json:"stopCause"`
-		Error     string    `json:"error"`
-		Asks      []TurnAsk `json:"asks"`
-		LastSeq   string    `json:"lastSeq"`
+		Decided        bool                `json:"decided"`
+		Phase          string              `json:"phase"`
+		Answer         string              `json:"answer"`
+		StopCause      string              `json:"stopCause"`
+		Error          string              `json:"error"`
+		Asks           []TurnAsk           `json:"asks"`
+		CustomToolUses []TurnCustomToolUse `json:"customToolUses"`
+		LastSeq        string              `json:"lastSeq"`
 	} `json:"expect"`
 }
 
@@ -88,11 +91,21 @@ func TestTurnReaderSharedCases(t *testing.T) {
 			got := reader.outcome()
 			wantSeq, _ := strconv.ParseInt(c.Expect.LastSeq, 10, 64)
 			if got.Phase != c.Expect.Phase || got.Answer != c.Expect.Answer || got.StopCause != c.Expect.StopCause ||
-				got.Error != c.Expect.Error || got.LastSeq != wantSeq || !sameAsks(got.Asks, c.Expect.Asks) || got.RunID != c.RunID {
+				got.Error != c.Expect.Error || got.LastSeq != wantSeq || !sameAsks(got.Asks, c.Expect.Asks) || got.RunID != c.RunID ||
+				!sameCustomToolUses(got.CustomToolUses, c.Expect.CustomToolUses) {
 				t.Fatalf("%s\n got: %+v\nwant: %+v", c.Description, got, c.Expect)
 			}
 		})
 	}
+}
+
+// sameCustomToolUses compares two lists of waiting custom calls, an empty
+// list and none alike.
+func sameCustomToolUses(got, want []TurnCustomToolUse) bool {
+	if len(got) == 0 && len(want) == 0 {
+		return true
+	}
+	return reflect.DeepEqual(got, want)
 }
 
 func sameAsks(got, want []TurnAsk) bool {

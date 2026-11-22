@@ -11,8 +11,9 @@
 // The log holds four runs of session ses_1: run_1 finished (a message, a
 // Bash call), run_live still working (more of its events, and its end, come
 // only on the stream), run_wait waiting on one tool call, run_two waiting on
-// two, run_long holding one long message, run_chat a message and no tool
-// call; run_empty has no events,
+// two, run_host waiting on a call of the host app's own tool and one ask,
+// run_host_only on such a call alone, run_long holding one long message,
+// run_chat a message and no tool call; run_empty has no events,
 // run_orphan names no session.
 
 import { create } from "@bufbuild/protobuf";
@@ -35,7 +36,7 @@ import { createServer as createHttp2Server, type Http2Server, type ServerHttp2Se
 import type { AddressInfo } from "node:net";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { UsageError } from "../../errors/index.js";
-import { asked, idle, phase, result, said, threadRunning, use, user } from "../__test-utils__/session-events.js";
+import { asked, customUse, idle, phase, result, said, threadRunning, use, user } from "../__test-utils__/session-events.js";
 import { approveAgentToolCall } from "../run-approve.js";
 import { cancelRun, pauseRun, resumeRun, terminateRun } from "../run-control.js";
 import { streamRunLogs } from "../run-logs.js";
@@ -85,6 +86,13 @@ const STORED: SessionEvent[] = [
   idle("requires_action", ["run_two.c1", "run_two.c2"]),
 ];
 STORED.push(user("run_long", "x".repeat(300)), user("run_chat", "hi"), said("run_chat", 0, "hello"));
+STORED.push(
+  user("run_host", "register"),
+  use("run_host", "c1", "delete", { permission: "ask" }),
+  customUse("run_host", "c2", "show_registration_form"),
+  user("run_host_only", "register"),
+  customUse("run_host_only", "c1", "show_registration_form"),
+);
 const LIVE: SessionEvent[] = [said("run_live", 0, "final answer"), phase("run_live", "completed")];
 
 function runOf(id: string, phaseOf: RunPhase, session = "ses_1"): Run {
@@ -227,6 +235,17 @@ describe("answering a waiting run", () => {
   it("refuses a run that waits on nothing", async () => {
     await expect(answer({ runId: "run_1" })).rejects.toThrow("run run_1 has no tool call waiting for an answer");
     await expect(answer({ runId: "run_empty" })).rejects.toThrow("run run_empty has no tool call waiting for an answer");
+  });
+
+  it("refuses a call of the host app's own tool, which that app answers, sending nothing", async () => {
+    await expect(answer({ runId: "run_host", toolCallId: "run_host.c2" })).rejects.toThrow(
+      "tool call run_host.c2 is a call of show_registration_form, one of the host app's own tools: that app answers it (answerCustomToolUse), never an approval",
+    );
+    await expect(answer({ runId: "run_host_only" })).rejects.toThrow(
+      "run run_host_only waits only on its host app's own tools, which that app answers, not an approval:\n  run_host_only.c1  show_registration_form",
+    );
+    expect(confirms).toEqual([]);
+    expect(await answer({ runId: "run_host" }), "the run's ask is still answered alone").toMatchObject({ toolUseId: "run_host.c1", answer: "allow" });
   });
 
   it("refuses a comment on an allow and an unknown action, sending nothing", async () => {

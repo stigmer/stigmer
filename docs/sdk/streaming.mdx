@@ -58,14 +58,16 @@ import (
 import time
 
 from stigmer import ErrorCode, StigmerError, is_retryable
-from ai.stigmer.agentic.session.v1 import io_pb2
+from ai.stigmer.agentic.session.v1 import event_content_pb2, io_pb2
 ```
 
 </Tab>
 <Tab value="Java">
 
 ```java prelude
+import ai.stigmer.agentic.session.v1.AnswerCustomToolUseInput;
 import ai.stigmer.agentic.session.v1.ConfirmToolUseInput;
+import ai.stigmer.agentic.session.v1.ContentBlock;
 import ai.stigmer.agentic.session.v1.StreamSessionEventsRequest;
 import ai.stigmer.sdk.gen.ErrorCode;
 import ai.stigmer.sdk.gen.StigmerException;
@@ -308,6 +310,8 @@ it. The events you read most often:
 | `agent.tool_result`, `agent.mcp_tool_result` | A call's result, naming the call it answers. |
 | `stigmer.tool_result.full_output` | Where a large result is stored whole. The result event holds its head. |
 | `stigmer.permission.asked` | A call waits for a person's answer, with the message to show them. |
+| `agent.custom_tool_use` | A call of one of your app's own tools: its `name` and `input`. It waits for your app's answer; its `id` is the `custom_tool_use_id` the answer names. |
+| `user.custom_tool_result` | Your app's answer to such a call: text the Agent reads as the tool's result, and `is_error`. |
 | `agent.thread_context_compacted` | The conversation outgrew the model's context and was summarized. The turn carries on. |
 | `session.status_running` | The Session started working. |
 | `session.status_idle` | The Session stopped working. A `stop_reason` of `requires_action` names the calls that wait. |
@@ -324,7 +328,8 @@ A type that starts with `stigmer.` is one of Stigmer's own;
 
 In TypeScript, the SDK folds events into the conversation for you.
 `SessionLog` (or `foldSession` for a list of events) turns them into runs, each
-with its items in order, the calls waiting for an answer (`asks`), its to-do
+with its items in order, the calls waiting for an approval (`asks`), the calls
+of your app's own tools waiting for its answer (`customToolUses`), its to-do
 list, its status, and its final `answer`:
 
 ```typescript
@@ -395,7 +400,7 @@ These phases don't:
 | --- | --- |
 | `pending` | Queued, waiting for a runner. |
 | `running` | The Agent is working. |
-| `waiting` | A call waits for an approval. See [Answer a call that waits](#answer-a-call-that-waits). |
+| `waiting` | A call waits for an approval, or for your app's answer. See [Answer a call that waits](#answer-a-call-that-waits). |
 | `paused` | Paused, and can be resumed. |
 
 <SDKTabs>
@@ -527,6 +532,91 @@ with its `lastSeq`. `client.sendAndWait` starts the run and waits in one call.
 To allow a call and every call of its kind for the rest of the run (its built-in
 category, its MCP server, or the hook that asked), call `grantPermission` with
 the same `session_id` and `tool_use_id`.
+
+## Answer a call of your app's own tool
+
+A Session can carry tools your app answers itself (its `custom_tools`; see
+[Sessions](/docs/concepts/sessions#your-apps-own-tools)). A call of one is an
+`agent.custom_tool_use`, and it waits like an approval: the run's phase becomes
+`waiting` and the Session goes idle with `requires_action` naming it. The turn
+readers list these calls apart from the approvals (`customToolUses`), because an
+approval never answers one. Answer each with `answerCustomToolUse`, naming it by
+its `custom_tool_use_id`: the text is what the Agent reads as the tool's result,
+and `is_error` says the tool failed. The run resumes once every call and every
+approval that waits is answered.
+
+<SDKTabs>
+<Tab value="TypeScript">
+```typescript
+declare const sessionId: string;
+declare const customToolUseId: string;
+// ---cut---
+import { create } from "@bufbuild/protobuf";
+import { AnswerCustomToolUseInputSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/io_pb";
+
+await stigmer.session.answerCustomToolUse(
+  create(AnswerCustomToolUseInputSchema, {
+    sessionId,
+    customToolUseId,
+    content: [{ type: "text", text: "Registered as svc_payments." }],
+  }),
+);
+```
+
+When `waitForTurn` returns with `phase` `waiting`, its `customToolUses` lists
+each call's `id`, `name` and `input`.
+</Tab>
+<Tab value="Go">
+```go
+var sessionID, customToolUseID string
+// ---cut---
+_, err := client.Session.AnswerCustomToolUse(ctx, &sessionv1.AnswerCustomToolUseInput{
+    SessionId:       sessionID,
+    CustomToolUseId: customToolUseID,
+    Content:         []*sessionv1.ContentBlock{{Type: "text", Text: "Registered as svc_payments."}},
+})
+if err != nil {
+    log.Fatal(err)
+}
+```
+
+When `client.WaitForTurn` returns with `Phase` `waiting`, its `CustomToolUses`
+lists each call's `ID`, `Name` and `Input`.
+</Tab>
+<Tab value="Python">
+```python
+session_id = ""
+custom_tool_use_id = ""
+# ---cut---
+client.sessions.answer_custom_tool_use(io_pb2.AnswerCustomToolUseInput(
+    session_id=session_id,
+    custom_tool_use_id=custom_tool_use_id,
+    content=[event_content_pb2.ContentBlock(type="text", text="Registered as svc_payments.")],
+))
+```
+
+When `client.wait_for_turn` returns with `phase` `waiting`, its
+`custom_tool_uses` lists each call's `id`, `name` and `input`.
+</Tab>
+<Tab value="Java">
+```java
+String sessionId;
+String customToolUseId;
+// ---cut---
+client.session.answerCustomToolUse(AnswerCustomToolUseInput.newBuilder()
+    .setSessionId(sessionId)
+    .setCustomToolUseId(customToolUseId)
+    .addContent(ContentBlock.newBuilder().setType("text").setText("Registered as svc_payments.").build())
+    .build());
+```
+
+When `client.waitForTurn` returns with phase `TurnOutcome.WAITING`, its
+`customToolUses` lists each call's `id`, `name` and `input`.
+</Tab>
+</SDKTabs>
+
+Only the Session's owner answers, as only the owner approves a call. To answer
+from your app's server, call with the owner's own credential.
 
 ## Resume a dropped stream
 

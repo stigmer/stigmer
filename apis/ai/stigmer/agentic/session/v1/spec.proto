@@ -7,6 +7,7 @@ import "ai/stigmer/agentic/session/v1/resource.proto";
 import "ai/stigmer/commons/apiresource/field_options.proto";
 import "ai/stigmer/commons/apiresource/io.proto";
 import "buf/validate/validate.proto";
+import "google/protobuf/struct.proto";
 
 // SessionSpec defines the configurable properties of a session.
 //
@@ -183,4 +184,48 @@ message SessionSpec {
   // created, so whoever may send the conversation a message may add files
   // without editing it.
   repeated SessionResource resources = 22 [(buf.validate.field).repeated.max_items = 1000];
+
+  // Tools the host app answers itself, offered to the agent beside its own.
+  //
+  // The agent sees each under its name and calls it with input that
+  // matches its input_schema. A call that does not match is refused to the
+  // agent, which reads why and may try again. A call that matches is
+  // recorded as an agent.custom_tool_use, and the session goes idle with
+  // stop_reason requires_action naming it, as a call waiting for an
+  // approval does. The host answers with answerCustomToolUse (or a
+  // user.custom_tool_result), at once or after its person acts, and the
+  // turn carries on with the answer. A call nobody answers waits; stopping
+  // the session ends it.
+  //
+  // Only the conversation's main agent is offered them, and only on a turn
+  // a person can answer: a chat-link visitor's, a messaging channel's or a
+  // schedule's turn offers none. The agent's tool lists do not apply to
+  // them. Fixed once a turn has run.
+  //
+  // Names are letters, digits, _ and -, at most 64, unique, and not a
+  // built-in tool's name or one starting mcp__. Each input_schema is a JSON
+  // Schema object ({"type": "object", ...}). At most 32 tools and 64 KB of
+  // schemas in all.
+  //
+  // @internal
+  // The shape, names and limits are checked by @stigmer/tool-vocabulary's
+  // custom-tools.ts, which the server's create step and the runner both
+  // call; CEL holds only what a single field can say.
+  repeated CustomTool custom_tools = 23 [(buf.validate.field).repeated.max_items = 32];
+}
+
+// CustomTool is one tool the host app answers itself (SessionSpec.custom_tools):
+// Claude Managed Agents' custom tool, its type implied.
+message CustomTool {
+  // The tool's name as the agent sees it: letters, digits, _ and -, at most 64.
+  string name = 1 [(buf.validate.field).string.pattern = "^[a-zA-Z0-9_-]{1,64}$"];
+
+  // What the tool does and when to call it, for the agent.
+  string description = 2 [
+    (buf.validate.field).string.min_len = 1,
+    (buf.validate.field).string.max_len = 4096
+  ];
+
+  // The JSON Schema the tool's input must match: an object schema.
+  google.protobuf.Struct input_schema = 3 [(buf.validate.field).required = true];
 }

@@ -3,7 +3,8 @@
  * sent to the session (RunCommandController.sendMessage) as a turn under
  * the console's name and answered with the user.message the send records,
  * started (processed) or queued (processed_at null);
- * a confirmation and an interrupt each go through their own method; the
+ * a confirmation, a custom tool's result and an interrupt each go through
+ * their own method; the
  * events apply in order and the first failure stops the list with the
  * ones before it applied. A message's Files ride the turn by id; the
  * file check asks the File query each block's type, refuses an image
@@ -21,6 +22,7 @@ import { SessionEventSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/
 import { SendMessageResponseSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/io_pb";
 import {
   InterruptSessionResponseSchema,
+  type AnswerCustomToolUseInput,
   type ConfirmToolUseInput,
   type InterruptSessionInput,
 } from "@stigmer/apis/ai/stigmer/agentic/session/v1/io_pb";
@@ -39,6 +41,7 @@ interface Seen {
   readonly calls: string[];
   run?: Run;
   confirmation?: ConfirmToolUseInput;
+  customResult?: AnswerCustomToolUseInput;
   interrupt?: InterruptSessionInput;
 }
 
@@ -96,6 +99,18 @@ function harness(
             event: {
               case: "userToolConfirmation",
               value: { id: "sevt_conf", toolUseId: input.toolUseId, result: input.result, denyMessage: input.denyMessage },
+            },
+          }),
+        );
+      },
+      answerCustomToolUse: (input: AnswerCustomToolUseInput) => {
+        seen.calls.push("answerCustomToolUse");
+        seen.customResult = input;
+        return Promise.resolve(
+          create(SessionEventSchema, {
+            event: {
+              case: "userCustomToolResult",
+              value: { id: "sevt_ctr", customToolUseId: input.customToolUseId, content: input.content, isError: input.isError },
             },
           }),
         );
@@ -171,6 +186,35 @@ describe("serveSend", () => {
     expect(body.data.map((event) => [event.type, event.id])).toEqual([
       ["user.tool_confirmation", "sevt_conf"],
       ["user.interrupt", "sevt_int"],
+    ]);
+  });
+
+  it("answers a custom tool's result through answerCustomToolUse, its text blocks and is_error as sent", async () => {
+    const { seen, call, response, answer } = harness();
+    await serveSend(call, [{ type: "user.custom_tool_result", customToolUseId: "run_1.cu_1", texts: ["registered", " as svc_payments"], isError: true }], response, () => 0);
+    expect(seen.calls).toEqual(["answerCustomToolUse"]);
+    expect(seen.customResult).toMatchObject({
+      sessionId: "ses_1",
+      customToolUseId: "run_1.cu_1",
+      content: [
+        { type: "text", text: "registered" },
+        { type: "text", text: " as svc_payments" },
+      ],
+      isError: true,
+    });
+    const { body } = answer() as { body: { data: Array<Record<string, unknown>> } };
+    // processed_at is the renderer's to write (@stigmer/session-log), pinned there.
+    expect(body.data).toMatchObject([
+      {
+        type: "user.custom_tool_result",
+        id: "sevt_ctr",
+        custom_tool_use_id: "run_1.cu_1",
+        content: [
+          { type: "text", text: "registered" },
+          { type: "text", text: " as svc_payments" },
+        ],
+        is_error: true,
+      },
     ]);
   });
 

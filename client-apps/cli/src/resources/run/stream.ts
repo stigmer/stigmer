@@ -86,7 +86,7 @@ export async function streamAgentRun(deps: StreamDeps): Promise<Run> {
     // the session's newest turn: the person may have sent follow-ups since
     // the run this command started (stigmer#2781).
     const runId = await newestRunId(deps.client, deps.sessionId, deps.runId);
-    const newest = await runEpilogue(deps.client, deps.sessionId, runId, { phase: "", error: "", turn: undefined });
+    const newest = await runEpilogue(deps.client, deps.sessionId, runId, { phase: "", error: "", turn: undefined, waitingOnHost: [] });
     // A save the view could not make fails the command, as a failed download off a terminal does.
     if (actionFailed) throw new CliExitError("some turn's outputs were not saved (the session says which)", ExitCode.General);
     return newest;

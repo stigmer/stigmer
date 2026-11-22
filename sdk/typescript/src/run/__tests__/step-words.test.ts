@@ -30,6 +30,7 @@ function call(name: string, input: JsonObject, outcome: Outcome = "returned", te
     evaluatedPermission: "",
     state: outcome === "running" ? "running" : outcome === "denied" ? "denied" : outcome === "failed" ? "failed" : outcome === "stopped" ? "stopped" : outcome === "waiting" ? "waiting" : "completed",
     ask: undefined,
+    custom: false,
     confirmation: undefined,
     grant: undefined,
     result: returned ? { id: `run_1.tc-${name}.r`, text, isError: outcome === "failed", processedAt: "2026-07-20T11:00:01.000Z" } : undefined,

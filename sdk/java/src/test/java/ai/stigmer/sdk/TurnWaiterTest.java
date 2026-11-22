@@ -55,7 +55,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Pins {@link StigmerClient#sendAndWait} and {@link StigmerClient#waitForTurn}
- * ({@link TurnWaiter}).
+ * ({@link TurnWaiter}), a custom tool use's wait among the shared cases.
  *
  * <p>The reader is held to the shared turn cases in {@code test/fixtures/turns},
  * which the TypeScript client reads through the fold itself: a rule that
@@ -102,12 +102,24 @@ class TurnWaiterTest {
             for (JsonElement ask : expect.getAsJsonArray("asks")) {
                 asks.add(new TurnAsk(ask.getAsJsonObject().get("id").getAsString(), ask.getAsJsonObject().get("name").getAsString()));
             }
+            List<JsonElement> customToolUses = new ArrayList<>();
+            for (JsonElement call : expect.getAsJsonArray("customToolUses")) {
+                customToolUses.add(call);
+            }
+            List<JsonElement> gotCustomToolUses = new ArrayList<>();
+            for (TurnCustomToolUse call : outcome.customToolUses()) {
+                JsonObject json = new JsonObject();
+                json.addProperty("id", call.id());
+                json.addProperty("name", call.name());
+                json.add("input", JsonParser.parseString(JsonFormat.printer().print(call.input())));
+                gotCustomToolUses.add(json);
+            }
             assertEquals(
                     List.of(expect.get("phase").getAsString(), expect.get("answer").getAsString(),
                             expect.get("stopCause").getAsString(), expect.get("error").getAsString(),
-                            asks, Long.parseLong(expect.get("lastSeq").getAsString()), c.get("runId").getAsString()),
+                            asks, customToolUses, Long.parseLong(expect.get("lastSeq").getAsString()), c.get("runId").getAsString()),
                     List.of(outcome.phase(), outcome.answer(), outcome.stopCause(), outcome.error(),
-                            outcome.asks(), outcome.lastSeq(), outcome.runId()),
+                            outcome.asks(), gotCustomToolUses, outcome.lastSeq(), outcome.runId()),
                     description);
         }));
     }

@@ -70,6 +70,7 @@
     "stopCause": "error",
     "error": "The model provider refused the request.",
     "asks": [],
+    "customToolUses": [],
     "lastSeq": "4"
   }
 }

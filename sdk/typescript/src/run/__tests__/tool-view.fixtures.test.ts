@@ -186,7 +186,7 @@ describe("secret-args fixtures", () => {
 
 describe("public-name fixtures", () => {
   const { cases } = loadFixture<{
-    cases: { name: string; tool: string; mcpServerSlug: string; publicName: string | null }[];
+    cases: { name: string; tool: string; mcpServerSlug: string; custom?: boolean; publicName: string | null }[];
   }>("public-names.json");
 
   it("loads the fixture", () => {
@@ -195,7 +195,7 @@ describe("public-name fixtures", () => {
 
   for (const c of cases) {
     it(c.name, () => {
-      expect(toolPublicName({ name: c.tool, mcpServerName: c.mcpServerSlug })).toBe(c.publicName ?? undefined);
+      expect(toolPublicName({ name: c.tool, mcpServerName: c.mcpServerSlug, custom: c.custom === true })).toBe(c.publicName ?? undefined);
     });
   }
 });

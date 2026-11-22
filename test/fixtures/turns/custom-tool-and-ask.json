@@ -1,0 +1,121 @@
+{
+  "description": "One idle names an approval and a custom tool use: the wait returns waiting with each in its own list, the approval among the asks and the host's call among the custom tool uses.",
+  "runId": "run_1",
+  "frames": [
+    {
+      "event": {
+        "seq": "1",
+        "sessionId": "ses_1",
+        "runId": "run_1",
+        "userMessage": {
+          "id": "u1",
+          "content": [
+            {
+              "type": "text",
+              "text": "Clean up and register."
+            }
+          ],
+          "processedAt": "2026-11-03T10:00:00Z"
+        }
+      }
+    },
+    {
+      "event": {
+        "seq": "2",
+        "sessionId": "ses_1",
+        "runId": "run_1",
+        "stigmerRunStatus": {
+          "id": "st2",
+          "processedAt": "2026-11-03T10:00:00Z",
+          "phase": "running"
+        }
+      }
+    },
+    {
+      "event": {
+        "seq": "3",
+        "sessionId": "ses_1",
+        "runId": "run_1",
+        "agentToolUse": {
+          "id": "t3",
+          "input": {
+            "command": "ls"
+          },
+          "name": "Bash",
+          "processedAt": "2026-11-03T10:00:00Z",
+          "evaluatedPermission": "ask"
+        }
+      }
+    },
+    {
+      "event": {
+        "seq": "4",
+        "sessionId": "ses_1",
+        "runId": "run_1",
+        "agentCustomToolUse": {
+          "id": "c4",
+          "name": "show_registration_form",
+          "input": {
+            "service": "payments",
+            "repo": "acme/payments"
+          },
+          "processedAt": "2026-11-03T10:00:00Z"
+        }
+      }
+    },
+    {
+      "event": {
+        "seq": "5",
+        "sessionId": "ses_1",
+        "runId": "run_1",
+        "stigmerRunStatus": {
+          "id": "st5",
+          "processedAt": "2026-11-03T10:00:00Z",
+          "phase": "waiting"
+        }
+      }
+    },
+    {
+      "event": {
+        "seq": "6",
+        "sessionId": "ses_1",
+        "runId": "run_1",
+        "sessionStatusIdle": {
+          "id": "i6",
+          "processedAt": "2026-11-03T10:00:00Z",
+          "stopReason": {
+            "type": "requires_action",
+            "eventIds": [
+              "t3",
+              "c4"
+            ]
+          }
+        }
+      }
+    }
+  ],
+  "expect": {
+    "decided": true,
+    "phase": "waiting",
+    "answer": "",
+    "stopCause": "",
+    "error": "",
+    "asks": [
+      {
+        "id": "t3",
+        "name": "Bash"
+      }
+    ],
+    "customToolUses": [
+      {
+        "id": "c4",
+        "name": "show_registration_form",
+        "input": {
+          "service": "payments",
+          "repo": "acme/payments"
+        }
+      }
+    ],
+    "lastSeq": "6"
+  }
+}

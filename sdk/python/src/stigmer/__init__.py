@@ -24,7 +24,7 @@ from ._github import GitHubClient, GitHubRepoParams
 from ._search import ApiResourceKind, SearchClient, SearchParams, SearchResponse
 from ._tokens import MintUserTokenResult, TokenClient
 from ._token_cache import FetchedToken, TokenCache
-from ._turns import TURN_PHASE_WAITING, TurnAsk, TurnOutcome
+from ._turns import TURN_PHASE_WAITING, TurnAsk, TurnCustomToolUse, TurnOutcome
 
 # --- Routed wrappers over the generated skill and file clients -----------
 
@@ -77,6 +77,7 @@ __all__ = [
     # Send a message and wait for the answer
     "TURN_PHASE_WAITING",
     "TurnAsk",
+    "TurnCustomToolUse",
     "TurnOutcome",
     # Routed wrappers over the generated skill and file clients
     "RoutedSkillClient",
@@ -180,6 +181,7 @@ from ._gen._run import (
     RunClient,
     RunInput,
     SessionSpecInput,
+    CustomToolInput,
     ConversationCatchupInput,
     EvalCaseContextInput,
     EvalMockServerInput,
@@ -277,6 +279,7 @@ __all__ += [
     "RunClient",
     "RunInput",
     "SessionSpecInput",
+    "CustomToolInput",
     "ConversationCatchupInput",
     "EvalCaseContextInput",
     "EvalMockServerInput",

@@ -69,12 +69,18 @@ describe("the catalog", () => {
   it("a person's answers and stop are the server's to write, never a runner's", () => {
     for (const type of [
       "user.tool_confirmation",
+      "user.custom_tool_result",
       "user.interrupt",
       "user.message",
       "stigmer.background_command.stop_requested",
     ]) {
       expect(RUNNER_EVENT_TYPES.has(type), type).toBe(false);
     }
+  });
+
+  it("a call of one of the host app's own tools is the runner's to append, and the host's answer the server's", () => {
+    expect(RUNNER_EVENT_TYPES.has("agent.custom_tool_use")).toBe(true);
+    expect(RUNNER_EVENT_TYPES.has("user.custom_tool_result")).toBe(false);
   });
 
   it("a runner appends only landed types, never the user's turn, the session's status or a decision", () => {

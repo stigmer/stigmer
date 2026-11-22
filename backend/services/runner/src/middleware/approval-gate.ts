@@ -204,6 +204,15 @@ export interface ApprovalGateConfig extends FileEditPosture {
    */
   readonly unattended?: boolean;
   /**
+   * The host app's own tools the graph offers (`custom-tools.ts`): a call of
+   * one is the host's to answer, never a person's to approve. The custom-tool
+   * middleware outside this gate pauses it; on the resume its handler runs
+   * through this gate, which hands it straight on, so no hook, lease,
+   * category or bypass ever decides the host's answer. Absent on a
+   * sub-agent's gate, whose graph offers none.
+   */
+  readonly customToolNames?: ReadonlySet<string>;
+  /**
    * Registry of tool-call ids this gate auto-skipped under {@link unattended},
    * each with the hook whose ask was skipped (`null` when the default asked)
    * — the gate is the single WRITER; `reconcileUnattendedSkips` (hitl.ts) is
@@ -298,6 +307,8 @@ export function createApprovalGateMiddleware(
 
     async wrapToolCall(request: ToolCallRequest, handler) {
       const { toolCall } = request;
+      // The host's tool: answered by the host, never approved (the config's note).
+      if (config.customToolNames?.has(toolCall.name) === true) return handler(request);
       const owner = mcpIndex.ownerOf(toolCall.name);
       const toolName = owner?.tool ?? toolCall.name;
       const serverSlug = owner?.slug ?? "";

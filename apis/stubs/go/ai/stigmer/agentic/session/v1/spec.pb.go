@@ -11,6 +11,7 @@ import (
 	apiresource "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
+	structpb "google.golang.org/protobuf/types/known/structpb"
 	reflect "reflect"
 	sync "sync"
 	unsafe "unsafe"
@@ -143,7 +144,29 @@ type SessionSpec struct {
 	// A turn's own files (RunSpec.file_ids) join this list when the turn is
 	// created, so whoever may send the conversation a message may add files
 	// without editing it.
-	Resources     []*SessionResource `protobuf:"bytes,22,rep,name=resources,proto3" json:"resources,omitempty"`
+	Resources []*SessionResource `protobuf:"bytes,22,rep,name=resources,proto3" json:"resources,omitempty"`
+	// Tools the host app answers itself, offered to the agent beside its own.
+	//
+	// The agent sees each under its name and calls it with input that
+	// matches its input_schema. A call that does not match is refused to the
+	// agent, which reads why and may try again. A call that matches is
+	// recorded as an agent.custom_tool_use, and the session goes idle with
+	// stop_reason requires_action naming it, as a call waiting for an
+	// approval does. The host answers with answerCustomToolUse (or a
+	// user.custom_tool_result), at once or after its person acts, and the
+	// turn carries on with the answer. A call nobody answers waits; stopping
+	// the session ends it.
+	//
+	// Only the conversation's main agent is offered them, and only on a turn
+	// a person can answer: a chat-link visitor's, a messaging channel's or a
+	// schedule's turn offers none. The agent's tool lists do not apply to
+	// them. Fixed once a turn has run.
+	//
+	// Names are letters, digits, _ and -, at most 64, unique, and not a
+	// built-in tool's name or one starting mcp__. Each input_schema is a JSON
+	// Schema object ({"type": "object", ...}). At most 32 tools and 64 KB of
+	// schemas in all.
+	CustomTools   []*CustomTool `protobuf:"bytes,23,rep,name=custom_tools,json=customTools,proto3" json:"custom_tools,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -262,11 +285,83 @@ func (x *SessionSpec) GetResources() []*SessionResource {
 	return nil
 }
 
+func (x *SessionSpec) GetCustomTools() []*CustomTool {
+	if x != nil {
+		return x.CustomTools
+	}
+	return nil
+}
+
+// CustomTool is one tool the host app answers itself (SessionSpec.custom_tools):
+// Claude Managed Agents' custom tool, its type implied.
+type CustomTool struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// The tool's name as the agent sees it: letters, digits, _ and -, at most 64.
+	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	// What the tool does and when to call it, for the agent.
+	Description string `protobuf:"bytes,2,opt,name=description,proto3" json:"description,omitempty"`
+	// The JSON Schema the tool's input must match: an object schema.
+	InputSchema   *structpb.Struct `protobuf:"bytes,3,opt,name=input_schema,json=inputSchema,proto3" json:"input_schema,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CustomTool) Reset() {
+	*x = CustomTool{}
+	mi := &file_ai_stigmer_agentic_session_v1_spec_proto_msgTypes[1]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CustomTool) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CustomTool) ProtoMessage() {}
+
+func (x *CustomTool) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_agentic_session_v1_spec_proto_msgTypes[1]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CustomTool.ProtoReflect.Descriptor instead.
+func (*CustomTool) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_session_v1_spec_proto_rawDescGZIP(), []int{1}
+}
+
+func (x *CustomTool) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *CustomTool) GetDescription() string {
+	if x != nil {
+		return x.Description
+	}
+	return ""
+}
+
+func (x *CustomTool) GetInputSchema() *structpb.Struct {
+	if x != nil {
+		return x.InputSchema
+	}
+	return nil
+}
+
 var File_ai_stigmer_agentic_session_v1_spec_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_session_v1_spec_proto_rawDesc = "" +
 	"\n" +
-	"(ai/stigmer/agentic/session/v1/spec.proto\x12\x1dai.stigmer.agentic.session.v1\x1a(ai/stigmer/agentic/session/v1/enum.proto\x1a,ai/stigmer/agentic/session/v1/resource.proto\x1a2ai/stigmer/commons/apiresource/field_options.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a\x1bbuf/validate/validate.proto\"\xd0\a\n" +
+	"(ai/stigmer/agentic/session/v1/spec.proto\x12\x1dai.stigmer.agentic.session.v1\x1a(ai/stigmer/agentic/session/v1/enum.proto\x1a,ai/stigmer/agentic/session/v1/resource.proto\x1a2ai/stigmer/commons/apiresource/field_options.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a\x1bbuf/validate/validate.proto\x1a\x1cgoogle/protobuf/struct.proto\"\xa8\b\n" +
 	"\vSessionSpec\x12W\n" +
 	"\tagent_ref\x18\x0e \x01(\v24.ai.stigmer.commons.apiresource.ApiResourceReferenceB\x04\xe0\x85,(R\bagentRef\x12\x18\n" +
 	"\asubject\x18\x02 \x01(\tR\asubject\x12T\n" +
@@ -282,10 +377,17 @@ const file_ai_stigmer_agentic_session_v1_spec_proto_rawDesc = "" +
 	"\vfile_review\x18\x14 \x01(\bR\n" +
 	"fileReview\x12c\n" +
 	"\x0fenvironment_ref\x18\x15 \x01(\v24.ai.stigmer.commons.apiresource.ApiResourceReferenceB\x04\xe0\x85,CR\x0eenvironmentRef\x12W\n" +
-	"\tresources\x18\x16 \x03(\v2..ai.stigmer.agentic.session.v1.SessionResourceB\t\xbaH\x06\x92\x01\x03\x10\xe8\aR\tresources\x1a;\n" +
+	"\tresources\x18\x16 \x03(\v2..ai.stigmer.agentic.session.v1.SessionResourceB\t\xbaH\x06\x92\x01\x03\x10\xe8\aR\tresources\x12V\n" +
+	"\fcustom_tools\x18\x17 \x03(\v2).ai.stigmer.agentic.session.v1.CustomToolB\b\xbaH\x05\x92\x01\x02\x10 R\vcustomTools\x1a;\n" +
 	"\rMetadataEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01B\x99\x02\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\xb0\x01\n" +
+	"\n" +
+	"CustomTool\x120\n" +
+	"\x04name\x18\x01 \x01(\tB\x1c\xbaH\x19r\x172\x15^[a-zA-Z0-9_-]{1,64}$R\x04name\x12,\n" +
+	"\vdescription\x18\x02 \x01(\tB\n" +
+	"\xbaH\ar\x05\x10\x01\x18\x80 R\vdescription\x12B\n" +
+	"\finput_schema\x18\x03 \x01(\v2\x17.google.protobuf.StructB\x06\xbaH\x03\xc8\x01\x01R\vinputSchemaB\x99\x02\n" +
 	"!com.ai.stigmer.agentic.session.v1B\tSpecProtoP\x01ZPgithub.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/session/v1;sessionv1\xa2\x02\x04ASAS\xaa\x02\x1dAi.Stigmer.Agentic.Session.V1\xca\x02\x1dAi\\Stigmer\\Agentic\\Session\\V1\xe2\x02)Ai\\Stigmer\\Agentic\\Session\\V1\\GPBMetadata\xea\x02!Ai::Stigmer::Agentic::Session::V1b\x06proto3"
 
 var (
@@ -300,30 +402,34 @@ func file_ai_stigmer_agentic_session_v1_spec_proto_rawDescGZIP() []byte {
 	return file_ai_stigmer_agentic_session_v1_spec_proto_rawDescData
 }
 
-var file_ai_stigmer_agentic_session_v1_spec_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
+var file_ai_stigmer_agentic_session_v1_spec_proto_msgTypes = make([]protoimpl.MessageInfo, 3)
 var file_ai_stigmer_agentic_session_v1_spec_proto_goTypes = []any{
 	(*SessionSpec)(nil),                      // 0: ai.stigmer.agentic.session.v1.SessionSpec
-	nil,                                      // 1: ai.stigmer.agentic.session.v1.SessionSpec.MetadataEntry
-	(*apiresource.ApiResourceReference)(nil), // 2: ai.stigmer.commons.apiresource.ApiResourceReference
-	(Harness)(0),                             // 3: ai.stigmer.agentic.session.v1.Harness
-	(ExecutionTarget)(0),                     // 4: ai.stigmer.agentic.session.v1.ExecutionTarget
-	(*SessionResource)(nil),                  // 5: ai.stigmer.agentic.session.v1.SessionResource
+	(*CustomTool)(nil),                       // 1: ai.stigmer.agentic.session.v1.CustomTool
+	nil,                                      // 2: ai.stigmer.agentic.session.v1.SessionSpec.MetadataEntry
+	(*apiresource.ApiResourceReference)(nil), // 3: ai.stigmer.commons.apiresource.ApiResourceReference
+	(Harness)(0),                             // 4: ai.stigmer.agentic.session.v1.Harness
+	(ExecutionTarget)(0),                     // 5: ai.stigmer.agentic.session.v1.ExecutionTarget
+	(*SessionResource)(nil),                  // 6: ai.stigmer.agentic.session.v1.SessionResource
+	(*structpb.Struct)(nil),                  // 7: google.protobuf.Struct
 }
 var file_ai_stigmer_agentic_session_v1_spec_proto_depIdxs = []int32{
-	2, // 0: ai.stigmer.agentic.session.v1.SessionSpec.agent_ref:type_name -> ai.stigmer.commons.apiresource.ApiResourceReference
-	1, // 1: ai.stigmer.agentic.session.v1.SessionSpec.metadata:type_name -> ai.stigmer.agentic.session.v1.SessionSpec.MetadataEntry
-	2, // 2: ai.stigmer.agentic.session.v1.SessionSpec.skill_refs:type_name -> ai.stigmer.commons.apiresource.ApiResourceReference
-	3, // 3: ai.stigmer.agentic.session.v1.SessionSpec.harness:type_name -> ai.stigmer.agentic.session.v1.Harness
-	4, // 4: ai.stigmer.agentic.session.v1.SessionSpec.execution_target:type_name -> ai.stigmer.agentic.session.v1.ExecutionTarget
-	2, // 5: ai.stigmer.agentic.session.v1.SessionSpec.vaults:type_name -> ai.stigmer.commons.apiresource.ApiResourceReference
-	2, // 6: ai.stigmer.agentic.session.v1.SessionSpec.plugins:type_name -> ai.stigmer.commons.apiresource.ApiResourceReference
-	2, // 7: ai.stigmer.agentic.session.v1.SessionSpec.environment_ref:type_name -> ai.stigmer.commons.apiresource.ApiResourceReference
-	5, // 8: ai.stigmer.agentic.session.v1.SessionSpec.resources:type_name -> ai.stigmer.agentic.session.v1.SessionResource
-	9, // [9:9] is the sub-list for method output_type
-	9, // [9:9] is the sub-list for method input_type
-	9, // [9:9] is the sub-list for extension type_name
-	9, // [9:9] is the sub-list for extension extendee
-	0, // [0:9] is the sub-list for field type_name
+	3,  // 0: ai.stigmer.agentic.session.v1.SessionSpec.agent_ref:type_name -> ai.stigmer.commons.apiresource.ApiResourceReference
+	2,  // 1: ai.stigmer.agentic.session.v1.SessionSpec.metadata:type_name -> ai.stigmer.agentic.session.v1.SessionSpec.MetadataEntry
+	3,  // 2: ai.stigmer.agentic.session.v1.SessionSpec.skill_refs:type_name -> ai.stigmer.commons.apiresource.ApiResourceReference
+	4,  // 3: ai.stigmer.agentic.session.v1.SessionSpec.harness:type_name -> ai.stigmer.agentic.session.v1.Harness
+	5,  // 4: ai.stigmer.agentic.session.v1.SessionSpec.execution_target:type_name -> ai.stigmer.agentic.session.v1.ExecutionTarget
+	3,  // 5: ai.stigmer.agentic.session.v1.SessionSpec.vaults:type_name -> ai.stigmer.commons.apiresource.ApiResourceReference
+	3,  // 6: ai.stigmer.agentic.session.v1.SessionSpec.plugins:type_name -> ai.stigmer.commons.apiresource.ApiResourceReference
+	3,  // 7: ai.stigmer.agentic.session.v1.SessionSpec.environment_ref:type_name -> ai.stigmer.commons.apiresource.ApiResourceReference
+	6,  // 8: ai.stigmer.agentic.session.v1.SessionSpec.resources:type_name -> ai.stigmer.agentic.session.v1.SessionResource
+	1,  // 9: ai.stigmer.agentic.session.v1.SessionSpec.custom_tools:type_name -> ai.stigmer.agentic.session.v1.CustomTool
+	7,  // 10: ai.stigmer.agentic.session.v1.CustomTool.input_schema:type_name -> google.protobuf.Struct
+	11, // [11:11] is the sub-list for method output_type
+	11, // [11:11] is the sub-list for method input_type
+	11, // [11:11] is the sub-list for extension type_name
+	11, // [11:11] is the sub-list for extension extendee
+	0,  // [0:11] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_agentic_session_v1_spec_proto_init() }
@@ -339,7 +445,7 @@ func file_ai_stigmer_agentic_session_v1_spec_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ai_stigmer_agentic_session_v1_spec_proto_rawDesc), len(file_ai_stigmer_agentic_session_v1_spec_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   2,
+			NumMessages:   3,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

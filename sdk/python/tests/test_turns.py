@@ -1,4 +1,5 @@
-"""Pins send_and_wait and wait_for_turn (stigmer/_turns.py).
+"""Pins send_and_wait and wait_for_turn (stigmer/_turns.py), a custom tool
+use's wait among the shared cases.
 
 The reader is held to the shared turn cases in test/fixtures/turns, which the
 TypeScript client reads through the fold itself: a rule that drifts here
@@ -60,8 +61,9 @@ def test_reader_holds_the_shared_turn_case(path: Path) -> None:
         "stopCause": outcome.stop_cause,
         "error": outcome.error,
         "asks": [{"id": a.id, "name": a.name} for a in outcome.asks],
+        "customToolUses": [{"id": c.id, "name": c.name, "input": c.input} for c in outcome.custom_tool_uses],
         "lastSeq": str(outcome.last_seq),
-    } == {k: expect[k] for k in ("phase", "answer", "stopCause", "error", "asks", "lastSeq")}, case["description"]
+    } == {k: expect[k] for k in ("phase", "answer", "stopCause", "error", "asks", "customToolUses", "lastSeq")}, case["description"]
     assert outcome.run_id == case["runId"]
 
 

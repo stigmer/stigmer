@@ -237,6 +237,7 @@ describe("the thread's tail line while the turn waits on background commands", (
       status: { phase: "running" as const, stopCause: "", error: "", processedAt: TOOL_STARTED_AT },
       ended: false,
       asks: [],
+      customToolUses: [],
       todos: [],
       structuredOutput: undefined,
       memory: undefined,

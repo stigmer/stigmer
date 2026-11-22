@@ -406,7 +406,9 @@ export {
   type FileResourceInput,
   type GitRepositoryResourceInput,
   type LocalPathResourceInput,
+  type CustomToolInput,
 } from "./gen/session.js";
+export { defineCustomTool, type CustomToolDefinition } from "./custom-tools.js";
 
 // Session utilities (hand-written)
 export {

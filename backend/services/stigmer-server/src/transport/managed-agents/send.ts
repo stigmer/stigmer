@@ -2,7 +2,7 @@
  * `POST /v1/sessions/{id}/events`: a person's events sent to a session,
  * `{events:[…]}` in, `{data:[…the recorded events]}` out.
  *
- * Three events are served, each through the native method that owns it,
+ * Four events are served, each through the native method that owns it,
  * so each meets that method's own authorization and the composed guards:
  *
  *   - user.message: RunCommandController.sendMessage in the session, the
@@ -18,6 +18,12 @@
  *     refuses it, as Managed Agents answers 400 then.
  *   - user.tool_confirmation answers a call that waits:
  *     SessionCommandController.confirmToolUse.
+ *   - user.custom_tool_result answers a call of one of the host app's own
+ *     tools (the session's custom_tools):
+ *     SessionCommandController.answerCustomToolUse. Its content holds text
+ *     blocks; an image, document or search result block is refused before
+ *     anything applies, and so is a thread id, since only the main agent
+ *     calls custom tools.
  *   - user.interrupt stops the session's unfinished work:
  *     SessionCommandController.interrupt. Stigmer stops the whole session,
  *     so a thread id is refused.
@@ -26,7 +32,7 @@
  * name (a share guest may stop, never approve) holds here unchanged.
  *
  * The whole list is checked before anything applies: an event Stigmer does
- * not serve (user.tool_result, custom tools, outcomes, system.message), a
+ * not serve (user.tool_result, outcomes, system.message), a
  * block with a base64 or url source (Stigmer names files by id: upload the
  * bytes with its File API first), a document's title, context, citations
  * or cache_control (Stigmer would not carry them to the model, so the event
@@ -46,6 +52,7 @@ import { FileIdSchema } from "@stigmer/apis/ai/stigmer/agentic/file/v1/io_pb";
 import { RunSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 import type { SessionEvent } from "@stigmer/apis/ai/stigmer/agentic/session/v1/event_pb";
 import {
+  AnswerCustomToolUseInputSchema,
   ConfirmToolUseInputSchema,
   InterruptSessionInputSchema,
 } from "@stigmer/apis/ai/stigmer/agentic/session/v1/io_pb";
@@ -67,6 +74,12 @@ export type SendEvent =
       readonly result: "allow" | "deny";
       readonly denyMessage: string;
     }
+  | {
+      readonly type: "user.custom_tool_result";
+      readonly customToolUseId: string;
+      readonly texts: readonly string[];
+      readonly isError: boolean;
+    }
   | { readonly type: "user.interrupt" };
 
 /** A file a user.message names, and the block it came in. */
@@ -78,7 +91,7 @@ export interface MessageFile {
 /** How a user.message's text blocks join into the turn's one message. */
 export const TEXT_BLOCK_SEPARATOR = MESSAGE_TEXT_SEPARATOR;
 
-const SERVED_EVENT_TYPES = "user.message, user.tool_confirmation and user.interrupt";
+const SERVED_EVENT_TYPES = "user.message, user.tool_confirmation, user.custom_tool_result and user.interrupt";
 
 /** Checks a send's whole body (module header); nothing applies unless every event passes. */
 export function parseSendBody(body: unknown): readonly SendEvent[] | LaneError {
@@ -110,6 +123,8 @@ function parseEvent(event: unknown): SendEvent | LaneError {
       return parseMessage(event);
     case "user.tool_confirmation":
       return parseConfirmation(event);
+    case "user.custom_tool_result":
+      return parseCustomToolResult(event);
     case "user.interrupt": {
       const thread = event["session_thread_id"];
       if (thread !== undefined && thread !== null && thread !== "") {
@@ -195,6 +210,37 @@ function parseConfirmation(event: JsonLike): SendEvent | LaneError {
   return { type: "user.tool_confirmation", toolUseId, result, denyMessage };
 }
 
+function parseCustomToolResult(event: JsonLike): SendEvent | LaneError {
+  const customToolUseId = event["custom_tool_use_id"];
+  const content = event["content"] ?? [];
+  const isError = event["is_error"] ?? false;
+  const thread = event["session_thread_id"];
+  if (typeof customToolUseId !== "string" || customToolUseId === "") {
+    return invalidRequest("a user.custom_tool_result needs its custom_tool_use_id");
+  }
+  if (typeof isError !== "boolean") {
+    return invalidRequest("is_error must be a boolean");
+  }
+  if (thread !== undefined && thread !== null && thread !== "") {
+    return invalidRequest("only the main agent calls custom tools; session_thread_id must be absent");
+  }
+  if (!Array.isArray(content)) {
+    return invalidRequest("a user.custom_tool_result's content must be a list of blocks");
+  }
+  const texts: string[] = [];
+  for (const block of content as unknown[]) {
+    const blockType = isObject(block) && typeof block["type"] === "string" ? block["type"] : "unknown";
+    if (blockType !== "text") {
+      return invalidRequest(`Stigmer accepts text blocks in a user.custom_tool_result, not '${blockType}'`);
+    }
+    if (!isObject(block) || typeof block["text"] !== "string") {
+      return invalidRequest("a text block needs its text");
+    }
+    texts.push(block["text"]);
+  }
+  return { type: "user.custom_tool_result", customToolUseId, texts, isError };
+}
+
 /** The types an image block may name: Claude's image types. */
 const IMAGE_TYPES: ReadonlySet<string> = new Set(["image/jpeg", "image/png", "image/gif", "image/webp"]);
 
@@ -251,6 +297,16 @@ async function apply(call: LaneCall, event: SendEvent, now: () => number): Promi
           toolUseId: event.toolUseId,
           result: event.result,
           denyMessage: event.denyMessage,
+        }),
+        call.options,
+      );
+    case "user.custom_tool_result":
+      return call.clients.sessionCommand.answerCustomToolUse(
+        create(AnswerCustomToolUseInputSchema, {
+          sessionId: call.sessionId,
+          customToolUseId: event.customToolUseId,
+          content: event.texts.map((text) => ({ type: "text", text })),
+          isError: event.isError,
         }),
         call.options,
       );

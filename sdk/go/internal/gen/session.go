@@ -69,6 +69,11 @@ func (s *SessionClient) ConfirmToolUse(ctx context.Context, input *sessionv1.Con
 	return resp, wrapErr(err)
 }
 
+func (s *SessionClient) AnswerCustomToolUse(ctx context.Context, input *sessionv1.AnswerCustomToolUseInput) (*sessionv1.SessionEvent, error) {
+	resp, err := s.command.AnswerCustomToolUse(ctx, input)
+	return resp, wrapErr(err)
+}
+
 func (s *SessionClient) GrantPermission(ctx context.Context, input *sessionv1.GrantPermissionInput) (*sessionv1.GrantPermissionResponse, error) {
 	resp, err := s.command.GrantPermission(ctx, input)
 	return resp, wrapErr(err)
@@ -273,6 +278,7 @@ type SessionInput struct {
 	FileReview      bool
 	EnvironmentRef  ResourceRef
 	Resources       []*SessionResourceInput
+	CustomTools     []*CustomToolInput
 }
 
 func (i *SessionInput) toProto() (*sessionv1.Session, error) {
@@ -327,6 +333,13 @@ func (i *SessionInput) toProto() (*sessionv1.Session, error) {
 		}
 		resource.Spec.Resources = append(resource.Spec.Resources, v)
 	}
+	for idx, item := range i.CustomTools {
+		v, err := item.toProto()
+		if err != nil {
+			return nil, indexErr("CustomTools", idx, err)
+		}
+		resource.Spec.CustomTools = append(resource.Spec.CustomTools, v)
+	}
 	return resource, nil
 }
 
@@ -364,6 +377,9 @@ func SessionInputFromProto(p *sessionv1.Session) *SessionInput {
 		input.EnvironmentRef = resourceRefFromProto(s.GetEnvironmentRef())
 		for _, item := range s.GetResources() {
 			input.Resources = append(input.Resources, sessionResourceInputFromProto(item))
+		}
+		for _, item := range s.GetCustomTools() {
+			input.CustomTools = append(input.CustomTools, customToolInputFromProto(item))
 		}
 	}
 	return input

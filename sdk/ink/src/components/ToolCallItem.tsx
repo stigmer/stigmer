@@ -36,6 +36,8 @@ const STATUS_INDICATOR: Record<ToolUse["state"], { symbol: string; role?: InkRol
   failed: { symbol: "✗", role: "danger" },
   // Waiting for a person's answer: the approval prompt carries the action.
   waiting: { symbol: "○" },
+  // Waiting for the host app's answer to its own tool: nothing to answer here.
+  waiting_on_host: { symbol: "○", role: "muted" },
   // A person (or a rule) refused it.
   denied: { symbol: "⊘", role: "warning" },
   // Its turn ended before it returned (issue #207): a neutral "cut short"

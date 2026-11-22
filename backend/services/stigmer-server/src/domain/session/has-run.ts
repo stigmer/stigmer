@@ -3,15 +3,18 @@
  * list index's session key, exact whoever wrote the rows. A run row is the
  * fact every harness leaves (stigmer/stigmer#2566, #2598), so this is the
  * one predicate an update's locks judge by: the harness, the execution
- * target (steps.ts) and the conversation's own Environment
- * (resolve-session-environment.ts) are each fixed once it has run.
+ * target (steps.ts), the conversation's own Environment
+ * (resolve-session-environment.ts), its computer
+ * (resolve-session-computer.ts) and its custom tools (custom-tools.ts) are
+ * each fixed once it has run.
  *
  * The answer is read once per request: the first lock that needs it reads
  * the rows and later ones reuse it, so an update pays at most one query. A
  * store fault is Internal, never a reading of the session.
  *
- * Proven by __tests__/session.test.ts (the three locks over the wire) and
- * __tests__/resolve-session-environment.test.ts.
+ * Proven by __tests__/session.test.ts (the three locks over the wire),
+ * __tests__/resolve-session-environment.test.ts and
+ * __tests__/custom-tools-steps.test.ts.
  */
 import type { DescMessage } from "@bufbuild/protobuf";
 

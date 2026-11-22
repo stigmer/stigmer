@@ -13,6 +13,13 @@
  * by the shared fold (`shared/unattended-skips.ts`), re-exported here for
  * this harness's settle.
  *
+ * A call of the host app's own tools pauses the same way, its interrupt
+ * marked `custom_tool` (`middleware/custom-tools.ts`). It resumes on the
+ * host's answer (`TurnInput.customToolResults`), never a verdict: its resume
+ * value is `{ action: "answer" }`, and the tool hands the model the answer
+ * (`custom-tools.ts`). Its pending interrupt becomes a WAITING row marked as
+ * the host's.
+ *
  * Until #1096 this module also read the decisions from the execution itself
  * and carried the SKIP/REJECT settlement; both are the runtime's now, one
  * copy for every harness.
@@ -23,6 +30,7 @@ export { reconcileUnattendedSkips } from "../../shared/unattended-skips.js";
 import type { PolicySource } from "../../shared/approval-policy.js";
 import { isArgsObject } from "../../shared/json-value.js";
 import { ApprovalAction } from "../../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
+import type { CustomToolAnswer } from "../../harness/custom-tool-answers.js";
 
 /**
  * The gate's resume vocabulary for each decision. APPROVE_ALL resumes the
@@ -110,19 +118,25 @@ export function resolveResumeInput(
   decisions: ReadonlyMap<string, ApprovalAction>,
   graphState: GraphStateSnapshot,
   denyMessages: ReadonlyMap<string, string> = new Map(),
+  customToolResults: ReadonlyMap<string, CustomToolAnswer> = new Map(),
 ): ResumeResult {
   const pendingInterrupts = extractPendingInterrupts(graphState);
   if (pendingInterrupts.length === 0) {
     return { isResumeFromApproval: false };
   }
 
-  if (decisions.size === 0) {
+  if (decisions.size === 0 && customToolResults.size === 0) {
     return { isResumeFromApproval: false };
   }
 
   const resumeDict: Record<string, { action: string; comment?: string; args?: Record<string, unknown> }> = {};
 
   for (const intr of pendingInterrupts) {
+    if (intr.customTool) {
+      // The host's answer is the call's result, which the tool hands the model; the resume carries no verdict.
+      if (customToolResults.has(intr.toolCallId)) resumeDict[intr.interruptId] = { action: "answer" };
+      continue;
+    }
     const decision = decisions.get(intr.toolCallId);
     if (decision === undefined) continue;
 
@@ -156,6 +170,8 @@ interface ResumableInterrupt {
   readonly interruptId: string;
   readonly toolCallId: string;
   readonly shownArgs: Record<string, unknown> | undefined;
+  /** A call of the host app's own tools (`middleware/custom-tools.ts`). */
+  readonly customTool: boolean;
 }
 
 function extractPendingInterrupts(state: GraphStateSnapshot): ResumableInterrupt[] {
@@ -175,7 +191,7 @@ function extractPendingInterrupts(state: GraphStateSnapshot): ResumableInterrupt
           // sub-agent approval resume into the nested interrupt rather than
           // being dropped — see InterruptValue.id.
           const args = (value as Record<string, unknown>).args;
-          result.push({ interruptId: intr.id ?? task.id, toolCallId, shownArgs: isArgsObject(args) ? args : undefined });
+          result.push({ interruptId: intr.id ?? task.id, toolCallId, shownArgs: isArgsObject(args) ? args : undefined, customTool: (value as Record<string, unknown>).custom_tool === true });
         }
       }
     }
@@ -196,6 +212,8 @@ export interface PendingInterrupt {
   readonly policyHook: string | undefined;
   /** The arguments a hook rewrote the call into, unredacted; undefined when the model's own arguments stand. */
   readonly args: Record<string, unknown> | undefined;
+  /** A call of the host app's own tools, waiting for the host's answer rather than a person's approval. */
+  readonly customTool: boolean;
 }
 
 /**
@@ -220,6 +238,7 @@ export function detectPendingInterrupts(graphState: GraphStateSnapshot): Pending
           policySource: (val?.policy_source as PolicySource) || undefined,
           policyHook: typeof val?.policy_hook === "string" ? val.policy_hook : undefined,
           args: isArgsObject(val?.args) ? val.args : undefined,
+          customTool: val?.custom_tool === true,
         };
       }),
   );

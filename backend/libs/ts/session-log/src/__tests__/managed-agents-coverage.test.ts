@@ -27,12 +27,14 @@ const WRITTEN = [
   "user.message",
   "user.interrupt",
   "user.tool_confirmation",
+  "user.custom_tool_result",
   "agent.message",
   "agent.thinking",
   "agent.tool_use",
   "agent.tool_result",
   "agent.mcp_tool_use",
   "agent.mcp_tool_result",
+  "agent.custom_tool_use",
   "agent.thread_message_sent",
   "agent.thread_message_received",
   "agent.thread_context_compacted",
@@ -46,8 +48,6 @@ const WRITTEN = [
 
 /** The Managed Agents types Stigmer never writes, each named on the docs page. */
 const NEVER_WRITTEN = [
-  "agent.custom_tool_use",
-  "user.custom_tool_result",
   "user.tool_result",
   "user.define_outcome",
   "system.message",

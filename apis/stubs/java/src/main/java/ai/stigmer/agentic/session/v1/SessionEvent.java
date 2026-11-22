@@ -84,6 +84,8 @@ private static final long serialVersionUID = 0L;
     AGENT_THREAD_CONTEXT_COMPACTED(25),
     USER_TOOL_CONFIRMATION(26),
     USER_INTERRUPT(27),
+    AGENT_CUSTOM_TOOL_USE(28),
+    USER_CUSTOM_TOOL_RESULT(29),
     STIGMER_AGENT_THINKING(100),
     STIGMER_PERMISSION_ASKED(101),
     STIGMER_HARNESS_NOTE(102),
@@ -133,6 +135,8 @@ private static final long serialVersionUID = 0L;
         case 25: return AGENT_THREAD_CONTEXT_COMPACTED;
         case 26: return USER_TOOL_CONFIRMATION;
         case 27: return USER_INTERRUPT;
+        case 28: return AGENT_CUSTOM_TOOL_USE;
+        case 29: return USER_CUSTOM_TOOL_RESULT;
         case 100: return STIGMER_AGENT_THINKING;
         case 101: return STIGMER_PERMISSION_ASKED;
         case 102: return STIGMER_HARNESS_NOTE;
@@ -1097,6 +1101,92 @@ private static final long serialVersionUID = 0L;
     return ai.stigmer.agentic.session.v1.UserInterruptEvent.getDefaultInstance();
   }
 
+  public static final int AGENT_CUSTOM_TOOL_USE_FIELD_NUMBER = 28;
+  /**
+   * <pre>
+   * The agent called one of the host app's own tools (SessionSpec.custom_tools).
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.session.v1.AgentCustomToolUseEvent agent_custom_tool_use = 28 [json_name = "agentCustomToolUse", (.ai.stigmer.commons.apiresource.event_type) = "agent.custom_tool_use"];</code>
+   * @return Whether the agentCustomToolUse field is set.
+   */
+  @java.lang.Override
+  public boolean hasAgentCustomToolUse() {
+    return eventCase_ == 28;
+  }
+  /**
+   * <pre>
+   * The agent called one of the host app's own tools (SessionSpec.custom_tools).
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.session.v1.AgentCustomToolUseEvent agent_custom_tool_use = 28 [json_name = "agentCustomToolUse", (.ai.stigmer.commons.apiresource.event_type) = "agent.custom_tool_use"];</code>
+   * @return The agentCustomToolUse.
+   */
+  @java.lang.Override
+  public ai.stigmer.agentic.session.v1.AgentCustomToolUseEvent getAgentCustomToolUse() {
+    if (eventCase_ == 28) {
+       return (ai.stigmer.agentic.session.v1.AgentCustomToolUseEvent) event_;
+    }
+    return ai.stigmer.agentic.session.v1.AgentCustomToolUseEvent.getDefaultInstance();
+  }
+  /**
+   * <pre>
+   * The agent called one of the host app's own tools (SessionSpec.custom_tools).
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.session.v1.AgentCustomToolUseEvent agent_custom_tool_use = 28 [json_name = "agentCustomToolUse", (.ai.stigmer.commons.apiresource.event_type) = "agent.custom_tool_use"];</code>
+   */
+  @java.lang.Override
+  public ai.stigmer.agentic.session.v1.AgentCustomToolUseEventOrBuilder getAgentCustomToolUseOrBuilder() {
+    if (eventCase_ == 28) {
+       return (ai.stigmer.agentic.session.v1.AgentCustomToolUseEvent) event_;
+    }
+    return ai.stigmer.agentic.session.v1.AgentCustomToolUseEvent.getDefaultInstance();
+  }
+
+  public static final int USER_CUSTOM_TOOL_RESULT_FIELD_NUMBER = 29;
+  /**
+   * <pre>
+   * The host app answered a call to one of its own tools.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.session.v1.UserCustomToolResultEvent user_custom_tool_result = 29 [json_name = "userCustomToolResult", (.ai.stigmer.commons.apiresource.event_type) = "user.custom_tool_result"];</code>
+   * @return Whether the userCustomToolResult field is set.
+   */
+  @java.lang.Override
+  public boolean hasUserCustomToolResult() {
+    return eventCase_ == 29;
+  }
+  /**
+   * <pre>
+   * The host app answered a call to one of its own tools.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.session.v1.UserCustomToolResultEvent user_custom_tool_result = 29 [json_name = "userCustomToolResult", (.ai.stigmer.commons.apiresource.event_type) = "user.custom_tool_result"];</code>
+   * @return The userCustomToolResult.
+   */
+  @java.lang.Override
+  public ai.stigmer.agentic.session.v1.UserCustomToolResultEvent getUserCustomToolResult() {
+    if (eventCase_ == 29) {
+       return (ai.stigmer.agentic.session.v1.UserCustomToolResultEvent) event_;
+    }
+    return ai.stigmer.agentic.session.v1.UserCustomToolResultEvent.getDefaultInstance();
+  }
+  /**
+   * <pre>
+   * The host app answered a call to one of its own tools.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.session.v1.UserCustomToolResultEvent user_custom_tool_result = 29 [json_name = "userCustomToolResult", (.ai.stigmer.commons.apiresource.event_type) = "user.custom_tool_result"];</code>
+   */
+  @java.lang.Override
+  public ai.stigmer.agentic.session.v1.UserCustomToolResultEventOrBuilder getUserCustomToolResultOrBuilder() {
+    if (eventCase_ == 29) {
+       return (ai.stigmer.agentic.session.v1.UserCustomToolResultEvent) event_;
+    }
+    return ai.stigmer.agentic.session.v1.UserCustomToolResultEvent.getDefaultInstance();
+  }
+
   public static final int STIGMER_AGENT_THINKING_FIELD_NUMBER = 100;
   /**
    * <pre>
@@ -1794,6 +1884,12 @@ private static final long serialVersionUID = 0L;
     if (eventCase_ == 27) {
       output.writeMessage(27, (ai.stigmer.agentic.session.v1.UserInterruptEvent) event_);
     }
+    if (eventCase_ == 28) {
+      output.writeMessage(28, (ai.stigmer.agentic.session.v1.AgentCustomToolUseEvent) event_);
+    }
+    if (eventCase_ == 29) {
+      output.writeMessage(29, (ai.stigmer.agentic.session.v1.UserCustomToolResultEvent) event_);
+    }
     if (eventCase_ == 100) {
       output.writeMessage(100, (ai.stigmer.agentic.session.v1.StigmerAgentThinkingEvent) event_);
     }
@@ -1929,6 +2025,14 @@ private static final long serialVersionUID = 0L;
     if (eventCase_ == 27) {
       size += com.google.protobuf.CodedOutputStream
         .computeMessageSize(27, (ai.stigmer.agentic.session.v1.UserInterruptEvent) event_);
+    }
+    if (eventCase_ == 28) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeMessageSize(28, (ai.stigmer.agentic.session.v1.AgentCustomToolUseEvent) event_);
+    }
+    if (eventCase_ == 29) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeMessageSize(29, (ai.stigmer.agentic.session.v1.UserCustomToolResultEvent) event_);
     }
     if (eventCase_ == 100) {
       size += com.google.protobuf.CodedOutputStream
@@ -2083,6 +2187,14 @@ private static final long serialVersionUID = 0L;
         if (!getUserInterrupt()
             .equals(other.getUserInterrupt())) return false;
         break;
+      case 28:
+        if (!getAgentCustomToolUse()
+            .equals(other.getAgentCustomToolUse())) return false;
+        break;
+      case 29:
+        if (!getUserCustomToolResult()
+            .equals(other.getUserCustomToolResult())) return false;
+        break;
       case 100:
         if (!getStigmerAgentThinking()
             .equals(other.getStigmerAgentThinking())) return false;
@@ -2234,6 +2346,14 @@ private static final long serialVersionUID = 0L;
       case 27:
         hash = (37 * hash) + USER_INTERRUPT_FIELD_NUMBER;
         hash = (53 * hash) + getUserInterrupt().hashCode();
+        break;
+      case 28:
+        hash = (37 * hash) + AGENT_CUSTOM_TOOL_USE_FIELD_NUMBER;
+        hash = (53 * hash) + getAgentCustomToolUse().hashCode();
+        break;
+      case 29:
+        hash = (37 * hash) + USER_CUSTOM_TOOL_RESULT_FIELD_NUMBER;
+        hash = (53 * hash) + getUserCustomToolResult().hashCode();
         break;
       case 100:
         hash = (37 * hash) + STIGMER_AGENT_THINKING_FIELD_NUMBER;
@@ -2493,6 +2613,12 @@ private static final long serialVersionUID = 0L;
       if (userInterruptBuilder_ != null) {
         userInterruptBuilder_.clear();
       }
+      if (agentCustomToolUseBuilder_ != null) {
+        agentCustomToolUseBuilder_.clear();
+      }
+      if (userCustomToolResultBuilder_ != null) {
+        userCustomToolResultBuilder_.clear();
+      }
       if (stigmerAgentThinkingBuilder_ != null) {
         stigmerAgentThinkingBuilder_.clear();
       }
@@ -2665,6 +2791,14 @@ private static final long serialVersionUID = 0L;
           userInterruptBuilder_ != null) {
         result.event_ = userInterruptBuilder_.build();
       }
+      if (eventCase_ == 28 &&
+          agentCustomToolUseBuilder_ != null) {
+        result.event_ = agentCustomToolUseBuilder_.build();
+      }
+      if (eventCase_ == 29 &&
+          userCustomToolResultBuilder_ != null) {
+        result.event_ = userCustomToolResultBuilder_.build();
+      }
       if (eventCase_ == 100 &&
           stigmerAgentThinkingBuilder_ != null) {
         result.event_ = stigmerAgentThinkingBuilder_.build();
@@ -2824,6 +2958,14 @@ private static final long serialVersionUID = 0L;
         }
         case USER_INTERRUPT: {
           mergeUserInterrupt(other.getUserInterrupt());
+          break;
+        }
+        case AGENT_CUSTOM_TOOL_USE: {
+          mergeAgentCustomToolUse(other.getAgentCustomToolUse());
+          break;
+        }
+        case USER_CUSTOM_TOOL_RESULT: {
+          mergeUserCustomToolResult(other.getUserCustomToolResult());
           break;
         }
         case STIGMER_AGENT_THINKING: {
@@ -3058,6 +3200,20 @@ private static final long serialVersionUID = 0L;
               eventCase_ = 27;
               break;
             } // case 218
+            case 226: {
+              input.readMessage(
+                  internalGetAgentCustomToolUseFieldBuilder().getBuilder(),
+                  extensionRegistry);
+              eventCase_ = 28;
+              break;
+            } // case 226
+            case 234: {
+              input.readMessage(
+                  internalGetUserCustomToolResultFieldBuilder().getBuilder(),
+                  extensionRegistry);
+              eventCase_ = 29;
+              break;
+            } // case 234
             case 802: {
               input.readMessage(
                   internalGetStigmerAgentThinkingFieldBuilder().getBuilder(),
@@ -6725,6 +6881,362 @@ private static final long serialVersionUID = 0L;
       eventCase_ = 27;
       onChanged();
       return userInterruptBuilder_;
+    }
+
+    private com.google.protobuf.SingleFieldBuilder<
+        ai.stigmer.agentic.session.v1.AgentCustomToolUseEvent, ai.stigmer.agentic.session.v1.AgentCustomToolUseEvent.Builder, ai.stigmer.agentic.session.v1.AgentCustomToolUseEventOrBuilder> agentCustomToolUseBuilder_;
+    /**
+     * <pre>
+     * The agent called one of the host app's own tools (SessionSpec.custom_tools).
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.AgentCustomToolUseEvent agent_custom_tool_use = 28 [json_name = "agentCustomToolUse", (.ai.stigmer.commons.apiresource.event_type) = "agent.custom_tool_use"];</code>
+     * @return Whether the agentCustomToolUse field is set.
+     */
+    @java.lang.Override
+    public boolean hasAgentCustomToolUse() {
+      return eventCase_ == 28;
+    }
+    /**
+     * <pre>
+     * The agent called one of the host app's own tools (SessionSpec.custom_tools).
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.AgentCustomToolUseEvent agent_custom_tool_use = 28 [json_name = "agentCustomToolUse", (.ai.stigmer.commons.apiresource.event_type) = "agent.custom_tool_use"];</code>
+     * @return The agentCustomToolUse.
+     */
+    @java.lang.Override
+    public ai.stigmer.agentic.session.v1.AgentCustomToolUseEvent getAgentCustomToolUse() {
+      if (agentCustomToolUseBuilder_ == null) {
+        if (eventCase_ == 28) {
+          return (ai.stigmer.agentic.session.v1.AgentCustomToolUseEvent) event_;
+        }
+        return ai.stigmer.agentic.session.v1.AgentCustomToolUseEvent.getDefaultInstance();
+      } else {
+        if (eventCase_ == 28) {
+          return agentCustomToolUseBuilder_.getMessage();
+        }
+        return ai.stigmer.agentic.session.v1.AgentCustomToolUseEvent.getDefaultInstance();
+      }
+    }
+    /**
+     * <pre>
+     * The agent called one of the host app's own tools (SessionSpec.custom_tools).
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.AgentCustomToolUseEvent agent_custom_tool_use = 28 [json_name = "agentCustomToolUse", (.ai.stigmer.commons.apiresource.event_type) = "agent.custom_tool_use"];</code>
+     */
+    public Builder setAgentCustomToolUse(ai.stigmer.agentic.session.v1.AgentCustomToolUseEvent value) {
+      if (agentCustomToolUseBuilder_ == null) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        event_ = value;
+        onChanged();
+      } else {
+        agentCustomToolUseBuilder_.setMessage(value);
+      }
+      eventCase_ = 28;
+      return this;
+    }
+    /**
+     * <pre>
+     * The agent called one of the host app's own tools (SessionSpec.custom_tools).
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.AgentCustomToolUseEvent agent_custom_tool_use = 28 [json_name = "agentCustomToolUse", (.ai.stigmer.commons.apiresource.event_type) = "agent.custom_tool_use"];</code>
+     */
+    public Builder setAgentCustomToolUse(
+        ai.stigmer.agentic.session.v1.AgentCustomToolUseEvent.Builder builderForValue) {
+      if (agentCustomToolUseBuilder_ == null) {
+        event_ = builderForValue.build();
+        onChanged();
+      } else {
+        agentCustomToolUseBuilder_.setMessage(builderForValue.build());
+      }
+      eventCase_ = 28;
+      return this;
+    }
+    /**
+     * <pre>
+     * The agent called one of the host app's own tools (SessionSpec.custom_tools).
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.AgentCustomToolUseEvent agent_custom_tool_use = 28 [json_name = "agentCustomToolUse", (.ai.stigmer.commons.apiresource.event_type) = "agent.custom_tool_use"];</code>
+     */
+    public Builder mergeAgentCustomToolUse(ai.stigmer.agentic.session.v1.AgentCustomToolUseEvent value) {
+      if (agentCustomToolUseBuilder_ == null) {
+        if (eventCase_ == 28 &&
+            event_ != ai.stigmer.agentic.session.v1.AgentCustomToolUseEvent.getDefaultInstance()) {
+          event_ = ai.stigmer.agentic.session.v1.AgentCustomToolUseEvent.newBuilder((ai.stigmer.agentic.session.v1.AgentCustomToolUseEvent) event_)
+              .mergeFrom(value).buildPartial();
+        } else {
+          event_ = value;
+        }
+        onChanged();
+      } else {
+        if (eventCase_ == 28) {
+          agentCustomToolUseBuilder_.mergeFrom(value);
+        } else {
+          agentCustomToolUseBuilder_.setMessage(value);
+        }
+      }
+      eventCase_ = 28;
+      return this;
+    }
+    /**
+     * <pre>
+     * The agent called one of the host app's own tools (SessionSpec.custom_tools).
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.AgentCustomToolUseEvent agent_custom_tool_use = 28 [json_name = "agentCustomToolUse", (.ai.stigmer.commons.apiresource.event_type) = "agent.custom_tool_use"];</code>
+     */
+    public Builder clearAgentCustomToolUse() {
+      if (agentCustomToolUseBuilder_ == null) {
+        if (eventCase_ == 28) {
+          eventCase_ = 0;
+          event_ = null;
+          onChanged();
+        }
+      } else {
+        if (eventCase_ == 28) {
+          eventCase_ = 0;
+          event_ = null;
+        }
+        agentCustomToolUseBuilder_.clear();
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * The agent called one of the host app's own tools (SessionSpec.custom_tools).
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.AgentCustomToolUseEvent agent_custom_tool_use = 28 [json_name = "agentCustomToolUse", (.ai.stigmer.commons.apiresource.event_type) = "agent.custom_tool_use"];</code>
+     */
+    public ai.stigmer.agentic.session.v1.AgentCustomToolUseEvent.Builder getAgentCustomToolUseBuilder() {
+      return internalGetAgentCustomToolUseFieldBuilder().getBuilder();
+    }
+    /**
+     * <pre>
+     * The agent called one of the host app's own tools (SessionSpec.custom_tools).
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.AgentCustomToolUseEvent agent_custom_tool_use = 28 [json_name = "agentCustomToolUse", (.ai.stigmer.commons.apiresource.event_type) = "agent.custom_tool_use"];</code>
+     */
+    @java.lang.Override
+    public ai.stigmer.agentic.session.v1.AgentCustomToolUseEventOrBuilder getAgentCustomToolUseOrBuilder() {
+      if ((eventCase_ == 28) && (agentCustomToolUseBuilder_ != null)) {
+        return agentCustomToolUseBuilder_.getMessageOrBuilder();
+      } else {
+        if (eventCase_ == 28) {
+          return (ai.stigmer.agentic.session.v1.AgentCustomToolUseEvent) event_;
+        }
+        return ai.stigmer.agentic.session.v1.AgentCustomToolUseEvent.getDefaultInstance();
+      }
+    }
+    /**
+     * <pre>
+     * The agent called one of the host app's own tools (SessionSpec.custom_tools).
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.AgentCustomToolUseEvent agent_custom_tool_use = 28 [json_name = "agentCustomToolUse", (.ai.stigmer.commons.apiresource.event_type) = "agent.custom_tool_use"];</code>
+     */
+    private com.google.protobuf.SingleFieldBuilder<
+        ai.stigmer.agentic.session.v1.AgentCustomToolUseEvent, ai.stigmer.agentic.session.v1.AgentCustomToolUseEvent.Builder, ai.stigmer.agentic.session.v1.AgentCustomToolUseEventOrBuilder> 
+        internalGetAgentCustomToolUseFieldBuilder() {
+      if (agentCustomToolUseBuilder_ == null) {
+        if (!(eventCase_ == 28)) {
+          event_ = ai.stigmer.agentic.session.v1.AgentCustomToolUseEvent.getDefaultInstance();
+        }
+        agentCustomToolUseBuilder_ = new com.google.protobuf.SingleFieldBuilder<
+            ai.stigmer.agentic.session.v1.AgentCustomToolUseEvent, ai.stigmer.agentic.session.v1.AgentCustomToolUseEvent.Builder, ai.stigmer.agentic.session.v1.AgentCustomToolUseEventOrBuilder>(
+                (ai.stigmer.agentic.session.v1.AgentCustomToolUseEvent) event_,
+                getParentForChildren(),
+                isClean());
+        event_ = null;
+      }
+      eventCase_ = 28;
+      onChanged();
+      return agentCustomToolUseBuilder_;
+    }
+
+    private com.google.protobuf.SingleFieldBuilder<
+        ai.stigmer.agentic.session.v1.UserCustomToolResultEvent, ai.stigmer.agentic.session.v1.UserCustomToolResultEvent.Builder, ai.stigmer.agentic.session.v1.UserCustomToolResultEventOrBuilder> userCustomToolResultBuilder_;
+    /**
+     * <pre>
+     * The host app answered a call to one of its own tools.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.UserCustomToolResultEvent user_custom_tool_result = 29 [json_name = "userCustomToolResult", (.ai.stigmer.commons.apiresource.event_type) = "user.custom_tool_result"];</code>
+     * @return Whether the userCustomToolResult field is set.
+     */
+    @java.lang.Override
+    public boolean hasUserCustomToolResult() {
+      return eventCase_ == 29;
+    }
+    /**
+     * <pre>
+     * The host app answered a call to one of its own tools.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.UserCustomToolResultEvent user_custom_tool_result = 29 [json_name = "userCustomToolResult", (.ai.stigmer.commons.apiresource.event_type) = "user.custom_tool_result"];</code>
+     * @return The userCustomToolResult.
+     */
+    @java.lang.Override
+    public ai.stigmer.agentic.session.v1.UserCustomToolResultEvent getUserCustomToolResult() {
+      if (userCustomToolResultBuilder_ == null) {
+        if (eventCase_ == 29) {
+          return (ai.stigmer.agentic.session.v1.UserCustomToolResultEvent) event_;
+        }
+        return ai.stigmer.agentic.session.v1.UserCustomToolResultEvent.getDefaultInstance();
+      } else {
+        if (eventCase_ == 29) {
+          return userCustomToolResultBuilder_.getMessage();
+        }
+        return ai.stigmer.agentic.session.v1.UserCustomToolResultEvent.getDefaultInstance();
+      }
+    }
+    /**
+     * <pre>
+     * The host app answered a call to one of its own tools.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.UserCustomToolResultEvent user_custom_tool_result = 29 [json_name = "userCustomToolResult", (.ai.stigmer.commons.apiresource.event_type) = "user.custom_tool_result"];</code>
+     */
+    public Builder setUserCustomToolResult(ai.stigmer.agentic.session.v1.UserCustomToolResultEvent value) {
+      if (userCustomToolResultBuilder_ == null) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        event_ = value;
+        onChanged();
+      } else {
+        userCustomToolResultBuilder_.setMessage(value);
+      }
+      eventCase_ = 29;
+      return this;
+    }
+    /**
+     * <pre>
+     * The host app answered a call to one of its own tools.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.UserCustomToolResultEvent user_custom_tool_result = 29 [json_name = "userCustomToolResult", (.ai.stigmer.commons.apiresource.event_type) = "user.custom_tool_result"];</code>
+     */
+    public Builder setUserCustomToolResult(
+        ai.stigmer.agentic.session.v1.UserCustomToolResultEvent.Builder builderForValue) {
+      if (userCustomToolResultBuilder_ == null) {
+        event_ = builderForValue.build();
+        onChanged();
+      } else {
+        userCustomToolResultBuilder_.setMessage(builderForValue.build());
+      }
+      eventCase_ = 29;
+      return this;
+    }
+    /**
+     * <pre>
+     * The host app answered a call to one of its own tools.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.UserCustomToolResultEvent user_custom_tool_result = 29 [json_name = "userCustomToolResult", (.ai.stigmer.commons.apiresource.event_type) = "user.custom_tool_result"];</code>
+     */
+    public Builder mergeUserCustomToolResult(ai.stigmer.agentic.session.v1.UserCustomToolResultEvent value) {
+      if (userCustomToolResultBuilder_ == null) {
+        if (eventCase_ == 29 &&
+            event_ != ai.stigmer.agentic.session.v1.UserCustomToolResultEvent.getDefaultInstance()) {
+          event_ = ai.stigmer.agentic.session.v1.UserCustomToolResultEvent.newBuilder((ai.stigmer.agentic.session.v1.UserCustomToolResultEvent) event_)
+              .mergeFrom(value).buildPartial();
+        } else {
+          event_ = value;
+        }
+        onChanged();
+      } else {
+        if (eventCase_ == 29) {
+          userCustomToolResultBuilder_.mergeFrom(value);
+        } else {
+          userCustomToolResultBuilder_.setMessage(value);
+        }
+      }
+      eventCase_ = 29;
+      return this;
+    }
+    /**
+     * <pre>
+     * The host app answered a call to one of its own tools.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.UserCustomToolResultEvent user_custom_tool_result = 29 [json_name = "userCustomToolResult", (.ai.stigmer.commons.apiresource.event_type) = "user.custom_tool_result"];</code>
+     */
+    public Builder clearUserCustomToolResult() {
+      if (userCustomToolResultBuilder_ == null) {
+        if (eventCase_ == 29) {
+          eventCase_ = 0;
+          event_ = null;
+          onChanged();
+        }
+      } else {
+        if (eventCase_ == 29) {
+          eventCase_ = 0;
+          event_ = null;
+        }
+        userCustomToolResultBuilder_.clear();
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * The host app answered a call to one of its own tools.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.UserCustomToolResultEvent user_custom_tool_result = 29 [json_name = "userCustomToolResult", (.ai.stigmer.commons.apiresource.event_type) = "user.custom_tool_result"];</code>
+     */
+    public ai.stigmer.agentic.session.v1.UserCustomToolResultEvent.Builder getUserCustomToolResultBuilder() {
+      return internalGetUserCustomToolResultFieldBuilder().getBuilder();
+    }
+    /**
+     * <pre>
+     * The host app answered a call to one of its own tools.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.UserCustomToolResultEvent user_custom_tool_result = 29 [json_name = "userCustomToolResult", (.ai.stigmer.commons.apiresource.event_type) = "user.custom_tool_result"];</code>
+     */
+    @java.lang.Override
+    public ai.stigmer.agentic.session.v1.UserCustomToolResultEventOrBuilder getUserCustomToolResultOrBuilder() {
+      if ((eventCase_ == 29) && (userCustomToolResultBuilder_ != null)) {
+        return userCustomToolResultBuilder_.getMessageOrBuilder();
+      } else {
+        if (eventCase_ == 29) {
+          return (ai.stigmer.agentic.session.v1.UserCustomToolResultEvent) event_;
+        }
+        return ai.stigmer.agentic.session.v1.UserCustomToolResultEvent.getDefaultInstance();
+      }
+    }
+    /**
+     * <pre>
+     * The host app answered a call to one of its own tools.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.UserCustomToolResultEvent user_custom_tool_result = 29 [json_name = "userCustomToolResult", (.ai.stigmer.commons.apiresource.event_type) = "user.custom_tool_result"];</code>
+     */
+    private com.google.protobuf.SingleFieldBuilder<
+        ai.stigmer.agentic.session.v1.UserCustomToolResultEvent, ai.stigmer.agentic.session.v1.UserCustomToolResultEvent.Builder, ai.stigmer.agentic.session.v1.UserCustomToolResultEventOrBuilder> 
+        internalGetUserCustomToolResultFieldBuilder() {
+      if (userCustomToolResultBuilder_ == null) {
+        if (!(eventCase_ == 29)) {
+          event_ = ai.stigmer.agentic.session.v1.UserCustomToolResultEvent.getDefaultInstance();
+        }
+        userCustomToolResultBuilder_ = new com.google.protobuf.SingleFieldBuilder<
+            ai.stigmer.agentic.session.v1.UserCustomToolResultEvent, ai.stigmer.agentic.session.v1.UserCustomToolResultEvent.Builder, ai.stigmer.agentic.session.v1.UserCustomToolResultEventOrBuilder>(
+                (ai.stigmer.agentic.session.v1.UserCustomToolResultEvent) event_,
+                getParentForChildren(),
+                isClean());
+        event_ = null;
+      }
+      eventCase_ = 29;
+      onChanged();
+      return userCustomToolResultBuilder_;
     }
 
     private com.google.protobuf.SingleFieldBuilder<

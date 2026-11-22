@@ -275,6 +275,14 @@ type SessionSpecInput struct {
 	FileReview      bool
 	EnvironmentRef  ResourceRef
 	Resources       []*SessionResourceInput
+	CustomTools     []*CustomToolInput
+}
+
+// CustomToolInput is the SDK input type for CustomTool.
+type CustomToolInput struct {
+	Name        string
+	Description string
+	InputSchema map[string]any
 }
 
 // ConversationCatchupInput is the SDK input type for ConversationCatchup.
@@ -389,6 +397,13 @@ func (i *RunInput) toProto() (*runv1.Run, error) {
 			}
 			m.Resources = append(m.Resources, v)
 		}
+		for idx, item := range i.SessionSpec.CustomTools {
+			v, err := item.toProto()
+			if err != nil {
+				return nil, indexErr("SessionSpec.CustomTools", idx, err)
+			}
+			m.CustomTools = append(m.CustomTools, v)
+		}
 		resource.Spec.Target = &runv1.RunSpec_SessionSpec{SessionSpec: m}
 	}
 	if i.SessionId != "" {
@@ -436,6 +451,20 @@ func (i *RunInput) toProto() (*runv1.Run, error) {
 	resource.Spec.FileIds = i.FileIds
 	resource.Spec.QueuedMessageIds = i.QueuedMessageIds
 	return resource, nil
+}
+
+func (i *CustomToolInput) toProto() (*sessionv1.CustomTool, error) {
+	p := &sessionv1.CustomTool{}
+	p.Name = i.Name
+	p.Description = i.Description
+	if i.InputSchema != nil {
+		v, err := structFromMap(i.InputSchema)
+		if err != nil {
+			return nil, fieldErr("InputSchema", err)
+		}
+		p.InputSchema = v
+	}
+	return p, nil
 }
 
 func (i *ConversationCatchupInput) toProto() (*runv1.ConversationCatchup, error) {
@@ -582,6 +611,22 @@ func sessionSpecInputFromProto(p *sessionv1.SessionSpec) *SessionSpecInput {
 	input.EnvironmentRef = resourceRefFromProto(p.GetEnvironmentRef())
 	for _, item := range p.GetResources() {
 		input.Resources = append(input.Resources, sessionResourceInputFromProto(item))
+	}
+	for _, item := range p.GetCustomTools() {
+		input.CustomTools = append(input.CustomTools, customToolInputFromProto(item))
+	}
+	return input
+}
+
+func customToolInputFromProto(p *sessionv1.CustomTool) *CustomToolInput {
+	if p == nil {
+		return nil
+	}
+	input := &CustomToolInput{}
+	input.Name = p.GetName()
+	input.Description = p.GetDescription()
+	if sv := p.GetInputSchema(); sv != nil {
+		input.InputSchema = sv.AsMap()
 	}
 	return input
 }

@@ -7,7 +7,9 @@ never change an open conversation; an update with `agent_ref.version: latest`
 moves it to the agent's current version, and a tag or hash pins that version.
 `plugins` adds plugins to the agent's for this conversation, each whole (a chat
 with no agent gets its tools from these); the agent's tool lists govern them
-like its own.
+like its own. `custom_tools` gives the agent tools the host app answers itself:
+a call waits for the app's `answerCustomToolUse`, as a call waits for an
+approval, and the agent reads the answer as the tool's result.
 
 ```yaml
 apiVersion: agentic.stigmer.ai/v1

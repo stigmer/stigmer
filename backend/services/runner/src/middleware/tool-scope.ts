@@ -38,6 +38,10 @@
  *    memory attachments, `TurnMcp.platformServerSlugs`) is always in scope:
  *    no plugin can name them and an agent without them cannot answer its
  *    channel.
+ *  - A tool of the host app's own (`ToolScopeConfig.customToolNames`, the
+ *    root graph's alone) is always in scope too: the conversation declares
+ *    it, and lists written for the agent cannot know a page's tools
+ *    (`shared/custom-tools.ts`).
  *  - Every other tool is the engine's, judged by its Stigmer-harness name
  *    (`STIGMER_TOOL_COVERS`): a name the table does not carry is an engine
  *    extra (hidden only by an allow-list).
@@ -163,6 +167,8 @@ export interface ToolScopeConfig {
   readonly mcpIndex: McpToolIndex;
   /** The platform's own servers, outside every list. */
   readonly platformServerSlugs: ReadonlySet<string>;
+  /** The host app's own tools this graph offers, outside every list (the header); absent on a sub-agent's graph. */
+  readonly customToolNames?: ReadonlySet<string>;
   /**
    * Whether `read_file` may still read this canonical virtual path when the
    * scope excludes `Read`: the platform route and deepagents' offload roots
@@ -196,6 +202,7 @@ function mcpToolInScope(config: ToolScopeConfig, name: string): boolean | undefi
 async function callable(config: ToolScopeConfig, request: ToolCallRequest): Promise<boolean> {
   const { scope } = config;
   const { name, args } = request.toolCall;
+  if (config.customToolNames?.has(name) === true) return true;
   const mcp = mcpToolInScope(config, name);
   if (mcp !== undefined) return mcp;
   const path = args[READ_PATH_ARG];
@@ -228,7 +235,7 @@ export function createToolScopeMiddleware(config: ToolScopeConfig): StigmerMiddl
   /** Whether a tool the model is shown stays visible: `read_file` always does (the header's exception). */
   const visible = (tool: unknown): boolean => {
     const name = toolNameOf(tool);
-    if (name === undefined) return true;
+    if (name === undefined || config.customToolNames?.has(name) === true) return true;
     const mcp = mcpToolInScope(config, name);
     if (mcp !== undefined) return mcp;
     if (name === READ_TOOL) return true;

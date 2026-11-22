@@ -28,9 +28,10 @@ in one place, instead of silently drifting across client implementations.
   (reader side).
 - `public-names.json` — a tool call's public name, the key a host registers
   its own card under: `mcp__<server>__<tool>` for a connected server's tool,
-  none for a call the kit draws as its own kind. Asserted by BOTH the runner's
-  `mcp-tool-names` tests (writer side) and the `@stigmer/client` tool-view
-  tests (reader side, `toolPublicName`).
+  the declared name for a call of one of the host app's own tools
+  (`custom: true`), none for a call the kit draws as its own kind. Asserted by
+  BOTH the runner's `mcp-tool-names` tests (writer side, the server cases) and
+  the `@stigmer/client` tool-view tests (reader side, `toolPublicName`).
 
 ## Contract
 

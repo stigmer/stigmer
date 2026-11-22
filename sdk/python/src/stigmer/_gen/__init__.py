@@ -22,7 +22,7 @@ from ._plan import PlanClient, PlanInput, PlanTermsInput
 from ._plugin import PluginClient, PluginInput, PluginAuthorInput
 from ._providerkey import ProviderKeyClient
 from ._routine import RoutineClient, RoutineInput, AgentInvocationInput, SessionResourceInput, FileResourceInput, GitRepositoryResourceInput, LocalPathResourceInput
-from ._run import RunClient, RunInput, SessionSpecInput, ConversationCatchupInput, EvalCaseContextInput, EvalMockServerInput, EvalMockToolInput, EvalMockPluginHomeInput, EvalMockAgentHomeInput
+from ._run import RunClient, RunInput, SessionSpecInput, CustomToolInput, ConversationCatchupInput, EvalCaseContextInput, EvalMockServerInput, EvalMockToolInput, EvalMockPluginHomeInput, EvalMockAgentHomeInput
 from ._score import ScoreClient, ScoreInput, ScoreCriterionInput
 from ._scoringrule import ScoringRuleClient, ScoringRuleInput
 from ._session import SessionClient, SessionInput
@@ -122,6 +122,7 @@ __all__ = [
     "RunClient",
     "RunInput",
     "SessionSpecInput",
+    "CustomToolInput",
     "ConversationCatchupInput",
     "EvalCaseContextInput",
     "EvalMockServerInput",
