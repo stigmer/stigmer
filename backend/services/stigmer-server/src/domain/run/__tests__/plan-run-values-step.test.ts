@@ -22,7 +22,10 @@
  * on a hosted conversation, refuse before any value is asked for. A
  * deployment whose hosted sandbox cannot start a local program refuses a
  * listed plugin's stdio server before any value is asked for; one that
- * wires no such rule plans it. The plan it records is exactly the
+ * wires no such rule plans it. A conversation without a computer refuses
+ * a plugin that now carries a local program, wherever it runs, and a
+ * message whose own tools name only the shell, before any value is asked
+ * for; the same conversation with a computer plans it. The plan it records is exactly the
  * resolver's source manifest, written onto the run's status before Persist
  * and nowhere else, and a resolver refusal reaches the caller with its
  * code.
@@ -55,7 +58,7 @@ import { RunPhase, RunValueOrigin } from "@stigmer/apis/ai/stigmer/agentic/run/v
 import { RunUpdateStatusInputSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/io_pb";
 import type { Session } from "@stigmer/apis/ai/stigmer/agentic/session/v1/api_pb";
 import { SessionSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/api_pb";
-import { ExecutionTarget } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
+import { Computer, ExecutionTarget } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
 import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 import { createLogger } from "../../../boot/logger.js";
@@ -540,6 +543,46 @@ describe("a plugin's local program", () => {
         turn("run_local_kept"),
       );
       expect(asked[0]?.plugins.map((plugin) => plugin.id), what).toEqual(["plg_notion", "plg_files"]);
+    }
+  });
+});
+
+describe("a conversation without a computer", () => {
+  function recorded(computer: Computer): Session {
+    return create(SessionSchema, {
+      metadata: { id: "ses_rec", org: ORG },
+      spec: { executionTarget: ExecutionTarget.LOCAL, plugins: [{ org: ORG, slug: "notion" }, { org: ORG, slug: "files" }] },
+      status: { computer },
+    });
+  }
+
+  it("refuses a plugin that now runs a local program, naming it, before asking for any value", async () => {
+    const asked: RunCredentialInput[] = [];
+    const failure = await planRunValues(deps({ session: recorded(Computer.NONE), asked }), turn("run_no_computer")).catch(
+      (e: unknown) => e,
+    );
+    expect(failure).toBeInstanceOf(ConnectError);
+    expect((failure as ConnectError).code).toBe(Code.FailedPrecondition);
+    expect((failure as ConnectError).rawMessage).toContain("has no computer, so this conversation can't use plugin 'files'");
+    expect(asked).toEqual([]);
+  });
+
+  it("refuses a message whose own tools name only the shell, before asking for any value", async () => {
+    const asked: RunCredentialInput[] = [];
+    const run = turn("run_shell_only");
+    run.spec!.tools = ["Bash"];
+    const session = create(SessionSchema, { metadata: { id: "ses_rec", org: ORG }, spec: {}, status: { computer: Computer.NONE } });
+    const failure = await planRunValues(deps({ session, asked }), run).catch((e: unknown) => e);
+    expect((failure as ConnectError).code).toBe(Code.FailedPrecondition);
+    expect((failure as ConnectError).rawMessage).toContain("this message's tools can't be only 'Bash'");
+    expect(asked).toEqual([]);
+  });
+
+  it("plans it when the conversation has a computer, recorded or from before the setting", async () => {
+    for (const computer of [Computer.REQUIRED, Computer.UNSPECIFIED]) {
+      const asked: RunCredentialInput[] = [];
+      await planRunValues(deps({ session: recorded(computer), asked }), turn("run_with_computer"));
+      expect(asked[0]?.plugins.map((plugin) => plugin.id)).toEqual(["plg_notion", "plg_files"]);
     }
   });
 });

@@ -172,10 +172,16 @@
       "outputs": [],
       "inputs": ["$TURBO_DEFAULT$", "$TURBO_ROOT$/backend/services/runner/package.json"]
     },
+    // The kit reads the tool-view fixture, and holds its row-kind map to the
+    // host-customization contract's table (run/__tests__/row-kinds.test.ts).
     "@stigmer/react-sdk#test": {
       "dependsOn": ["^build"],
       "outputs": [],
-      "inputs": ["$TURBO_DEFAULT$", "$TURBO_ROOT$/test/fixtures/tool-view/**"]
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        "$TURBO_ROOT$/test/fixtures/tool-view/**",
+        "$TURBO_ROOT$/.agents/skills/sdk-console-architecture/references/**"
+      ]
     },
     // The CLI holds the notes the docs' terminal recordings show `--download`
     // writing to its own words, reading the terminal kit's held recordings,
@@ -255,15 +261,15 @@
     },
 
     // The repository root's own suites: scripts/**, scripts/lib/**, the
-    // install layer's test/install/** and test/install/lib/**, the Helm
-    // chart's tests, the composite actions' own (.github/actions/*/) and the
+    // install layer's test/install/** and test/install/lib/**, the composite
+    // actions' own (.github/actions/*/) and the
     // SDK lint rules' (tools/eslint-plugin-stigmer/rules/__tests__), the globs
     // in the root `test:root` script, which `npm run test:scripts` reaches
     // through scripts/turbo-set.mjs's root set.
     // A root suite that imports a workspace package's build output declares
     // that package's build here, so every caller gets it first; none does
     // today. Never cached: the suites read files across the whole repository
-    // (workflows, the Makefile, docs, the chart), which no input list here
+    // (workflows, the Makefile, docs, the charts), which no input list here
     // would keep complete.
     "//#test:root": {
       "cache": false

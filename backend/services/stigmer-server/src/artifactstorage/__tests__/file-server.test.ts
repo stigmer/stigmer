@@ -4,10 +4,11 @@
  * bind-host contract (ARTIFACT_HTTP_HOST, shipped with the Docker image).
  *
  * Serving: a key is answered with the exact bytes under the artifact root,
- * inline unless ?download=<name> asks for an attachment; a missing key and a
- * crafted key that escapes the root both answer 404 (on a local install the
+ * inline unless ?download=<name> asks for an attachment; a missing key, a
+ * crafted key that escapes the root, a key naming a folder and a path whose
+ * percent-escapes do not decode all answer 404 (on a local install the
  * SQLite database sits one level above the root, so an escape would serve
- * it). Binding: the listener binds exactly the host the composition root
+ * it); a method other than GET or HEAD is a 405 naming the two. Binding: the listener binds exactly the host the composition root
  * passes. Loopback — the default — must stay unreachable through
  * non-loopback interfaces, and the
  * container override (0.0.0.0) must serve the same bytes. Each fetch carries a
@@ -86,6 +87,38 @@ describe("artifact file server serving", () => {
 
     const traversal = await fetch(`${lane}/..%2Fstigmer.db?${signed("../stigmer.db")}`);
     expect(traversal.status).toBe(404);
+  });
+
+  it("answers 404 for a signed key that names a folder, never a listing", async () => {
+    const port = await newServer().listen(0, "127.0.0.1");
+    mkdirSync(path.join(dir, "artifacts", "runs"));
+
+    const folder = await fetch(`http://127.0.0.1:${port}/runs?${signed("runs")}`);
+
+    expect(folder.status).toBe(404);
+    expect(await folder.text()).toBe("404 page not found\n");
+  });
+
+  it("answers 404 for a path whose percent-escapes do not decode, before the signature is read", async () => {
+    const port = await newServer().listen(0, "127.0.0.1");
+
+    const malformed = await fetch(`http://127.0.0.1:${port}/probe%zz.txt?${signed("probe.txt")}`);
+
+    expect(malformed.status).toBe(404);
+    expect(await malformed.text()).toBe("404 page not found\n");
+  });
+
+  it("answers another method with 405 and the two it serves, reading nothing", async () => {
+    const port = await newServer().listen(0, "127.0.0.1");
+
+    const post = await fetch(`http://127.0.0.1:${port}/probe.txt?${signed("probe.txt")}`, {
+      method: "POST",
+      body: "x",
+    });
+
+    expect(post.status).toBe(405);
+    expect(post.headers.get("allow")).toBe("GET, HEAD");
+    expect(await post.text()).toBe("");
   });
 });
 

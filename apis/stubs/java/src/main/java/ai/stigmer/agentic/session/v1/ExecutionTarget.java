@@ -151,7 +151,7 @@ public enum ExecutionTarget
   }
   public static com.google.protobuf.Descriptors.EnumDescriptor
       getDescriptor() {
-    return ai.stigmer.agentic.session.v1.EnumProto.getDescriptor().getEnumType(3);
+    return ai.stigmer.agentic.session.v1.EnumProto.getDescriptor().getEnumType(4);
   }
 
   private static final ExecutionTarget[] VALUES = values();

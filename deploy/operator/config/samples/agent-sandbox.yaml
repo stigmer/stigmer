@@ -1,0 +1,35 @@
+# A Stigmer whose agents each run in a sandbox of their own: a pod per
+# session on agent-sandbox, which the operator installs when the cluster has
+# none, in the namespace stigmer-sandboxes beside the install. A sandbox sleeps
+# after a quiet minute and wakes with its files on the session's next message.
+# Sandboxes read and write a run's files through the bucket, so one is needed.
+#
+# Each sandbox is fenced: it reaches the server, the bucket, DNS and the public
+# internet, and no other private address unless it is listed under allowCIDRs
+# (a model gateway or an MCP server on your network).
+#
+#   kubectl apply -f agent-sandbox.yaml
+#   kubectl -n stigmer get stigmer
+apiVersion: stigmer.ai/v1
+kind: Stigmer
+metadata:
+  name: stigmer
+  namespace: stigmer
+spec:
+  owner:
+    email: priya@acme.dev
+  runner:
+    llm:
+      secretName: anthropic
+  objectStore:
+    s3:
+      bucket: acme-stigmer
+      region: us-east-1
+      credentialsSecret:
+        name: bucket
+  sandboxes:
+    driver: agentSandbox
+    idleSeconds: 60
+    agentSandbox:
+      egress:
+        allowCIDRs: [10.20.0.0/16]

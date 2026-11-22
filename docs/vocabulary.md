@@ -735,16 +735,16 @@ A process that connects to Stigmer and executes your Agents.
   resource---there is no `kind: Runner`, no `apiVersion`, and no
   `stigmer apply`. The server keeps no record of which runners exist and the web
   console has no runner page. You start one with `stigmer up` (and stop it with
-  `stigmer down`); the Docker Compose stack and the Helm chart each run one
-  beside the server.
+  `stigmer down`); the Docker Compose stack and the Stigmer operator on
+  Kubernetes each run one beside the server.
 - **How work reaches it**: The server puts each run on a Temporal task queue
   (`stigmer_runner` by default) and whichever runner polls that queue takes the
   work. Nothing selects a runner; the queue is the contract. A run carries the
   Session's Harness and a credential minted for that run alone. See the
   [Runners concept page](/docs/concepts/runners).
-- **Two postures**: One shared runner (the laptop, the all-in-one, Compose, the
-  chart) or a runner per Session started by the server's sandbox provisioner
-  (Stigmer Cloud; described, not taught, on the
+- **Two postures**: One shared runner (the laptop, the all-in-one, Compose,
+  Kubernetes) or a runner per Session started by the server's sandbox
+  provisioner (Stigmer Cloud; described, not taught, on the
   [self-hosting runner page](/docs/guides/self-hosting/runners)).
 - **Related terms**: Do not confuse with "Agent Runner" (the TypeScript Temporal
   worker binary---architecture docs only).
@@ -2176,6 +2176,27 @@ that executes agent sessions, driving every harness it carries: Stigmer's own
 - **Context rule**: Architecture docs only. Customers do not start or configure
   the Agent Runner directly---`stigmer up` runs it for local execution and the
   desktop app embeds it as a subprocess.
+
+---
+
+#### Stigmer operator
+
+The Kubernetes software that runs a self-hosted Stigmer from one `Stigmer`
+resource (`apiVersion: stigmer.ai/v1`). A platform engineer installs it with the
+`stigmer-operator` Helm chart, and it runs the database, Temporal, sign-in, the
+server and the sandboxes the resource declares.
+
+- **Capitalize**: "the Stigmer operator" on first mention, "the operator" after.
+  The resource is `Stigmer`, in code.
+- **Not the person**: The person who runs an install is its **owner**
+  (`spec.owner`, the server's `STIGMER_OPERATOR_EMAIL`). Where the software and
+  the person meet in one passage, say "the owner" or "the person running
+  Stigmer" for the person, never "the operator".
+- **Not Stigmer's staff**: "Stigmer operators", plural, are Stigmer's own staff
+  who run Stigmer Cloud (the "Platform" entry above). The software is singular.
+- **Context rule**: Self-hosting guides and reference. Not on the sales site.
+- **Do not say**: "the Helm chart" for a Kubernetes install: the chart installs
+  the operator, and the operator runs Stigmer.
 
 ---
 

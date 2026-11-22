@@ -8,9 +8,9 @@
  * artifact root — a key K stores at <basePath>/<K> with no implicit
  * segment, so the server and the runner (LOCAL_ARTIFACT_PATH) share one
  * store by construction (#285). Its download links are signed and expire
- * (url-signer.ts), as the R2 backend's presigned URLs do.
+ * (url-signer.ts), as the S3 backend's presigned URLs do.
  *
- * The R2 backend (S3-compatible, AWS SDK) lives in r2-storage.ts.
+ * The S3 backend (any S3-compatible bucket, AWS SDK) lives in s3-storage.ts.
  *
  * This is the ONE blob-driver seam: it carries the presigned-PUT capability,
  * `size`, a typed not-found error, and registry-driven driver registration
@@ -33,7 +33,7 @@ import {
 } from "node:fs/promises";
 import path from "node:path";
 
-import { R2ArtifactStorage } from "./r2-storage.js";
+import { S3ArtifactStorage } from "./s3-storage.js";
 import { encodeKeyPath, type DownloadUrlSigner } from "./url-signer.js";
 
 /** Query key carrying the desired download filename on local URLs; the
@@ -71,6 +71,23 @@ export interface PresignedUpload {
 }
 
 /**
+ * A presigned PUT for a key a runner chose (presignRunnerUpload): the URL,
+ * the method, and the headers the runner replays on its PUT, the content
+ * type among them because it is signed into the URL.
+ */
+export interface PresignedRunnerUpload {
+  readonly url: string;
+  readonly method: "PUT";
+  readonly headers: Readonly<Record<string, string>>;
+}
+
+/** One deletePrefix call's progress: what it removed, and whether any is left. */
+export interface PrefixRemoval {
+  readonly deleted: number;
+  readonly more: boolean;
+}
+
+/**
  * Who uses a signed URL. A store can have one address for the people and
  * servers outside it and another for the runners inside a deployment (a
  * local cluster whose sandboxes reach the host by another name), and a
@@ -91,7 +108,7 @@ export interface ArtifactStorage {
   download(key: string): Promise<Uint8Array>;
   /**
    * The stored blob's byte size without loading its content (local stat /
-   * R2 HeadObject); a key addressing no stored blob throws
+   * S3 HeadObject); a key addressing no stored blob throws
    * ArtifactStorageNotFoundError.
    */
   size(key: string): Promise<number>;
@@ -128,9 +145,9 @@ export interface ArtifactStorage {
    * (single-use, exact-size enforced by the lane, TTL clamped to the
    * lane's slot TTL) and answers only on instances with a staged-upload
    * lane wired — unwired instances throw the explicit not-configured
-   * error, never a silent no-op. The R2 backend presigns a PUT
+   * error, never a silent no-op. The S3 backend presigns a PUT
    * (repeatable within its TTL, size enforced by the signed
-   * Content-Length header, TTL clamped to the 7-day R2 maximum), signed
+   * Content-Length header, TTL clamped to the 7-day SigV4 maximum), signed
    * for `reader`'s address as getSignedUrl's links are.
    */
   presignPut(
@@ -139,6 +156,28 @@ export interface ArtifactStorage {
     ttlMs: number,
     reader: SignedUrlReader,
   ): Promise<PresignedUpload>;
+  /**
+   * A time-limited PUT URL, signed for the runner's address, for a key the
+   * runner chose with its content type signed and no length: the runner
+   * artifact lane's contract (artifactstorage/runner-lane), where the key
+   * is authorized before the URL is minted and the runner declares no
+   * size. presignPut is the other contract (an exact size, for the
+   * staging lanes) and stays distinct. Optional: a store that cannot hand
+   * a runner its own URL leaves it out, and the lane is not served.
+   */
+  presignRunnerUpload?(
+    key: string,
+    contentType: string,
+    ttlMs: number,
+  ): Promise<PresignedRunnerUpload>;
+  /**
+   * Removes at most `limit` blobs under `prefix` (one folder, ending in
+   * `/`), answering whether any are left; a call after a completed one
+   * removes nothing. The keys a runner chose are recorded nowhere, so an
+   * organization's purge finds them by prefix. Optional: without it the
+   * purge stage that needs it is not registered.
+   */
+  deletePrefix?(prefix: string, limit: number): Promise<PrefixRemoval>;
   /**
    * Copies the blob at fromKey to toKey inside the store, without its
    * bytes passing through the caller: a staged upload is promoted to a
@@ -186,7 +225,7 @@ export interface StagedUploadLane {
 }
 
 export interface ArtifactStorageConfig {
-  /** "local" or "r2" ("" defaults to local). */
+  /** "local" or "s3" ("" defaults to local). */
   readonly type: string;
   readonly localBasePath: string;
   /**
@@ -197,14 +236,14 @@ export interface ArtifactStorageConfig {
   readonly localServeUrl: string | (() => string);
   /** Signs the local backend's download URLs; the lanes that serve them verify. */
   readonly localUrlSigner: DownloadUrlSigner;
-  /** Cloudflare R2 (S3-compatible) settings — required when type is "r2". */
-  readonly r2Bucket: string;
-  readonly r2Endpoint: string;
-  readonly r2AccessKeyId: string;
-  readonly r2SecretAccessKey: string;
-  readonly r2Region: string;
-  /** The address runners dial the store at, when not r2Endpoint ("" = r2Endpoint); R2StorageConfig.runnerEndpoint. */
-  readonly r2RunnerEndpoint: string;
+  /** S3-compatible bucket settings — required when type is "s3". */
+  readonly s3Bucket: string;
+  readonly s3Endpoint: string;
+  readonly s3AccessKeyId: string;
+  readonly s3SecretAccessKey: string;
+  readonly s3Region: string;
+  /** The address runners dial the store at, when not s3Endpoint ("" = s3Endpoint); S3StorageConfig.runnerEndpoint. */
+  readonly s3RunnerEndpoint: string;
 }
 
 /**
@@ -212,12 +251,12 @@ export interface ArtifactStorageConfig {
  * resolveExtensions enforces that at boot (a shadowed built-in would be
  * silently unreachable, which the loud-fail rules forbid).
  */
-export const BUILT_IN_STORAGE_TYPES = ["local", "r2"] as const;
+export const BUILT_IN_STORAGE_TYPES = ["local", "s3"] as const;
 
 /**
  * The storage factory, opened to registered drivers:
  * built-ins first, then the composition's registered driver
- * map — the cloud substitutes its per-domain R2 drivers without this
+ * map — a composition substitutes its own per-domain bucket drivers without this
  * switch ever growing a case.
  */
 export function newArtifactStorage(
@@ -232,14 +271,14 @@ export function newArtifactStorage(
         config.localServeUrl,
         config.localUrlSigner,
       );
-    case "r2":
-      return new R2ArtifactStorage({
-        bucket: config.r2Bucket,
-        endpoint: config.r2Endpoint,
-        accessKeyId: config.r2AccessKeyId,
-        secretAccessKey: config.r2SecretAccessKey,
-        region: config.r2Region,
-        runnerEndpoint: config.r2RunnerEndpoint,
+    case "s3":
+      return new S3ArtifactStorage({
+        bucket: config.s3Bucket,
+        endpoint: config.s3Endpoint,
+        accessKeyId: config.s3AccessKeyId,
+        secretAccessKey: config.s3SecretAccessKey,
+        region: config.s3Region,
+        runnerEndpoint: config.s3RunnerEndpoint,
       });
     default: {
       const registered = registeredDrivers.get(storageType);

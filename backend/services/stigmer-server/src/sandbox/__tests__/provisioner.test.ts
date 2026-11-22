@@ -59,6 +59,7 @@ const driverConfig: SandboxDriverConfig = {
   runnerEnv: {},
   runnerSecretEnv: {},
   serverRelease: "",
+  artifactLane: false,
 };
 
 function fakeFactory(marker: {
@@ -205,7 +206,7 @@ describe("SANDBOX_QUEUE_PREFIXES (the queue each scope's sandbox serves)", () =>
 });
 
 describe("SANDBOX_DRIVER_OWNED_RUNNER_ENV (the variables a driver sets itself)", () => {
-  it("names the queue, token, endpoints, attach waiter settings and the Environment", () => {
+  it("names the queue, token, endpoints (the artifact lane's among them), attach waiter settings and the Environment", () => {
     expect(SANDBOX_ENVIRONMENT_ENV).toBe("STIGMER_SANDBOX_ENVIRONMENT");
     expect([...SANDBOX_DRIVER_OWNED_RUNNER_ENV]).toEqual([
       "MODE",
@@ -213,6 +214,7 @@ describe("SANDBOX_DRIVER_OWNED_RUNNER_ENV (the variables a driver sets itself)",
       "STIGMER_TOKEN",
       "STIGMER_BACKEND_ENDPOINT",
       "STIGMER_MCP_PUBLIC_ENDPOINT",
+      "STIGMER_ARTIFACT_PROXY_ENDPOINT",
       "TEMPORAL_SERVICE_ADDRESS",
       "TEMPORAL_NAMESPACE",
       "WORKSPACE_ROOT_DIR",

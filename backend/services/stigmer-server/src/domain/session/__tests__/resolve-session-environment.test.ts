@@ -10,6 +10,9 @@
  *     is set), then its agent's default at the PINNED version (not the
  *     head), then the organization's preferences.default_environment_ref,
  *     else none; the stamp is held by id in the conversation's organization;
+ *   - a conversation without a computer (status.computer COMPUTER_NONE)
+ *     takes no default, the organization's included, under a governing
+ *     policy too;
  *   - without a governing policy the agent's and organization's defaults
  *     are ignored, and a conversation naming its own Environment is refused
  *     with LOCAL_ENVIRONMENT_MESSAGE;
@@ -62,7 +65,7 @@ import { SessionSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/api_p
 import type { Session } from "@stigmer/apis/ai/stigmer/agentic/session/v1/api_pb";
 import { SessionResourceSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/resource_pb";
 import { SessionCommandController } from "@stigmer/apis/ai/stigmer/agentic/session/v1/command_pb";
-import { EnvironmentSource, ExecutionTarget } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
+import { Computer, EnvironmentSource, ExecutionTarget } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
 import { SessionSpecSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/spec_pb";
 import { RunSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
@@ -226,6 +229,7 @@ describe("resolveSessionEnvironment and its steps, over a real store", () => {
     agentId?: string;
     pinned?: string;
     routineId?: string;
+    computer?: Computer;
   }): Session {
     return create(SessionSchema, {
       metadata: { id: "ses_1", org: opts.org ?? ORG, slug: "chat" },
@@ -237,6 +241,7 @@ describe("resolveSessionEnvironment and its steps, over a real store", () => {
         agentId: opts.agentId ?? "",
         agentVersionHash: opts.pinned ?? "",
         routineId: opts.routineId ?? "",
+        computer: opts.computer ?? Computer.UNSPECIFIED,
       },
     });
   }
@@ -282,6 +287,18 @@ describe("resolveSessionEnvironment and its steps, over a real store", () => {
       expect(resolved?.ref.id).toBe("env_01org");
       const assistant = await resolveSessionEnvironment(store, GOVERNING, conversation({}));
       expect(assistant?.source).toBe(EnvironmentSource.ORGANIZATION);
+    });
+
+    it("gives a conversation without a computer no default, the organization's included", async () => {
+      expect(
+        await resolveSessionEnvironment(store, GOVERNING, conversation({ agentId: "agt_plain", pinned: HEAD, computer: Computer.NONE })),
+      ).toBeUndefined();
+      const required = await resolveSessionEnvironment(
+        store,
+        GOVERNING,
+        conversation({ agentId: "agt_plain", pinned: HEAD, computer: Computer.REQUIRED }),
+      );
+      expect(required?.ref.id).toBe("env_01org");
     });
 
     it("else none", async () => {

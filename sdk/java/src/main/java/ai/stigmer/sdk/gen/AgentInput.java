@@ -13,6 +13,7 @@ import ai.stigmer.agentic.plugin.v1.HookHandler;
 import ai.stigmer.agentic.run.v1.RunConfig;
 import ai.stigmer.agentic.run.v1.ServiceTier;
 import ai.stigmer.agentic.run.v1.ThinkingMode;
+import ai.stigmer.agentic.session.v1.Computer;
 import ai.stigmer.agentic.session.v1.Harness;
 import ai.stigmer.agentic.vault.v1.EnvVarDeclaration;
 import ai.stigmer.commons.apiresource.ApiResourceMetadata;
@@ -43,6 +44,7 @@ public final class AgentInput {
     private final java.util.List<ResourceRef> subagents;
     private final java.util.List<AgentMcpServerInput> mcpServers;
     private final ResourceRef environmentRef;
+    private final Computer computer;
 
     private AgentInput(Builder builder) {
         this.id = builder.id;
@@ -66,6 +68,7 @@ public final class AgentInput {
         this.subagents = builder.subagents;
         this.mcpServers = builder.mcpServers;
         this.environmentRef = builder.environmentRef;
+        this.computer = builder.computer;
     }
 
     Agent toProto() {
@@ -128,6 +131,9 @@ public final class AgentInput {
             spec.setEnvironmentRef(this.environmentRef.toProto().toBuilder()
                 .setKind(ApiResourceKind.environment).build());
         }
+        if (this.computer != null) {
+            spec.setComputer(this.computer);
+        }
         ApiResourceMetadata.Builder metaBuilder = ApiResourceMetadata.newBuilder()
             .setName(this.name);
         if (this.org != null) {
@@ -182,6 +188,7 @@ public final class AgentInput {
         private java.util.List<ResourceRef> subagents;
         private java.util.List<AgentMcpServerInput> mcpServers;
         private ResourceRef environmentRef;
+        private Computer computer;
 
         private Builder() {}
 
@@ -211,6 +218,7 @@ public final class AgentInput {
         public Builder subagents(java.util.List<ResourceRef> subagents) { this.subagents = subagents; return this; }
         public Builder mcpServers(java.util.List<AgentMcpServerInput> mcpServers) { this.mcpServers = mcpServers; return this; }
         public Builder environmentRef(ResourceRef environmentRef) { this.environmentRef = environmentRef; return this; }
+        public Builder computer(Computer computer) { this.computer = computer; return this; }
 
         public AgentInput build() { return new AgentInput(this); }
     }

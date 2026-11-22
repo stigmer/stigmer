@@ -10,7 +10,7 @@ import { AgentSpecSchema, HookSourceSchema, AgentMcpServerSchema } from "@stigme
 import { HookHandlerSchema, HookGroupSchema, HookConfigSchema, HookFormat } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/hooks_pb";
 import { ServiceTier, ThinkingMode } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 import { RunConfigSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/invocation_pb";
-import { Harness } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
+import { Harness, Computer } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
 import { EnvVarDeclarationSchema } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/declaration_pb";
 import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiResourceVisibility } from "@stigmer/apis/ai/stigmer/commons/apiresource/enum_pb";
@@ -40,6 +40,7 @@ export const AgentInputShape = {
   subagents: z.array(z.lazy(() => SubagentInputSchema)).optional().describe("Saved agents this agent may hand work to, each running its own instructions, model, tools, plugins, skills, hooks and values. A subagent runs as the conversation's person and on its budget, under the conversation's hooks, and cannot hand work on to another agent: an agent that lists subagents of its own is refused here. Each reference is pinned when this agent is saved: a reference without a version takes the listed agent's latest version, and one naming a tag or a version keeps that version until a later save sends the list again. At most 20."),
   mcp_servers: z.array(z.lazy(() => AgentMcpServerInputSchema)).optional().describe("MCP servers written in this agent itself, reached over HTTP, beside the servers of the plugins it lists. At most 20. Only an organization's admins may add a server or change one's address or headers; anyone who may edit the agent may keep or remove them. A server's tools are named mcp__<name>__<tool> in tools and disallowed_tools. A run logs in with the vault connection saved at the server's address, else a vault secret named <NAME>_ACCESS_TOKEN (the server's name upper-cased, each other character written as _), which is sent to this server, or calls it with no login when there is neither; a header that names Authorization itself takes that login from its ${NAME} instead, and the run then needs it. Each ${NAME} in a header value is filled from the run's values and sent to this server only, never to the agent's shell. Header values are stored in the agent, so a secret goes in a vault and the header names it."),
   environment_ref: z.lazy(() => EnvironmentRefInputSchema).optional().describe("The Environment a new conversation on this agent runs in when neither the conversation nor its routine names one: the packages its sandboxes get and the websites they may reach. Unset: the organization's default Environment, if any. A conversation keeps the Environment it started with; changing this changes only new conversations. A conversation on the person's own machine (the desktop app, the CLI) ignores it."),
+  computer: z.string().optional().describe("Whether this agent's conversations have a computer. With COMPUTER_NONE, the agent runs no commands: saving refuses a Bash tool, hooks, an Environment, a plugin with hooks or local MCP servers, and a subagent that has a computer; its conversations and routines refuse repositories, folders, an Environment and the Claude harness. Unset reads as having a computer. A new agent left unset gets COMPUTER_REQUIRED; the Claude harness always has a computer, and COMPUTER_NONE on it is refused. An update that leaves this unset keeps the stored value. A conversation keeps the computer it started with. Allowed values: COMPUTER_NONE, COMPUTER_REQUIRED."),
 } as const;
 
 export const AgentInputSchema = z.strictObject(AgentInputShape);
@@ -149,6 +150,7 @@ export function agentInputToProto(input: AgentInput): Agent {
   if (input.subagents !== undefined) spec.subagents = input.subagents.map(subagentInputToProto);
   if (input.mcp_servers !== undefined) spec.mcpServers = input.mcp_servers.map(agentMcpServerInputToProto);
   if (input.environment_ref !== undefined) spec.environmentRef = environmentRefInputToProto(input.environment_ref);
+  spec.computer = enumFromString(Computer, input.computer) as Computer;
   return Object.assign(create(AgentSchema), {
     apiVersion: "agentic.stigmer.ai/v1",
     kind: "Agent",

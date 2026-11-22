@@ -6,6 +6,7 @@
     "all-in-one",
     "docker-compose",
     "kubernetes",
+    "kubernetes-reference",
     "authentication",
     "operations",
     "runners",

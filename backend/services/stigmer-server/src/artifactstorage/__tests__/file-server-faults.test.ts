@@ -5,6 +5,8 @@
  * server log naming the key and the error's code, so a client never takes
  * a broken artifact for a gone one (stigmer#1352). A key that is missing,
  * or that runs under a regular file, is still the 404 a missing key gets.
+ * A fault nothing expected (here the signer throwing as it verifies) is a
+ * 500 with no body and one log line, never a hung request.
  *
  * The stat fault is stubbed through `node:fs/promises`, the real module
  * spread beneath it: a chmod cannot make a file unreadable to a CI runner
@@ -16,7 +18,8 @@ import path from "node:path";
 
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { testUrlSigner } from "../__test-utils__/url-signer.js";
+import { TEST_URL_SIGNING_KEY, testUrlSigner } from "../__test-utils__/url-signer.js";
+import { DownloadUrlSigner } from "../url-signer.js";
 import { createLogger } from "../../boot/logger.js";
 import { createArtifactFileServer } from "../file-server.js";
 import type { ArtifactFileServer } from "../file-server.js";
@@ -49,15 +52,24 @@ afterEach(async () => {
   rmSync(dir, { recursive: true, force: true });
 });
 
+/** A signer whose verify fails as nothing expects: the lane's last resort. */
+class FaultingSigner extends DownloadUrlSigner {
+  override verify(): boolean {
+    throw new Error("signer fault");
+  }
+}
+
 /** A lane over <tmp>/artifacts holding probe.txt, logging into `lines`. */
-async function lane(): Promise<{ readonly url: (key: string) => string; readonly root: string }> {
+async function lane(
+  serving: DownloadUrlSigner = testUrlSigner(),
+): Promise<{ readonly url: (key: string) => string; readonly root: string }> {
   dir = mkdtempSync(path.join(tmpdir(), "artifact-file-server-faults-"));
   const root = path.join(dir, "artifacts");
   mkdirSync(root);
   writeFileSync(path.join(root, "probe.txt"), "probe-bytes\n");
   lines = [];
   const logger = createLogger({ level: "error", pretty: false, write: (line) => lines.push(line) });
-  server = createArtifactFileServer({ basePath: root, signer: testUrlSigner(), logger });
+  server = createArtifactFileServer({ basePath: root, signer: serving, logger });
   const port = await server.listen(0, "127.0.0.1");
   const signer = testUrlSigner();
   return {
@@ -84,5 +96,19 @@ describe("artifact file server, a file it cannot read", () => {
     expect((await fetch(url("nope.txt"))).status).toBe(404);
     expect((await fetch(url("probe.txt/inner"))).status).toBe(404);
     expect(lines).toEqual([]);
+  });
+});
+
+describe("artifact file server, a fault nothing expected", () => {
+  it("answers 500 with no body and logs the fault once", async () => {
+    const { url } = await lane(new FaultingSigner(TEST_URL_SIGNING_KEY));
+
+    const response = await fetch(url("probe.txt"));
+
+    expect(response.status).toBe(500);
+    expect(await response.text()).toBe("");
+    expect(lines).toHaveLength(1);
+    expect(lines[0]).toContain("artifact file server request failed");
+    expect(lines[0]).toContain("signer fault");
   });
 });

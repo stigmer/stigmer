@@ -9,6 +9,8 @@ export {
   CLAUDE_TOOL_COVERS,
   STIGMER_TOOL_COVERS,
   READ_ONLY_EVAL_TOOLS,
+  SHELL_TOOL,
+  builtinToolOf,
   claudeNameOf,
   isClaudeTool,
   type ClaudeTool,

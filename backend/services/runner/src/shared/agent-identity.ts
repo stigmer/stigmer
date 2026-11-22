@@ -5,7 +5,8 @@
  *
  * A runner separates when it runs as root on Linux in a container shape,
  * which the runner layer's start script marks (`layer/start.sh` exports
- * `STIGMER_RUNNER_LAYER=1`: every container driver, the chart, compose and
+ * `STIGMER_RUNNER_LAYER=1`: every container driver, the Kubernetes
+ * operator's shared runner, compose and
  * the attach waiter start the runner through it). A local runner (`stigmer
  * up`, the desktop app, the `local-process` driver) runs as the person
  * whose keys it holds, and does not separate.
@@ -15,7 +16,7 @@
  * the runner adds it at boot ({@link ensureAgentUser}), so the start script
  * stays a checker that forks nothing. Its home is where the agent's state
  * persists in each shape: `STIGMER_AGENT_HOME` when the deployment names
- * one (the chart puts it on the runner's data volume), else
+ * one (the Kubernetes operator puts it on the runner's data volume), else
  * `/home/stigmer-agent`.
  */
 

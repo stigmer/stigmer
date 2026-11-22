@@ -5,11 +5,11 @@
 // The maintainers plan in a private repository, and its identifiers can leak
 // into this one: a decision number in a comment, a record's folder id in a
 // test title, a private issue in an error message, an internal entry name in
-// the Helm chart's refusal. A reader of this repository cannot open any of
+// the operator's refusal. A reader of this repository cannot open any of
 // them, so each is a dead reference where the reason should be. The
 // root AGENTS.md forbids them; this guard is what holds the rule for every
 // file the guidance gate never reads (code, protos, tests, docs, workflows,
-// the chart), across the whole repository.
+// the operator's chart), across the whole repository.
 //
 // The shapes come from the guidance gate itself, scripts/agents-check.mjs:
 // every entry of LEAK_PATTERNS (its `privateOk` flag does not apply, since

@@ -2,7 +2,7 @@
 name: stigmer-operate
 description: >
   Runs the person's own Stigmer server and administers their organization:
-  docker run or Compose or the chart, their own Kubernetes, turning on login
+  docker run or Compose or the Stigmer operator, their own Kubernetes, turning on login
   with Keycloak, Okta, Entra or Auth0, a runner on a bigger machine, tracing
   to Langfuse, upgrades and backups, who can use or edit which agent, a key
   for CI, service accounts, the access history for an auditor, and agent
@@ -44,7 +44,7 @@ Find these before you answer or write anything.
    their own.
 3. **Which shape they run**, when it's their own server: the laptop
    (`stigmer up`), the single image (`docker run`), Docker Compose, or the
-   Helm chart. Settings, upgrades and backups differ by shape, and each
+   Stigmer operator on Kubernetes. Settings, upgrades and backups differ by shape, and each
    page has a tab or a section per shape.
 
 ## Which piece does what
@@ -54,13 +54,13 @@ this table, then read its page.
 
 | The person needs | The piece | Never | Page |
 | --- | --- | --- | --- |
-| Stigmer on their own machines | The single image for evaluation; Docker Compose for a team on one machine; the Helm chart on a cluster | the single image for a team's daily use; a Kubernetes operator or custom resources | https://stigmer.ai/docs/guides/self-hosting/overview |
-| People signing in | Their own OIDC provider, set with the four `STIGMER_OIDC_` settings the page names | Stigmer's hosted login on their server; editing `docker-compose.yml` or the chart's templates | https://stigmer.ai/docs/guides/self-hosting/authentication |
+| Stigmer on their own machines | The single image for evaluation; Docker Compose for a team on one machine; the Stigmer operator and one `Stigmer` resource on a cluster | the single image for a team's daily use; hand-written Kubernetes manifests; editing the objects the operator creates | https://stigmer.ai/docs/guides/self-hosting/overview |
+| People signing in | Their own OIDC provider, set with the four `STIGMER_OIDC_` settings on Compose or `spec.identity.oidc` on the operator; or the operator's bundled sign-in | Stigmer's hosted login on their server; editing `docker-compose.yml` or the objects the operator creates | https://stigmer.ai/docs/guides/self-hosting/authentication |
 | A machine calling Stigmer (CI, a script) | A service account's API key, with the smallest role | a person's key | https://stigmer.ai/docs/guides/authentication/service-accounts |
 | Who may run or change what | The Organization's roles; one Agent's Editor on Enterprise and Cloud only | a per-Agent permission on open source; Viewers running Agents | https://stigmer.ai/docs/concepts/sharing-and-access |
-| More room for the agents' work | The runner (one shared runner per stack), or a runner per Session through a provisioner | registering a runner; a second shared runner; a runner container on another host | https://stigmer.ai/docs/guides/self-hosting/runners, https://stigmer.ai/docs/concepts/runners |
-| Runs in their tracing tool | The runner's `OTEL_` variables, the login from a Secret | a server setting; a chart value that turns it on | https://stigmer.ai/docs/guides/self-hosting/tracing |
-| A newer release, a backup | The version pin, a backup first; back is a restore | downgrading; editing the chart | https://stigmer.ai/docs/guides/self-hosting/operations |
+| More room for the agents' work | The runner (one shared runner per stack), or a runner per Session through a provisioner | registering a runner; a second shared runner; a runner on another host while files are on the local store | https://stigmer.ai/docs/guides/self-hosting/runners, https://stigmer.ai/docs/concepts/runners |
+| Runs in their tracing tool | The runner's `OTEL_` variables, the login from a Secret | a server setting; a `Stigmer` field that turns it on | https://stigmer.ai/docs/guides/self-hosting/tracing |
+| A newer release, a backup | The version pin, a backup first; back is a restore | downgrading; editing the objects the operator creates | https://stigmer.ai/docs/guides/self-hosting/operations |
 | Who gave whom access, and when | The access history and its export | calling it a log of everything people did | https://stigmer.ai/docs/guides/authentication/access-history |
 | Hours used, the plan's limits | Agent hours against the plan's allowance | a model bill from Stigmer | https://stigmer.ai/docs/concepts/billing |
 
@@ -71,7 +71,7 @@ this table, then read its page.
 The single image (`docker run`) is for evaluation only, and the page says
 why: it has no sign-in, so it trusts every caller and can't be given one,
 and an upgrade ends runs in flight. A team on one machine runs the Docker Compose stack; a team with a
-cluster runs the Helm chart. Page:
+cluster installs the Stigmer operator and declares one `Stigmer` resource. Page:
 https://stigmer.ai/docs/guides/self-hosting/overview, then the shape's own
 page (https://stigmer.ai/docs/guides/self-hosting/all-in-one,
 https://stigmer.ai/docs/guides/self-hosting/docker-compose,
@@ -81,21 +81,26 @@ https://stigmer.ai/docs/guides/self-hosting/kubernetes).
   (`kubectl port-forward`, a private network) until sign-in is on, and say
   so before the steps.
 - On Compose every setting is a line in `.env`; never edit
-  `docker-compose.yml`. On the chart, settings go in the values file and
-  keys in Secrets created before the install; the page names which.
-- Never name a setting or Helm value the page doesn't show.
+  `docker-compose.yml`. On Kubernetes, settings are fields of the `Stigmer`
+  resource, applied with `kubectl apply`; the operator mints the stack's own
+  keys, and the person creates only the Secrets the page names (the model
+  key, an external database's password).
+- Never name a setting or a `Stigmer` field the page doesn't show; the
+  resource's reference page lists every field.
 
 ### Turn sign-in on
 
 Register the clients in their provider (the console's, and the one for
 installed apps so the CLI and desktop app sign in), set the issuer,
-audience and client ids (in `.env`, or the chart's values), restart, sign
-in, then make keys. Page:
+audience and client ids (in `.env`, or `spec.identity.oidc`), restart, sign
+in, then make keys. On Kubernetes a hostname under `spec.ingress` turns sign-in
+on through the operator's bundled sign-in unless they name their own issuer. Page:
 https://stigmer.ai/docs/guides/self-hosting/authentication.
 
 - Keys are made after sign-in is on: one made while the server trusted
   everyone is refused afterwards.
-- The runner gets its own key (`STIGMER_TOKEN`, or the chart's Secret).
+- The runner gets its own key: `STIGMER_TOKEN` on Compose; on Kubernetes the
+  operator mints it, with no step.
 - Their CLI: add the server as a backend
   (`stigmer config backend add <name> --endpoint <host:port>`), use it, and
   `stigmer auth login` once the installed-apps client is registered.
@@ -109,10 +114,12 @@ runner takes runs from a Temporal task queue; it is not a resource,
 nothing registers it, and the server never picks or calls it. Then answer
 each part from the self-hosting runner page:
 
-- **The shared runner on another machine**: the page says why neither
-  Compose nor the chart runs it there today (the server and the runner
-  share file storage by disk), in "What the runner is given".
-- **Several runners**: "One runner, one replica" says why the chart runs
+- **The shared runner on another machine**: "What the runner is given" says
+  when it can: with files on the local store the server and the runner share
+  one disk (one volume on Compose, one pod on the operator); with a bucket,
+  the runner reads and writes through the server's file lane and can run
+  anywhere.
+- **Several runners**: "One runner, one replica" says why the operator runs
   one, and that a second shared runner isn't something the guides teach.
 - **Work off the server's machine**: "A runner per Session" is the
   mechanism (a sandbox provisioner), and says what the shipped stacks can't
@@ -130,11 +137,12 @@ https://stigmer.ai/docs/concepts/runners.
 ### Send runs to their tracing tool
 
 Whatever release they name, have them confirm the one their server runs
-with the tracing page's command for their shape (on the chart,
-`helm list -n stigmer`, whose chart version is the Stigmer version), never
+with the tracing page's command for their shape (on Kubernetes,
+the Version column of `kubectl -n stigmer get stigmer`; operator `vX` runs
+Stigmer `vX`), never
 the CLI's own version, and say which releases have tracing, from the same
-page. The variables go on the runner: on the chart in
-`runner.extraEnv`, the login read from a Secret; on a laptop, in the shell
+page. The variables go on the runner: on Kubernetes in
+the `Stigmer` resource's `spec.runner.extraEnv`, the login read from a Secret; on a laptop, in the shell
 `stigmer up` starts from. Langfuse takes its OTLP address and a Basic-auth
 header built from its public and secret keys. Page:
 https://stigmer.ai/docs/guides/self-hosting/tracing.
@@ -148,8 +156,9 @@ https://stigmer.ai/docs/guides/self-hosting/tracing.
 ### Upgrade and back up
 
 A backup first, then the version pin moved (`STIGMER_VERSION` in `.env`,
-or the chart's `--version`); the server migrates forward on start, and the
-only way back is a restore. Page:
+or `helm upgrade stigmer-operator --version`, where the operator takes the
+backup itself when a bucket is declared); the server migrates forward on
+start, and the only way back is a restore. Page:
 https://stigmer.ai/docs/guides/self-hosting/operations.
 
 ## Their organization

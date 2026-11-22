@@ -15,6 +15,12 @@ class Harness(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     HARNESS_STIGMER: _ClassVar[Harness]
     HARNESS_CLAUDE: _ClassVar[Harness]
 
+class Computer(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
+    __slots__ = ()
+    COMPUTER_UNSPECIFIED: _ClassVar[Computer]
+    COMPUTER_NONE: _ClassVar[Computer]
+    COMPUTER_REQUIRED: _ClassVar[Computer]
+
 class EnvironmentSource(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     __slots__ = ()
     ENVIRONMENT_SOURCE_UNSPECIFIED: _ClassVar[EnvironmentSource]
@@ -33,6 +39,9 @@ GIT_WRITE_BACK_BRANCH_AND_PR: GitWriteBackMode
 HARNESS_UNSPECIFIED: Harness
 HARNESS_STIGMER: Harness
 HARNESS_CLAUDE: Harness
+COMPUTER_UNSPECIFIED: Computer
+COMPUTER_NONE: Computer
+COMPUTER_REQUIRED: Computer
 ENVIRONMENT_SOURCE_UNSPECIFIED: EnvironmentSource
 ENVIRONMENT_SOURCE_SESSION: EnvironmentSource
 ENVIRONMENT_SOURCE_ROUTINE: EnvironmentSource

@@ -1,0 +1,28 @@
+The Stigmer operator {{ include "stigmer-operator.version" . }} is installed in {{ .Release.Namespace }}.
+
+Declare Stigmer in a namespace of its own, with the Secret that holds your
+model provider's key:
+
+  kubectl create namespace stigmer
+  kubectl -n stigmer create secret generic anthropic --from-literal=ANTHROPIC_API_KEY=<your key>
+  kubectl apply -f - <<'YAML'
+  apiVersion: stigmer.ai/v1
+  kind: Stigmer
+  metadata:
+    name: stigmer
+    namespace: stigmer
+  spec:
+    owner:
+      email: you@example.com
+    runner:
+      llm:
+        secretName: anthropic
+  YAML
+  kubectl -n stigmer get stigmer
+
+Every field: https://stigmer.ai/docs/guides/self-hosting/kubernetes-reference/stigmer
+The guide: https://stigmer.ai/docs/guides/self-hosting/kubernetes
+{{- with .Values.localRegistry }}
+
+Development cluster: sandbox images built on your machine are pulled through {{ . }}.
+{{- end }}

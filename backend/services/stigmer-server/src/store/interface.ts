@@ -84,9 +84,13 @@ export class AuditNotFoundError extends Error {
  * by the Postgres driver's pool (postgres/pool.ts).
  */
 export class DatabaseUnavailableError extends Error {
+  /** The message without its "database unavailable" prefix. */
+  readonly detail: string;
+
   constructor(detail: string, options: { readonly cause: unknown }) {
     super(`database unavailable: ${detail}`, options);
     this.name = "DatabaseUnavailableError";
+    this.detail = detail;
   }
 }
 

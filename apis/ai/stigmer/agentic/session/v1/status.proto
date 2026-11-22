@@ -79,4 +79,14 @@ message SessionStatus {
 
   // Which choice environment came from.
   EnvironmentSource environment_source = 9;
+
+  // Whether this conversation has a computer, from its agent's version
+  // (AgentSpec.computer). Unset reads as having one: a conversation from
+  // before the setting, or one with no agent.
+  //
+  // @internal
+  // Server-owned: resolved from the pinned agent version on every write
+  // until the first turn, then kept, so a re-pin changes only new
+  // conversations. The runner reads it: COMPUTER_NONE binds no shell.
+  Computer computer = 10;
 }

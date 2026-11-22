@@ -136,8 +136,8 @@ const CLOUD_PLANS: readonly Plan[] = [
   },
 ];
 
-// What each self-hosted edition is, from its own documentation (the Helm
-// chart's README and ee/server/README.md). These come with the edition
+// What each self-hosted edition is, from its own documentation (the
+// Kubernetes operator's guide and ee/server/README.md). These come with the edition
 // rather than from a plan's or a license's feature list, so they are
 // written here rather than named through the plan vocabulary.
 const SELF_HOSTED_PLANS: readonly Plan[] = [

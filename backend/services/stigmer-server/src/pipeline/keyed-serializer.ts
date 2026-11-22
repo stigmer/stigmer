@@ -12,8 +12,9 @@
  *
  * Trade-offs:
  *   - In-process, not durable. Every edition runs one server process per
- *     database: the Helm chart pins one replica (deploy/helm/stigmer
- *     values.yaml, "one replica is a fact"), local and desktop are one
+ *     database: the Kubernetes operator runs one replica, recreated rather
+ *     than rolled (deploy/operator/internal/render/server.go), local and
+ *     desktop are one
  *     process, and the hosted deployment runs one replica with autoscaling
  *     off. The one overlap is a rolling update, when the outgoing and the
  *     incoming server serve together for the length of the roll; there the

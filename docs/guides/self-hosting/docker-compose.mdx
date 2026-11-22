@@ -198,8 +198,7 @@ works if it does three things:
 - Serves the API on **port 443**. The CLI decides whether to use TLS from the
   port alone: `:443` is HTTPS, anything else is plain HTTP.
 - Uses two hostnames, one for the API and console and one for downloads. The
-  file server is a separate listener and cannot share a host with the API. The
-  Helm chart's Ingress uses the same two.
+  file server is a separate listener and cannot share a host with the API.
 
 Then tell the stack the addresses your clients reach it on, so the URLs it mints
 for downloads and Skill transfers point at the proxy and an MCP server's Sign in
@@ -273,9 +272,9 @@ sign in.
 ## Bring your own Postgres and Temporal
 
 The compose stack bundles both, on purpose: one machine, one backup story. If
-your team already runs Postgres or Temporal, the [Helm chart](./kubernetes) is
-the shape that points at them, through its `externalDatabase` and
-`externalTemporal` values.
+your team already runs Postgres or Temporal, [Kubernetes](./kubernetes) is the
+shape that points at them, through the `Stigmer` resource's
+`spec.database.postgresql.external` and `spec.temporal.external`.
 
 ## Back up, upgrade, uninstall
 

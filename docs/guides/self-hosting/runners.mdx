@@ -22,16 +22,17 @@ your shape starts beside the server, and every shape starts exactly one:
   container.
 - On the [Docker Compose stack](./docker-compose), the runner is the
   `stigmer-runner` service.
-- On the [Helm chart](./kubernetes), the runner is the second container of the
-  one pod.
+- On [Kubernetes](./kubernetes), the runner is the second container of the
+  server's pod, which the Stigmer operator runs, unless a sandbox driver gives
+  each Session a runner of its own.
 
 ## How a run reaches the runner
 
 The server and the runner never talk about who does what. Between them sits a
 Temporal task queue named `stigmer_runner`. The server puts each run on it; the
 runner polls it and takes what's there. The name is written once for both sides,
-in the compose file's one anchor and the chart's one template, so the two can't
-drift apart.
+in the compose file's one anchor and the operator's one constant, and a test
+holds the two equal, so they can't drift apart.
 
 ```mermaid
 sequenceDiagram
@@ -81,24 +82,25 @@ How you know the runner is alive today: its log.
 `Worker ready, polling for tasks...` is the line to look for, in
 `docker compose logs stigmer-runner` or
 `kubectl logs deployment/stigmer -c runner`. The runner has no health endpoint
-yet, so the chart gives its container no probe on purpose
+yet, so the operator gives its container no probe on purpose
 ([stigmer#1101](https://github.com/stigmer/stigmer/issues/1101)), and the
 console has no runner page.
 
 ## What the runner is given
 
-Everything the runner needs arrives through the file your shape already uses.
-You never edit the compose file or the chart.
+Everything the runner needs arrives through what your shape already uses: `.env`
+on Docker Compose, the `Stigmer` resource on Kubernetes. You never edit the
+compose file or what the operator runs.
 
-| What                                         | Docker Compose (`.env`)                                                  | Kubernetes (values file)                       | Who sets it                                                                 |
-| -------------------------------------------- | ------------------------------------------------------------------------ | ---------------------------------------------- | --------------------------------------------------------------------------- |
-| Server address, Temporal address, queue name | Fixed in the compose file                                                | Fixed in the chart                             | The release. Two things named once can't drift.                             |
-| Your LLM key                                 | `ANTHROPIC_API_KEY`                                                      | `runner.llm.existingSecret`                    | You. The runner holds it; the server never does.                            |
-| File storage                                 | The `artifacts` volume                                                   | The `stigmer-artifacts` claim                  | The release. One disk the server writes and the runner reads.               |
-| The runner's own state                       | The `runner-data` volume                                                 | The `stigmer-runner-data` claim                | The release. Checkpoints and Agents' working directories, not backup state. |
-| The runner's own API key                     | `STIGMER_TOKEN`                                                          | `runner.stigmerToken.existingSecret`           | You, once [authentication is on](./authentication#give-the-runner-its-key). |
-| The address MCP servers dial back on         | `STIGMER_PUBLIC_URL`                                                     | `server.publicUrl`                             | You, when clients reach the API anywhere but this machine's port.           |
-| Which providers the runners reach            | Not yet ([stigmer#2675](https://github.com/stigmer/stigmer/issues/2675)) | `server.extraEnv` (`STIGMER_RUNNER_PROVIDERS`) | You, so the console and create know which models can run.                   |
+| What                                         | Docker Compose (`.env`)                                                  | Kubernetes (`Stigmer` resource)                      | Who sets it                                                                                                           |
+| -------------------------------------------- | ------------------------------------------------------------------------ | ---------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| Server address, Temporal address, queue name | Fixed in the compose file                                                | Fixed by the operator                                | The release. Two things named once can't drift.                                                                       |
+| Your LLM key                                 | `ANTHROPIC_API_KEY`                                                      | `spec.runner.llm.secretName`                         | You. The runner holds it; the server never does.                                                                      |
+| File storage                                 | The `artifacts` volume, or a bucket (`ARTIFACT_STORAGE_TYPE=s3`)         | The `stigmer-artifacts` claim, or `spec.objectStore` | The release, or you when you name a bucket. The runner never holds its keys.                                          |
+| The runner's own state                       | The `runner-data` volume                                                 | The `stigmer-runner-data` claim                      | The release. Checkpoints and Agents' working directories, not backup state.                                           |
+| The runner's own API key                     | `STIGMER_TOKEN`                                                          | Minted by the operator                               | On Compose, you generate it when you [turn sign-in on](./authentication#set-the-issuer); on Kubernetes, the operator. |
+| The address MCP servers dial back on         | `STIGMER_PUBLIC_URL`                                                     | `spec.ingress.hostname`                              | You, when clients reach the API anywhere but this machine's port.                                                     |
+| Which providers the runners reach            | Not yet ([stigmer#2675](https://github.com/stigmer/stigmer/issues/2675)) | `spec.server.extraEnv` (`STIGMER_RUNNER_PROVIDERS`)  | You, so the console and create know which models can run.                                                             |
 
 Five of these rows carry a design decision worth knowing.
 
@@ -106,12 +108,12 @@ Five of these rows carry a design decision worth knowing.
 setting for it. Agents on the Stigmer and Claude Agent Harnesses need
 `ANTHROPIC_API_KEY`. At start the runner moves its keys out of the variables it
 started with into a store only it reads, so the commands an Agent runs and the
-processes the runner starts don't inherit them. In the compose stack, the chart
-and the sandbox drivers, the Agent's side of a turn runs as a user of its own,
-and the runner makes each model call for it, so nothing an Agent runs can read
-the key by any path (**Root, `HOME` and Node settings**, below). The
-[all-in-one container](./all-in-one) is the exception: it runs `stigmer up` as
-one user, as on your own machine.
+processes the runner starts don't inherit them. In the compose stack, on
+Kubernetes and under the sandbox drivers, the Agent's side of a turn runs as a
+user of its own, and the runner makes each model call for it, so nothing an
+Agent runs can read the key by any path (**Root, `HOME` and Node settings**,
+below). The [all-in-one container](./all-in-one) is the exception: it runs
+`stigmer up` as one user, as on your own machine.
 
 **The server is told which providers the runners reach, never their keys.**
 `STIGMER_RUNNER_PROVIDERS` lists them by name, comma-separated, from `anthropic`
@@ -123,20 +125,41 @@ the runner runs and nothing is refused: the runner's own error names a missing
 key. A name that is not a provider stops the server at boot. On your own machine
 `stigmer up` sets it for you.
 
-**File storage is shared by disk, not by HTTP.** The server writes a stored file
-to a path and the runner reads the same path, so the two must see one disk. That
-is why the compose stack gives them one volume, why the chart puts them in one
-pod, and why neither shape runs the runner on another machine today. File
-storage that needs no shared disk is
-[stigmer#1099](https://github.com/stigmer/stigmer/issues/1099). A conversation's
-Files are the exception: the runner fetches them over HTTP from the server's
-transfer lane, at the origin `SKILL_TRANSFER_BASE_URL` names.
+**File storage is a shared disk or a bucket, and the runner never holds the
+bucket's keys.** On the default local store the server writes a stored file to a
+path and the runner reads the same path, so the two must see one disk: the
+compose stack gives them one volume, and the operator puts them in one pod. Name
+an S3-compatible bucket instead (AWS S3, Cloudflare R2, MinIO, or Google Cloud
+Storage through its S3 API) and the runner can run anywhere: it asks the
+server's file lane (`/v1/proxy/artifacts`) for a short-lived URL for each file
+it reads or writes, and the server answers only for the run the runner is
+serving. A conversation's Files and Skills use the same bucket. The server's
+settings:
+
+| Setting                       | What it holds                                                              |
+| ----------------------------- | -------------------------------------------------------------------------- |
+| `ARTIFACT_STORAGE_TYPE`       | `s3`, to store files in the bucket (`local` is the default)                |
+| `SKILL_ARTIFACT_STORAGE_TYPE` | `s3`, to store Skills there too                                            |
+| `S3_BUCKET`                   | The bucket's name                                                          |
+| `S3_ENDPOINT`                 | The store's URL; empty for AWS S3 itself                                   |
+| `S3_REGION`                   | The bucket's region (`us-east-1` when unset, which R2 also accepts)        |
+| `S3_ACCESS_KEY_ID`            | The server's key for the bucket                                            |
+| `S3_SECRET_ACCESS_KEY`        | Its secret                                                                 |
+| `S3_RUNNER_ENDPOINT`          | The address runners reach the store at, when it differs from `S3_ENDPOINT` |
+
+A runner on another machine is then given `ARTIFACT_STORAGE_TYPE=proxy` and
+`STIGMER_ARTIFACT_PROXY_ENDPOINT`, the server's own address; the sandbox drivers
+below set it for you. A server missing a bucket setting it needs stops at boot
+and names it. A conversation's Files on the local store reach the runner over
+HTTP from the server's transfer lane, at the origin `SKILL_TRANSFER_BASE_URL`
+names.
 
 **The runner's own API key is its credential, not the runs'.** Runs travel on
 that per-run credential, so the runner's key doesn't decide whose runs it serves
-or who is recorded as running them. The authenticated install asks for it; the
-authentication guide says when to create it, and
-[Back up and upgrade your stack](./operations) how to rotate it.
+or who is recorded as running them. With sign-in on, the server stores the key
+you generated at boot as the key of its `runner` service account, an
+organization admin, so the runner starts signed in. Generate a new one and
+restart to rotate it: the server deletes the old key at that start.
 
 **An MCP server's way back to the server comes from the runner.** A tool server
 that declares `STIGMER_SERVER_ADDRESS` and holds no value for it gets one from
@@ -151,8 +174,7 @@ An Agent turn can run shell commands, call tools, start stdio MCP servers and
 install packages into its own folders. All of that happens inside the runner
 container, as the container's agent user, `stigmer-agent`, with that container's
 network and every file that user may read. The runner and its keys stay out of
-that user's reach. The compose file states the rule in its header, and the
-chart's notes repeat it:
+that user's reach. The compose file states the rule in its header:
 
 > stdio MCP servers spawn INSIDE this container — they can reach this
 > container's filesystem and network, not your host's.
@@ -164,7 +186,7 @@ Two consequences for a team:
   port. The runner's network is your team's network: give the container the
   reach your team may have, and no more.
 - **Temporal is inside the domain too.** The shared runner dials Temporal
-  directly, and so can anything its agents run. The chart fences its bundled
+  directly, and so can anything its agents run. The operator fences its bundled
   Temporal to the Stigmer pod, but the runner's own tools share that pod. For a
   stronger boundary, run your own Temporal with authentication on
   ([Bring your own Postgres and Temporal](./kubernetes#bring-your-own-postgres-and-temporal)).
@@ -179,10 +201,11 @@ Two consequences for a team:
   sandbox driver that isolates each Session (`docker`, `agent-sandbox` or
   `substrate`; `local-process` runs every runner as the server's own user, so it
   does not count). To run every Organization's Agents on the shared runner
-  anyway, set `STIGMER_SHARED_RUNNER_ACROSS_ORGANIZATIONS=accepted` (Helm:
-  `runner.sharedAcrossOrganizations: true`). The server then starts, and logs
-  one warning naming what is shared. Any other value stops the server.
-- **One runner, one replica.** The chart runs one replica on purpose and
+  anyway, set `STIGMER_SHARED_RUNNER_ACROSS_ORGANIZATIONS=accepted`. The server
+  then starts, and logs one warning naming what is shared. Any other value stops
+  the server. The Stigmer operator never sets it: a licensed install on
+  Kubernetes runs no shared runner, so every Session runs in a sandbox.
+- **One runner, one replica.** The operator runs one replica on purpose and
   replaces the pod rather than rolling it, because two runners on one disk would
   race for the same working directories and checkpoints. Running a second shared
   runner isn't something these guides teach.
@@ -342,9 +365,9 @@ SANDBOX_PROVISIONER_TYPE='docker' requires per-session routing — set STIGMER_A
   the per-Session runner, over the transfer lane, once `SKILL_TRANSFER_BASE_URL`
   names an origin the container reaches; the server warns at boot when it is
   left on loopback. What a run stores beside its record (its offloaded tool
-  output and file-review content) still needs a shared path
-  ([stigmer#1099](https://github.com/stigmer/stigmer/issues/1099)). The chart
-  offers no sandbox values until that lands. This section describes the
+  output and file-review content) reaches the per-Session runner through the
+  server's file lane once the server stores files in a bucket (**File storage**,
+  above); on the local store it needs a shared path. This section describes the
   mechanism so the settings you meet in the server's configuration make sense;
   it isn't a procedure.
 </Callout>
@@ -493,7 +516,7 @@ runner's credentials. The runner keeps five capabilities, `SETUID`, `SETGID`,
 holds none of them; a runner that cannot start that user stops with exit code 78
 rather than run the Agent's side as root. The default image creates the user; on
 your own base image the runner adds it at start. The Agent's home is where its
-session state persists: `/data/agent` on the chart's and compose's volume,
+session state persists: `/data/agent` on the shared runner's volume,
 `/home/stigmer-agent` under the drivers, which `agent-sandbox` and `substrate`
 keep on a volume of its own, the Session's home (a `STIGMER_AGENT_HOME` of your
 own moves it off that volume). If you set `STIGMER_AGENT_HOME`, keep it outside
@@ -676,19 +699,23 @@ Every Session's actor comes from one template the server creates and names by
 its content, so a new runner image or setting makes a new template. Sleeping
 Sessions move to it when they next wake, an awake one at its next message, and
 the server deletes old templates nothing uses any more. A first wake after an
-upgrade waits for the new template to be prepared. Substrate moves a sandbox to
-a new template only when both keep the same volumes, so a sandbox made by a
-server from before the Agent's home had a volume of its own
-([stigmer#3349](https://github.com/stigmer/stigmer/issues/3349)) can't move:
-once, its next message ends with the line saying the conversation's sandbox is
-from another release, and the person starts a new conversation. A rollback to
-such a server ends the conversations made since the same way. A Session's disk
-belongs to the image it was written over, so when a sleeping Session moves to a
-new template, by an upgrade or a rollback, its two volumes move with it and the
-rest of its disk starts over from the new image: its Environment's packages
-install once more at its next wake, and are kept again from its next sleep.
-Before upgrading to the first release whose sleep keeps the disk
-([stigmer#3360](https://github.com/stigmer/stigmer/issues/3360)), narrow
+upgrade waits for the new template to be prepared. While it is, the server's
+health check names it: `grpc.health.v1.Health/Check` with the service
+`stigmer.sandboxes` answers `NOT_SERVING` until the template is ready and
+`SERVING` after, while the overall check stays `SERVING`, so the console answers
+meanwhile. The Kubernetes operator waits on it before calling an install Ready.
+Substrate moves a sandbox to a new template only when both keep the same
+volumes, so a sandbox made by a server from before the Agent's home had a volume
+of its own ([stigmer#3349](https://github.com/stigmer/stigmer/issues/3349))
+can't move: once, its next message ends with the line saying the conversation's
+sandbox is from another release, and the person starts a new conversation. A
+rollback to such a server ends the conversations made since the same way. A
+Session's disk belongs to the image it was written over, so when a sleeping
+Session moves to a new template, by an upgrade or a rollback, its two volumes
+move with it and the rest of its disk starts over from the new image: its
+Environment's packages install once more at its next wake, and are kept again
+from its next sleep. Before upgrading to the first release whose sleep keeps the
+disk ([stigmer#3360](https://github.com/stigmer/stigmer/issues/3360)), narrow
 `STIGMER_SANDBOX_SUBSTRATE_WORKER_SELECTOR` to workers of one CPU architecture
 if it matches more than one (below).
 

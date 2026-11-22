@@ -201,6 +201,24 @@ message AgentSpec {
   // is). Naming it needs can_view on the Environment (the reference rule's
   // writer clause); the saver vouches for it, so a turn does not ask again.
   ai.stigmer.commons.apiresource.ApiResourceReference environment_ref = 19 [(ai.stigmer.commons.apiresource.reference_kind) = environment];
+
+  // Whether this agent's conversations have a computer. With
+  // COMPUTER_NONE, the agent runs no commands: saving refuses a Bash tool,
+  // hooks, an Environment, a plugin with hooks or local MCP servers, and a
+  // subagent that has a computer; its conversations and routines refuse
+  // repositories, folders, an Environment and the Claude harness.
+  //
+  // Unset reads as having a computer. A new agent left unset gets
+  // COMPUTER_REQUIRED; the Claude harness always has a computer, and
+  // COMPUTER_NONE on it is refused. An update that leaves this unset keeps
+  // the stored value. A conversation keeps the computer it started with.
+  //
+  // @internal
+  // Filled on create and kept on update by ResolveAgentComputer; the
+  // refusals live in domain/run/computer.ts, so the agent's save, a
+  // conversation's write, a routine's save and each turn word them alike.
+  // Recorded on SessionStatus.computer from the pinned version.
+  ai.stigmer.agentic.session.v1.Computer computer = 20 [(buf.validate.field).enum.defined_only = true];
 }
 
 // AgentMcpServer is an MCP server written in an agent, reached over HTTP.

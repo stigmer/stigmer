@@ -180,6 +180,7 @@ Platform builders who need different rendering use
     className: { type: "string", description: "Additional CSS class names for the root container." },
     disabled: { type: "boolean", description: "When true, disables the selector." },
     onValueChange: { type: "(harness: HarnessOption) => void", description: "Called when the user picks a different harness.", required: true },
+    options: { type: "readonly HarnessOption[]", description: "The harnesses offered here, in display order; every harness the platform runs when omitted. An agent without a computer offers Stigmer alone, since the Claude harness always runs with one." },
     value: { type: "HarnessOption", description: "Currently selected harness.", required: true, typeDescriptionLink: "#harnessoption" },
   }}
 />
@@ -281,6 +282,7 @@ base per-token rates and costs more only through extra reasoning
     disabled: { type: "boolean", description: "When true, disables the selector." },
     groupBy: { type: "\"provider\" | \"none\" | \"tier\"", description: "Grouping in the \"Show All\" expanded view. Default: \"provider\"." },
     harness: { type: "HarnessOption", description: "Current harness. When provided as a single value, locks the selector to that harness (dropdown hidden). When omitted, shows the harness dropdown.", typeDescriptionLink: "#harnessoption" },
+    harnessNote: { type: "string", description: "One line under the harness row saying why the harness is fixed or a harness is missing (\"Claude Agent isn't offered: ledger-answers has no computer\"); nothing when omitted." },
     inheritedModel: { type: "InheritedModel", description: "The model a run gets while `value` is empty because another layer chooses it (an agent's run defaults): the trigger reads `\"<source>: <model>\"`, the list marks that model, and the fast-tier and thinking switches gate on it. Picking a model replaces it. Wins over placeholderLabel; the trigger and switches ignore it while `value` is set.", typeDescriptionLink: "#inheritedmodel" },
     initialHarness: { type: "HarnessOption", description: "Initial harness value for the internal state when `harness` prop is undefined (unlocked mode). Prevents desync when the parent knows the active harness but delegates the dropdown to this component.  When `harness` is provided (locked mode), this prop is ignored.", typeDescriptionLink: "#harnessoption" },
     onHarnessChange: { type: "(harness: HarnessOption) => void", description: "Called when user changes harness in the dropdown." },

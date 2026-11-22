@@ -61,6 +61,7 @@ const setAutoApproveAll = vi.fn();
 const stubEmptyFlow = {
   harness: "stigmer" as const,
   setHarness: vi.fn(),
+  agentHasComputer: true,
   modelId: undefined,
   setModelId: vi.fn(),
   agentRef: null,

@@ -32,6 +32,7 @@ import { RunSpecSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/spec_pb";
 import { RunConfigSchema, type RunConfig } from "@stigmer/apis/ai/stigmer/agentic/run/v1/invocation_pb";
 import { ApprovalMode } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 import { SessionSchema, type Session } from "@stigmer/apis/ai/stigmer/agentic/session/v1/api_pb";
+import { Computer } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
 import { SessionSpecSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/spec_pb";
 import type { SessionResource } from "@stigmer/apis/ai/stigmer/agentic/session/v1/resource_pb";
 import { AgentSchema, type Agent } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb";
@@ -123,6 +124,12 @@ export interface ExecutionRecordOptions {
   readonly skills?: ReadonlyArray<{ readonly slug: string; readonly description: string; readonly skillMd: string }>;
   /** The agent's `AgentSpec.hooks`: plugin references and its own hooks block. */
   readonly hooks?: HookSource[];
+  /**
+   * The agent's computer (`AgentSpec.computer`), recorded on the session as
+   * the server records it (`SessionStatus.computer`). Unset: none recorded,
+   * which has one.
+   */
+  readonly computer?: Computer;
   /** The agent's own MCP servers (`AgentSpec.mcp_servers`), reached over HTTP. */
   readonly mcpServers?: ReadonlyArray<{ readonly name: string; readonly url: string; readonly headers?: Record<string, string> }>;
   /**
@@ -177,6 +184,7 @@ export function executionRecordFixture(options: ExecutionRecordOptions): Executi
     status: {
       agentId: builtIn ? "" : ids.agentId,
       agentVersionHash: builtIn ? "" : ids.agentVersionHash,
+      computer: options.computer ?? Computer.UNSPECIFIED,
     },
   });
   if (builtIn) {
@@ -203,6 +211,7 @@ export function executionRecordFixture(options: ExecutionRecordOptions): Executi
       tools: options.tools ?? [],
       disallowedTools: options.disallowedTools ?? [],
       hooks: options.hooks ?? [],
+      computer: options.computer ?? Computer.UNSPECIFIED,
       mcpServers: (options.mcpServers ?? []).map((server) => create(AgentMcpServerSchema, { name: server.name, url: server.url, headers: server.headers ?? {} })),
       skillRefs: (options.skills ?? []).map((s) => create(ApiResourceReferenceSchema, { org: ids.org, slug: s.slug })),
     }),

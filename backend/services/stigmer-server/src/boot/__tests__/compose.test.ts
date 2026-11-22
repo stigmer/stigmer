@@ -22,7 +22,9 @@
  *     port, and without one an ephemeral port still derives nothing
  *     (stigmer#1200);
  *   - a sandbox driver's background work starts with the server, reading
- *     the server's own sessions, and is stopped, awaited, at shutdown;
+ *     the server's own sessions, and is stopped, awaited, at shutdown; what
+ *     it reports about whether sessions can start is the server's
+ *     stigmer.sandboxes health status;
  *   - a sandbox driver is handed, as the server's release, the version
  *     getServerInfo reports when it is a release, and "" for a development
  *     version, so the runner layer's pairing check can never compare a
@@ -30,7 +32,7 @@
  *     and, unless the operator names one, the runner image of that same
  *     release, `latest` for a development version (stigmer#1850);
  *   - a bucket-backed plugin store signs the archive link a runner reads
- *     for R2_RUNNER_ENDPOINT when one is set, else for R2_ENDPOINT (a
+ *     for S3_RUNNER_ENDPOINT when one is set, else for S3_ENDPOINT (a
  *     local HTTP listener stands in for the bucket's HEAD; presigning is
  *     local).
  */
@@ -63,6 +65,7 @@ import { loadConfig } from "../config.js";
 import { composeServer } from "../compose.js";
 import { createLogger } from "../logger.js";
 import type { LogEntry, Logger } from "../logger.js";
+import { SANDBOXES_HEALTH_SERVICE } from "../../transport/health.js";
 import { seedOrganizations } from "../../domain/organization/__tests__/support.js";
 import type { ServerExtension } from "../../extensions/registry.js";
 import type {
@@ -329,7 +332,7 @@ describe("the MCP OAuth callback", () => {
 });
 
 describe("a sandbox driver's background work", () => {
-  it("starts with the server over its sessions and is stopped at shutdown", async () => {
+  it("starts with the server over its sessions, reports whether sessions can start, and is stopped at shutdown", async () => {
     const events: string[] = [];
     let context: SandboxBackgroundContext | undefined;
     const provisioner = {
@@ -378,6 +381,14 @@ describe("a sandbox driver's background work", () => {
       const ids: string[] = [];
       for await (const id of context!.sessions.sessionIds()) ids.push(id);
       expect(ids).toEqual([]);
+
+      // Whether sessions can start is the driver's to report, as the
+      // server's named health status.
+      expect(server.healthState.status(SANDBOXES_HEALTH_SERVICE)).toBe(ServingStatus.SERVING);
+      context?.reportReady?.(false);
+      expect(server.healthState.status(SANDBOXES_HEALTH_SERVICE)).toBe(ServingStatus.NOT_SERVING);
+      context?.reportReady?.(true);
+      expect(server.healthState.status(SANDBOXES_HEALTH_SERVICE)).toBe(ServingStatus.SERVING);
     } finally {
       await server.shutdown();
       vi.unstubAllEnvs();
@@ -504,13 +515,13 @@ describe("a bucket-backed plugin store", () => {
   async function runnerLink(runnerEndpoint: string | undefined): Promise<{ readonly url: string; readonly endpoint: string }> {
     const store = await bucket();
     const server = await compose({
-      SKILL_ARTIFACT_STORAGE_TYPE: "r2",
-      R2_BUCKET: "stigmer-artifacts",
-      R2_ENDPOINT: store.endpoint,
-      R2_ACCESS_KEY_ID: "k",
-      R2_SECRET_ACCESS_KEY: "s",
-      R2_REGION: "us-east-1",
-      ...(runnerEndpoint === undefined ? {} : { R2_RUNNER_ENDPOINT: runnerEndpoint }),
+      SKILL_ARTIFACT_STORAGE_TYPE: "s3",
+      S3_BUCKET: "stigmer-artifacts",
+      S3_ENDPOINT: store.endpoint,
+      S3_ACCESS_KEY_ID: "k",
+      S3_SECRET_ACCESS_KEY: "s",
+      S3_REGION: "us-east-1",
+      ...(runnerEndpoint === undefined ? {} : { S3_RUNNER_ENDPOINT: runnerEndpoint }),
     });
     const port = await server.start();
     try {
@@ -523,12 +534,12 @@ describe("a bucket-backed plugin store", () => {
     }
   }
 
-  it("signs the archive link a runner reads for R2_RUNNER_ENDPOINT", async () => {
+  it("signs the archive link a runner reads for S3_RUNNER_ENDPOINT", async () => {
     const { url } = await runnerLink("http://host.docker.internal:9000");
     expect(url.startsWith(`http://host.docker.internal:9000/stigmer-artifacts/${KEY}?`)).toBe(true);
   });
 
-  it("signs it for R2_ENDPOINT when no runner address is set", async () => {
+  it("signs it for S3_ENDPOINT when no runner address is set", async () => {
     const { url, endpoint } = await runnerLink(undefined);
     expect(url.startsWith(`${endpoint}/stigmer-artifacts/${KEY}?`)).toBe(true);
   });

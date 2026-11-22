@@ -40,14 +40,39 @@
  * dropped the dead client by then and the next checkout opens a fresh one,
  * so the caller's listener only reports it.
  *
- * Proven by __tests__/pool.test.ts (a failed open, no database) and
- * __tests__/pool.postgres.test.ts (a starved checkout, under
- * TEST_DATABASE_URL).
+ * Why the first connection waits (`firstConnection`): at boot the database
+ * can be up and still not answer this process for a few seconds. On
+ * Kubernetes, a brand-new pod's address joins the database's
+ * NetworkPolicy allow list asynchronously, so its first packets are
+ * dropped (stigmer/stigmer#3403: an arm64 kind node took over ten
+ * seconds); under Compose, or beside a database that is still starting,
+ * the server can simply be first. Failing the boot on the first refused or
+ * timed-out open turns that into a container restart. So the store's first
+ * checkout retries, with a doubling pause, for a bounded time
+ * (DEFAULT_FIRST_CONNECTION_WAIT_MS, inside the operator's 150-second
+ * startup budget), and logs each retry. It retries only what can pass on
+ * its own: a failure that is not an answer from Postgres (a timeout, a
+ * refusal, a name that does not resolve yet) or Postgres saying it cannot
+ * accept connections yet (SQLSTATE 57P03). Any other answer from Postgres
+ * (a wrong password, a missing database) is a setting to fix and fails at
+ * once. A client-side fault raised before Postgres answers (TLS refused or
+ * an untrusted certificate) carries no SQLSTATE, so it cannot be told from
+ * a network failure by its type and waits out the bound before it fails;
+ * telling them apart by pg's message text would break on a driver update.
+ * Only the first connection waits: once the store has opened, a failed
+ * checkout is a request's Unavailable, as above. Each failed attempt still
+ * counts in `checkoutFailures`, and the pool metric says so.
+ *
+ * Proven by __tests__/pool.test.ts (a failed open, no database, and the
+ * first connection's schedule) and __tests__/pool.postgres.test.ts (a
+ * starved checkout, and a database that answers only after a silence,
+ * under TEST_DATABASE_URL).
  */
 import pg from "pg";
 import type { PoolClient } from "pg";
 
 import { DatabaseUnavailableError } from "../interface.js";
+import type { StoreLogger } from "../logger.js";
 
 /** Connections a bounded pool holds unless told otherwise. */
 export const DEFAULT_POOL_MAX = 20;
@@ -146,4 +171,105 @@ export class BoundedPool extends pg.Pool {
 /** A bounded pool over `connectionString`; see the module header for each bound. */
 export function newBoundedPool(options: BoundedPoolOptions): BoundedPool {
   return new BoundedPool(options);
+}
+
+/** How long the first connection may keep failing before the boot gives up. */
+export const DEFAULT_FIRST_CONNECTION_WAIT_MS = 60_000;
+
+/** The pause after the first failed attempt; it doubles up to the cap. */
+const FIRST_CONNECTION_PAUSE_MS = 1_000;
+const FIRST_CONNECTION_PAUSE_CAP_MS = 5_000;
+
+/** SQLSTATE cannot_connect_now: Postgres is starting up or recovering. */
+const CANNOT_CONNECT_NOW = "57P03";
+
+/** What the first connection needs of a pool: a `BoundedPool`, or a test's stand-in. */
+export interface FirstConnectionPool {
+  connect(): Promise<PoolClient>;
+}
+
+export interface FirstConnectionOptions {
+  /** How long failed attempts may go on (DEFAULT_FIRST_CONNECTION_WAIT_MS); the last attempt starts inside it. */
+  readonly waitMs?: number;
+  /** Told of each retry, and of the answer when it took more than one attempt. */
+  readonly logger: StoreLogger;
+  /** The pause between attempts; a test passes one that returns at once. */
+  readonly sleep?: (ms: number) => Promise<void>;
+  /** The clock the wait is measured on; a test passes its own. */
+  readonly now?: () => number;
+}
+
+/**
+ * The pool's first client, waiting a bounded time for a database that does
+ * not answer yet (the module header says why and what is retried). Rejects
+ * with the last `DatabaseUnavailableError`, naming the wait, once it is
+ * spent, or at once for a failure that will not pass on its own.
+ */
+export async function firstConnection(
+  pool: FirstConnectionPool,
+  options: FirstConnectionOptions,
+): Promise<PoolClient> {
+  const waitMs = options.waitMs ?? DEFAULT_FIRST_CONNECTION_WAIT_MS;
+  const sleep = options.sleep ?? pause;
+  const now = options.now ?? Date.now;
+  const started = now();
+  let nextPauseMs = FIRST_CONNECTION_PAUSE_MS;
+  for (let attempt = 1; ; attempt += 1) {
+    try {
+      const client = await pool.connect();
+      if (attempt > 1) {
+        options.logger.info("the database answered", {
+          attempts: attempt,
+          waitedMs: now() - started,
+        });
+      }
+      return client;
+    } catch (error) {
+      if (
+        !(error instanceof DatabaseUnavailableError) ||
+        !passesOnItsOwn(error.cause)
+      ) {
+        throw error;
+      }
+      const waitedMs = now() - started;
+      if (waitedMs >= waitMs) {
+        throw new DatabaseUnavailableError(
+          `no connection after waiting ${Math.round(waitedMs / 1000)} s ` +
+            `(${attempt} attempts): ${error.detail}`,
+          { cause: error.cause },
+        );
+      }
+      const retryInMs = Math.min(nextPauseMs, waitMs - waitedMs);
+      options.logger.warn("the database is not answering yet; retrying", {
+        attempt,
+        waitedMs,
+        waitLimitMs: waitMs,
+        retryInMs,
+        error: error.detail,
+      });
+      await sleep(retryInMs);
+      nextPauseMs = Math.min(nextPauseMs * 2, FIRST_CONNECTION_PAUSE_CAP_MS);
+    }
+  }
+}
+
+/**
+ * True for a failed open that a later attempt may get past: anything that
+ * is not an answer from Postgres (pg's own timeout, a socket error such as
+ * a refusal or an unresolved name, and also a TLS fault, which carries no
+ * SQLSTATE either), or Postgres answering that it cannot accept connections
+ * yet. Every other answer from Postgres is a `DatabaseError` that waiting
+ * will not change.
+ */
+function passesOnItsOwn(cause: unknown): boolean {
+  if (cause instanceof pg.DatabaseError) {
+    return cause.code === CANNOT_CONNECT_NOW;
+  }
+  return true;
+}
+
+function pause(ms: number): Promise<void> {
+  return new Promise((resolve) => {
+    setTimeout(resolve, ms);
+  });
 }

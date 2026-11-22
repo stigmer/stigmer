@@ -14,7 +14,9 @@
  *   4. else none.
  *
  * The defaults apply only to a conversation whose sandbox this server
- * starts (domain/run/environment-admission.ts EnvironmentPolicy.governs).
+ * starts (domain/run/environment-admission.ts EnvironmentPolicy.governs),
+ * and never to a conversation without a computer (status.computer, stamped
+ * by ResolveSessionComputer, which also refuses one it names itself).
  * Anywhere else (the desktop app, the CLI) the conversation records none,
  * and one it names itself is refused here, before it is saved.
  *
@@ -29,8 +31,9 @@
  * still reaches it.
  *
  * Placement: after ResolveSessionAgent, which pins the agent version step 2
- * reads, and after ValidateReferences, which judged spec.environment_ref
- * (existence and the writer's can_view).
+ * reads, and after ResolveSessionComputer, whose stamp it reads; after
+ * ValidateReferences, which judged spec.environment_ref (existence and the
+ * writer's can_view).
  *
  * Tests: __tests__/resolve-session-environment.test.ts.
  */
@@ -52,6 +55,7 @@ import { ResourceNotFoundError } from "../../store/interface.js";
 import type { Store } from "../../store/interface.js";
 import { sessionHasRun } from "./has-run.js";
 import { readRunAgentSpec } from "../agent/run-defaults.js";
+import { hasComputer } from "../run/computer.js";
 import { LOCAL_ENVIRONMENT_MESSAGE } from "../run/environment-admission.js";
 import type { EnvironmentPolicy } from "../run/environment-admission.js";
 
@@ -78,6 +82,9 @@ export async function resolveSessionEnvironment(
   policy: EnvironmentPolicy,
   session: Session,
 ): Promise<{ readonly ref: ApiResourceReference; readonly source: EnvironmentSource } | undefined> {
+  if (!hasComputer(session.status?.computer)) {
+    return undefined;
+  }
   const own = session.spec?.environmentRef;
   const org = session.metadata?.org ?? "";
   if (!policy.governs(session.spec?.executionTarget ?? ExecutionTarget.UNSPECIFIED)) {

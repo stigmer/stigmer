@@ -1,0 +1,43 @@
+# A Stigmer whose agents each run as an Agent Substrate actor: a gVisor
+# sandbox per session, on a pool of two workers, which sleeps after a quiet
+# minute into a snapshot in the bucket and wakes with its files on any worker.
+# The operator installs Agent Substrate when the cluster has none; the cluster
+# must serve Kubernetes' pod-certificate APIs (Kubernetes 1.37 with the
+# ClusterTrustBundle, ClusterTrustBundleProjection and PodCertificateRequest
+# feature gates and certificates.k8s.io/v1beta1). The install is Ready once
+# the server has prepared the image every new sandbox starts from.
+#
+# A sandbox reaches the server, the bucket and the public internet over HTTPS,
+# and over plain HTTP only the addresses listed under egress.http (a model
+# gateway in the cluster, by its DNS name). The pool stays at the declared
+# size; Agent Substrate's own autoscaler is what will grow it.
+#
+#   kubectl apply -f substrate.yaml
+#   kubectl -n stigmer get stigmer
+apiVersion: stigmer.ai/v1
+kind: Stigmer
+metadata:
+  name: stigmer
+  namespace: stigmer
+spec:
+  owner:
+    email: priya@acme.dev
+  runner:
+    llm:
+      secretName: anthropic
+  objectStore:
+    s3:
+      bucket: acme-stigmer
+      region: us-east-1
+      credentialsSecret:
+        name: bucket
+  sandboxes:
+    driver: substrate
+    idleSeconds: 60
+    substrate:
+      workers: 2
+      sandbox:
+        cpuMillicores: 2000
+        memoryMiB: 2048
+      egress:
+        http: [models.ai.svc.cluster.local:8080]

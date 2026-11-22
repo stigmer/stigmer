@@ -1,0 +1,9 @@
+// The operator's own workspace, deliberately outside the repository's root
+// go.work. Workspace mode resolves one version of every shared dependency
+// across its modules; joined there, the Kubernetes libraries' gRPC and
+// protobuf versions would be unified with sdk/go's, and the SDK would be
+// tested against versions its users never get. Alone here, each module keeps
+// the versions its own go.mod names.
+go 1.25.6
+
+use .

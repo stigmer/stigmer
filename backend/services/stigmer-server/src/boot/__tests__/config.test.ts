@@ -14,7 +14,9 @@
  * layer clears at start, which `local-process` passes through. The OIDC
  * issuer is a third: https, or http on this machine's loopback alone, or the
  * boot fails. The wait for a sandbox with room is a fourth: a whole number
- * of seconds, 0 or more, or the boot fails.
+ * of seconds, 0 or more, or the boot fails. A bucket is a fifth: when either
+ * store is s3, a missing bucket, access key ID or secret fails the boot,
+ * naming the variable.
  */
 import { describe, expect, it } from "vitest";
 
@@ -37,6 +39,34 @@ describe("STIGMER_SANDBOX_WAIT_SECONDS", () => {
     for (const value of ["-1", "15m", "1.5", "ten"]) {
       expect(() => loadConfig({ STIGMER_SANDBOX_WAIT_SECONDS: value }), value).toThrow(/STIGMER_SANDBOX_WAIT_SECONDS is ".*"; it takes a whole number of seconds/);
     }
+  });
+});
+
+describe("an s3 store's settings", () => {
+  const complete = {
+    S3_BUCKET: "stigmer-artifacts",
+    S3_ACCESS_KEY_ID: "test-access-key",
+    S3_SECRET_ACCESS_KEY: "test-secret-key",
+  };
+
+  it("fails the boot without each required setting, naming it, for either store on s3", () => {
+    for (const store of ["ARTIFACT_STORAGE_TYPE", "SKILL_ARTIFACT_STORAGE_TYPE"]) {
+      for (const missing of ["S3_BUCKET", "S3_ACCESS_KEY_ID", "S3_SECRET_ACCESS_KEY"]) {
+        expect(() => loadConfig({ ...complete, [missing]: "", [store]: "s3" }), `${store} ${missing}`).toThrow(
+          `invalid S3 configuration: ${missing} is required when a storage type is s3`,
+        );
+      }
+    }
+  });
+
+  it("loads a complete one, the endpoint left empty for AWS S3 itself", () => {
+    const config = loadConfig({ ...complete, ARTIFACT_STORAGE_TYPE: "s3" });
+    expect(config.s3Bucket).toBe("stigmer-artifacts");
+    expect(config.s3Endpoint).toBe("");
+  });
+
+  it("asks nothing of a local store", () => {
+    expect(() => loadConfig({ ARTIFACT_STORAGE_TYPE: "local" })).not.toThrow();
   });
 });
 
@@ -255,6 +285,36 @@ describe("loadConfig", () => {
       ).toThrow(
         /must be an https URL .*http is accepted only on localhost, 127\.0\.0\.1 or \[::1\]/,
       );
+    });
+  });
+
+  describe("STIGMER_OIDC_DISCOVERY_URL (where the issuer's document is fetched from)", () => {
+    const OIDC = {
+      STIGMER_OIDC_ISSUER: "https://stigmer.example.com/idp/realms/stigmer",
+      STIGMER_OIDC_AUDIENCE: "https://stigmer.example.com",
+    };
+
+    it("is empty by default", () => {
+      expect(loadConfig(OIDC).oidcDiscoveryUrl).toBe("");
+    });
+
+    it("takes an in-cluster http address beside an https issuer", () => {
+      const inside = "http://stigmer-keycloak.stigmer.svc:8080/idp/realms/stigmer";
+      expect(
+        loadConfig({ ...OIDC, STIGMER_OIDC_DISCOVERY_URL: inside }).oidcDiscoveryUrl,
+      ).toBe(inside);
+    });
+
+    it.each(["not a url", "ftp://keycloak:8080"])("refuses %s at boot", (address) => {
+      expect(() =>
+        loadConfig({ ...OIDC, STIGMER_OIDC_DISCOVERY_URL: address }),
+      ).toThrow(/STIGMER_OIDC_DISCOVERY_URL .* is not an http or https URL/);
+    });
+
+    it("refuses an address without an issuer", () => {
+      expect(() =>
+        loadConfig({ STIGMER_OIDC_DISCOVERY_URL: "http://keycloak:8080/realms/x" }),
+      ).toThrow(/STIGMER_OIDC_DISCOVERY_URL is set without STIGMER_OIDC_ISSUER/);
     });
   });
 

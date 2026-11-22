@@ -129,7 +129,7 @@ export interface RunnerProxyOptions {
   // its process. The mock ignores it. Against the trusted-local primary the
   // server verifies nothing, so any placeholder serves; against the
   // enforcing lane's sibling (enforcing-execution-lane.ts) this is the
-  // operator's `stk_` API key, the Helm chart's install shape — the
+  // founder's `stk_` API key — the
   // runner's PROCESS credential, while each run it serves acts through the
   // run's own credential the server dispatched with it.
   token: string;

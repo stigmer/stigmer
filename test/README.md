@@ -7,6 +7,7 @@ The test surfaces of the Stigmer platform that live outside a package's own unit
 | **Conformance** | `conformance/` | The gRPC API contract, implementation-agnostic: the same suites run against the OSS `stigmer-server` (`local*` targets, booted from source), against a licensed Stigmer Enterprise server (the `enterprise` target, booted from source) and against the cloud composition (`cloud*` targets, pre-provisioned by stigmer-cloud's readout recipe). Class A (CRUD) and the execution class (runner-backed), which also carries the runner-behavior facets — HITL and file review, structured output, sub-agents, memory retrieval, provider-error attribution — as scripted-turn arms on the same harness (stigmer#1022). The cross-edition instrument. | `make test-conformance`, `make test-conformance-execution`, `make test-conformance-enterprise`; the `cloud*` targets from stigmer-cloud |
 | **E2E (Playwright)** | `e2e/` | Browser UI tests — smoke, functional, and interactive tiers | see `e2e/` |
 | **Extension consumer** | `extension-consumer/` | A clean-room consumer of the `@stigmer/server` extension registry | `make test-extension-consumer` |
+| **Built site** | `site/` | The public website's static export, served as its host serves it: a sample of its pages audited with axe at a phone and a desktop width | `make test-site` |
 
 ## The test standard
 
@@ -21,6 +22,7 @@ Every test in this repository and in stigmer-cloud belongs to one layer. The lay
 | contract | every assembled edition keeps the API's promises | `test/conformance/src/suites*/` | `*.conformance.test.ts`; `*.harness.test.ts` for a suite that proves the harness itself is wired (it boots the same stack and asserts no domain contract) | `make test-conformance`, `make test-conformance-execution` |
 | e2e | a person's journey through an app in a browser | `test/e2e/tests/` (the console) | `*.spec.ts` | `make test-e2e*` |
 | visual | how a component looks and whether it passes the accessibility audit, drawn from fixed data in one pinned browser and compared with approved screenshots | `test/visual/tests/` (the kit's gallery) | `*.spec.ts` | `make test-visual` |
+| site | the built website's pages, served as the host serves them, pass the accessibility audit in a browser | `test/site/tests/` (a sample of the site's pages) | `*.spec.ts` | `make test-site` |
 | install | a shipped artifact installs, runs an agent, upgrades | `test/install/` (`smoke-<artifact>.mjs`, `rehearse-upgrade.mjs`; their drivers in `test/install/lib/`) | one script per artifact | `make smoke-<artifact>`, `make rehearse-upgrade ARTIFACT=<artifact>` |
 | load | behaviour under volume, on its own cadence | beside the code | `*.load.test.ts`, collected only by the package's `vitest.load.config.ts` (`backend/services/stigmer-server` has one, as does stigmer-cloud's composition) | `npm run test:load`, by hand |
 | live | real providers and models, within a spend bound: a fixed list of short cases, capped where the product has a cap (an execution's cost cap, a call's token cap); or a driver against the upstream system it drives, which no gate service provides | beside the code | `*.live.test.ts`, collected only by the package's `vitest.live.config.ts` (`backend/services/runner` has one, as does `backend/services/stigmer-server`, for the agent-sandbox driver on kind and the Docker driver on a Docker daemon) | `npm run test:live` or `make test-live`, by hand; `ci.live.yaml` after each release; the server's through `make test-agent-sandbox` (the Docker driver's alone through `make test-docker-sandbox`), in `ci.agent-sandbox.yaml` on either driver's changes and weekly against upstream's newest release |
@@ -44,7 +46,7 @@ The name of a test file is read at its last dotted segments before `.test` or `.
 ### Placement
 
 - A TypeScript test sits in a `__tests__` directory beside the module it tests. The suites' own trees are the exception: `test/conformance/src/suites*/` and `test/e2e/tests/`.
-- A `*.spec.ts` sits only under `test/e2e/tests/`, `test/visual/tests/` or `site/e2e/`.
+- A `*.spec.ts` sits only under `test/e2e/tests/`, `test/visual/tests/` or `test/site/tests/`.
 - A `*.test.mjs` sits beside the script it tests.
 - Machinery that two or more suites use lives once, in `test/support`: it imports only `node:*` and its own files, in TypeScript that Node runs without a build, so the install layer can load it with no install. A suite's own machinery stays in the suite.
 - The install layer lives in `test/install`: plain-Node scripts that run straight after a checkout, with no install, importing only `node:*`, their own files, `test/support` by relative path, and the release scripts under `scripts/`.

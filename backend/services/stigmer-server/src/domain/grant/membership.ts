@@ -58,7 +58,13 @@
  *   later turns sign-in on is then a fresh sign-in install, as the
  *   self-hosting guides promise: the operator email owns it, or, with none
  *   configured, the first person to sign in does; the laptop account can no
- *   longer sign in to hold it. `user`-class
+ *   longer sign in to hold it. The service account the server made at boot
+ *   for its shared runner (recorded under SERVER_RUNNER_ACCOUNT_KEY,
+ *   boot/runner-key.ts) is nobody to arm 4 there in the same way: its role
+ *   row is not a row, so the first person to sign in still owns the
+ *   organization. Only that recorded account: a service account a person
+ *   made still counts, so revoking every person's role never hands the
+ *   organization to the next stranger. `user`-class
  *   callers only: a runner, a machine or the in-process class
  *   never earns a role. Nothing on an organization the account already
  *   holds a row on, so a run that faulted midway converges on the next.
@@ -173,7 +179,10 @@ import { metadataOf } from "../../pipeline/steps/shapes.js";
 import type { Store } from "../../store/interface.js";
 import { rfc3339Seconds } from "../../store/rfc3339.js";
 import { accountAsCaller } from "../identityaccount/actor.js";
-import { LOCAL_IDP_ID_PREFIX } from "../identityaccount/constants.js";
+import {
+  LOCAL_IDP_ID_PREFIX,
+  SERVER_RUNNER_ACCOUNT_KEY,
+} from "../identityaccount/constants.js";
 import type { AccountCreatedHook } from "../identityaccount/provisioning.js";
 import type { GrantChangeCause } from "./change.js";
 import {
@@ -349,6 +358,8 @@ interface ScannedWorld {
   /** The id under SINGLE_ORG_KEY, "" when the server holds no organization as its one. */
   readonly serverOrganization: string;
   readonly laptopOperators: LaptopOperators;
+  /** The service account the server made for its shared runner, "" when none. */
+  readonly serverRunnerAccount: string;
 }
 
 /** The trusted-local operator accounts the store holds (idp id `local|…`): their ids, and every stamp that names them. */
@@ -502,17 +513,18 @@ export function newMembershipRules(deps: MembershipRulesDeps): MembershipRules {
         operatorEmail,
         organization,
         blueprintsInOrganization,
-        // On the server's organization the laptop operator's rows are
-        // nobody's (the header), so they are not "rows" to arm 4.
-        organizationHasRows: rows.some(
-          (row) =>
-            !(
-              serverOrganization &&
-              world.laptopOperators.accountIds.has(
-                row.spec?.principal?.id ?? "",
-              )
-            ),
-        ),
+        // On the server's organization the laptop operator's rows and the
+        // server's own runner account's row are nobody's (the header), so
+        // they are not "rows" to arm 4.
+        organizationHasRows: rows.some((row) => {
+          const principal = row.spec?.principal?.id ?? "";
+          return !(
+            serverOrganization &&
+            (world.laptopOperators.accountIds.has(principal) ||
+              (world.serverRunnerAccount !== "" &&
+                principal === world.serverRunnerAccount))
+          );
+        }),
         serverOrganization,
         laptopOperatorStamps: world.laptopOperators.stamps,
         everyPersonJoins,
@@ -565,6 +577,7 @@ export function newMembershipRules(deps: MembershipRulesDeps): MembershipRules {
           blueprints: await scanBlueprints(),
           serverOrganization: await store.bootstrapState.get(SINGLE_ORG_KEY),
           laptopOperators: await scanLaptopOperators(),
+          serverRunnerAccount: await store.bootstrapState.get(SERVER_RUNNER_ACCOUNT_KEY),
         },
         "first_sign_in",
       );
@@ -594,6 +607,7 @@ export function newMembershipRules(deps: MembershipRulesDeps): MembershipRules {
           blueprints: await scanBlueprints(),
           serverOrganization,
           laptopOperators: await scanLaptopOperators(),
+          serverRunnerAccount: await store.bootstrapState.get(SERVER_RUNNER_ACCOUNT_KEY),
         };
         for (const account of accounts) {
           // As the account itself (actor.ts, the one construction), so the

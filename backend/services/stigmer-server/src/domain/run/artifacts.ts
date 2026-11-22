@@ -67,7 +67,7 @@ export interface ArtifactRpcDeps {
 export const DEFAULT_MAX_ARTIFACT_CONTENT_BYTES = 512 * 1024;
 
 /**
- * Default expiration for artifact download URLs — R2's presigned-URL
+ * Default expiration for artifact download URLs — S3's presigned-URL
  * maximum.
  */
 export const DEFAULT_ARTIFACT_URL_EXPIRATION_MS = 7 * 24 * 60 * 60 * 1000;

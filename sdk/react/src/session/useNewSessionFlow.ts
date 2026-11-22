@@ -24,6 +24,7 @@ import {
   type AgentRunDefaults,
 } from "../agent/run-defaults.js";
 import { useRunAgentSpec } from "../agent/useRunAgentSpec.js";
+import { agentHasComputer } from "../agent/computer.js";
 import { environmentsNotApplying, type EnvironmentReference } from "../environment/resolve.js";
 import { useOrganization } from "../organization/useOrganization.js";
 import { useEnvironmentAvailability } from "../server-info.js";
@@ -245,6 +246,14 @@ export interface UseNewSessionFlowReturn {
    */
   readonly offersEnvironment: boolean;
   /**
+   * Whether the selected agent's conversations have a computer
+   * (`AgentSpec.computer`; the built-in assistant has one). Without one the
+   * flow runs on Stigmer alone, offers no Environment and sends no
+   * repositories or folders, the choices the server would refuse: hide the
+   * composer's workspace and say why the harness is fixed.
+   */
+  readonly agentHasComputer: boolean;
+  /**
    * What applies when the person picks no Environment: the selected
    * agent's default and the organization's. Pass it to the composer's
    * `environmentDefaults`.
@@ -462,8 +471,12 @@ export function useNewSessionFlow(
   // read nothing: the share policy fixes their engine.
   const { spec: agentSpec, isLoading: isAgentLoading } = useRunAgentSpec(isGuest ? null : agentRef);
   const agentHarness = agentHarnessOf(agentSpec);
-  const harness: HarnessOption =
-    !isGuest && !harnessPicked && agentHarness !== undefined
+  // An agent without a computer runs on Stigmer alone: the Claude harness
+  // always has one, and the server refuses it for such an agent.
+  const hasComputer = isGuest || agentHasComputer(agentSpec);
+  const harness: HarnessOption = !hasComputer
+    ? "stigmer"
+    : !isGuest && !harnessPicked && agentHarness !== undefined
       ? agentHarness
       : storedHarness;
   const agentRunDefaults = agentRunDefaultsFor(
@@ -478,7 +491,7 @@ export function useNewSessionFlow(
   // a server whose conversations run in no sandbox it starts.
   const environmentAvailability = useEnvironmentAvailability();
   const offersEnvironment =
-    !isGuest && environmentsNotApplying(environmentAvailability, executionTarget) === undefined;
+    !isGuest && hasComputer && environmentsNotApplying(environmentAvailability, executionTarget) === undefined;
   const { organization } = useOrganization(offersEnvironment ? org : null);
   const agentEnvironment = agentSpec?.environmentRef;
   const organizationEnvironment = organization?.spec?.preferences?.defaultEnvironmentRef;
@@ -658,7 +671,7 @@ export function useNewSessionFlow(
         const vaults = pick?.vaults ?? vaultsOption;
 
         const sessionSpecBase = {
-          resources: workspace.hasEntries
+          resources: hasComputer && workspace.hasEntries
             ? workspace.toInput()
             : undefined,
           plugins: pluginRefs.length > 0 ? pluginRefs : undefined,
@@ -774,6 +787,7 @@ export function useNewSessionFlow(
       harness,
       executionTarget,
       offersEnvironment,
+      hasComputer,
       autoApproveAll,
       adapter,
       includeMyVaultOption,
@@ -806,6 +820,7 @@ export function useNewSessionFlow(
     clearModelPick,
     agentRunDefaults,
     offersEnvironment,
+    agentHasComputer: hasComputer,
     environmentDefaults,
     agentRef,
     setAgentRef,

@@ -39,6 +39,9 @@
  *   - a routine's fire is suspended as soon as its run is not working,
  *     inside its idle window, and logged apart; its working run is left
  *     alone;
+ *   - the sweep reports whether a new session can start (the template's
+ *     golden snapshot is published), as it changes, and prepares the
+ *     template again on each pass until it is;
  *   - making room for a waiting run puts one sandbox to sleep per ask from
  *     the last pass's listing: the longest idle, never the waiting
  *     session's own, a busy one, one it cannot map or one on a leaving
@@ -90,6 +93,7 @@ const config: SandboxDriverConfig = {
   runnerEnv: {},
   runnerSecretEnv: {},
   serverRelease: "",
+  artifactLane: false,
 };
 
 const settings: SubstrateDriverSettings = {
@@ -651,6 +655,36 @@ describe("failures and races", () => {
     expect(h.substrate.actors.get(name)?.state).toBe("running");
   });
 
+  it("start reports whether sessions can start, and prepares again on the next pass after a failure", async () => {
+    vi.useFakeTimers();
+    try {
+      const h = harness();
+      const keeper = h.driver.internals.keeper;
+      h.substrate.fail("ensureAtespace", new Error("no Substrate yet"));
+      const reported: boolean[] = [];
+      const handle = startSubstrateSweep({
+        ...h.options,
+        reportReady: (ready) => reported.push(ready),
+      });
+      await vi.advanceTimersByTimeAsync(0);
+      expect(reported).toEqual([false]);
+      expect(keeper.readyNow()).toBe(false);
+
+      await vi.advanceTimersByTimeAsync(settings.sweepIntervalSeconds * 1000);
+      expect(keeper.readyNow()).toBe(true);
+      expect(reported).toEqual([false, true]);
+
+      // Another server retired the template: not ready again until re-prepared.
+      keeper.invalidate();
+      expect(reported).toEqual([false, true, false]);
+      await handle.stop();
+      await keeper.ready();
+      expect(reported).toEqual([false, true, false]);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it("start logs a template it cannot prepare and a pass that fails, and never runs two passes at once", async () => {
     vi.useFakeTimers();
     try {
@@ -683,7 +717,7 @@ describe("failures and races", () => {
       await vi.advanceTimersByTimeAsync(0);
       await handle.stop();
       expect(errors).toContain(
-        "Substrate template preparation failed; the next sandbox ensure retries it",
+        "Substrate template preparation failed; the next sweep pass or sandbox ensure retries it",
       );
       expect(errors).toContain("Substrate idle sweep pass failed");
     } finally {

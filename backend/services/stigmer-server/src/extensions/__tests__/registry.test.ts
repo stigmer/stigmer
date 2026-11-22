@@ -776,7 +776,7 @@ describe("resolveExtensions — loud-fail throws", () => {
   });
 
   it("throws on a storage-driver name shadowing a built-in backend", () => {
-    for (const name of ["local", "r2"]) {
+    for (const name of ["local", "s3"]) {
       expect(() =>
         resolveExtensions([
           {

@@ -6,7 +6,11 @@
 //
 // Messages resolve from @stigmer/apis' descriptors (stigmer-registry.ts);
 // manifest kinds come from the protovalidate string.const pinned on
-// kind/api_version fields — nothing hand-maintained.
+// kind/api_version fields — nothing hand-maintained. The one resource that
+// is not a proto, the Kubernetes operator's Stigmer (apiVersion
+// stigmer.ai/v1), validates against the operator's generated definition
+// instead (stigmer-resource.ts), whole or anchored as
+// validate-as="Stigmer[.<field>...]".
 
 import * as fs from "node:fs";
 import * as path from "node:path";
@@ -22,6 +26,8 @@ import type { CodeFence } from "./mdx-fence-scanner.js";
 import { scanMarkdownFences } from "./mdx-fence-scanner.js";
 import { readDirSorted } from "./schema.js";
 import { allStigmerMessages, stigmerRegistry } from "./stigmer-registry.js";
+import type { StigmerDefinition } from "./stigmer-resource.js";
+import { loadStigmerDefinition, validateStigmerFragment, validateStigmerManifest } from "./stigmer-resource.js";
 
 const NO_VALIDATE_PATTERN = /no-validate="([^"]*)"/;
 const VALIDATE_AS_PATTERN = /validate-as="([^"]*)"/;
@@ -35,6 +41,8 @@ interface DocsYamlRegistries {
   manifestKinds: Map<string, ManifestKindInfo>;
   registry: Registry;
   rules: DocsYamlRuleEval | null;
+  /** The operator's Stigmer resource, read once from its generated definition. */
+  stigmer: StigmerDefinition;
 }
 
 // A manifest kind claimed by two messages would make resolution ambiguous,
@@ -44,6 +52,7 @@ function buildDocsYamlRegistries(): DocsYamlRegistries {
     manifestKinds: new Map(),
     registry: stigmerRegistry(),
     rules: null,
+    stigmer: loadStigmerDefinition(),
   };
 
   for (const desc of allStigmerMessages()) {
@@ -79,6 +88,9 @@ function fieldStringConst(fd: DescField | undefined): string {
 // ============================================================================
 
 function validateManifestDoc(doc: Record<string, unknown>, reg: DocsYamlRegistries): string[] {
+  if (typeof doc.apiVersion === "string" && doc.apiVersion.split("/")[0] === reg.stigmer.group) {
+    return validateStigmerManifest(doc, reg.stigmer);
+  }
   const kindStr = typeof doc.kind === "string" ? doc.kind : "";
   if (kindStr === "") {
     return ["manifest has apiVersion but no kind"];
@@ -175,6 +187,9 @@ function classifyAndValidateFence(f: CodeFence, reg: DocsYamlRegistries): [Block
       return ["invalid", ['validate-as marker requires an anchor: use validate-as="<Kind>[.<field>]"']];
     }
     const anchor = match[1].trim();
+    if (anchor.split(".")[0] === reg.stigmer.kind) {
+      return validateStigmerFence(f, anchor, reg);
+    }
     let anchorType: DescMessage;
     try {
       anchorType = resolveAnchor(anchor, reg);
@@ -226,6 +241,29 @@ function classifyAndValidateFence(f: CodeFence, reg: DocsYamlRegistries): [Block
   }
   if (problems.length > 0) return ["invalid", problems];
   return [cls, []];
+}
+
+// A fragment of the operator's Stigmer resource, anchored by its field path.
+function validateStigmerFence(f: CodeFence, anchor: string, reg: DocsYamlRegistries): [BlockClass, string[]] {
+  let docs: unknown[];
+  try {
+    docs = decodeYamlDocuments(f.body);
+  } catch (err) {
+    return ["invalid", [`invalid YAML: ${errText(err)}`]];
+  }
+  if (docs.length === 0) {
+    return ["invalid", ["empty yaml block"]];
+  }
+  const problems: string[] = [];
+  for (const doc of docs) {
+    try {
+      problems.push(...validateStigmerFragment(doc, anchor, reg.stigmer));
+    } catch (err) {
+      return ["invalid", [errText(err)]];
+    }
+  }
+  if (problems.length > 0) return ["invalid", problems];
+  return ["anchored", []];
 }
 
 function unclassifiedBlockProblem(): string {
@@ -430,6 +468,9 @@ function generatedDocHint(docsDir: string, p: string): string {
   }
   if (rel.startsWith("cli/commands/")) {
     return "this page is generated — fix the CLI source, then run 'make gen-cli-docs'";
+  }
+  if (rel.startsWith("guides/self-hosting/kubernetes-reference/")) {
+    return "this page is generated — fix the Go doc comment in deploy/operator/api/v1, then run 'make manifests' in deploy/operator and 'make gen-operator-docs'";
   }
   if (rel.startsWith("sdk/react/") || rel.startsWith("sdk/ink/reference") || rel.startsWith("sdk/theme/tokens") || rel.startsWith("sdk/theme/presets")) {
     return "this page is generated — fix the generator input, not this file (see 'make gen-sdk-docs')";

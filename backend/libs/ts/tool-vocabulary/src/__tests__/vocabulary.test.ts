@@ -2,7 +2,8 @@
  * The tool vocabulary's own suite: the reverse reading a grader names a
  * recorded call by, pinned with the engine names the runner's recorded
  * hermetic transcripts actually carry, and the table shapes the forward
- * reading depends on.
+ * reading depends on, and the entry reader both sides judge a tool list by
+ * (the shell among them).
  *
  * The recorded names below are quoted from the runner's hermetic goldens
  * (`backend/services/runner/src/activities/execute-deep-agent/__tests__/hermetic/goldens/*.status.json`
@@ -19,6 +20,8 @@ import {
   CLAUDE_TOOL_COVERS,
   STIGMER_TOOL_COVERS,
   READ_ONLY_EVAL_TOOLS,
+  SHELL_TOOL,
+  builtinToolOf,
   claudeNameOf,
   isClaudeTool,
 } from "../index.js";
@@ -105,5 +108,28 @@ describe("READ_ONLY_EVAL_TOOLS", () => {
   it("holds names Stigmer runs nothing for, which are not Claude tools here", () => {
     const notRun = READ_ONLY_EVAL_TOOLS.filter((t) => !isClaudeTool(t));
     expect(notRun).toEqual(["NotebookRead", "AskUserQuestion", "TaskCreate", "TaskGet", "TaskList", "TaskUpdate", "TaskStop"]);
+  });
+});
+
+describe("builtinToolOf", () => {
+  it("reads an entry's name before its specifier", () => {
+    expect(builtinToolOf("Bash")).toBe("Bash");
+    expect(builtinToolOf("Bash(git push *)")).toBe("Bash");
+    expect(builtinToolOf("Agent(general-purpose)")).toBe("Agent");
+  });
+
+  it("reads an older spelling as its current name", () => {
+    expect(builtinToolOf("Task")).toBe("Agent");
+  });
+
+  it("names no Claude tool for an MCP entry or an unknown name", () => {
+    expect(builtinToolOf("mcp__github__create_issue")).toBeUndefined();
+    expect(builtinToolOf("bash")).toBeUndefined();
+    expect(builtinToolOf("NotebookRead")).toBeUndefined();
+  });
+
+  it("names the shell as the one tool the Stigmer harness runs commands with", () => {
+    expect(SHELL_TOOL).toBe("Bash");
+    expect(STIGMER_TOOL_COVERS.get("execute")).toEqual([SHELL_TOOL]);
   });
 });

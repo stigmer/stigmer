@@ -193,8 +193,9 @@ const jsonDescription = (text: string) => String(JSON.parse(text).description ??
 
 /**
  * Where a developer picks Stigmer, each read in its own format: the CLI, the
- * four language clients, the React and terminal components, the Helm chart
- * and the server image, each with the README its registry page shows.
+ * four language clients, the React and terminal components, the Kubernetes
+ * operator's chart and the server image, each with the README its registry
+ * page shows.
  */
 const ENTRY_POINTS: ReadonlyArray<readonly [path: string, extract: (text: string) => string | undefined]> = [
   ["client-apps/cli/package.json", jsonDescription],
@@ -212,8 +213,8 @@ const ENTRY_POINTS: ReadonlyArray<readonly [path: string, extract: (text: string
   ["sdk/react-core/package.json", jsonDescription],
   ["sdk/react-core/README.md", readmeOpening],
   ["sdk/ink/package.json", jsonDescription],
-  ["deploy/helm/stigmer/Chart.yaml", (text) => /^description:\s*(.+)$/m.exec(text)?.[1]],
-  ["deploy/helm/stigmer/README.md", readmeOpening],
+  ["deploy/helm/stigmer-operator/Chart.yaml", (text) => /^description:\s*(.+)$/m.exec(text)?.[1]],
+  ["deploy/helm/stigmer-operator/README.md", readmeOpening],
   ["backend/services/stigmer-server/Dockerfile", (text) => /^ARG IMAGE_DESCRIPTION="([^"]*)"/m.exec(text)?.[1]],
 ];
 
@@ -285,7 +286,8 @@ function enterpriseImageDescription(): string | undefined {
  * label: scripts/lib/image-description.mjs), so each must say what its image
  * is. Only the images that are a way to run Stigmer (the server, Enterprise
  * and the all-in-one) carry the one sentence's core; the server's is held by
- * ENTRY_POINTS above, and the runners and the MCP server describe their job.
+ * ENTRY_POINTS above, and the runners, the MCP server and the Kubernetes
+ * operator describe their job.
  */
 const PUBLISHED_IMAGES: ReadonlyArray<{
   image: string;
@@ -301,6 +303,7 @@ const PUBLISHED_IMAGES: ReadonlyArray<{
   },
   { image: "ghcr.io/stigmer/stigmer", dockerfile: "deploy/all-in-one/Dockerfile" },
   { image: "ghcr.io/stigmer/mcp-server-stigmer", dockerfile: "mcp-server/Dockerfile" },
+  { image: "ghcr.io/stigmer/stigmer-operator", dockerfile: "deploy/operator/Dockerfile" },
   { image: "ghcr.io/stigmer/runner", dockerfile: "backend/services/runner/Dockerfile.sandbox", target: "sandbox" },
   {
     image: "ghcr.io/stigmer/stigmer-runner",

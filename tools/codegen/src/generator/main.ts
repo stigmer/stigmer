@@ -9,6 +9,7 @@ import * as process from "node:process";
 
 import { runDocsYamlCheck } from "./docs-yaml-gate.js";
 import { parseDocsYamlRuleMode } from "./docs-yaml-rules.js";
+import { writeStigmerReference } from "./stigmer-resource.js";
 import { runGenerationTarget } from "./targets.js";
 
 interface Flags {
@@ -80,6 +81,17 @@ function main(): void {
       .map((d) => d.trim())
       .filter((d) => d !== "");
     runDocsYamlCheck(flags.docsDir, extraDirs, ruleMode);
+    return;
+  }
+
+  // operator-docs renders the Stigmer resource's reference page from the
+  // Kubernetes operator's generated definition: no proto schemas.
+  if (flags.target === "operator-docs") {
+    if (flags.outputDir === "") {
+      process.stderr.write("--output-dir is required for --target=operator-docs\n");
+      process.exit(1);
+    }
+    process.stdout.write(`wrote ${writeStigmerReference(flags.outputDir)}\n`);
     return;
   }
 

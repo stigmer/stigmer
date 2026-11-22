@@ -31,7 +31,7 @@
  * DURABILITY DOMAIN
  * -----------------
  * Unlike git refs, which live inside the repo, CAS blobs + manifests live in
- * artifact storage (a fixed host path in OSS, R2 via the proxy in Cloud) — a
+ * artifact storage (a fixed host path in OSS, a bucket through the server's artifact lane) — a
  * DIFFERENT durability domain that must outlive the multi-day approval wait and
  * a sandbox recycle. Because reconcile reads only from the manifest + blobs
  * (never the live tree), it converges regardless of the tree's current state,
@@ -138,7 +138,7 @@ export function casBlobKey(executionId: string, sha256: string): string {
 /**
  * The manifest key for a change set. The change-set id (`{exec}:{turnSeq}`)
  * carries a colon; it is sanitized to a filesystem/object-store-safe segment so
- * the key is portable across the local FS and R2 backends.
+ * the key is portable across the local FS and bucket backends.
  */
 export function casManifestKey(executionId: string, changeSetId: string): string {
   const safe = changeSetId.replace(/[^A-Za-z0-9._-]/g, "_");

@@ -67,6 +67,11 @@ import {
   LocalArtifactStorage,
   newArtifactStorage,
 } from "../artifactstorage/artifact-storage.js";
+import {
+  createRunnerArtifactLane,
+  servesRunnerLane,
+} from "../artifactstorage/runner-lane/lane.js";
+import { newRunArtifactPurgeStage } from "../artifactstorage/runner-lane/purge.js";
 import type { ArtifactStorage } from "../artifactstorage/artifact-storage.js";
 import { downloadUrlSignerFor } from "../artifactstorage/url-signer.js";
 import { newExecutionEngineStateProvider } from "../temporal/agentexecution/engine-client.js";
@@ -93,7 +98,11 @@ import { ownerAsFireCaller } from "../domain/routine/owner.js";
 import { registerChannelServices } from "../domain/channel/controller.js";
 import { registerChannelConversationServices } from "../domain/channel/conversation.js";
 import { registerChannelMessageServices } from "../domain/channel/message.js";
-import { registerApiKeyServices } from "../domain/apikey/controller.js";
+import {
+  newServiceAccountKeyProvisioner,
+  registerApiKeyServices,
+} from "../domain/apikey/controller.js";
+import { ensureRunnerKey } from "./runner-key.js";
 import {
   newCreateAccountPath,
   registerIdentityAccountServices,
@@ -117,7 +126,10 @@ import { newApiKeyIdentityVerifier } from "../domain/apikey/verifier.js";
 import { deleteKeysOwnedBy } from "../domain/apikey/account-keys.js";
 import type { IdentityVerifier } from "../extensions/identity.js";
 import { newOidcIdentityVerifier } from "../identity/oidc-verifier.js";
-import { createArtifactFileServer } from "../artifactstorage/file-server.js";
+import {
+  createArtifactDownloadLane,
+  createArtifactFileServer,
+} from "../artifactstorage/file-server.js";
 import { registerChannelAppServices } from "../domain/channelapp/controller.js";
 import { registerEnvironmentServices } from "../domain/environment/controller.js";
 import { newEnvironmentPolicy } from "../domain/run/environment-admission.js";
@@ -288,7 +300,11 @@ import {
   type SandboxBackgroundHandle,
 } from "../sandbox/provisioner.js";
 import { newStoreSessionActivityReader } from "../sandbox/session-activity.js";
-import { HealthState, registerHealthService } from "../transport/health.js";
+import {
+  HealthState,
+  registerHealthService,
+  SANDBOXES_HEALTH_SERVICE,
+} from "../transport/health.js";
 import { resolveConsoleAssets } from "../transport/console/assets.js";
 import {
   createConsoleLane,
@@ -530,6 +546,22 @@ export async function composeServer(
   const authEnabled = config.oidcIssuer !== "";
   const requireAuthentication =
     authEnabled || extensions.requireAuthentication !== undefined;
+  // The shared runner's key at boot (boot/runner-key.ts) is a one-
+  // organization act: a server that holds several never makes a shared
+  // runner a key of its own. The value is left alone, not refused: a
+  // Compose install that accepted one shared runner across organizations
+  // already hands the runner a key a person made, and keeps it.
+  const runnerKeyStored = extensions.orgLimit === 1;
+  if (config.runnerApiKey !== "" && requireAuthentication && !runnerKeyStored) {
+    logger.warn(
+      "STIGMER_RUNNER_API_KEY is not stored: the server holds several organizations, so it never makes the shared runner a key of its own; the runner keeps the key it is handed (STIGMER_TOKEN)",
+    );
+  }
+  if (config.runnerApiKey !== "" && !requireAuthentication) {
+    logger.info(
+      "STIGMER_RUNNER_API_KEY is ignored: sign-in is off, so the runner needs no key",
+    );
+  }
 
   // The AUTHORIZATION posture (authorization/posture.ts), named once and
   // handed down: a unit's own Authorizer (nothing built in installs);
@@ -921,7 +953,15 @@ export async function composeServer(
   // process and validated the same way wherever it is consumed. Built in
   // this stage, not inside routes() (which runs twice) — the same reason
   // the searchRegistry lives here.
-  const issuerDiscovery = newIssuerDiscovery();
+  // The configured issuer, and only it, may be fetched from an in-cluster
+  // address (STIGMER_OIDC_DISCOVERY_URL): federated issuers are always read
+  // at their own names.
+  const issuerDiscovery = newIssuerDiscovery(
+    fetch,
+    config.oidcIssuer !== "" && config.oidcDiscoveryUrl !== ""
+      ? new Map([[config.oidcIssuer, config.oidcDiscoveryUrl]])
+      : new Map(),
+  );
   // Provisioning reads the caller's profile from the userinfo endpoint of
   // the issuer that vouched for the token, discovered per issuer and
   // cached — so a composition whose own verifiers name their issuer
@@ -1080,7 +1120,7 @@ export async function composeServer(
   // Selection is loud-fail inside newSandboxProvisioner; the routing
   // coherence check lives HERE because the temporal config does — a
   // provisioner that no routing mode can ever dispatch to is dark
-  // configuration, the validateR2Config class of boot fault.
+  // configuration, the validateS3Config class of boot fault.
   const sandboxProvisioner = newSandboxProvisioner(
     config.sandboxProvisionerType,
     {
@@ -1097,6 +1137,11 @@ export async function composeServer(
         runnerEnv: config.sandboxRunnerEnv,
         runnerSecretEnv: config.sandboxRunnerSecretEnv,
         serverRelease: isReleaseVersion(version) ? version : "",
+        // The built-in bucket store serves the runner artifact lane
+        // (artifactstorage/runner-lane/lane.ts); a composition that
+        // registers its own store and its own sandbox driver names the
+        // lane to its runners itself.
+        artifactLane: config.artifactStorageType === "s3",
       },
       logger,
     },
@@ -1413,12 +1458,12 @@ export async function composeServer(
         () => artifactLaneBoundPort,
       ),
       localUrlSigner: downloadUrlSigner,
-      r2Bucket: config.r2Bucket,
-      r2Endpoint: config.r2Endpoint,
-      r2AccessKeyId: config.r2AccessKeyId,
-      r2SecretAccessKey: config.r2SecretAccessKey,
-      r2Region: config.r2Region,
-      r2RunnerEndpoint: config.r2RunnerEndpoint,
+      s3Bucket: config.s3Bucket,
+      s3Endpoint: config.s3Endpoint,
+      s3AccessKeyId: config.s3AccessKeyId,
+      s3SecretAccessKey: config.s3SecretAccessKey,
+      s3Region: config.s3Region,
+      s3RunnerEndpoint: config.s3RunnerEndpoint,
     },
     extensions.drivers.artifactStorageDrivers,
   );
@@ -1443,7 +1488,7 @@ export async function composeServer(
   //
   // The store is the skill-domain port over a PER-DOMAIN blob
   // driver: skill keeps its own root and its own
-  // backend knob (SKILL_ARTIFACT_STORAGE_TYPE), so an r2-configured
+  // backend knob (SKILL_ARTIFACT_STORAGE_TYPE), so an s3-configured
   // deployment changes nothing for skill artifacts until it opts in
   // explicitly, and the local skills/ directory keeps serving in place
   // on the default arm.
@@ -1511,7 +1556,7 @@ export async function composeServer(
         },
       );
     }
-    // Non-local skill backends share the artifact store's R2 settings for
+    // Non-local skill backends share the artifact store's S3 settings for
     // the built-in arm and the composition's registered drivers beyond it.
     return newArtifactStorage(
       {
@@ -1519,12 +1564,12 @@ export async function composeServer(
         localBasePath: config.storagePath,
         localServeUrl: "",
         localUrlSigner: downloadUrlSigner,
-        r2Bucket: config.r2Bucket,
-        r2Endpoint: config.r2Endpoint,
-        r2AccessKeyId: config.r2AccessKeyId,
-        r2SecretAccessKey: config.r2SecretAccessKey,
-        r2Region: config.r2Region,
-        r2RunnerEndpoint: config.r2RunnerEndpoint,
+        s3Bucket: config.s3Bucket,
+        s3Endpoint: config.s3Endpoint,
+        s3AccessKeyId: config.s3AccessKeyId,
+        s3SecretAccessKey: config.s3SecretAccessKey,
+        s3Region: config.s3Region,
+        s3RunnerEndpoint: config.s3RunnerEndpoint,
       },
       extensions.drivers.artifactStorageDrivers,
     );
@@ -1814,6 +1859,13 @@ export async function composeServer(
     sandboxLane,
   });
   const purgeContent = newContentStage(corePurges.content);
+  // What runners stored under each run's folder in a bucket store, keys
+  // nothing records (artifactstorage/runner-lane/purge.ts); before the
+  // content stage, while the runs it lists are still there.
+  const purgeRunArtifacts =
+    artifactStorage.deletePrefix === undefined
+      ? undefined
+      : newRunArtifactPurgeStage({ deletePrefix: artifactStorage.deletePrefix.bind(artifactStorage) });
   const organizationPurge = new OrganizationPurgeRunner({
     store,
     logger,
@@ -1821,6 +1873,7 @@ export async function composeServer(
     stages: orderOrganizationPurgeStages({
       quiesce: purgeQuiesce,
       units: extensions.orgPurge,
+      ...(purgeRunArtifacts === undefined ? {} : { runArtifacts: purgeRunArtifacts }),
       content: purgeContent,
       shred: newShredStage(secretService),
       children: newChildrenStage(store),
@@ -1833,6 +1886,7 @@ export async function composeServer(
         sweepFirst: [
           purgeQuiesce,
           ...extensions.orgPurge.stages.map(({ stage }) => stage),
+          ...(purgeRunArtifacts === undefined ? [] : [purgeRunArtifacts]),
           purgeContent,
         ],
       }),
@@ -2569,6 +2623,25 @@ export async function composeServer(
     receiptKey: newReceiptKeySource(store.bootstrapState),
   });
 
+  // The runner artifact lane (artifactstorage/runner-lane/lane.ts): a
+  // runner on any machine asks for a short-lived URL on the bucket for a
+  // key under its run, and never holds the bucket's keys. Served only when
+  // the artifact store can presign a runner's upload; on the local store
+  // the runner shares the server's disk instead.
+  const runnerArtifactLane = servesRunnerLane(artifactStorage)
+    ? createRunnerArtifactLane({
+        logger,
+        storage: artifactStorage,
+        runnerAuth: runnerCredentials,
+        store,
+        identityVerifiers,
+        authorizer,
+        ...(extensions.drivers.visitorClassifier === undefined
+          ? {}
+          : { visitorClassifier: extensions.drivers.visitorClassifier }),
+      })
+    : undefined;
+
   const server = createUnifiedPortServer({
     logger,
     routes,
@@ -2581,6 +2654,16 @@ export async function composeServer(
             clientDocument(clientDocumentUrl, oauthRedirectUri),
           ),
         }),
+    ...(runnerArtifactLane === undefined ? {} : { runnerArtifactLane }),
+    ...(config.artifactStorageType === "local"
+      ? {
+          artifactDownloadLane: createArtifactDownloadLane({
+            basePath: config.artifactLocalBasePath,
+            signer: downloadUrlSigner,
+            logger,
+          }),
+        }
+      : {}),
     skillTransferLane,
     ...(fileTransferLane === undefined ? {} : { fileTransferLane }),
     managedAgentsLane,
@@ -2682,6 +2765,33 @@ export async function composeServer(
         if (authorizationPosture === "built-in" && membership !== undefined) {
           await membership.ensureRolesOnServerOrganization();
         }
+        // The shared runner starts signed in: the key the operator
+        // generated becomes the `runner` service account's
+        // (boot/runner-key.ts). Only under sign-in, on the one organization.
+        const runnerOrg = singleOrganization.current();
+        if (config.runnerApiKey !== "" && requireAuthentication && runnerKeyStored && runnerOrg !== undefined) {
+          await ensureRunnerKey({
+            plaintext: config.runnerApiKey,
+            org: runnerOrg,
+            store,
+            accounts: identityAccounts,
+            edges: inProcessWiring.clients.runnerKeyEdges,
+            provisioner: newServiceAccountKeyProvisioner({
+              store,
+              logger,
+              authorizer,
+              credentialBinding,
+              authorizationLifecycle,
+              listReadScope,
+              accounts: identityAccounts,
+            }),
+            logger,
+          });
+        } else if (config.runnerApiKey !== "" && runnerKeyStored && runnerOrg === undefined) {
+          logger.warn(
+            "STIGMER_RUNNER_API_KEY is set but the server holds no single organization yet, so the runner's key is not stored this start",
+          );
+        }
       }
       // Temporal boot is NON-fatal end to end: a failed
       // initial connect leaves the engine unavailable and the monitor
@@ -2712,10 +2822,18 @@ export async function composeServer(
       historyRetention?.start();
       // The sandbox driver's background work, when it has any: it reads the
       // store and the sandbox platform, never Temporal.
+      // Sessions can start from boot unless the driver says otherwise
+      // (transport/health.ts, stigmer.sandboxes).
+      healthState.set(SANDBOXES_HEALTH_SERVICE, ServingStatus.SERVING);
       if (sandboxLane.enabled) {
         sandboxBackground = sandboxLane.provisioner.startBackground?.({
           sessions: newStoreSessionActivityReader(store, logger),
           logger,
+          reportReady: (ready) =>
+            healthState.set(
+              SANDBOXES_HEALTH_SERVICE,
+              ready ? ServingStatus.SERVING : ServingStatus.NOT_SERVING,
+            ),
         });
       }
       // Artifact storage must be reachable and writable before the server

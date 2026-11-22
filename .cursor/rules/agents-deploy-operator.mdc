@@ -1,0 +1,9 @@
+---
+description: Package guide for deploy/operator, attached when files there are touched. Generated from deploy/operator/AGENTS.md by scripts/agents-check.mjs --sync; do not edit.
+globs: deploy/operator/**
+alwaysApply: false
+---
+
+Read and follow the package guide before working under `deploy/operator/`:
+
+@deploy/operator/AGENTS.md

@@ -1,0 +1,55 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$comment": "The operator's own settings (values.yaml says what each does). Everything about Stigmer itself is declared on the Stigmer resource, whose definition validates it. Unknown keys are refused, so a misspelt value fails the install instead of doing nothing.",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "global": { "type": "object" },
+    "image": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "repository": { "type": "string", "minLength": 1 },
+        "tag": { "type": "string" },
+        "pullPolicy": { "type": "string", "enum": ["Always", "IfNotPresent", "Never"] },
+        "pullSecrets": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["name"],
+            "properties": { "name": { "type": "string", "minLength": 1 } }
+          }
+        }
+      }
+    },
+    "replicas": { "type": "integer", "minimum": 1 },
+    "resources": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "requests": { "$ref": "#/$defs/quantities" },
+        "limits": { "$ref": "#/$defs/quantities" }
+      }
+    },
+    "logLevel": { "type": "string", "enum": ["info", "debug"] },
+    "localRegistry": {
+      "type": "string",
+      "$comment": "A host:port the cluster's nodes reach, or empty on a real cluster.",
+      "pattern": "^$|^[A-Za-z0-9.-]+(:[0-9]+)?$"
+    },
+    "nodeSelector": { "type": "object", "additionalProperties": { "type": "string" } },
+    "tolerations": { "type": "array", "items": { "type": "object" } }
+  },
+  "$defs": {
+    "quantities": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "cpu": { "type": ["string", "number"] },
+        "memory": { "type": "string" },
+        "ephemeral-storage": { "type": "string" }
+      }
+    }
+  }
+}

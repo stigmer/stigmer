@@ -1,7 +1,8 @@
 name: release.runner-images
 
 # Builds, smoke-tests and publishes the sandbox runner images for one commit:
-# ghcr.io/stigmer/runner (amd64, the hosted edition's sandbox image),
+# ghcr.io/stigmer/runner (the sandbox image every per-session driver runs:
+# amd64, and a release's version tag amd64 and arm64),
 # ghcr.io/stigmer/runner-base and ghcr.io/stigmer/runner-layer (amd64 and
 # arm64). A reusable lane with two callers, which decide when it runs:
 #   - release.sandbox-cloud.yaml: a main push that touches the runner, a v*
@@ -24,8 +25,10 @@ name: release.runner-images
 # header):
 #   - stage tag, pushed before the smoke: main-<sha>, or dev-<sha12> for a
 #     dev build;
-#   - version tag, after the smoke: v<git tag> for a v* tag, v<dev_version>
-#     for a dev build, none for a main push;
+#   - version tag, after the smoke: v<git tag> for a v* tag, one index of
+#     both architectures written once both legs' smokes pass (the image a
+#     self-hosted operator pins by digest and the hosted edition runs);
+#     v<dev_version> for a dev build, amd64; none for a main push;
 #   - latest, after the smoke: every build but a dev build;
 #   - prod: a release tag only.
 # A dev build's layer is a development layer (empty /runner/RELEASE): a dev
@@ -53,9 +56,13 @@ jobs:
   # from the same stages and the same cache.
   #
   # amd64 also builds, smokes and promotes ghcr.io/stigmer/runner, the
-  # cloud's image, first and exactly as it did before the legs existed: the
-  # cloud fleet is amd64, and its image never waits on arm64 (fail-fast is
-  # off, so an arm64 failure cancels nothing here).
+  # cloud's image, first and exactly as it did before the legs existed: its
+  # stage tag, latest and prod never wait on arm64 (fail-fast is off, so an
+  # arm64 failure cancels nothing here). A v* tag's build is the one
+  # exception: a release's runner runs on clusters of either architecture,
+  # so its arm64 leg pushes and smokes the sandbox image too, and the version
+  # tag is written by publish-runner-version, as one index of both, only
+  # once both legs have passed.
   #
   # A dev build runs the amd64 leg alone and stops after promoting runner.
   #
@@ -87,6 +94,7 @@ jobs:
       stage: ${{ steps.tags.outputs.stage }}
       version_tag: ${{ steps.tags.outputs.version_tag }}
       moves_latest: ${{ steps.tags.outputs.moves_latest }}
+      multiarch: ${{ steps.tags.outputs.multiarch }}
 
     steps:
       - name: Checkout code
@@ -137,6 +145,7 @@ jobs:
           LAYER_RELEASE=""
           MOVES_LATEST="true"
           MOVES_PROD="false"
+          MULTIARCH="false"
           if [ -n "$DEV_VERSION" ]; then
             # A dev build: its tag must name the commit it was built from,
             # in the one shape scripts/lib/dev-version.mjs stamps.
@@ -166,6 +175,8 @@ jobs:
             if [ "$REF_TYPE" = "tag" ] && [[ "$REF_NAME" == v* ]]; then
               VERSION_TAG="$REF_NAME"
               LAYER_RELEASE="${REF_NAME#v}"
+              # A release's version tag is one index of both legs' images.
+              MULTIARCH="true"
               if [[ "$REF_NAME" != *-* ]]; then
                 MOVES_PROD="true"
               fi
@@ -178,16 +189,19 @@ jobs:
             echo "layer_release=$LAYER_RELEASE"
             echo "moves_latest=$MOVES_LATEST"
             echo "moves_prod=$MOVES_PROD"
+            echo "multiarch=$MULTIARCH"
           } >> "$GITHUB_OUTPUT"
-          echo "Building: $IMAGE:$STAGE; after the checks: version tag '${VERSION_TAG:-none}', moves latest: $MOVES_LATEST, moves prod: $MOVES_PROD, layer release '${LAYER_RELEASE:-none}'"
+          echo "Building: $IMAGE:$STAGE; after the checks: version tag '${VERSION_TAG:-none}' (both architectures: $MULTIARCH), moves latest: $MOVES_LATEST, moves prod: $MOVES_PROD, layer release '${LAYER_RELEASE:-none}'"
 
       # --target sandbox: the Dockerfile's final stage is the self-host
       # compose runner (sandbox + stigmer CLI, published separately as
       # ghcr.io/stigmer/stigmer-runner by release.npm-libs.yaml); this lane
       # ships the CLOUD sandbox stage: the default base image plus the runner
-      # layer, amd64 only. On arm64 the same build fills the builder and the
-      # cache and outputs nothing, so the base and layer builds below are
-      # served from it on both legs.
+      # layer. amd64 pushes it at the stage tag. On arm64 the same build fills
+      # the builder and the cache, so the base and layer builds below are
+      # served from it on both legs, and pushes it only for a v* tag's build,
+      # at the stage tag with -arm64, for the release's two-architecture
+      # version tag.
       # The layer cache is what lets an unchanged step produce the SAME layer
       # bytes build after build, so a node holding the last image pulls only
       # what changed (stigmer/stigmer#1244; the Dockerfile cuts its layers
@@ -205,20 +219,27 @@ jobs:
       # development layer. The file is
       # the layer's last, so the release costs one tiny layer and the
       # bundles stay the cached bytes.
-      - name: Build the sandbox image (amd64 pushes it)
+      - name: Build the sandbox image (amd64 pushes it; arm64 for a release)
         env:
           ARCH: ${{ matrix.arch }}
+          MULTIARCH: ${{ steps.tags.outputs.multiarch }}
           CACHE_REF: ghcr.io/${{ github.repository_owner }}/runner-buildcache:sandbox-${{ matrix.arch }}
           IMAGE: ${{ steps.tags.outputs.image }}
           STAGE: ${{ steps.tags.outputs.stage }}
           LAYER_RELEASE: ${{ steps.tags.outputs.layer_release }}
           DEV_VERSION: ${{ inputs.dev_version }}
         run: |
+          # The words GHCR shows on the package page: the index annotation, read
+          # from the Dockerfile's description label (scripts/lib/image-description.mjs).
+          IMAGE_DESCRIPTION="$(node scripts/lib/image-description.mjs --file backend/services/runner/Dockerfile.sandbox --target sandbox)"
+          PUSH_TAG=""
           if [ "$ARCH" = "amd64" ]; then
-            # The words GHCR shows on the package page: the index annotation, read
-            # from the Dockerfile's description label (scripts/lib/image-description.mjs).
-            IMAGE_DESCRIPTION="$(node scripts/lib/image-description.mjs --file backend/services/runner/Dockerfile.sandbox --target sandbox)"
-            OUTPUT=(--tag "$IMAGE:$STAGE" --annotation "index:org.opencontainers.image.description=${IMAGE_DESCRIPTION}" --push)
+            PUSH_TAG="$IMAGE:$STAGE"
+          elif [ "$MULTIARCH" = "true" ]; then
+            PUSH_TAG="$IMAGE:$STAGE-$ARCH"
+          fi
+          if [ -n "$PUSH_TAG" ]; then
+            OUTPUT=(--tag "$PUSH_TAG" --annotation "index:org.opencontainers.image.description=${IMAGE_DESCRIPTION}" --push)
           else
             OUTPUT=(--output type=cacheonly)
           fi
@@ -273,13 +294,20 @@ jobs:
       # agent user, and the boot logging it ready (--claude-engines, check
       # 4c). A broken image or a runner
       # that dies at boot (the 2026-04 stale-image failure mode) fails here,
-      # and no tag but the stage tag names it.
+      # and no tag but the stage tag names it. A release's arm64 image is
+      # smoked the same way on its own leg, before the version tag joins it.
       - name: Smoke-test the runner in the image
-        if: matrix.arch == 'amd64'
+        if: matrix.arch == 'amd64' || steps.tags.outputs.multiarch == 'true'
         timeout-minutes: 8
         env:
-          IMAGE: ${{ steps.tags.outputs.image }}:${{ steps.tags.outputs.stage }}
+          ARCH: ${{ matrix.arch }}
+          REPOSITORY: ${{ steps.tags.outputs.image }}
+          STAGE: ${{ steps.tags.outputs.stage }}
         run: |
+          IMAGE="$REPOSITORY:$STAGE"
+          if [ "$ARCH" != "amd64" ]; then
+            IMAGE="$REPOSITORY:$STAGE-$ARCH"
+          fi
           docker run --rm --network host \
             --volume "$GITHUB_WORKSPACE/backend/services/runner/scripts:/verify:ro" \
             --env TEMPORAL_SERVICE_ADDRESS=127.0.0.1:7233 \
@@ -302,19 +330,28 @@ jobs:
             --tag "$IMAGE:latest" "$SOURCE"
 
       - name: Promote the tested version image
-        # Only a smoke-tested build of a v* tag or a dev build gets here: the
-        # version tag names that version's runner, and prod moves for a
-        # release only.
+        # Only a smoke-tested build of a v* tag or a dev build gets here. A
+        # dev build's version tag names this amd64 image; a v* tag's is
+        # written by publish-runner-version once both legs pass, so here only
+        # prod moves, for a release, on amd64 as ever.
         if: matrix.arch == 'amd64' && steps.tags.outputs.version_tag != ''
         env:
           IMAGE: ${{ steps.tags.outputs.image }}
           STAGE: ${{ steps.tags.outputs.stage }}
           VERSION_TAG: ${{ steps.tags.outputs.version_tag }}
           MOVES_PROD: ${{ steps.tags.outputs.moves_prod }}
+          MULTIARCH: ${{ steps.tags.outputs.multiarch }}
         run: |
-          TAGS=(--tag "$IMAGE:$VERSION_TAG")
+          TAGS=()
+          if [ "$MULTIARCH" != "true" ]; then
+            TAGS+=(--tag "$IMAGE:$VERSION_TAG")
+          fi
           if [ "$MOVES_PROD" = "true" ]; then
             TAGS+=(--tag "$IMAGE:prod")
+          fi
+          if [ "${#TAGS[@]}" -eq 0 ]; then
+            echo "a prerelease: its version tag waits for publish-runner-version, and prod does not move"
+            exit 0
           fi
           # A new index keeps the words its source carries (GHCR shows the index
           # annotation as the package description); a source with none is refused.
@@ -444,6 +481,55 @@ jobs:
             fi
           done
 
+  # A release's runner: after both legs' smokes, one index of the amd64 image
+  # and the arm64 one at the version tag, which a self-hosted operator pins by
+  # digest (release.npm-libs.yaml waits for it) and the hosted edition runs.
+  # It names both platforms or the job fails: half an index is never a
+  # release's runner.
+  publish-runner-version:
+    needs: build-and-push
+    if: needs.build-and-push.outputs.multiarch == 'true'
+    runs-on: ubuntu-24.04
+    permissions:
+      packages: write
+    steps:
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3.7.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Merge both legs' images at the version tag
+        env:
+          OWNER: ${{ github.repository_owner }}
+          STAGE: ${{ needs.build-and-push.outputs.stage }}
+          VERSION_TAG: ${{ needs.build-and-push.outputs.version_tag }}
+        run: |
+          ref="ghcr.io/$OWNER/runner"
+          # A new index keeps the words its source carries (GHCR shows the index
+          # annotation as the package description); a source with none is refused.
+          SOURCE="$ref:$STAGE"
+          IMAGE_DESCRIPTION="$(docker buildx imagetools inspect "$SOURCE" --format '{{ index .Manifest.Annotations "org.opencontainers.image.description" }}')"
+          [ -n "$IMAGE_DESCRIPTION" ] || { echo "$SOURCE carries no org.opencontainers.image.description annotation; refusing to write an index without one" >&2; exit 1; }
+          docker buildx imagetools create \
+            --annotation "index:org.opencontainers.image.description=${IMAGE_DESCRIPTION}" \
+            --tag "$ref:$VERSION_TAG" \
+            "$SOURCE" "$ref:$STAGE-arm64"
+          platforms="$(docker buildx imagetools inspect "$ref:$VERSION_TAG" --raw | jq -r '[.manifests[].platform | select(.os == "linux") | "\(.os)/\(.architecture)"] | unique | join(" ")')"
+          for want in linux/amd64 linux/arm64; do
+            if [[ " $platforms " != *" $want "* ]]; then
+              echo "$ref:$VERSION_TAG names $platforms, not $want: a release's runner must run on both" >&2
+              exit 1
+            fi
+          done
+          echo "$ref:$VERSION_TAG: $platforms"
+          {
+            echo "## Release Sandbox Image"
+            echo ""
+            echo "\`$ref:$VERSION_TAG\`: $platforms, both smoke-tested"
+          } >> "$GITHUB_STEP_SUMMARY"
+
   # After both legs' checks: one multi-arch tag per image, then its moving
   # tags. `latest` follows main like runner's; a v* tag's build also gets its
   # version tag, which the self-hosting guide's join names (a server's
@@ -511,7 +597,7 @@ jobs:
           {
             echo "## Cloud Sandbox, Runner Layer and Base Images Published"
             echo ""
-            echo "**Cloud sandbox image:** \`ghcr.io/$OWNER/runner\` (linux/amd64): \`$STAGE\`, after the smoke${LATEST}${VERSION_TAG:+, \`$VERSION_TAG\`}; prod moves on a release tag only"
+            echo "**Cloud sandbox image:** \`ghcr.io/$OWNER/runner\` (linux/amd64): \`$STAGE\`, after the smoke${LATEST}; prod moves on a release tag only${VERSION_TAG:+; \`$VERSION_TAG\` (linux/amd64, linux/arm64) written by publish-runner-version}"
             echo "**Runner layer:** \`ghcr.io/$OWNER/runner-layer\` (linux/amd64, linux/arm64): \`$STAGE\`${LATEST}${VERSION_TAG:+, \`$VERSION_TAG\`}"
             echo "**Default base:** \`ghcr.io/$OWNER/runner-base\` (linux/amd64, linux/arm64): \`$STAGE\`${LATEST}${VERSION_TAG:+, \`$VERSION_TAG\`}"
             echo ""

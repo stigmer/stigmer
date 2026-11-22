@@ -320,3 +320,12 @@ export function federationUnimplementedMessage(method: string): string {
 export function idpIdImmutableMessage(existingIdpId: string): string {
   return `spec.idp_id is immutable (account subject is '${existingIdpId}') — create a new account for a different subject`;
 }
+
+/**
+ * The bootstrap-state key holding the id of the service account the server
+ * made at boot for the shared runner (boot/runner-key.ts). The membership
+ * rules read it so that account's role is nobody's (domain/grant/
+ * membership.ts): an account the server made for itself never takes the
+ * organization from the first person to sign in.
+ */
+export const SERVER_RUNNER_ACCOUNT_KEY = "server_runner_account";

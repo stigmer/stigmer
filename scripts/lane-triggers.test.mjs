@@ -988,7 +988,7 @@ test("the action rule still finds the bodies and lanes it exists for", () => {
   });
   const callers = (name) =>
     [...laneCalls].filter(([, { actions: called }]) => called.includes(name)).map(([file]) => laneId(file));
-  assert.deepEqual(callers("playwright-chromium"), ["e2e-interactive", "ts-workspace"]);
+  assert.deepEqual(callers("playwright-chromium"), ["docs", "e2e-interactive", "ts-workspace"]);
   assert.deepEqual(callers("temporal-cli"), ["agent-sandbox", "conformance-execution", "e2e-interactive"]);
 });
 
@@ -1039,9 +1039,9 @@ test("the setup rule still finds the setups and installs it exists for", () => {
     "e2e-interactive",
     "ee",
     "go-sdk",
-    "helm-chart",
     "java-sdk",
     "libs-install",
+    "operator",
     "plugins-static",
     "runner",
     "sdk-quickstarts",
@@ -1111,8 +1111,8 @@ test("the make rule still finds the Makefiles, scripts and lanes it exists for",
     "docs-snippets",
     "e2e-interactive",
     "ee",
-    "helm-chart",
     "libs-install",
+    "operator",
     "plugins-static",
     "sdk-quickstarts",
     "stigmer-server",
@@ -1126,7 +1126,7 @@ test("the make rule still finds the Makefiles, scripts and lanes it exists for",
     "cli-up",
     "compose-stack",
     "ee",
-    "helm-chart",
+    "operator",
     "sdk-quickstarts",
     "upgrade-rehearsal",
   ]);
@@ -1138,7 +1138,7 @@ test("the make rule still finds the Makefiles, scripts and lanes it exists for",
   );
   assert.deepEqual(
     readers("scripts/lib/source-version.mjs"),
-    ["all-in-one", "compose-stack", "helm-chart", "upgrade-rehearsal"],
+    ["all-in-one", "compose-stack", "operator", "upgrade-rehearsal"],
     "named through a variable's $(CURDIR) in the rehearsals, imported by scripts/stage-all-in-one.mjs and scripts/stage-compose-runner-cli.mjs",
   );
   assert.deepEqual(readers("client-apps/cli/scripts/gen-cli-docs.ts"), ["docs"], "a script placed by its subshell's cd");

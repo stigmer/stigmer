@@ -1,0 +1,32 @@
+# Stigmer Enterprise: the license key's Secret switches the server to the
+# Enterprise image, which signs every caller in through your identity
+# provider. A licensed server may hold several organizations, so it runs no
+# shared runner: every session runs in a sandbox of its own, which reads and
+# writes its files through the bucket.
+apiVersion: stigmer.ai/v1
+kind: Stigmer
+metadata:
+  name: stigmer
+  namespace: stigmer
+spec:
+  owner:
+    email: priya@acme.dev
+  identity:
+    oidc:
+      issuer: https://login.acme.dev
+      audience: https://stigmer.acme.dev
+      consoleClientId: stigmer-console
+      nativeClientId: stigmer-desktop
+  enterprise:
+    license:
+      name: stigmer-license
+      key: STIGMER_LICENSE_KEY
+    accessHistoryRetentionDays: 365
+  objectStore:
+    s3:
+      bucket: acme-stigmer
+      region: us-east-1
+      credentialsSecret:
+        name: bucket
+  sandboxes:
+    driver: agentSandbox

@@ -6,7 +6,8 @@
 # runner, SQLite, one volume. EVALUATION ONLY, NOT FOR PRODUCTION — Temporal's
 # dev-server is not built for durable history, one container has no separate
 # backups or scaling, and an upgrade kills in-flight runs. The production
-# self-host shape is docker-compose.yml (and, later, the Helm chart).
+# self-host shapes are docker-compose.yml and, on Kubernetes, the Stigmer
+# operator (deploy/operator).
 #
 # What this image IS: a pre-warmed `stigmer up`. The CLI acquires the server
 # and the runner on a laptop's first `up` (and the plugin catalogue on its

@@ -25,7 +25,7 @@
 // the suite, not here: this module represents validity by construction, the
 // convention every builder in support/ follows.
 import type { RunConfigSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/invocation_pb";
-import type { Harness } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
+import type { Computer, Harness } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
 import type { InitShape } from "./init-shape";
 import { AgentSchema } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb";
 import { type AgentMcpServerSchema, AgentSpecSchema, type HookSourceSchema } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/spec_pb";
@@ -78,6 +78,11 @@ export interface AgentSpecOptions {
   // both at save.
   runConfig?: InitShape<typeof RunConfigSchema>;
   harness?: Harness;
+  // Whether the agent's conversations have a computer (spec.computer).
+  // Unset by default, so a fixture gets the server's default for a new
+  // agent exactly as a person's agent does; an arm about agents without a
+  // computer sets COMPUTER_NONE.
+  computer?: Computer;
   // The agent's own hooks block, as written (a plugin's hooks come with the
   // plugin when it is listed in `plugins`).
   hooks?: InitShape<typeof HookSourceSchema>[];
@@ -106,6 +111,7 @@ export function makeAgentSpec(opts: AgentSpecOptions = {}): InitShape<typeof Age
     ...(opts.disallowedTools !== undefined ? { disallowedTools: opts.disallowedTools } : {}),
     ...(opts.runConfig !== undefined ? { runConfig: opts.runConfig } : {}),
     ...(opts.harness !== undefined ? { harness: opts.harness } : {}),
+    ...(opts.computer !== undefined ? { computer: opts.computer } : {}),
     ...(opts.hooks !== undefined ? { hooks: opts.hooks } : {}),
     ...(opts.mcpServers !== undefined ? { mcpServers: opts.mcpServers } : {}),
   };

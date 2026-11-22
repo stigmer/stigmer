@@ -62,6 +62,7 @@ const config: SandboxDriverConfig = {
   runnerEnv: {},
   runnerSecretEnv: {},
   serverRelease: "",
+  artifactLane: false,
 };
 
 const facts: SandboxFacts = {

@@ -89,6 +89,7 @@ export function newSubstrateSandboxDriver(options: {
         lifecycle: driver.lifecycle,
         sessions: context.sessions,
         logger: context.logger,
+        reportReady: context.reportReady,
       }),
   };
 }

@@ -847,7 +847,7 @@ export { matchesAllLabels, sortedLabels } from "./pipeline/steps/helpers.js";
 // replaceResourceDataIfUnchanged guards on — the secret-convergence
 // sweep's storage contract.
 export type { RawResourceDocument } from "./store/interface.js";
-// The Postgres driver constructor (blessed on the newR2ArtifactStorage
+// The Postgres driver constructor (blessed on the newS3ArtifactStorage
 // precedent for exporting a driver constructor).
 // A composition that runs its own schema chain in the SAME database as
 // this chain needs the OSS tables provisioned in its DB-backed tests
@@ -891,11 +891,15 @@ export type {
   StagedUploadLane,
 } from "./artifactstorage/artifact-storage.js";
 export { ArtifactStorageNotFoundError } from "./artifactstorage/artifact-storage.js";
-// The R2 driver constructor: compositions register per-domain R2 drivers
-// with their own bucket/credential config while the S3 plumbing lives
-// exactly once in OSS.
-export { newR2ArtifactStorage } from "./artifactstorage/r2-storage.js";
-export type { R2StorageConfig } from "./artifactstorage/r2-storage.js";
+// The S3 driver constructor: compositions register per-domain bucket
+// drivers with their own bucket/credential config while the S3 plumbing
+// lives exactly once in OSS.
+export { newS3ArtifactStorage } from "./artifactstorage/s3-storage.js";
+export type { S3StorageConfig } from "./artifactstorage/s3-storage.js";
+export type {
+  PrefixRemoval,
+  PresignedRunnerUpload,
+} from "./artifactstorage/artifact-storage.js";
 
 // The model-catalog and runner-credential driver seams: the model-catalog
 // read surface, and the per-lane runner-credential
