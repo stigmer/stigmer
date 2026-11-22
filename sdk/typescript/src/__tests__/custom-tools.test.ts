@@ -15,5 +15,7 @@ describe("defineCustomTool", () => {
     const tool = defineCustomTool({ name: "show_registration_form", description: "Open the form.", inputSchema: schema });
     expect(tool).toEqual({ name: "show_registration_form", description: "Open the form.", inputSchema: schema });
     expect(tool.inputSchema).not.toBe(schema);
+    schema.properties.service.type = "number";
+    expect(tool.inputSchema, "a later change to a nested object never reaches it").toEqual({ type: "object", properties: { service: { type: "string" } }, required: ["service"] });
   });
 });

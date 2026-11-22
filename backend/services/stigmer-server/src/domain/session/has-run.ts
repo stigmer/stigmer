@@ -14,7 +14,7 @@
  *
  * Proven by __tests__/session.test.ts (the three locks over the wire),
  * __tests__/resolve-session-environment.test.ts and
- * __tests__/custom-tools.test.ts.
+ * __tests__/custom-tools-steps.test.ts.
  */
 import type { DescMessage } from "@bufbuild/protobuf";
 

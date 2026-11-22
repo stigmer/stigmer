@@ -24,9 +24,18 @@
 // A call's input is checked against its tool's schema with
 // `@cfworker/json-schema` (draft 2020-12), the validator the Stigmer
 // engine's LangChain stack already uses, so a call the runner admits is one
-// the schema accepts on every engine.
+// the schema accepts on every engine. The check runs under a time budget
+// (CUSTOM_TOOL_CHECK_BUDGET_MS): a schema's `pattern` is the host's and the
+// input is the model's, so a pattern that backtracks exponentially could
+// otherwise hold the runner's one thread for minutes, its stall watchdog
+// included. It runs through `node:vm` with a timeout, as the runner's hook
+// matchers do (`shared/hooks/matcher.ts` in the runner): V8 checks for the
+// interrupt while it backtracks, and a check stopped there refuses the
+// call.
 //
 // Proven by __tests__/custom-tools.test.ts.
+
+import { createContext, Script, type Context } from "node:vm";
 
 import { Validator, type OutputUnit, type Schema } from "@cfworker/json-schema";
 
@@ -155,13 +164,40 @@ function badPattern(node: unknown): string | undefined {
 export function customToolInputProblem(tool: Pick<CustomToolDeclaration, "name" | "inputSchema">, input: unknown): string | undefined {
   let result: ReturnType<Validator["validate"]>;
   try {
-    result = new Validator(tool.inputSchema as Schema, "2020-12", false).validate(input);
+    result = timedValidate(new Validator(tool.inputSchema as Schema, "2020-12", false), input);
   } catch (err) {
+    if (isScriptTimeout(err)) {
+      return `The input could not be checked against ${tool.name}'s input schema in time (a pattern in the schema takes too long on this input); the call did not run.`;
+    }
     return `The input could not be checked against ${tool.name}'s input schema (${String(err)}); the call did not run.`;
   }
   if (result.valid) return undefined;
   const listed = mismatchesOf(result.errors);
   return `The input does not match ${tool.name}'s input schema (${listed.join("; ")}); the call did not run. Call it again with input that matches.`;
+}
+
+/** The longest one input check may run, in milliseconds (the header). Real checks finish in well under one. */
+export const CUSTOM_TOOL_CHECK_BUDGET_MS = 250;
+
+/** The one context and script every timed check runs in, made on the first. */
+let sandbox: { readonly context: Context & { validator?: Validator; input?: unknown }; readonly script: Script } | undefined;
+
+/** One validation under the budget (the header); throws Node's timeout error when stopped there. */
+function timedValidate(validator: Validator, input: unknown): ReturnType<Validator["validate"]> {
+  sandbox ??= { context: createContext({}), script: new Script("validator.validate(input)") };
+  sandbox.context.validator = validator;
+  sandbox.context.input = input;
+  try {
+    return sandbox.script.runInContext(sandbox.context, { timeout: CUSTOM_TOOL_CHECK_BUDGET_MS }) as ReturnType<Validator["validate"]>;
+  } finally {
+    delete sandbox.context.validator;
+    delete sandbox.context.input;
+  }
+}
+
+/** Node's timeout error comes from the context's realm, so it is read by its code, not by `instanceof`. */
+function isScriptTimeout(err: unknown): boolean {
+  return typeof err === "object" && err !== null && (err as { code?: unknown }).code === "ERR_SCRIPT_EXECUTION_TIMEOUT";
 }
 
 /** The validator's keywords that only report that a nested one failed, which the nested error says better. */
@@ -209,19 +245,41 @@ function unresolvedRef(node: unknown, root: Record<string, unknown>): string | u
   return undefined;
 }
 
-/** Whether `ref` is `#` or a JSON pointer (`#/...`) naming a value in `root`. */
+/**
+ * Whether `ref` is `#` or a JSON pointer (`#/...`) naming a value in `root`,
+ * through its own keys alone (an inherited `constructor` names nothing the
+ * validator finds), its escapes read as a pointer's.
+ */
 function resolvesIn(root: Record<string, unknown>, ref: string): boolean {
   if (ref === "#") return true;
   if (!ref.startsWith("#/")) return false;
   let current: unknown = root;
   for (const raw of ref.slice(2).split("/")) {
-    const key = decodeURIComponent(raw).replace(/~1/g, "/").replace(/~0/g, "~");
-    if (Array.isArray(current)) current = current[Number(key)];
-    else if (isObject(current)) current = current[key];
-    else return false;
-    if (current === undefined) return false;
+    const key = pointerKey(raw);
+    if (key === undefined) return false;
+    if (Array.isArray(current)) {
+      // An array's step is an index it holds, never one of its own other keys (`length`).
+      if (!ARRAY_INDEX.test(key) || Number(key) >= current.length) return false;
+      current = current[Number(key)];
+    } else if (isObject(current) && Object.hasOwn(current, key)) {
+      current = current[key];
+    } else {
+      return false;
+    }
   }
   return true;
+}
+
+/** A JSON pointer's array index: a non-negative integer with no leading zero. */
+const ARRAY_INDEX = /^(0|[1-9][0-9]*)$/;
+
+/** A pointer segment's key, its percent and tilde escapes undone; undefined for a malformed escape. */
+function pointerKey(raw: string): string | undefined {
+  try {
+    return decodeURIComponent(raw).replace(/~1/g, "/").replace(/~0/g, "~");
+  } catch {
+    return undefined;
+  }
 }
 
 function isObject(value: unknown): value is Record<string, unknown> {

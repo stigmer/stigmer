@@ -46,12 +46,13 @@ describe("offeredCustomTools", () => {
 });
 
 describe("the Claude engine's names", () => {
-  it("serves them under the platform's reserved server, fitted to the name budget, and reads a name back to its tool", () => {
+  it("serves them under the platform's reserved server, as Claude Code names them, never fitted, and reads a name back to its tool", () => {
     expect(customToolEngineName("show_form")).toBe(`mcp__${CUSTOM_TOOL_SERVER}__show_form`);
+    // The longest name a session may declare keeps its whole name, as Claude Code itself names it.
     const long = { ...FORM, name: "t".repeat(64) };
-    const fitted = customToolEngineName(long.name);
-    expect(fitted.length).toBeLessThanOrEqual(ENGINE_TOOL_NAME_MAX);
-    expect(customToolOfEngineName([FORM, long], fitted)).toBe(long);
+    expect(customToolEngineName(long.name)).toBe(`mcp__${CUSTOM_TOOL_SERVER}__${"t".repeat(64)}`);
+    expect(customToolEngineName(long.name).length).toBeGreaterThan(ENGINE_TOOL_NAME_MAX);
+    expect(customToolOfEngineName([FORM, long], customToolEngineName(long.name))).toBe(long);
     expect(customToolOfEngineName([FORM], "mcp__other__show_form")).toBeUndefined();
   });
 });

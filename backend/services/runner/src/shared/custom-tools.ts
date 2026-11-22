@@ -34,9 +34,10 @@
  * Names. On the Stigmer engine a custom tool is bound under its own name,
  * which the check keeps apart from every built-in. The Claude engine takes
  * extra tools only from MCP servers, so the host serves them as one server,
- * {@link CUSTOM_TOOL_SERVER}, and the model sees `mcp__stigmer-host__<name>`
- * fitted to the 64-character budget like any server's tool
- * (`mcp-tool-names.ts`). The server's name sits under the `stigmer` prefix
+ * {@link CUSTOM_TOOL_SERVER}, and the model sees `mcp__stigmer-host__<name>`.
+ * Claude Code builds that name itself, so it is never fitted, as no bridged
+ * server's tool on that engine is (`execute-claude/mcp-bridge.ts`): at most
+ * 83 characters, within the Anthropic API's 128. The server's name sits under the `stigmer` prefix
  * no agent's own server may take (`@stigmer/tool-vocabulary`
  * `isReservedMcpServerName`). Every row, event and card carries the
  * declared name.
@@ -47,7 +48,7 @@ import type { Session } from "@stigmer/apis/ai/stigmer/agentic/session/v1/api_pb
 import { customToolsProblem } from "@stigmer/tool-vocabulary";
 
 import { isUnattendedApprovalMode } from "./approval-policy.js";
-import { engineToolName } from "./mcp-tool-names.js";
+import { mcpToolName } from "./mcp-tool-names.js";
 
 /** The line a waiting call of the host app's tools carries on its row: never shown as an approval's message. */
 export const CUSTOM_TOOL_WAITING_MESSAGE = "Waiting for the app's answer.";
@@ -93,9 +94,9 @@ export function offeredCustomTools(sources: CustomToolSources): readonly CustomT
   return declared;
 }
 
-/** The name the Claude engine's model is offered a custom tool under (the header). */
+/** The name the Claude engine's model is offered a custom tool under: Claude Code's own, never fitted (the header). */
 export function customToolEngineName(name: string): string {
-  return engineToolName(CUSTOM_TOOL_SERVER, name);
+  return mcpToolName(CUSTOM_TOOL_SERVER, name);
 }
 
 /** The custom tool an engine name stands for on the Claude engine; undefined for any other tool. */

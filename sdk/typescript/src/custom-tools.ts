@@ -39,5 +39,5 @@ export interface CustomToolDefinition<Schema extends JsonObject = JsonObject> {
  * ```
  */
 export function defineCustomTool<Schema extends JsonObject>(tool: CustomToolDefinition<Schema>): CustomToolInput {
-  return { name: tool.name, description: tool.description, inputSchema: { ...tool.inputSchema } };
+  return { name: tool.name, description: tool.description, inputSchema: structuredClone(tool.inputSchema) };
 }

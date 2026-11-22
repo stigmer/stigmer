@@ -37,8 +37,8 @@
  *      independent of it, so the lists bind under the global bypass too)
  *   5a. Custom tools (conditional: only on the root graph of a turn that
  *      offers the host app's own tools — a call of one pauses for the
- *      host's answer, `custom-tools.ts`; ahead of the gate, which never
- *      sees one, and installed under the global bypass too)
+ *      host's answer, `custom-tools.ts`; ahead of the gate, which hands a
+ *      custom call straight on, and installed under the global bypass too)
  *   6. Approval gate (conditional: absent under the global bypass)
  *   7. Cost advisory (conditional: only when maxCostUsd > 0 — advises at
  *      ~80% of the cap that the turn runtime enforces)

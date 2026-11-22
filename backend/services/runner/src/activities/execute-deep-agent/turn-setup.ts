@@ -714,7 +714,7 @@ export async function buildEngine(
     otelSpans: { mcpIndex: gate.mcpIndex },
     toolScope: { ...scopeBase, scope: toolScope, customToolNames: new Set(customTools.map((tool) => tool.name)) },
     customTools: { tools: customTools },
-    approvalGate: approvalGateConfig,
+    approvalGate: approvalGateConfig === null ? null : { ...approvalGateConfig, customToolNames: new Set(customTools.map((tool) => tool.name)) },
     // Every graph, every mode (issue #754): the dialect-repair seam that keeps
     // model-supplied paths canonical for the virtual-rooted backend and every
     // downstream consumer (gate, capture, spans).

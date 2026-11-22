@@ -21,17 +21,17 @@ import { FIXTURE, claudeExecutionRecord, type ClaudeScenarioFile } from "./herme
 const HELPER_INSTRUCTIONS = "You are the registration helper.";
 
 /** One call as the engine's model makes it. */
-function engineCall(call: ContractCall): { toolCallId: string; toolName: string; toolInput: Record<string, unknown> } {
+function engineCall(call: ContractCall, toolName: string): { toolCallId: string; toolName: string; toolInput: Record<string, unknown> } {
   return call.kind === "custom"
-    ? { toolCallId: call.id, toolName: customToolEngineName(FORM_TOOL.name), toolInput: call.input }
+    ? { toolCallId: call.id, toolName: customToolEngineName(toolName), toolInput: call.input }
     : { toolCallId: call.id, toolName: "Agent", toolInput: { description: "Register the service.", prompt: "Register the service.", subagent_type: "helper" } };
 }
 
 /** Each step once, in order (a step is done once the conversation issued all its calls), then the closing. */
-function steps(list: readonly (readonly ContractCall[])[], closing: string): WireScript {
+function steps(list: readonly (readonly ContractCall[])[], closing: string, toolName: string = FORM_TOOL.name): WireScript {
   return (c: WireConversation) => {
     const next = list.find((step) => step.every((call) => !c.issued.has(call.id)));
-    return next === undefined ? anthropicText(closing) : anthropicToolUses(next.map(engineCall));
+    return next === undefined ? anthropicText(closing) : anthropicToolUses(next.map((call) => engineCall(call, toolName)));
   };
 }
 
@@ -47,14 +47,14 @@ export function claudeCustomToolSubject(file: () => ClaudeScenarioFile): CustomT
       const helper = scenario.helper;
       const record = claudeExecutionRecord({
         message: scenario.message,
-        customTools: [FORM_TOOL_DECLARATION],
+        customTools: [{ ...FORM_TOOL_DECLARATION, name: scenario.toolName ?? FORM_TOOL.name }],
         ...(scenario.unattended === true ? { approvalMode: ApprovalMode.UNATTENDED } : {}),
         ...(scenario.agentTools !== undefined ? { tools: [...scenario.agentTools] } : {}),
         ...(helper !== undefined
           ? { subagents: [savedAgentFixture("helper", { description: "Registers services.", instructions: HELPER_INSTRUCTIONS }, FIXTURE.org)] }
           : {}),
       });
-      const main = steps(scenario.steps, scenario.closing);
+      const main = steps(scenario.steps, scenario.closing, scenario.toolName);
       const helperScript = helper === undefined ? undefined : steps([helper.calls], helper.closing);
       const script: WireScript = (c) => (helperScript !== undefined && c.system.includes(HELPER_INSTRUCTIONS) ? helperScript(c) : main(c));
       // A run starts the wire's record of conversations afresh, and each resume adds to it.

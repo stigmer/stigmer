@@ -7,7 +7,7 @@
 
 import { describe, expect, it } from "vitest";
 
-import { CUSTOM_TOOL_LIMITS, customToolInputProblem, customToolsProblem, isReservedCustomToolName, type CustomToolDeclaration } from "../custom-tools.js";
+import { CUSTOM_TOOL_CHECK_BUDGET_MS, CUSTOM_TOOL_LIMITS, customToolInputProblem, customToolsProblem, isReservedCustomToolName, type CustomToolDeclaration } from "../custom-tools.js";
 
 const FORM: CustomToolDeclaration = {
   name: "show_registration_form",
@@ -61,6 +61,11 @@ describe("customToolsProblem", () => {
     expect(customToolsProblem([tool({ inputSchema: { type: "object", properties: { a: { $ref: "#/type/x" } } } })])).toMatch(/its \$ref "#\/type\/x" names nothing/);
     expect(customToolsProblem([tool({ inputSchema: { type: "object", anyOf: [{ type: "object" }, { $ref: "#/nowhere" }] } })])).toMatch(/its \$ref "#\/nowhere" names nothing/);
     expect(customToolsProblem([tool({ inputSchema: { type: "object", properties: { a: { $ref: 7 } } } })])).toMatch(/its \$ref "7" names nothing/);
+    // A malformed escape, and a key only inherited, name nothing: refused as such, never an error of the check's own.
+    expect(customToolsProblem([tool({ inputSchema: { type: "object", properties: { a: { $ref: "#/%" } } } })])).toMatch(/its \$ref "#\/%" names nothing/);
+    for (const inherited of ["#/constructor", "#/__proto__", "#/allOf/length", "#/allOf/01", "#/allOf/1"]) {
+      expect(customToolsProblem([tool({ inputSchema: { type: "object", allOf: [{ type: "object" }], properties: { a: { $ref: inherited } } } })]), inherited).toMatch(/names nothing/);
+    }
   });
 
   it("refuses a pattern the validator could not compile, in a property or as a property name, wherever it sits", () => {
@@ -101,6 +106,16 @@ describe("customToolInputProblem", () => {
   it("falls back to the validator's own words when every error is one that only wraps another", () => {
     const closed: CustomToolDeclaration = { ...FORM, inputSchema: { type: "object", properties: { legacy: false } } };
     expect(customToolInputProblem(closed, { legacy: 1 })).toMatch(/^The input does not match show_registration_form's input schema \(.+\); the call did not run\./);
+  });
+
+  it("stops a check that runs past its budget and refuses the call, rather than holding the thread", () => {
+    const backtracks: CustomToolDeclaration = { ...FORM, inputSchema: { type: "object", properties: { a: { type: "string", pattern: "^(a+)+$" } } } };
+    const started = Date.now();
+    expect(customToolInputProblem(backtracks, { a: `${"a".repeat(40)}!` })).toBe(
+      "The input could not be checked against show_registration_form's input schema in time (a pattern in the schema takes too long on this input); the call did not run.",
+    );
+    expect(Date.now() - started, "stopped near the budget").toBeLessThan(CUSTOM_TOOL_CHECK_BUDGET_MS * 8);
+    expect(customToolInputProblem(backtracks, { a: "aaaa" }), "the same pattern on ordinary input passes").toBeUndefined();
   });
 
   it("says the input could not be checked when the schema itself cannot be read", () => {

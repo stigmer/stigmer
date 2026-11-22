@@ -28,6 +28,7 @@ export {
   isReservedMcpServerName,
 } from "./mcp-servers.js";
 export {
+  CUSTOM_TOOL_CHECK_BUDGET_MS,
   CUSTOM_TOOL_LIMITS,
   CUSTOM_TOOL_NAME_PATTERN,
   customToolInputProblem,

@@ -24,7 +24,9 @@
  * never pauses. It is installed whenever the turn offers custom tools,
  * under the run-wide bypass too, since no approval stands in for the
  * host's answer; and on the root graph alone, the one that is offered
- * them. The approval gate never sees a custom call, so no hook, lease or
+ * them. The approval gate hands a custom call straight on, on the pause and
+ * on the resume, when its handler runs through it
+ * (`ApprovalGateConfig.customToolNames`), so no hook, lease, category or
  * bypass decides one.
  *
  * Proven by the custom-tool contract both engines run

@@ -26,14 +26,14 @@ import type { ScriptedToolCall, ScriptedTurn } from "./scripted-model.js";
 /** The helper's instructions, which tell its requests apart. */
 const HELPER_INSTRUCTIONS = "You are the registration helper.";
 
-function scriptedCall(call: ContractCall): ScriptedToolCall {
+function scriptedCall(call: ContractCall, toolName: string): ScriptedToolCall {
   return call.kind === "custom"
-    ? { id: call.id, name: FORM_TOOL.name, args: call.input }
+    ? { id: call.id, name: toolName, args: call.input }
     : { id: call.id, name: "task", args: { description: "Register the service.", subagent_type: "helper" } };
 }
 
 /** A player over a transcript: the next step whose calls the transcript has not issued, then the closing. */
-function player(steps: readonly (readonly ContractCall[])[], closing: string, read: Map<string, ModelRead>): (transcript: readonly BaseMessage[]) => ScriptedTurn {
+function player(steps: readonly (readonly ContractCall[])[], closing: string, read: Map<string, ModelRead>, toolName: string = FORM_TOOL.name): (transcript: readonly BaseMessage[]) => ScriptedTurn {
   return (transcript) => {
     const issued = new Set<string>();
     for (const message of transcript) {
@@ -44,7 +44,7 @@ function player(steps: readonly (readonly ContractCall[])[], closing: string, re
       }
     }
     const next = steps.find((step) => step.every((call) => !issued.has(call.id)));
-    return next === undefined ? { text: closing } : { toolCalls: next.map(scriptedCall) };
+    return next === undefined ? { text: closing } : { toolCalls: next.map((call) => scriptedCall(call, toolName)) };
   };
 }
 
@@ -61,7 +61,7 @@ export function stigmerCustomToolSubject(env: HermeticEnvironment, clock: Script
       const helper = scenario.helper;
       const record = deepAgentExecutionRecord({
         message: scenario.message,
-        customTools: [FORM_TOOL_DECLARATION],
+        customTools: [{ ...FORM_TOOL_DECLARATION, name: scenario.toolName ?? FORM_TOOL.name }],
         ...(computer !== undefined ? { computer } : {}),
         ...(scenario.unattended === true ? { approvalMode: ApprovalMode.UNATTENDED } : {}),
         ...(scenario.agentTools !== undefined ? { tools: [...scenario.agentTools] } : {}),
@@ -81,7 +81,7 @@ export function stigmerCustomToolSubject(env: HermeticEnvironment, clock: Script
             return player(helper.calls.length === 0 ? [] : [helper.calls], helper.closing, read);
           }
           if (mainTools.length === 0) mainTools = [...tools];
-          return player(scenario.steps, scenario.closing, read);
+          return player(scenario.steps, scenario.closing, read, scenario.toolName);
         },
       });
       mkdirSync(sessionWorkspaceDir(env), { recursive: true });

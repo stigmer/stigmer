@@ -20,6 +20,8 @@
  *  6. An unattended turn (nobody can answer) offers none.
  *  7. The agent's tool lists do not hide it.
  *  8. A helper the main agent delegates to cannot make the host wait.
+ * 10. The longest name a session may declare (64 characters) is offered
+ *     and parks as any other.
  *
  * Cases 6 and 8 also make the call where an engine's model can reach a tool
  * it was not offered: the Claude engine keeps one pool of tools for the
@@ -70,6 +72,8 @@ export interface ContractScenario {
   readonly unattended?: boolean;
   /** The agent's own allow-list (`AgentSpec.tools`). */
   readonly agentTools?: readonly string[];
+  /** The declared tool's name, when not {@link FORM_TOOL}'s: the case of a name at the limit. */
+  readonly toolName?: string;
   /** The helper's script, when a step delegates: its calls of the declared tool, then its closing. */
   readonly helper?: { readonly calls: readonly ContractCall[]; readonly closing: string };
 }
@@ -236,6 +240,19 @@ export function describeCustomToolContract(subject: CustomToolSubject): void {
       expect(run.offeredToMain()).toContain(subject.modelName(FORM_TOOL.name));
       expect(run.phase()).toBe("RUN_WAITING_FOR_APPROVAL");
       expect(run.record.waitingCustomToolCalls().map((row) => row.id)).toEqual(["toolu_listed"]);
+    });
+
+    it("10: the longest name a session may declare is offered under it, and its call parks as the host's", async () => {
+      const longest = "register_service_form_".padEnd(64, "x");
+      const run = await subject.begin({
+        message: "Register it.",
+        toolName: longest,
+        steps: [[{ kind: "custom", id: "toolu_long", input: { service: "payments" } }]],
+        closing: "Registered.",
+      });
+      expect(run.offeredToMain()).toContain(subject.modelName(longest));
+      expect(run.phase()).toBe("RUN_WAITING_FOR_APPROVAL");
+      expect(customUses(run.record)).toEqual([expect.objectContaining({ name: longest })]);
     });
 
     it("8: a helper cannot make the host wait", async () => {

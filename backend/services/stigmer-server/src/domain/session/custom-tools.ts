@@ -18,7 +18,8 @@
  * it. Compared as the tools' bytes, in order; an update that leaves the
  * field out of its mask keeps them, and so changes nothing.
  *
- * Proven by __tests__/custom-tools.test.ts.
+ * Proven by __tests__/custom-tools-steps.test.ts and the custom_tools block
+ * of __tests__/session.test.ts (over the wire).
  */
 import { equals } from "@bufbuild/protobuf";
 

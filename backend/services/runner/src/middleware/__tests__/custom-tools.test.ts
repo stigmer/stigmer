@@ -77,3 +77,18 @@ describe("the custom tools", () => {
     expect(await call("call_none")).toMatchObject({ content: NO_HOST_ANSWER_MESSAGE, status: "error" });
   });
 });
+
+describe("the approval gate and the host's tools", () => {
+  it("hands a call of the host's tool straight to its handler, whatever the default would ask", async () => {
+    const { createApprovalGateMiddleware } = await import("../approval-gate.js");
+    const { McpToolIndex } = await import("../../shared/mcp-tool-names.js");
+    const gate = createApprovalGateMiddleware({
+      mcpDefault: { destructive: new Set(), unlisted: new Set(), leasedServers: new Set() },
+      mcpIndex: McpToolIndex.of([], (slug, tool) => `mcp__${slug}__${tool}`),
+      customToolNames: new Set([FORM.name]),
+    } as never);
+    const handler = vi.fn(async () => new ToolMessage({ content: "the host's answer", tool_call_id: "call_1" }));
+    expect(await gate.wrapToolCall!(request(FORM.name, { service: "x" }), handler)).toMatchObject({ content: "the host's answer" });
+    expect(handler).toHaveBeenCalledOnce();
+  });
+});
