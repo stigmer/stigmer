@@ -211,6 +211,10 @@ describe("reasonFor, the one decision both coding agents' sides read", () => {
     expect(guard.reasonFor({ kind: "tool", name: "get_agent", args: {} })).toBeNull();
     expect(guard.reasonFor({ kind: "shell", command: "stigmer list agents" })).toBeNull();
   });
+
+  it("says nothing about a call of a kind it does not know", () => {
+    expect(guard.reasonFor({ kind: "file", path: "x" } as unknown as { kind: "shell"; command: string })).toBeNull();
+  });
 });
 
 // Cursor's hook input, as Cursor 2026.11.19 hands it.
