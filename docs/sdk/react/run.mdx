@@ -9,6 +9,51 @@ Import from `@stigmer/react-sdk`. The hooks and helpers on this page also import
 
 ## Hooks
 
+### useAnswerCustomToolUse
+
+Behavior hook that answers the calls of an app's own tools
+(`answerCustomToolUse`), with per-call loading and error state. The
+twin of `useAnswerToolUse`, which answers approvals: an answer here is
+content the agent reads, never a verdict.
+
+Hosts drawing their own screen use it directly; the session viewer binds
+it for its tool cards and its `onCustomToolUse` callback.
+
+**Signature**
+
+```tsx
+function useAnswerCustomToolUse(): UseAnswerCustomToolUseReturn
+```
+
+**Returns** — `UseAnswerCustomToolUseReturn`
+
+<TypeTable
+  type={{
+    answerCustomToolUse: { type: "(sessionId: string, customToolUseId: string, text: string, options?: CustomToolAnswerOptions) => Promise<void>", description: "Answer a call of one of the app's own tools (a session's `custom_tools`), by its id (`ToolUse.id`, the `agent.custom_tool_use` event's id). The text is what the agent reads as the tool's result.  Resolves when the server recorded the answer; the turn resumes on the session's stream once every call and approval it waits on is answered. The same answer sent again resolves (the server replays its first event); a different one rejects, since a call is answered once. Rejects with the server's error, which is also kept per call." },
+    clearError: { type: "() => void", description: "Reset every answer error (both errorsById and error)." },
+    error: { type: "Error | null", description: "The most recent failure, or `null`; the map is authoritative." },
+    errorsById: { type: "ReadonlyMap<string, Error>", description: "Each call's last failed answer, keyed like submittingIds. Cleared for a call when it is answered again." },
+    submittingIds: { type: "ReadonlySet<string>", description: "The calls whose answer is in flight, by id." },
+  }}
+/>
+
+```tsx
+import type { ToolUse } from "@stigmer/client";
+
+function RegisterButton({ sessionId, call }: { sessionId: string; call: ToolUse }) {
+  const { answerCustomToolUse, submittingIds } = useAnswerCustomToolUse();
+  return (
+    <button
+      disabled={submittingIds.has(call.id)}
+      onClick={() => answerCustomToolUse(sessionId, call.id, "Registered as acct_7Q2F")}
+    >
+      Register
+    </button>
+  );
+}
+```
+
+
 ### useAnswerToolUse
 
 Behavior hook that answers the tool uses a session waits on, through the
@@ -1419,6 +1464,7 @@ All visual properties flow through `--stgm-*` tokens.
     contentColumn: { type: "ThreadContentColumn", description: "Constrain thread content to a max-width reading column (`max-w-3xl`, 768 px) inside the full-width scroll container — the scrollbar stays at the viewport edge.  - `\"center\"` — column horizontally centered (classic chat reading view). - `\"start\"` — column anchored to the left edge, so the thread's left   edge stays put when a sibling panel opens/closes beside it.  When omitted, content spans the full width.", typeDescriptionLink: "#threadcontentcolumn" },
     formatToolCallSummary: { type: "(toolUses: readonly ToolUse[]) => string", description: "Custom formatter for a folded run of tool calls' label. Passed through to each ToolCallGroup." },
     messageActions: { type: "(message: MessageInfo) => readonly MessageAction[]", description: "The host's own actions for a message: an \"Open in Billing\" or a \"Mark as paid\" on the agent's final answer, a \"Save\" on a person's message. The thread calls it with what it knows about each message (MessageInfo) and draws the actions it returns: up to two with an icon beside Copy, the rest in one \"More actions\" menu, all reachable by keyboard. A person's message gets them in its log only, and an agent's once it settles; thinking, notes and a plan document get none. A `MessageEntry` slot receives the same actions as data (`MessageEntryProps.messageActions`).  Called once per message, and again for every message when the function changes: keep it stable (`useCallback`, or a function at module level), or each render of your component asks every message again and redraws every bubble. If it throws, that message draws with no host actions (Copy, Edit and the scores as always), and the error is reported once with `console.error`." },
+    onAnswerCustomToolUse: { type: "AnswerCustomToolUse", description: "Answers a call of the app's own tools (the session's `custom_tools`) by its id: the text is what the agent reads as the tool's result, and `isError` says the tool failed. When provided, a host's tool card for a waiting call gets an `answer` bound to that call; when omitted (a viewer only watching), the card gets none. Wire `useSessionConversation`'s `answerCustomToolUse`.", typeDescriptionLink: "#answercustomtooluse" },
     onAnswerToolUse: { type: "(toolUseId: string, answer: ToolUseAnswer, denyMessage?: string) => void", description: "Answers a tool use that waits for a person (allow, deny with an optional reason, or grant its class). When provided, a waiting tool use renders its decision inline on its own row (and as a bottom ApprovalCard when it has none). When omitted, no decision UI is shown." },
     onBuildFromPlan: { type: "() => void", description: "Called when the user clicks \"Implement\" on a completed Plan-mode turn's PlanCompletionCard.  When provided, a CTA card is rendered at the end of the thread after a Plan-mode turn completes successfully. The consumer typically wires this to switch the interaction mode to Agent, pre-fill the composer, and focus it.  When omitted, no plan completion card is rendered." },
     onEditMessage: { type: "(text: string) => void", description: "When provided, the live turn's message (the person's prompt) shows a hover \"Edit\" affordance. Clicking it invokes this callback with the message text — the session chat stops the turn and pre-fills the composer for an edit-and-resubmit.  Provide this only while the live turn is stoppable; the SDK marks exactly the live turn's message editable. When omitted, no edit control is shown." },
@@ -1873,6 +1919,12 @@ function RunWriteBacks({ run }: { run: Run }) {
 
 ## Types
 
+### AnswerCustomToolUse
+
+Answers a call of the app's own tools by its id, with the session bound.
+Rejects with the server's error.
+
+
 ### ApprovalCard
 
 Renders a tool use that waits for a person's answer with the same visual
@@ -2015,6 +2067,7 @@ Omit it for a conversation with the built-in assistant.
 <TypeTable
   type={{
     agentRef: { type: "ResourceRef", description: "The agent the new conversation runs. Omit for the built-in assistant." },
+    customTools: { type: "readonly CustomToolInput[]", description: "The app's own tools the conversation offers its agent (`custom_tools`; make each with `defineCustomTool` from `@stigmer/client`). A call of one waits for the app's answer (`answerCustomToolUse`). Read once, when the conversation is created: the tools are fixed once a turn has run. The server refuses a declaration it cannot offer, naming the rule." },
     environmentRef: { type: "ResourceRef", description: "The Environment the conversation runs in: the packages and network its sandbox gets. Omit to take the agent's default, else the organization's. A conversation on the person's own machine refuses one. Fixed once a turn has run." },
     executionTarget: { type: "ExecutionTargetOption", description: "Where session activities execute. Immutable after the first run runs.", typeDescriptionLink: "/docs/sdk/react/session#executiontargetoption" },
     fileReview: { type: "boolean", description: "Whether each turn's file edits are offered for review, Keep or Undo, after the turn. Off unless set. Review never makes a turn wait: the edits are applied, and an Undo puts a file back." },
@@ -2104,6 +2157,31 @@ Resolved output of `UseCreateRunReturn.create`.
   type={{
     runId: { type: "string", description: "Server-assigned identifier for the newly created run.", required: true },
     sessionId: { type: "string", description: "Session the run belongs to. On the `sessionId` path this echoes the input; on the `sessionSpec` bootstrap path it is the server-created session's ID.", required: true },
+  }}
+/>
+
+
+### CustomToolAnswer
+
+Answers one waiting call of the app's own tools, bound to its session and
+call. The text is what the agent reads as the tool's result; `isError`
+tells it the tool failed (a save that failed, or a person who cancelled),
+so it can try again or say so.
+
+Resolves when the server recorded the answer; the row turns answered
+when the result arrives on the stream. The same answer sent again
+resolves; a different one rejects, since a call is answered once. It
+stays callable after the chat unmounts, for a host's panel that
+outlives it.
+
+
+### CustomToolAnswerOptions
+
+How an answer to one of the app's own tools is sent.
+
+<TypeTable
+  type={{
+    isError: { type: "boolean", description: "The tool failed, or the person cancelled: the agent reads the text as the tool's error and can try again or say so. Default `false`." },
   }}
 />
 
@@ -3832,8 +3910,9 @@ the kit maps it.
 - `running`: the tool works.
 - `needs-approval`: a person must allow the call first; the decision is
   the kit's, drawn in the row (the card gets no way to answer it).
-- `waiting-on-host`: a custom tool's call, until the host answers it.
-  Declared so a card's `switch` is total; no call reaches it yet.
+- `waiting-on-host`: a call of one of the app's own tools (the session's
+  `custom_tools`), until the app answers it. The card's `answer` answers
+  it, for a viewer who may.
 - `completed`: the tool returned.
 - `failed`: the tool returned an error, or its result says it failed.
 - `denied`: a person said no; the tool never ran.
@@ -3846,7 +3925,7 @@ Props a host's tool card receives.
 
 <TypeTable
   type={{
-    answer: { type: "(text: string) => Promise<void>", description: "Answers a custom tool's waiting call, for a viewer who may answer it. Reserved: no call is answered through a card yet." },
+    answer: { type: "CustomToolAnswer", description: "Answers the call, while it waits on the app (`waiting-on-host`) and only for a viewer who may answer it (the conversation's owner, as for an approval). Undefined otherwise: a card drawn for someone only watching shows the call and offers no answer.", typeDescriptionLink: "#customtoolanswer" },
     call: { type: "ToolCallInfo", description: "The call to draw.", required: true, typeDescriptionLink: "#toolcallinfo" },
   }}
 />
@@ -3855,8 +3934,9 @@ Props a host's tool card receives.
 ### ToolCards
 
 A host's own cards, keyed by a tool's public name: `mcp__<server>__<tool>`
-for a connected server's tool (`toolPublicName` in `@stigmer/client`).
-Built-in tools stay the kit's and take no card.
+for a connected server's tool, and the declared name for one of the app's
+own tools (`toolPublicName` in `@stigmer/client`). Built-in tools stay the
+kit's and take no card.
 
 Define each card at module level: the rows rely on `React.memo`, and a
 component recreated on every render remounts its card.

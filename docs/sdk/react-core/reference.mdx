@@ -89,6 +89,45 @@ const { results, isLoading, query, setQuery } = useAgentSearch("acme");
 ```
 
 
+### useAnswerCustomToolUse
+
+Behavior hook that answers the calls of an app's own tools
+(`answerCustomToolUse`), with per-call loading and error state. The
+twin of `useAnswerToolUse`, which answers approvals: an answer here is
+content the agent reads, never a verdict.
+
+Hosts drawing their own screen use it directly; the session viewer binds
+it for its tool cards and its `onCustomToolUse` callback.
+
+**Returns** — `UseAnswerCustomToolUseReturn`
+
+<TypeTable
+  type={{
+    answerCustomToolUse: { type: "(sessionId: string, customToolUseId: string, text: string, options?: CustomToolAnswerOptions) => Promise<void>", description: "Answer a call of one of the app's own tools (a session's `custom_tools`), by its id (`ToolUse.id`, the `agent.custom_tool_use` event's id). The text is what the agent reads as the tool's result.  Resolves when the server recorded the answer; the turn resumes on the session's stream once every call and approval it waits on is answered. The same answer sent again resolves (the server replays its first event); a different one rejects, since a call is answered once. Rejects with the server's error, which is also kept per call.", required: true },
+    clearError: { type: "() => void", description: "Reset every answer error (both errorsById and error).", required: true },
+    error: { type: "Error | null", description: "The most recent failure, or `null`; the map is authoritative.", required: true },
+    errorsById: { type: "ReadonlyMap<string, Error>", description: "Each call's last failed answer, keyed like submittingIds. Cleared for a call when it is answered again.", required: true },
+    submittingIds: { type: "ReadonlySet<string>", description: "The calls whose answer is in flight, by id.", required: true },
+  }}
+/>
+
+```tsx
+import type { ToolUse } from "@stigmer/client";
+
+function RegisterButton({ sessionId, call }: { sessionId: string; call: ToolUse }) {
+  const { answerCustomToolUse, submittingIds } = useAnswerCustomToolUse();
+  return (
+    <button
+      disabled={submittingIds.has(call.id)}
+      onClick={() => answerCustomToolUse(sessionId, call.id, "Registered as acct_7Q2F")}
+    >
+      Register
+    </button>
+  );
+}
+```
+
+
 ### useAnswerToolUse
 
 Behavior hook that answers the tool uses a session waits on, through the
@@ -543,8 +582,10 @@ locally, so it is safe in every environment.
     activePhase: { type: "TurnPhase | null", description: "The live turn's phase, or null when no turn is live. A turn just sent reads `\"pending\"` until its first status arrives.", required: true },
     activeRun: { type: "Run | null", description: "The live turn's run, or null (also while a just-sent turn is not yet listed).", required: true },
     activeTurn: { type: "Turn | null", description: "The newest turn that has not ended, or null when none works or waits.", required: true },
+    answerCustomToolUse: { type: "(customToolUseId: string, text: string, options?: CustomToolAnswerOptions) => Promise<void>", description: "Answer a call of the app's own tools: the text is what the agent reads as the tool's result, and `isError` tells it the tool failed. The session id is managed internally. Rejects with the server's error.", required: true },
     answerError: { type: "Error | null", description: "The most recent answer failure, or `null` — the scalar mirror of answerErrors for a headless consumer wanting a single value (e.g. the terminal surface).", required: true },
     answerErrors: { type: "ReadonlyMap<string, Error>", description: "Each tool use's last failed answer, keyed by its id — surfaced in-card by MessageThread/ApprovalCard beside the gate that failed.", required: true },
+    answeringCustomToolUseIds: { type: "ReadonlySet<string>", description: "The custom tool calls whose answer is in flight, by id.", required: true },
     answeringToolUseIds: { type: "ReadonlySet<string>", description: "The tool uses whose answer is in flight, by id.", required: true },
     answerToolUse: { type: "(toolUseId: string, answer: ToolUseAnswer, denyMessage?: string) => Promise<void>", description: "Answer a waiting tool use: allow it, deny it (with an optional message the agent reads), or grant its class for the rest of the turn. The session id is managed internally. Rejects with the server's error.", required: true },
     asks: { type: "readonly ToolUse[]", description: "The live turn's tool uses that wait for a person's answer, in log order; empty when none.", required: true },
@@ -554,6 +595,8 @@ locally, so it is safe in every environment.
     clearFileReviewError: { type: "() => void", description: "Reset every file-review error (both fileDecisionErrors and `fileReviewError`).", required: true },
     clearSendError: { type: "() => void", description: "Reset `sendError` to `null` (keeps the preserved pending message).", required: true },
     connectTimedOut: { type: "boolean", description: "`true` when the follow opened but delivered nothing within the watchdog window, even after a silent reconnect. Surface an actionable banner wired to reconnectStream.", required: true },
+    customToolAnswerErrors: { type: "ReadonlyMap<string, Error>", description: "Each custom tool call's last failed answer, keyed by its id.", required: true },
+    customToolUses: { type: "readonly ToolUse[]", description: "The live turn's calls of the app's own tools (the session's `custom_tools`) that wait for the app's answer (`waiting_on_host`), in log order; empty when none. An answered call leaves the list, and an ended turn's unanswered calls read `stopped`, so a replayed conversation lists only what still waits.", required: true },
     fileChangeCaptures: { type: "ReadonlyMap<string, FileChangeSet>", description: "The captured change sets the conversation's runs hold (each file's before/after bytes), keyed by change set id: what a review card renders its diffs and capture provenance from. Never a decision's source.", required: true },
     fileChangeProgress: { type: "FileChangeProgress | undefined", description: "Mid-turn live capture: the transient, non-authoritative snapshot of the workspace delta accumulating during the live turn (\"N files changed so far\"). Undefined when no turn is capturing. Never decidable — the reviewed changes are fileReviewSets.", required: true },
     fileDecisionErrors: { type: "ReadonlyMap<string, Error>", description: "Per-decision failures, keyed by fileDecisionKey: the React kit's session viewer says Couldn't undo on the file, with Try again.", required: true },
