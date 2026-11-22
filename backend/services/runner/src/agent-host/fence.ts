@@ -116,6 +116,7 @@ function deepestCommonAncestor(paths: readonly string[]): string {
   const split = (path: string): string[] => path.slice(parse(path).root.length).split(sep).filter((s) => s !== "");
   let common = split(paths[0]!);
   for (const path of paths.slice(1)) {
+    /* v8 ignore next -- @preserve: two roots happen only on Windows, between drive letters */
     if (parse(path).root !== root) return root;
     const segments = split(path);
     let n = 0;

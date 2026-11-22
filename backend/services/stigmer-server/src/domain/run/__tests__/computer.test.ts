@@ -229,6 +229,15 @@ describe("an agent without a computer", () => {
     ]);
   });
 
+  it("passes over a plugin's MCP server with no transport recorded: there is no address to judge", () => {
+    const unset: RunPlugin = {
+      id: "plg_unset",
+      name: "unset",
+      status: create(PluginStatusSchema, { mcpServers: [{ name: "pending" }] }),
+    };
+    expect(() => refuseAgentWithoutComputer(noComputer(), [unset], [])).not.toThrow();
+  });
+
   it("refuses nothing when the agent has a computer", () => {
     for (const computer of [Computer.REQUIRED, Computer.UNSPECIFIED]) {
       refuseAgentWithoutComputer(

@@ -107,6 +107,8 @@ export async function hostHarnesses(
     slot: "fenced",
     fenced: true,
     startOnFirstUse: true,
+    // The environment is read only when a built entry starts locked, which no test from source can (`fence.ts`); scripts/verify-agent-host-boot.mjs --fenced boots one.
+    /* v8 ignore next -- @preserve: runs only when a built entry spawns locked */
     start: options.startFenced ?? processHostStarter(() => fencedHostEnvironment(hostEnvironment()), { fenced: true }),
   });
   // From here on, the runtime's operations on the agent's paths are the host's.

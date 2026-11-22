@@ -16,7 +16,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import { afterEach, describe, expect, it } from "vitest";
-import { emptyCheckpoint, type BaseCheckpointSaver, type Checkpoint, type CheckpointMetadata } from "@langchain/langgraph-checkpoint";
+import { emptyCheckpoint, type BaseCheckpointSaver, type Checkpoint, type CheckpointMetadata, type SerializerProtocol } from "@langchain/langgraph-checkpoint";
 import type { RunnableConfig } from "@langchain/core/runnables";
 import { AIMessage, HumanMessage } from "@langchain/core/messages";
 
@@ -152,6 +152,46 @@ describe("the relayed saver", () => {
       await expect(relayed.getTuple({ configurable: {} })).rejects.toThrow("must name its thread");
       const all = relayed.list({ configurable: {} });
       await expect(all.next()).rejects.toThrow("must name its thread");
+    } finally {
+      rows.close();
+    }
+  });
+});
+
+describe("the serializer over rows", () => {
+  it("refuses a save that names no thread or no checkpoint, as the reference saver does", async () => {
+    const rows = new SqliteCheckpointRows(freshFile());
+    try {
+      const relayed = relayedSaver(rows);
+      await expect(relayed.put({ configurable: {} }, checkpoint("cp-1", {}), meta(0), {})).rejects.toThrow('Missing "thread_id"');
+      await expect(relayed.putWrites({ configurable: {} }, [["messages", []]], "task-a")).rejects.toThrow("Missing thread_id");
+      await expect(relayed.putWrites(config(), [["messages", []]], "task-a")).rejects.toThrow("Missing checkpoint_id");
+    } finally {
+      rows.close();
+    }
+  });
+
+  it("refuses a checkpoint and metadata its serializer gives different types", async () => {
+    const serde: SerializerProtocol = {
+      dumpsTyped: async (value: unknown) => [typeof value === "object" && value !== null && "channel_values" in value ? "json" : "bytes", new Uint8Array([1])],
+      loadsTyped: async () => ({}),
+    };
+    const rows = new SqliteCheckpointRows(freshFile());
+    try {
+      await expect(new RowsCheckpointSaver(rows, serde).put(config(), checkpoint("cp-1", {}), meta(0), {})).rejects.toThrow("same type");
+    } finally {
+      rows.close();
+    }
+  });
+
+  it("deletes a thread's checkpoints and writes through the relay", async () => {
+    const rows = new SqliteCheckpointRows(freshFile());
+    try {
+      const relayed = relayedSaver(rows);
+      await converse(relayed);
+      await relayed.deleteThread(THREAD);
+      expect(await relayed.getTuple(config())).toBeUndefined();
+      expect(await rows.listRows({ threadId: THREAD })).toEqual([]);
     } finally {
       rows.close();
     }

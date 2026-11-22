@@ -230,6 +230,28 @@ describe("ExecuteDeepAgent hermetic — a conversation without a computer", () =
     });
   });
 
+  it("refuses the turn, before the model is asked, when a saved subagent has a computer", async () => {
+    clock.reset();
+    const worker = savedAgentFixture("worker", { description: "Works.", instructions: WORKER, computer: Computer.REQUIRED });
+    const record = deepAgentExecutionRecord({ message: "Delegate.", subagents: [worker], computer: Computer.NONE });
+    const scenario = beginDeepAgentScenario({
+      env,
+      clock,
+      record,
+      script: () => {
+        throw new Error("the model must never be asked when the turn is refused");
+      },
+    });
+
+    const invocation = await runDeepAgentTurn(scenario);
+
+    expect(invocation.outcome.kind).toBe("returned");
+    const final = record.lastFullStatus!;
+    expect(final.phase).toBe(RunPhase.RUN_FAILED);
+    expect(final.error).toContain("subagent 'worker'");
+    expect(final.error).toContain("give the agent a computer");
+  });
+
   it("offers both a shell when the conversation has a computer, recorded or from before the setting", async () => {
     for (const computer of [Computer.REQUIRED, undefined]) {
       const seen = await offered(computer);

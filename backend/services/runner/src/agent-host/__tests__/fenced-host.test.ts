@@ -9,7 +9,7 @@
  * locked boot (`scripts/verify-agent-host-boot.mjs --fenced`).
  */
 
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import { DEEP_AGENT_CAPABILITIES } from "../../activities/execute-deep-agent/deep-agent-capabilities.js";
 import { testConfig } from "../../__test-utils__/config-fixture.js";
@@ -50,6 +50,7 @@ function hosts(
     readonly inTurn?: InTurn;
     readonly startError?: Error;
     readonly dieBeforeHello?: boolean;
+    readonly closeFails?: boolean;
   } = {},
 ): Hosts {
   const state = {
@@ -74,6 +75,7 @@ function hosts(
         return null;
       });
       host.handle("closeCheckpointRows", async ({ sessionId }) => {
+        if (options.closeFails) throw new Error("the file is busy");
         state.closed.push(sessionId);
         return null;
       });
@@ -226,6 +228,29 @@ describe("a locked host's saved state", () => {
     expect(open.checkpointCalls).toEqual([{ sessionId: input.sessionId, op: ownOp(input.threadId) }]);
     expect(open.closed).toEqual([input.sessionId]);
     await adapter.shutdown();
+  });
+
+  it("settles the turn as the engine settled it when the file can't be closed, and says so", async () => {
+    const warned: string[] = [];
+    const warn = vi.spyOn(console, "warn").mockImplementation((message: string) => void warned.push(message));
+    try {
+      const open = hosts({ closeFails: true });
+      const input = withoutComputer();
+      const locked = hosts({
+        fence: LOCKED,
+        execArgv: LOCK,
+        inTurn: async (host, turnId) => {
+          await host.call("checkpointRows", { turnId, op: ownOp(input.threadId) });
+        },
+      });
+      const { adapter } = runner(open, locked);
+      await adapter.boot(testConfig());
+      expect(await run(adapter, input)).toEqual({ kind: "completed" });
+      expect(warned.some((line) => line.includes(`the session's checkpoint file was not closed: session=${input.sessionId}`))).toBe(true);
+      await adapter.shutdown();
+    } finally {
+      warn.mockRestore();
+    }
   });
 
   it("refuses an op naming another thread, or of a kind the runner does not know, and stores nothing", async () => {

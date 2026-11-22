@@ -41,6 +41,7 @@
  */
 
 import { spawn, type ChildProcess } from "node:child_process";
+import { existsSync, realpathSync } from "node:fs";
 import { randomBytes } from "node:crypto";
 import { createInterface } from "node:readline";
 import type { Readable, Writable } from "node:stream";
@@ -441,7 +442,11 @@ export function agentHostCommand(
   readonly env: Readonly<Record<string, string>>;
   readonly execArgv?: readonly string[];
 } {
-  const entry = options.entry ?? fileURLToPath(RUNNER_ENTRY_URL);
+  const named = options.entry ?? fileURLToPath(RUNNER_ENTRY_URL);
+  // The locked host is handed its entry's real path: Node resolves the path
+  // it is given component by component, and a link on the way (macOS's
+  // `/var`, an install behind a symlink) sits outside the one read grant.
+  const entry = options.fenced && existsSync(named) ? realpathSync(named) : named;
   const fence = options.fenced ? fencedHostLaunch(entry) : undefined;
   // Running from source (the tests' spawned hosts, `npm start`): the entry
   // is TypeScript, loaded the way the runner itself was. A locked host never

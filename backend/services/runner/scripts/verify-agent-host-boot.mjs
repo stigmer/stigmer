@@ -49,9 +49,12 @@ function option(name) {
   return index === -1 ? undefined : process.argv[index + 1];
 }
 
-const entry = resolve(option("--entry") ?? fileURLToPath(new URL("../dist/main.js", import.meta.url)));
-const nodeBinary = option("--node") ?? process.execPath;
 const fenced = process.argv.includes("--fenced");
+const named = resolve(option("--entry") ?? fileURLToPath(new URL("../dist/main.js", import.meta.url)));
+// The runner hands the locked host its entry's real path (`agentHostCommand`):
+// a link on the way (macOS's `/var`) is outside the one read grant.
+const entry = fenced && existsSync(named) ? realpathSync(named) : named;
+const nodeBinary = option("--node") ?? process.execPath;
 const label = fenced ? "the locked host" : "the host";
 
 function fail(message) {

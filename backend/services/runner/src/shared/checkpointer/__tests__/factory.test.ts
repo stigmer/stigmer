@@ -45,6 +45,10 @@ describe("createCheckpointer", () => {
     await expect(createCheckpointer({ type: "relayed" })).rejects.toThrow(CheckpointerCreationError);
   });
 
+  it("refuses a type it does not know, naming the four it does", async () => {
+    await expect(createCheckpointer({ type: "redis" as unknown as "memory" })).rejects.toThrow("Valid types: sqlite, http, memory, relayed");
+  });
+
   it("returns HttpCheckpointSaver for type=http", async () => {
     const saver = await createCheckpointer({
       type: "http",

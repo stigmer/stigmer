@@ -28,7 +28,7 @@
  *    its name and capabilities, and starts no host before a harness boots.
  */
 
-import { chmodSync, existsSync, mkdtempSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { chmodSync, existsSync, mkdtempSync, readFileSync, realpathSync, rmSync, statSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { delimiter, dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -38,6 +38,7 @@ import { DEEP_AGENT_CAPABILITIES } from "../../activities/execute-deep-agent/dee
 import { testConfig } from "../../__test-utils__/config-fixture.js";
 import type { HarnessAdapter } from "../../harness/types.js";
 import { RUNNER_ENTRY_URL } from "../../runner-entry.js";
+import { FenceRefusedError } from "../fence.js";
 import { Peer, loopbackChannels } from "../channel.js";
 import { agentFs, installAgentFs, localAgentFs } from "../../shared/agent-fs.js";
 import { serveAgentHost } from "../host.js";
@@ -211,6 +212,24 @@ describe("the production starter", () => {
     expect(env, "plain Node needs nothing").toEqual({});
     expect(agentHostCommand({ ...process.versions, electron: "33.2.0" }).env, "Electron runs the entry as Node").toEqual({ ELECTRON_RUN_AS_NODE: "1" });
     expect(fileURLToPath(RUNNER_ENTRY_URL).endsWith("main.ts")).toBe(true);
+  });
+
+  it("starts the locked host under its lock, on its entry's real path, and refuses one from source", () => {
+    const real = realpathSync(mkdtempSync(join(tmpdir(), "locked-entry-")));
+    const linked = `${real}-link`;
+    try {
+      writeFileSync(join(real, "main.js"), "");
+      symlinkSync(real, linked);
+      const { command, args, env, execArgv } = agentHostCommand(process.versions, null, "", { fenced: true, entry: join(linked, "main.js") });
+      expect(command).toBe(process.execPath);
+      expect(execArgv).toEqual(["--permission", `--allow-fs-read=${real}`]);
+      expect(args, "a link on the way would sit outside the grant").toEqual([...execArgv!, join(real, "main.js"), AGENT_HOST_MODE_ARG]);
+      expect(env["LANGSMITH_CONFIG_FILE"]?.startsWith(real)).toBe(true);
+      expect(() => agentHostCommand(process.versions, null, "", { fenced: true })).toThrow(FenceRefusedError);
+    } finally {
+      rmSync(linked, { force: true });
+      rmSync(real, { recursive: true, force: true });
+    }
   });
 
   it("starts setpriv by its absolute path on the runner's own PATH, so a folder the agent writes leading the host's PATH cannot stand in for it", () => {
