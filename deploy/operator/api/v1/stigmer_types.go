@@ -323,8 +323,9 @@ type VolumeSpec struct {
 
 // ObjectStoreSpec is the bucket Stigmer keeps its files in.
 type ObjectStoreSpec struct {
-	// S3 is any S3-compatible bucket: AWS S3, Cloudflare R2, MinIO, or Google
-	// Cloud Storage through its S3 API.
+	// S3 is any S3-compatible bucket: AWS S3, Cloudflare R2, SeaweedFS, MinIO,
+	// or Google Cloud Storage through its S3 API. Agent Substrate's snapshots
+	// need a store other than Cloud Storage, whose S3 API refuses them.
 	S3 S3Spec `json:"s3"`
 }
 

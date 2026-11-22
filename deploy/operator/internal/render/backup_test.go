@@ -64,6 +64,30 @@ func TestTheArchiveGoesToTheBucketsPostgresPrefix(t *testing.T) {
 	if _, has := cfg["s3AddressingStyle"]; has {
 		t.Error("AWS S3 is forced to path-style")
 	}
+	if _, has, _ := unstructured.NestedFieldNoCopy(BackupObjectStoreObject(aws).Object, "spec", "instanceSidecarConfiguration"); has {
+		t.Error("AWS S3's archiver is taken off the SDK's checksum defaults")
+	}
+}
+
+// Google Cloud Storage's S3 API refuses the AWS SDKs' default request
+// checksums, so the archiver of a store named by an endpoint asks for them
+// only when an operation requires them (stigmer/stigmer#3415).
+func TestANamedStoresArchiverAsksForChecksumsOnlyWhenRequired(t *testing.T) {
+	st := profiles()["bucket"]
+	env, _, err := unstructured.NestedSlice(BackupObjectStoreObject(st).Object, "spec", "instanceSidecarConfiguration", "env")
+	if err != nil {
+		t.Fatal(err)
+	}
+	got := map[string]any{}
+	for _, item := range env {
+		e := item.(map[string]any)
+		got[e["name"].(string)] = e["value"]
+	}
+	for _, name := range []string{"AWS_REQUEST_CHECKSUM_CALCULATION", "AWS_RESPONSE_CHECKSUM_VALIDATION"} {
+		if got[name] != "when_required" {
+			t.Errorf("the archiver's %s is %v, want when_required", name, got[name])
+		}
+	}
 
 	byo := profiles()["byo"]
 	byo.Spec.ObjectStore = st.Spec.ObjectStore

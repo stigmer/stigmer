@@ -27,7 +27,9 @@ says in words what is ready and what it is waiting for.
 
 ## What you need
 
-- A Kubernetes cluster, 1.30 or newer, with a default storage class.
+- A Kubernetes cluster, 1.30 or newer, with a default storage class. GKE 1.37
+  marks none default; mark one yourself, for example
+  `kubectl patch storageclass standard-rwo -p '{"metadata":{"annotations":{"storageclass.kubernetes.io/is-default-class":"true"}}}'`.
 - `helm` 3 and `kubectl`, pointed at the cluster.
 - The Stigmer CLI on your laptop. The
   [quickstart](/docs/getting-started/quickstart) has the install commands.
@@ -39,7 +41,9 @@ Some declarations need more from the cluster, and the status names what is
 missing: [cert-manager](https://cert-manager.io) for backups and for a
 certificate it issues, a network plugin that enforces NetworkPolicies for the
 fences around the database, Temporal and each sandbox, and, for Agent Substrate,
-the pod-certificate APIs described [below](#a-sandbox-for-each-session).
+the pod-certificate APIs described [below](#a-sandbox-for-each-session). A
+hostname needs an ingress controller, such as Traefik, or a Gateway, and
+cert-manager with an issuer for its certificate; the operator installs neither.
 
 ## Install
 
@@ -205,9 +209,12 @@ spec:
 Point `stigmer.example.com` at your ingress controller. cert-manager issues the
 certificate through the issuer you name, and the front door is `Ready` only once
 the certificate is; while DNS is missing, the status says what to point where.
-To keep a certificate yourself, name its Secret in `tls.secretName` instead. On
-a cluster that runs Gateway API, `gatewayRef` attaches the routes to your
-Gateway, whose listener holds the certificate.
+An issuance that failed while DNS or the load balancer was still settling is
+retried on cert-manager's own backoff, which reaches an hour;
+`cmctl renew stigmer-tls -n stigmer` retries it at once. To keep a certificate
+yourself, name its Secret in `tls.secretName` instead. On a cluster that runs
+Gateway API, `gatewayRef` attaches the routes to your Gateway, whose listener
+holds the certificate.
 
 The CLI, the desktop app and the SDKs speak gRPC, which needs HTTP/2 from your
 controller to the server. A controller that takes its hint on the Ingress reads
@@ -244,6 +251,9 @@ stigmer config backend add prod --endpoint stigmer.example.com:443
 stigmer config backend use prod
 stigmer auth login
 ```
+
+The sign-in asks once whether to grant access to the Stigmer desktop app and
+CLI; grant it.
 
 **Your own identity provider** replaces the bundled sign-in. Register Stigmer
 with it as the [authentication guide](./authentication) describes, then name it:
@@ -323,13 +333,16 @@ database:
         retention: 30d
 ```
 
-Any S3-compatible bucket works: AWS S3, Cloudflare R2, MinIO, and Google Cloud
-Storage through its S3 API, with `endpoint` naming the service. Only the server
-and the database hold the bucket's keys; a runner reads and writes through
-short-lived URLs the server signs. Backups need cert-manager on the cluster; the
-operator installs CloudNativePG's backup plugin itself. The Backup column of
-`kubectl get stigmer` shows the last full backup, and a failing backup never
-takes the install out of `Ready`: the `BackupHealthy` condition says so instead.
+Any S3-compatible bucket works for files and backups: AWS S3, Cloudflare R2,
+SeaweedFS or MinIO in the cluster, and Google Cloud Storage through its S3 API
+with an HMAC key, with `endpoint` naming the service. Agent Substrate's
+snapshots are the exception: Cloud Storage's S3 API refuses them, so with that
+driver use another store. Only the server and the database hold the bucket's
+keys; a runner reads and writes through short-lived URLs the server signs.
+Backups need cert-manager on the cluster; the operator installs CloudNativePG's
+backup plugin itself. The Backup column of `kubectl get stigmer` shows the last
+full backup, and a failing backup never takes the install out of `Ready`: the
+`BackupHealthy` condition says so instead.
 [Back up and upgrade your stack](./operations) has the restore.
 
 ## A sandbox for each Session

@@ -110,15 +110,28 @@ func BackupObjectStoreObject(st *stigmerv1.Stigmer) *unstructured.Unstructured {
 		"wal":  map[string]any{"compression": "gzip"},
 		"data": map[string]any{"compression": "gzip"},
 	}
+	spec := map[string]any{"configuration": configuration}
 	if s3.Endpoint != "" {
 		configuration["endpointURL"] = s3.Endpoint
 		// A named store serves no per-bucket hostnames.
 		configuration["s3AddressingStyle"] = "path"
+		// The archiver's AWS SDK computes a checksum for every request by
+		// default, and Google Cloud Storage's S3 API refuses such a request
+		// with SignatureDoesNotMatch, so no WAL segment could be archived
+		// there (stigmer/stigmer#3415). A named store gets checksums only
+		// where an operation requires them; AWS S3 keeps the defaults.
+		spec["instanceSidecarConfiguration"] = map[string]any{
+			"env": []any{
+				map[string]any{"name": "AWS_REQUEST_CHECKSUM_CALCULATION", "value": "when_required"},
+				map[string]any{"name": "AWS_RESPONSE_CHECKSUM_VALIDATION", "value": "when_required"},
+			},
+		}
 	}
 	retention := DefaultBackupRetention
 	if b := BundledDatabase(st).Backup; b != nil && b.Retention != "" {
 		retention = b.Retention
 	}
+	spec["retentionPolicy"] = retention
 	return &unstructured.Unstructured{Object: map[string]any{
 		"apiVersion": BarmanAPIVersion,
 		"kind":       "ObjectStore",
@@ -127,10 +140,7 @@ func BackupObjectStoreObject(st *stigmerv1.Stigmer) *unstructured.Unstructured {
 			"namespace": st.Namespace,
 			"labels":    labelsAny(st, ComponentDatabase),
 		},
-		"spec": map[string]any{
-			"configuration":   configuration,
-			"retentionPolicy": retention,
-		},
+		"spec": spec,
 	}}
 }
 
