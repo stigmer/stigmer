@@ -8,9 +8,7 @@
  *    agent's and a saved subagent's alike, whatever their lists say;
  *  - an eval try's setup writes nothing (`prepareEvalCaseWithoutDisk`): its
  *    reference folders are listed under `inputs/` and handed to the reader,
- *    and a case with a scaffold does not run;
- *  - the engine refuses a turn that still carries a hook
- *    (`execute-deep-agent/hooks-setup.ts`), and runs one that carries none.
+ *    and a case with a scaffold does not run.
  */
 import { create } from "@bufbuild/protobuf";
 import { EvalCaseContextSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/eval_case_pb";
@@ -21,18 +19,13 @@ import { afterAll, describe, expect, it } from "vitest";
 import { createHermeticEnvironment } from "../../__test-utils__/hermetic-activity.js";
 import { mockStigmerClient } from "../../__test-utils__/mock-client.js";
 import { testConfig } from "../../__test-utils__/config-fixture.js";
-import { turnInputFixture } from "../../__test-utils__/turn-input-fixture.js";
-import { buildHookEvaluator, HookSetupError } from "../../activities/execute-deep-agent/hooks-setup.js";
 import { TimingRecorder } from "../../shared/cold-start-timing.js";
 import { caseArchiveOf } from "../../shared/eval-case/case-archive.js";
 import { prepareEvalCaseWithoutDisk, SCAFFOLD_NEEDS_A_COMPUTER } from "../../shared/eval-case/prepare-case.js";
-import { NO_TURN_INPUTS } from "../../shared/inputs-reader.js";
-import { newOutputsBuffer } from "../../shared/outputs-buffer.js";
 import { ToolScope } from "../../shared/tool-lists.js";
 import { acquireDirectoryLock } from "../../shared/workspace/workspace-lock.js";
 import { TranscriptBuilder } from "../transcript/builder.js";
 import { acquireConversationTurnLock, withoutShell, type ResolutionDeps } from "../turn-context.js";
-import type { TurnHookSource, TurnInput } from "../types.js";
 import { TurnRowsSchema } from "../../gen/turn/ai/stigmer/runner/turn/v1/rows_pb.js";
 
 const env = createHermeticEnvironment();
@@ -62,9 +55,6 @@ function deps(sessionId: string): ResolutionDeps {
   };
 }
 
-function noComputer(overrides: Partial<TurnInput> = {}): TurnInput {
-  return { ...turnInputFixture(), workspace: { computer: false, files: { inputs: NO_TURN_INPUTS, outputs: newOutputsBuffer() } }, ...overrides };
-}
 
 describe("a conversation without a computer", () => {
   it("serializes its turns on a lock keyed by the conversation", async () => {
@@ -111,12 +101,5 @@ describe("a conversation without a computer", () => {
 
     const scaffolded = prepareEvalCaseWithoutDisk({ context: create(EvalCaseContextSchema, { caseDir: "evals/c1", scaffoldScript: "setup.sh" }), archive });
     expect(scaffolded).toEqual({ kind: "scaffold-failed", detail: SCAFFOLD_NEEDS_A_COMPUTER });
-  });
-
-  it("refuses a turn that still carries a hook, and runs one that carries none", async () => {
-    const sink = { stopSignal: new AbortController().signal, recordActivity: () => {} };
-    expect(await buildHookEvaluator(noComputer(), sink, 1_000)).toBeNull();
-    const hooked = noComputer({ hooks: { sources: [{ format: "claude" } as unknown as TurnHookSource], serverNames: new Map() } });
-    await expect(buildHookEvaluator(hooked, sink, 1_000)).rejects.toBeInstanceOf(HookSetupError);
   });
 });

@@ -19,7 +19,10 @@ import { MemorySaver } from "@langchain/langgraph";
 import { createDeepAgent } from "deepagents";
 import { describe, expect, it } from "vitest";
 
-import { InputFileNotFoundError, type InputFileInfo, type TurnInputFiles } from "../../../shared/inputs-reader.js";
+import { InputFileNotFoundError, NO_TURN_INPUTS, type InputFileInfo, type TurnInputFiles } from "../../../shared/inputs-reader.js";
+import { turnInputFixture } from "../../../__test-utils__/turn-input-fixture.js";
+import type { TurnHookSource, TurnInput } from "../../../harness/types.js";
+import { buildHookEvaluator, HookSetupError } from "../hooks-setup.js";
 import { newOutputsBuffer } from "../../../shared/outputs-buffer.js";
 import type { TurnOffloads } from "../../../shared/offload-store.js";
 import { computerlessFileBackend, MAX_NOTE_BYTES, OFFLOAD_KEYS_ROOT } from "../computerless-files.js";
@@ -176,5 +179,67 @@ describe("the file layer without a computer", () => {
     const read = await turn(graph);
     expect(read.get("big")).toMatch(/Notes are kept with this conversation, up to 262144 bytes each/);
     expect(routesOffloads(layer), "without artifact storage nothing is set aside").toBe(false);
+  });
+});
+
+describe("the file layer without a computer — its refusals, read directly", () => {
+  const layer = () => {
+    const buffer = newOutputsBuffer();
+    return { buffer, backend: computerlessFileBackend({ inputs: inputs(), outputs: buffer }, undefined) };
+  };
+
+  it("keeps the outputs folder and the person's earlier Files, and refuses what the server would not take", async () => {
+    const { buffer, backend } = layer();
+    expect((await backend.write("/.stigmer/outputs/new.md", "fresh")).error).toBeUndefined();
+    expect((await backend.ls("/.stigmer/outputs")).files?.map((file) => file.path).sort()).toEqual(["/.stigmer/outputs/new.md", "/.stigmer/outputs/reply.md"]);
+    expect((await backend.delete("/.stigmer/outputs/new.md")).error).toBeUndefined();
+    expect(await buffer.read("new.md")).toBeUndefined();
+    expect((await backend.delete("/.stigmer/outputs/reply.md")).error).toMatch(/returned to the person in an earlier turn/);
+    expect((await backend.delete("/.stigmer/outputs/missing.md")).error).toMatch(/not found/);
+    expect((await backend.delete("/.stigmer/outputs")).error).toMatch(/is the outputs folder and stays/);
+    expect((await backend.write("/.stigmer/outputs/a\\b.md", "x")).error).toMatch(/not a path inside the outputs folder/);
+    expect((await backend.write("/.stigmer/outputs/huge.bin", "z".repeat(8 * 1024 * 1024 + 1))).error).toMatch(/up to 8388608 bytes each/);
+    expect((await backend.edit("/.stigmer/outputs/missing.md", "a", "b")).error).toMatch(/not found/);
+    expect((await backend.edit("/.stigmer/outputs/reply.md", "absent text", "b")).error).toMatch(/String not found/);
+    expect((await backend.uploadFiles([["/.stigmer/outputs/u.bin", new Uint8Array([1])]]))[0]?.error).toBe("permission_denied");
+  });
+
+  it("keeps the conversation's Files and the rest of .stigmer read-only, and finds nothing else there", async () => {
+    const { backend } = layer();
+    expect((await backend.write("/.stigmer/uploads/brief.txt", "x")).error).toMatch(/read-only/);
+    expect((await backend.write("/.stigmer/elsewhere.txt", "x")).error).toMatch(/read-only/);
+    expect((await backend.read("/.stigmer/elsewhere.txt")).error).toMatch(/no such file/);
+    expect((await backend.ls("/.stigmer/inputs")).files).toEqual([]);
+  });
+
+  it("refuses to keep a long result on a runner without storage, and never as a note", async () => {
+    const { backend } = layer();
+    expect((await backend.write("/large_tool_results/call_1.txt", "long")).error).toMatch(/no storage to set results aside in/);
+    expect((await backend.write("/conversation_history/t.md", "long")).error).toMatch(/no storage to set results aside in/);
+  });
+
+  it("refuses an edit or a delete of a set-aside result, and says why a store failure kept nothing", async () => {
+    const failing: TurnOffloads = {
+      put: async () => Promise.reject(new Error("bucket unreachable")),
+      read: async () => new Uint8Array(),
+    };
+    const backend = computerlessFileBackend({ inputs: inputs(), outputs: newOutputsBuffer(), offloads: failing }, undefined);
+    expect((await backend.edit("/large_tool_results/x.txt", "a", "b")).error).toMatch(/read-only/);
+    expect((await backend.delete("/large_tool_results/x.txt")).error).toMatch(/stays/);
+    expect((await backend.write("/large_tool_results/x.txt", "long")).error).toMatch(/could not be set aside: bucket unreachable/);
+  });
+});
+
+describe("the engine's hooks without a computer", () => {
+  it("refuses a turn that still carries a hook, and runs one that carries none", async () => {
+    const sink = { stopSignal: new AbortController().signal, recordActivity: () => {} };
+    const noComputer = (hooks?: TurnInput["hooks"]): TurnInput => ({
+      ...turnInputFixture(),
+      workspace: { computer: false, files: { inputs: NO_TURN_INPUTS, outputs: newOutputsBuffer() } },
+      ...(hooks !== undefined && { hooks }),
+    });
+    expect(await buildHookEvaluator(noComputer(), sink, 1_000)).toBeNull();
+    const hooked = noComputer({ sources: [{ format: "claude" } as unknown as TurnHookSource], serverNames: new Map() });
+    await expect(buildHookEvaluator(hooked, sink, 1_000)).rejects.toBeInstanceOf(HookSetupError);
   });
 });

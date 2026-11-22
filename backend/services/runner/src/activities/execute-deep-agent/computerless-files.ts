@@ -29,10 +29,10 @@
  *  - `/large_tool_results/`, `/conversation_history/`: what is set aside
  *    from the context, its bytes in the runner's artifact storage
  *    (`shared/offload-store.ts`), only each path's key in the saved state,
- *    under {@link OFFLOAD_KEYS_ROOT}, which the notes never show. Routed
- *    only where the runner has artifact storage, so `routesOffloads` admits
- *    the layer only then; without it a long result is cut and not kept, as
- *    a turn without an offload route is today.
+ *    under {@link OFFLOAD_KEYS_ROOT}, which the notes never show. On a
+ *    runner without artifact storage the roots refuse every write, and
+ *    `routesOffloads` does not admit the layer: a long result is cut and
+ *    not kept, and never falls through to the notes.
  *  - Any other path under `/.stigmer/`: nothing, read-only, in the
  *    platform route's own words.
  *
@@ -96,13 +96,18 @@ export function computerlessFileBackend(files: TurnStoreFiles, archives: TurnArc
   for (const folder of archives?.folders ?? []) routes[`/${folder}/`] = new StoreContentBackend(folder, archives!);
   for (const folder of INPUT_FOLDERS) routes[`/${folder}/`] = new StoreContentBackend(folder, inputsUnder(files.inputs, folder), true);
   routes[`/${OUTPUTS_SUBDIR}/`] = outputs;
-  const offloads =
-    files.offloads === undefined
-      ? {}
-      : Object.fromEntries(
-          [DEEPAGENTS_OFFLOAD_ROOT, DEEPAGENTS_HISTORY_ROOT].map((prefix) => [prefix, new SetAsideBackend(prefix, files.offloads!, state)]),
-        );
-  return new PlatformRoutedBackend(notes, new CompositeBackend(new NoOtherPlatformContent(), routes), outputs, offloads);
+  // Without artifact storage the offload roots still route, to a backend
+  // that keeps nothing, so a long result is cut and never lands in the
+  // notes (and the saved state) by falling through to `/`.
+  const offloads = Object.fromEntries(
+    [DEEPAGENTS_OFFLOAD_ROOT, DEEPAGENTS_HISTORY_ROOT].map((prefix) => [
+      prefix,
+      files.offloads === undefined
+        ? new NoOtherPlatformContent((path) => `Error: '${prefix.slice(0, -1)}${path}' cannot be kept: this runner has no storage to set results aside in`)
+        : new SetAsideBackend(prefix, files.offloads, state),
+    ]),
+  );
+  return new PlatformRoutedBackend(notes, new CompositeBackend(new NoOtherPlatformContent(), routes), outputs, offloads, files.offloads !== undefined);
 }
 
 /** The reader's inputs under one folder. */
@@ -397,9 +402,14 @@ function replaceString(content: string, oldString: string, newString: string, re
 
 /**
  * `.stigmer/` itself and any path under it no route serves: nothing to
- * list or read, every write refused in the platform route's words.
+ * list or read, every write refused in the platform route's words. Also an
+ * offload root on a runner with no artifact storage, refusing in its own,
+ * so a long result is cut and never falls through to the notes.
  */
 class NoOtherPlatformContent implements BackendProtocolV2 {
+  /** `refuseWrite`: the sentence a write is refused with, by path; the platform route's read-only one when absent. */
+  constructor(private readonly refuseWrite: (filePath: string) => string = readOnlyPlatformContent) {}
+
   ls(): LsResult {
     return { files: [] };
   }
@@ -421,15 +431,15 @@ class NoOtherPlatformContent implements BackendProtocolV2 {
   }
 
   write(filePath: string): WriteResult {
-    return { error: readOnlyPlatformContent(filePath) };
+    return { error: this.refuseWrite(filePath) };
   }
 
   edit(filePath: string): EditResult {
-    return { error: readOnlyPlatformContent(filePath) };
+    return { error: this.refuseWrite(filePath) };
   }
 
   delete(filePath: string): DeleteResult {
-    return { error: readOnlyPlatformContent(filePath) };
+    return { error: this.refuseWrite(filePath) };
   }
 
   uploadFiles(files: Array<[string, Uint8Array]>): FileUploadResponse[] {
