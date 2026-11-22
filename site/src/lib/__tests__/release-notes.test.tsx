@@ -114,6 +114,17 @@ describe("release notes", () => {
     expect(container.querySelector("pre")?.textContent).toBe("stigmer up\n");
   });
 
+  it("makes a code block and a table, which scroll sideways, Tab stops", async () => {
+    const container = await drawn("```bash\nstigmer up\n```\n\n| Was | Is |\n| --- | --- |\n| `r2` | `s3` |");
+    const table = container.querySelector("table");
+
+    expect(container.querySelector("pre")?.getAttribute("tabindex")).toBe("0");
+    expect(container.querySelector("pre")?.className).toContain("overflow-x-auto");
+    expect([...(table?.querySelectorAll("th, td") ?? [])].map(words)).toEqual(["Was", "Is", "r2", "s3"]);
+    expect(table?.parentElement?.getAttribute("tabindex")).toBe("0");
+    expect(table?.parentElement?.className).toContain("overflow-x-auto");
+  });
+
   it("leaves no Markdown mark in the words", async () => {
     const container = await drawn(
       [

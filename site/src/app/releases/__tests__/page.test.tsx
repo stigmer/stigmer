@@ -99,11 +99,14 @@ describe("/releases route", () => {
     expect(within(release(container, "v0.3.1")).getByText("Latest").closest("h2")).not.toBeNull();
   });
 
-  it("dates each release by its publish day in UTC", async () => {
+  it("dates each release by its publish day in UTC, wherever the build runs", async () => {
+    // 01:32 UTC on the 22nd is still the 21st in Los Angeles.
+    vi.stubEnv("TZ", "America/Los_Angeles");
+    expect(new Date("2026-11-22T01:32:30Z").getDate(), "the test's own zone took effect").toBe(21);
+
     const container = await page();
     const time = release(container, "v0.3.1").querySelector("time");
 
-    // 01:32 UTC on the 22nd is still the 21st across the Americas.
     expect(time?.textContent).toBe("November 22, 2026");
     expect(time?.getAttribute("datetime")).toBe("2026-11-22T01:32:30Z");
   });

@@ -18,6 +18,8 @@
  */
 import type { ComponentProps, ReactNode } from "react";
 import { Markdown } from "fumadocs-core/content";
+import { SCROLL_REGION } from "@/lib/scroll-region";
+import { cn } from "@/lib/utils";
 
 /** Inline code, as the page's own words and the notes both set it. */
 export const INLINE_CODE =
@@ -58,10 +60,26 @@ const COMPONENTS = {
     <strong className="font-semibold text-foreground">{children}</strong>
   ),
   code: ({ children }: ComponentProps<"code">) => <code className={INLINE_CODE}>{children}</code>,
+  // A block that scrolls sideways is a Tab stop (lib/scroll-region.ts), so a
+  // long code line or a wide table is in reach of the keyboard and never
+  // widens the page.
   pre: ({ children }: ComponentProps<"pre">) => (
-    <pre className="overflow-x-auto rounded border border-border bg-card p-3 [&_code]:bg-transparent [&_code]:p-0">
+    <pre
+      {...SCROLL_REGION}
+      className={cn(
+        "overflow-x-auto rounded border border-border bg-card p-3 [&_code]:bg-transparent [&_code]:p-0",
+        SCROLL_REGION.className,
+      )}
+    >
       {children}
     </pre>
+  ),
+  table: ({ children }: ComponentProps<"table">) => (
+    <div {...SCROLL_REGION} className={cn("overflow-x-auto", SCROLL_REGION.className)}>
+      <table className="[&_td]:border [&_td]:border-border [&_td]:px-2 [&_td]:py-1 [&_th]:border [&_th]:border-border [&_th]:px-2 [&_th]:py-1 [&_th]:text-left [&_th]:font-medium [&_th]:text-foreground">
+        {children}
+      </table>
+    </div>
   ),
   ul: ({ children }: ComponentProps<"ul">) => <ul className={`list-disc ${LIST}`}>{children}</ul>,
   ol: ({ children }: ComponentProps<"ol">) => <ol className={`list-decimal ${LIST}`}>{children}</ol>,

@@ -105,6 +105,17 @@ describe("withoutPullRequestRefs", () => {
   });
 });
 
+describe("withoutPullRequestRefs on a long run of spaces", () => {
+  it("reads the run once: a release body's worth of spaces takes no noticeable time", () => {
+    const spaces = " ".repeat(125_000);
+    const started = performance.now();
+
+    expect(withoutPullRequestRefs(`One.${spaces}(#1)\nTwo.${spaces}end`)).toBe(`One.\nTwo.${spaces}end`);
+    // Read once per space it took 24 seconds; read once it takes milliseconds.
+    expect(performance.now() - started).toBeLessThan(2_000);
+  });
+});
+
 describe("upgradeNoteCount", () => {
   it("counts the top-level bullets, not the ones nested under them or wrapped lines", () => {
     expect(upgradeNoteCount("- One\n  wrapped - not a bullet\n  - nested\n  - nested\n- Two\n\n- Three")).toBe(3);
@@ -286,6 +297,17 @@ describe("loadReleases", () => {
 
     await expect(loadReleases()).rejects.toThrow(
       `Could not read the releases from ${API}?per_page=100&page=1: fetch failed. To build without this read`,
+    );
+  });
+
+  it("throws when the answer is not JSON, naming the address and the way to build without it", async () => {
+    vi.stubGlobal("fetch", async () => new Response("<html>Sign in to the network</html>", { status: 200 }));
+    vi.stubEnv(RELEASES_FILE_ENV, "");
+
+    await expect(loadReleases()).rejects.toThrow(
+      new RegExp(
+        `^Could not read the releases from ${API.replaceAll(".", "\\.")}\\?per_page=100&page=1: the answer is not JSON \\(.+\\)\\. To build without this read, save the list to a file and name it in STIGMER_RELEASES_FILE\\.$`,
+      ),
     );
   });
 

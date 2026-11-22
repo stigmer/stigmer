@@ -50,8 +50,12 @@ const PAGE_SIZE = 100;
 
 const RELEASES_API = `https://api.github.com/repos/${SITE_CONFIG.githubOrg}/${SITE_CONFIG.githubRepo}/releases`;
 
-/** A closing group of pull request numbers: " (#3394)", " (#3356, #3362)". */
-const PULL_REQUEST_REFS = /[ \t]*\((?:#\d+(?:,\s*)?)+\)/g;
+/**
+ * A closing group of pull request numbers with the space before it:
+ * " (#3394)", " (#3356, #3362)". The look-behind starts a match only where a
+ * run of spaces begins, so a long run is read once, not once per space.
+ */
+const PULL_REQUEST_REFS = /(?<![ \t])[ \t]*\((?:#\d+(?:,\s*)?)+\)/g;
 
 /** The shown text of a section: its Markdown without the pull request numbers. */
 export function withoutPullRequestRefs(markdown: string): string {
@@ -171,7 +175,12 @@ async function fetchReleases(): Promise<unknown> {
     if (!response.ok) {
       throw new Error(`Could not read the releases from ${url}: GitHub answered ${response.status}. ${hint}`);
     }
-    const releases: unknown = await response.json();
+    let releases: unknown;
+    try {
+      releases = await response.json();
+    } catch (error) {
+      throw new Error(`Could not read the releases from ${url}: the answer is not JSON (${reason(error)}). ${hint}`);
+    }
     // Anything but a list is handed on as it is, for parseReleases to refuse.
     if (!Array.isArray(releases)) return releases;
     all.push(...releases);

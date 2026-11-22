@@ -11,7 +11,8 @@
 # It holds no secret and runs the website's own dependencies, so a caller may
 # be a fork's pull request. Its one credential is the run's own read-only
 # token, in the one step that saves GitHub's releases list for the Releases
-# page; the steps that run the website's dependencies never see it. The jobs
+# page, before anything is installed; the steps that install and run the
+# website's dependencies never see it. The jobs
 # that hold a Cloudflare key never run this build; they download its artifact
 # and upload files.
 # =============================================================================
@@ -34,6 +35,24 @@ jobs:
         with:
           persist-credentials: false
 
+      # The Releases page lists stigmer/stigmer's releases, the repository
+      # the site names (site/src/lib/constants.ts), and a build that cannot
+      # read them fails (site/src/lib/releases.ts). The list is read here,
+      # with this run's read-only token, and handed to the build as a file.
+      # The build's own read carries no token, so it shares the small
+      # allowance of the runner's address with every other job on it. The
+      # read comes before anything is installed, so no code the website
+      # depends on has run when the token is used, and the token is in no
+      # later step.
+      - name: Save the releases list
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh api --paginate "repos/stigmer/stigmer/releases?per_page=100" --jq '.[]' \
+            | jq --slurp '.' > "${RUNNER_TEMP}/releases.json"
+          echo "Saved $(jq length "${RUNNER_TEMP}/releases.json") releases."
+
       - name: Setup Node
         uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
         with:
@@ -52,22 +71,6 @@ jobs:
 
       - name: Install Vale
         run: make install-vale
-
-      # The Releases page lists GitHub's releases, and a build that cannot
-      # read them fails (site/src/lib/releases.ts). The list is read here,
-      # with this run's read-only token, and handed to the build as a file.
-      # The build's own read carries no token, so it shares the small
-      # allowance of the runner's address with every other job on it, and
-      # reading in a step of its own keeps the token out of the step that
-      # runs the website's dependencies.
-      - name: Save the releases list
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          set -euo pipefail
-          gh api --paginate "repos/${GITHUB_REPOSITORY}/releases?per_page=100" --jq '.[]' \
-            | jq --slurp '.' > "${RUNNER_TEMP}/releases.json"
-          echo "Saved $(jq length "${RUNNER_TEMP}/releases.json") releases."
 
       - name: Build site
         env:
