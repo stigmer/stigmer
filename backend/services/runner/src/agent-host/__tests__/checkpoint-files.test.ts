@@ -73,6 +73,10 @@ describe("a locked host's checkpoint files, on the open host", () => {
     mkdirSync(join(home, ".stigmer"), { recursive: true });
     writeFileSync(join(home, ".stigmer", "sessions"), "");
     await expect(files.serve("ses_a", get("thread-ses_a"))).rejects.toThrow();
+    // A turn that settles while its file is still failing to open closes nothing, quietly.
+    const opening = files.serve("ses_b", get("thread-ses_b"));
+    files.close("ses_b");
+    await expect(opening).rejects.toThrow();
     rmSync(join(home, ".stigmer", "sessions"));
     expect(await files.serve("ses_a", get("thread-ses_a"))).toBeNull();
     files.closeAll();
