@@ -57,9 +57,11 @@ import type { BufferedOutputInfo } from "../shared/outputs-buffer.js";
 import type { RecalledMemoriesContent } from "../shared/recalled-memories.js";
 import type { TimingRecorderWire } from "../shared/cold-start-timing.js";
 import type { TelemetrySettings } from "../otel-export.js";
+import type { CheckpointRowsOp, CheckpointRowsReply } from "../shared/checkpointer/relayed-rows.js";
 import type { RuntimeFieldsWire, WireOffload, WireProjection, WireTurnInput } from "./codec.js";
+import type { HostFenceReport } from "./fence.js";
 
-export const AGENT_HOST_PROTOCOL_VERSION = 20;
+export const AGENT_HOST_PROTOCOL_VERSION = 21;
 
 /**
  * The largest single message either side sends or accepts. A turn's input
@@ -229,6 +231,15 @@ export interface HostCalls {
   readonly fs: { readonly args: FsRequest; readonly result: FsReply };
   /** One process, run by the host with the agent's rights and the host's environment plus `env`. */
   readonly exec: { readonly args: ExecRequest; readonly result: ExecReply };
+  /**
+   * One storage call of a locked host's relayed saver, for the session the
+   * runner names, on that session's checkpoint file
+   * (`shared/checkpointer/relayed-rows.ts`). The runner has already held
+   * every thread it names to the turn's own.
+   */
+  readonly checkpointRows: { readonly args: { readonly sessionId: string; readonly op: CheckpointRowsOp }; readonly result: CheckpointRowsReply };
+  /** The relayed turn has settled: close the session's checkpoint file, as the engine closes its saver at a turn's end. */
+  readonly closeCheckpointRows: { readonly args: { readonly sessionId: string }; readonly result: null };
 }
 
 // ─── The agent's file and process operations ───────────────────────────────
@@ -365,6 +376,12 @@ export interface RunnerCalls {
   /** `TurnStoreFiles.offloads.read`: a set-aside result's bytes, base64, by the key this conversation kept. */
   readonly readTurnOffload: { readonly args: { readonly turnId: string; readonly key: string }; readonly result: string };
   /**
+   * `TurnStoreFiles.checkpointRows`: one storage call of the turn's saved
+   * state, which the runner stores for the turn's own thread and session
+   * (`shared/checkpointer/relayed-rows.ts`).
+   */
+  readonly checkpointRows: { readonly args: { readonly turnId: string; readonly op: CheckpointRowsOp }; readonly result: CheckpointRowsReply };
+  /**
    * `TurnSink.input.claim`: the session's queued messages the runtime took
    * for the turn, their files mounted, and whether more still wait (a claim
    * the server did not answer leaves them waiting).
@@ -425,6 +442,8 @@ export type ResultEnvelope =
 export interface HelloEnvelope {
   readonly kind: "hello";
   readonly protocolVersion: number;
+  /** The host's lock, which a locked host's supervisor holds to the one it built (`fence.ts`); the open host's is ignored. */
+  readonly fence: HostFenceReport;
 }
 
 /** Everything the runner sends. */

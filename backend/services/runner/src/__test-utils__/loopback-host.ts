@@ -18,6 +18,12 @@
  * host installs no process-wide routes (`agent-host/host.ts`), so the
  * test's registry stub and model double are not rerouted.
  *
+ * One host serves every turn here, a turn without a computer included: its
+ * saved state still crosses as relayed rows (`agent-host/host.ts`), which
+ * this same host stores on the session's file under the hermetic home, so
+ * the relay and the codec are the production path's. The lock itself is
+ * the spawned locked host's to show (`agent-host/__tests__/`).
+ *
  * An engine that is a real program of its own (the Claude engine) has no
  * double to stand in for its model client: it dials. Its tests pass the
  * production proxy (`agent-proxy/server.ts`), started in forward mode
@@ -49,5 +55,5 @@ export function loopbackHostedRow(row: HarnessRow, options: { readonly proxy?: A
       return { channel: runnerEnd, kill: () => hostEnd.close() };
     },
   });
-  return { harness: row.harness, adapter: createRemoteAdapter(row.harness, row.adapter, supervisor, proxy) };
+  return { harness: row.harness, adapter: createRemoteAdapter(row.harness, row.adapter, { open: supervisor }, proxy) };
 }

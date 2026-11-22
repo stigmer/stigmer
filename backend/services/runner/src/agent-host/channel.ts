@@ -182,6 +182,7 @@ export class Peer<Out extends CallMap<Out>, In extends CallMap<In>, OutNotices, 
   private closeReason: Error | undefined;
   private readonly closeListeners: ((reason: Error) => void)[] = [];
   private helloVersion: unknown;
+  private helloFields: Readonly<Record<string, unknown>> = {};
   private helloWaiter: ((version: unknown) => void) | undefined;
 
   constructor(
@@ -239,9 +240,14 @@ export class Peer<Out extends CallMap<Out>, In extends CallMap<In>, OutNotices, 
     this.noticeListeners.set(method, listener as NoticeListener);
   }
 
-  /** Announce this side: the host's `hello` (`protocol.ts`). */
-  sendHello(protocolVersion: number): void {
-    if (!this.closeReason) this.channel.send(JSON.stringify({ kind: "hello", protocolVersion }));
+  /** Announce this side: the host's `hello` (`protocol.ts`), with the fields the hello carries beside its version. */
+  sendHello(protocolVersion: number, fields: Readonly<Record<string, unknown>> = {}): void {
+    if (!this.closeReason) this.channel.send(JSON.stringify({ ...fields, kind: "hello", protocolVersion }));
+  }
+
+  /** The far side's hello as it sent it, version and kind aside: read once {@link receivedHello} has settled. */
+  get hello(): Readonly<Record<string, unknown>> {
+    return this.helloFields;
   }
 
   /**
@@ -310,6 +316,7 @@ export class Peer<Out extends CallMap<Out>, In extends CallMap<In>, OutNotices, 
         return;
       }
       case "hello":
+        if (this.helloVersion === undefined) this.helloFields = message;
         this.helloVersion ??= (message as { protocolVersion?: unknown }).protocolVersion ?? null;
         this.helloWaiter?.(this.helloVersion);
         this.helloWaiter = undefined;

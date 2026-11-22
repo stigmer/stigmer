@@ -258,7 +258,10 @@ export function createListPluginToolsActivities(config: Config) {
       try {
         return await listPluginTools(input, {
           stigmerClient,
-          transportPosture: resolveMcpTransportPosture(config.mode),
+          // A listing serves no conversation, so the runner's own posture
+          // decides; a conversation without a computer is refused a stdio
+          // server at the agent's save and at its turns, not here.
+          transportPosture: resolveMcpTransportPosture(config.mode, true),
           platformEndpoints: config,
         });
       } finally {

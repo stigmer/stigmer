@@ -107,6 +107,7 @@ test("the checked-in server's links close over exactly the libs it links, so the
     "@stigmer/apis",
     "@stigmer/eval-runtime",
     "@stigmer/examples",
+    "@stigmer/mcp-server",
     "@stigmer/outbound",
     "@stigmer/plugin-package",
     "@stigmer/session-log",
@@ -124,6 +125,8 @@ test("the checked-in server's links close over exactly the libs it links, so the
     "backend/libs/ts/tool-vocabulary",
     "backend/libs/ts/session-log",
     "examples",
+    "sdk/typescript",
+    "mcp-server",
   ]);
 });
 

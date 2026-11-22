@@ -26,8 +26,20 @@
 //    same name.
 //  - What reaches the runner's disk: the conversation's session folder
 //    holds the saved state alone.
+//
+// And the turn's program is locked and can't reach its machine:
+//
+//  - It runs in the runner's locked agent host, which the runner's log says
+//    started, and its memory tool reaches the server's `/v1/mcp/` lane over
+//    the network: a fact it proposes is the organization's to list.
+//  - A `web_fetch` of the server's own port (loopback) is refused; with a
+//    computer, on this local runner, the same fetch goes through.
+//  - Saving it with an MCP server at a loopback address is refused, naming
+//    the address.
+//  - A plugin it lists that gains a local program, or a hook, after it was
+//    saved is refused at the next message, naming the plugin.
 import { existsSync } from "node:fs";
-import { mkdir, readdir, writeFile } from "node:fs/promises";
+import { mkdir, readFile, readdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 
 import { InteractionMode, RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
@@ -40,6 +52,9 @@ import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 
 import type { ConformanceClients } from "../harness/clients";
 import { FixtureTracker } from "../harness/fixtures";
+import { mcpToolName } from "../harness/mcp-server";
+import { provisionOrgWithFacts } from "../support/memories";
+import { claudePlugin, oneServerPlugin, pushPlugin } from "../support/plugins";
 import { agentRefOf, makeAgent } from "../support/agents";
 import { uniqueName } from "../support/naming";
 import { awaitTerminal, makeAgentExecution, requireLlmProxy, sessionIdOf } from "../support/runs";
@@ -258,5 +273,100 @@ describe("A turn without a computer — two organizations on one runner", () => 
     expect(reads[0]).not.toContain("ORG TWO");
     expect(reads[1]).toContain("ORG TWO'S FILE");
     expect(reads[1]).not.toContain("ORG ONE");
+  });
+});
+
+describe("A turn without a computer — locked, and off its machine", () => {
+  function serverBaseUrl(): string {
+    if (target.httpBaseUrl === undefined) throw new Error(`target ${target.name} exposes no unified port`);
+    return target.httpBaseUrl();
+  }
+
+  it("runs in the locked agent host, and its memory tool reaches the server's lane: the fact it proposes is listed", async () => {
+    // Memory is the organization's switch: founded on, as the memory suites found theirs.
+    const { org } = await provisionOrgWithFacts(clients, fixtures, [], async (slug) => {
+      await target.keyTenancy?.(slug);
+    });
+    const agent = await agentOn(org, Computer.NONE);
+    const fact = `Prefers answers that name the source (${uniqueName("fact")}).`;
+    mock.enqueue(anthropicToolUse("call_remember", mcpToolName("stigmer-memory", "remember"), { fact }));
+    mock.enqueue(anthropicText("Noted."));
+    const run = await completed({ org, name: uniqueName("run-remember"), agentRef: agentRefOf(agent), message: "Remember how I like answers." });
+
+    const offered = (readAnthropicRequest(mock.scriptedRequests()[0]!.body).tools ?? []).map((tool) => tool.name);
+    expect(offered, "the platform's memory tool is offered").toContain(mcpToolName("stigmer-memory", "remember"));
+    const call = await answered(run, "call_remember");
+    expect(call.state, `the remember call completes (${call.text})`).toBe("completed");
+    const listed = await clients.memoryQuery.list({ org, pageSize: 50 });
+    const mine = listed.entries.filter((memory) => memory.spec?.content === fact);
+    expect(mine, "the server holds the fact the turn proposed").toHaveLength(1);
+    fixtures.defer(() => clients.memoryCommand.delete({ value: mine[0]!.metadata!.id }).catch(() => undefined));
+
+    if (target.runnerLogFile === undefined) throw new Error(`target ${target.name} keeps no runner log`);
+    const log = await readFile(target.runnerLogFile(), "utf8");
+    expect(log, "the runner started its locked host for the turn").toMatch(/\[agent-host\] the locked agent host started \(--(?:experimental-)?permission --allow-fs-read=/);
+  });
+
+  it.each([
+    { label: "without a computer", computer: Computer.NONE, refused: true },
+    { label: "with a computer (the control: this local runner fetches loopback)", computer: Computer.REQUIRED, refused: false },
+  ])("a web_fetch of the server's own port, $label, is refused: $refused", async ({ computer, refused }) => {
+    const { org } = await target.provisionTenancy();
+    const agent = await agentOn(org, computer);
+    const url = `${serverBaseUrl()}/`;
+    mock.enqueue(anthropicToolUse("call_fetch", "web_fetch", { url }));
+    mock.enqueue(anthropicText("Done."));
+    const run = await completed({ org, name: uniqueName("run-fetch"), agentRef: agentRefOf(agent), message: "Fetch the admin page." });
+
+    const call = await answered(run, "call_fetch");
+    if (refused) expect(call.text, `the fetch of ${url} is refused`).toMatch(/Refusing to fetch/);
+    else expect(call.text, `the fetch of ${url} goes through`).not.toMatch(/Refusing to fetch/);
+  });
+
+  it("refuses saving it with an MCP server at a loopback address, naming the address", async () => {
+    const { org } = await target.provisionTenancy();
+    const url = `${serverBaseUrl()}/mcp`;
+    await expect(
+      clients.agentCommand.create(
+        makeAgent({ org, name: uniqueName("agent-nocomputer-local-mcp"), computer: Computer.NONE, mcpServers: [{ name: "local", url }] }),
+      ),
+    ).rejects.toThrow(/this machine/);
+  });
+
+  it.each([
+    {
+      label: "a local program",
+      why: /as a local program/,
+      grown: (name: string) => oneServerPlugin({ name, version: "0.2.0", server: { command: "node", args: ["-e", "0"] } }),
+    },
+    {
+      label: "a hook",
+      why: /runs hooks/,
+      grown: (name: string) =>
+        claudePlugin({
+          name,
+          version: "0.2.0",
+          description: "conformance plugin that gained a hook",
+          hooks: { PreToolUse: [{ matcher: "*", hooks: [{ type: "command", command: "true" }] }] },
+        }),
+    },
+  ])("refuses the next message once a plugin it lists has gained $label", async ({ why, grown }) => {
+    const { org } = await target.provisionTenancy();
+    const name = uniqueName("plugin-grows");
+    const plugin = await pushPlugin(
+      clients,
+      fixtures,
+      org,
+      claudePlugin({ name, version: "0.1.0", description: "conformance plugin with a skill", skills: [{ name: "notes", description: "How to write notes", body: "# Notes\nKeep them short." }] }),
+    );
+    const agent = await clients.agentCommand.create(
+      makeAgent({ org, name: uniqueName("agent-nocomputer-plugin"), computer: Computer.NONE, plugins: [plugin.metadata!.slug] }),
+    );
+    fixtures.defer(() => clients.agentCommand.delete({ value: agent.metadata!.id }));
+    await pushPlugin(clients, fixtures, org, grown(name));
+
+    await expect(
+      clients.agentExecutionCommand.create(makeAgentExecution({ org, name: uniqueName("run-plugin-grew"), agentRef: agentRefOf(agent), message: "Hello." })),
+    ).rejects.toThrow(why);
   });
 });

@@ -70,6 +70,7 @@
     "@stigmer/apis": "file:../../../apis/stubs/ts",
     "@stigmer/eval-runtime": "file:../../libs/ts/eval-runtime",
     "@stigmer/examples": "file:../../../examples",
+    "@stigmer/mcp-server": "file:../../../mcp-server",
     "@stigmer/outbound": "file:../../libs/ts/outbound",
     "@stigmer/plugin-package": "file:../../libs/ts/plugin-package",
     "@stigmer/session-log": "file:../../libs/ts/session-log",

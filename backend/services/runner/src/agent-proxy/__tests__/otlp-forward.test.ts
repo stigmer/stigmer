@@ -102,7 +102,7 @@ async function runnerExportingTo(endpoint: string | undefined, protocol: string,
   captureRunnerSecrets();
   resetTelemetrySettingsForTests();
   const proxy = await AgentProxy.start(testConfig());
-  proxy.authorizeHost(HOST_TOKEN);
+  proxy.authorizeHost("open", HOST_TOKEN);
   cleanups.push(() => proxy.close());
   return proxy;
 }

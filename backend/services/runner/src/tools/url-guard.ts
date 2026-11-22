@@ -34,6 +34,12 @@
  * exists as an explicit override for embedders that know better. Managed
  * cloud deployments never set it.
  *
+ * A conversation without a computer (`shared/computer.ts`) is strict on
+ * every runner, and the override does not reach it: its author said it
+ * reaches no machine of its own, so it does not reach the one it happens
+ * to run on, or the private network around it, wherever that is. Its
+ * sub-agents take the parent's posture (`subagent-transformer.ts`).
+ *
  * Validation runs on the addresses DNS resolves to immediately before the
  * request is dispatched, and the caller re-validates every redirect hop.
  * The request itself goes through the platform `fetch`, which resolves the
@@ -63,15 +69,20 @@ export class UrlGuardError extends Error {
 }
 
 /**
- * Derive the guard posture from runner mode plus the explicit override.
+ * Derive the guard posture from runner mode plus the explicit override, for
+ * a conversation with a computer; one without is strict, whatever the mode
+ * or the override.
  *
- * @param mode Config.mode — "cloud" means a managed runner on shared infrastructure.
- * @param env  Environment to read STIGMER_WEB_FETCH_ALLOW_PRIVATE from.
+ * @param mode     Config.mode — "cloud" means a managed runner on shared infrastructure.
+ * @param computer Whether the conversation has a computer (`shared/computer.ts`).
+ * @param env      Environment to read STIGMER_WEB_FETCH_ALLOW_PRIVATE from.
  */
 export function resolveGuardPosture(
   mode: "local" | "cloud",
+  computer: boolean,
   env: NodeJS.ProcessEnv = process.env,
 ): GuardPosture {
+  if (!computer) return "strict";
   const override = env.STIGMER_WEB_FETCH_ALLOW_PRIVATE;
   if (override === "true") return "relaxed";
   if (override === "false") return "strict";

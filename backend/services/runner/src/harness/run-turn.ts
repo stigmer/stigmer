@@ -534,7 +534,7 @@ async function runTurn(deps: TurnRuntimeDeps, input: NormalizedActivityInput, ru
         );
         return { kind: "return", value: slimStatus(status) };
       }
-      case "hooks-refused": {
+      case "turn-refused": {
         // The agent's hooks cannot run as written: refused with a sentence
         // its owner can act on, never run without them.
         console.warn(`${activityName} refused the turn: execution=${executionId}, ${settlement.message}`);

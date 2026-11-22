@@ -3,17 +3,27 @@
  * host this build speaks to, boot the harnesses the runner asked for, route
  * its calls to the turns they belong to, and start it again when it dies.
  *
- * One host per runner process, for the adapters' worker lifetime
- * (`harness/types.ts`); the manager mode's session workers share it, as
- * they share one adapter object in-process. The remote adapters
- * (`remote-adapter.ts`) are this module's only callers.
+ * One supervisor per host, two hosts per runner process, for the adapters'
+ * worker lifetime (`harness/types.ts`): the open host, and the locked host
+ * for conversations without a computer (`hosting.ts`, `fence.ts`). The
+ * manager mode's session workers share them, as they share one adapter
+ * object in-process. The remote adapters (`remote-adapter.ts`) are this
+ * module's only callers.
+ *
+ * The locked host's supervisor starts it on its first turn, not at boot
+ * (`startOnFirstUse`), so a runner that never serves such a turn pays
+ * nothing, and accepts its hello only when the fence it reports is the one
+ * the starter built (`fence.ts` `judgeFence`). A refused fence is final for
+ * the runner's life: one Node cannot grow a lock later, so the refusal is
+ * logged once and every later turn reads it at once
+ * ({@link FenceRefusedError}), with no host started to learn it again.
  *
  * Starting is a {@link HostStarter}: production spawns the runner's own
  * entry in its agent-host mode with the channel on fd 3
  * ({@link processHostStarter}); the tests serve a host in this process over
  * a loopback channel. Each start mints a fresh host token and authorizes it
- * at the local proxy (`agent-proxy/`), so a token from a host that died is
- * worth nothing.
+ * at the local proxy (`agent-proxy/`) in its host's slot, so a token from a
+ * host that died is worth nothing, and the other host's token stands.
  *
  * Restart: a host that exits while the runner still needs it is started
  * again after a delay that starts at one second and doubles to thirty, the
@@ -31,6 +41,7 @@
  */
 
 import { spawn, type ChildProcess } from "node:child_process";
+import { existsSync, realpathSync } from "node:fs";
 import { randomBytes } from "node:crypto";
 import { createInterface } from "node:readline";
 import type { Readable, Writable } from "node:stream";
@@ -42,6 +53,7 @@ import { telemetrySettings } from "../otel-export.js";
 import { RUNNER_ENTRY_URL } from "../runner-entry.js";
 import { agentIdentity, programOnPath, setprivArgs, type AgentIdentity } from "../shared/agent-identity.js";
 import { Peer, streamChannel, type LineChannel } from "./channel.js";
+import { FenceRefusedError, fencedHostLaunch, judgeFence } from "./fence.js";
 import {
   AGENT_HOST_CHANNEL_FD,
   AGENT_HOST_MODE_ARG,
@@ -56,10 +68,12 @@ import {
 /** The runner's side of the pipe. */
 export type RunnerPeer = Peer<HostCalls, RunnerCalls, RunnerNotices, HostNotices>;
 
-/** A started host: its channel, and how to end it if the channel's close does not. */
+/** A started host: its channel, how to end it if the channel's close does not, and the lock it was started under. */
 export interface StartedHost {
   readonly channel: LineChannel;
   readonly kill: () => void;
+  /** The Node flags of the lock the starter built (`fence.ts`); absent for an open host. */
+  readonly execArgv?: readonly string[];
 }
 
 export type HostStarter = () => StartedHost | Promise<StartedHost>;
@@ -68,8 +82,8 @@ export type HostStarter = () => StartedHost | Promise<StartedHost>;
 export interface AgentProxyGate {
   /** `http://127.0.0.1:<port>`. */
   readonly endpoint: string;
-  /** Make `token` the one host token the proxy accepts. */
-  authorizeHost(token: string): void;
+  /** Make `token` the one token the proxy accepts for the host in `slot`, beside the other slot's. */
+  authorizeHost(slot: string, token: string): void;
 }
 
 /**
@@ -89,6 +103,12 @@ export interface AgentHostSupervisorOptions {
   /** How long a started host has to announce itself. */
   readonly helloTimeoutMs?: number;
   readonly log?: (message: string) => void;
+  /** The host's slot at the proxy; `"open"` by default. */
+  readonly slot?: string;
+  /** Accept a hello only with the fence the starter built (`fence.ts`), and refuse for good when it is not. */
+  readonly fenced?: boolean;
+  /** Record booted harnesses and start the host at its first use, never at boot. */
+  readonly startOnFirstUse?: boolean;
 }
 
 const DEFAULT_HELLO_TIMEOUT_MS = 30_000;
@@ -108,6 +128,8 @@ export class AgentHostSupervisor {
   private starting: Promise<LiveHost> | undefined;
   private restartTimer: NodeJS.Timeout | undefined;
   private stopping = false;
+  /** Why a locked host can never run on this runner, once that is known. */
+  private refused: FenceRefusedError | undefined;
   private nextDelay: number;
   private readonly firstDelay: number;
   private readonly maxDelay: number;
@@ -120,10 +142,12 @@ export class AgentHostSupervisor {
     this.log = options.log ?? ((message) => console.warn(message));
   }
 
-  /** Boot `harness` in the host, starting the host first if it is not running. */
+  /** Boot `harness` in the host, starting the host first if it is not running (or recording it for the first use). */
   async boot(harness: HarnessName, config: Config): Promise<void> {
     this.stopping = false;
     this.booted.set(harness, config);
+    // A host started at first use is booted then with every recorded harness.
+    if (this.options.startOnFirstUse && !(this.live && !this.live.peer.closed)) return;
     const { host, fresh } = await this.connectReporting();
     // A fresh host was booted with every recorded harness, this one included.
     if (!fresh) await host.peer.call("boot", { harness, config: this.wireConfig(config, host.token) });
@@ -161,6 +185,7 @@ export class AgentHostSupervisor {
 
   private async connectReporting(): Promise<{ readonly host: LiveHost; readonly fresh: boolean }> {
     if (this.live && !this.live.peer.closed) return { host: this.live, fresh: false };
+    if (this.refused) throw this.refused;
     this.starting ??= this.startHost().finally(() => {
       this.starting = undefined;
     });
@@ -173,11 +198,16 @@ export class AgentHostSupervisor {
       this.restartTimer = undefined;
     }
     const token = randomBytes(32).toString("base64url");
-    this.options.proxy.authorizeHost(token);
-    const started = await this.options.start();
+    this.options.proxy.authorizeHost(this.options.slot ?? "open", token);
+    let started: StartedHost;
+    try {
+      started = await this.options.start();
+    } catch (err) {
+      throw this.refuseFor(err);
+    }
     const peer: RunnerPeer = new Peer<HostCalls, RunnerCalls, RunnerNotices, HostNotices>(started.channel, "runner");
     try {
-      await this.awaitHello(peer);
+      await this.awaitHello(peer, started);
       this.route(peer);
       for (const [harness, config] of this.booted) {
         await peer.call("boot", { harness, config: this.wireConfig(config, token) });
@@ -185,22 +215,44 @@ export class AgentHostSupervisor {
       // The last harness shut down while this host started: end it, never adopt it.
       if (this.stopping) throw new Error("the agent host was stopped while it started");
     } catch (err) {
+      // A locked host that ends before it announces itself cannot run here
+      // (a read grant too narrow, a Node that refuses the flags): its own
+      // error is in the log, relayed from its stderr.
+      const diedUnannounced = this.options.fenced === true && peer.closed && peer.hello["protocolVersion"] === undefined;
       peer.close();
       started.kill();
-      throw err;
+      throw this.refuseFor(
+        diedUnannounced ? new FenceRefusedError(`the locked agent program exited before it started (${err instanceof Error ? err.message : String(err)})`) : err,
+      );
     }
     const startedAt = Date.now();
+    // Said once per start, so an operator (and the execution conformance lane) can see that turns without a computer run locked.
+    if (this.options.fenced) this.log(`[agent-host] the locked agent host started (${(started.execArgv ?? []).join(" ")})`);
     const host: LiveHost = { peer, kill: started.kill, startedAt, token };
     this.live = host;
     peer.onClose((reason) => this.onHostGone(peer, startedAt, reason));
     return host;
   }
 
-  private async awaitHello(peer: RunnerPeer): Promise<void> {
+  private async awaitHello(peer: RunnerPeer, started: StartedHost): Promise<void> {
     const version = await peer.receivedHello(this.options.helloTimeoutMs ?? DEFAULT_HELLO_TIMEOUT_MS);
     if (version !== AGENT_HOST_PROTOCOL_VERSION) {
       throw new Error(`the agent host speaks protocol ${String(version)}; this runner speaks ${AGENT_HOST_PROTOCOL_VERSION}`);
     }
+    if (!this.options.fenced) return;
+    const refusal =
+      started.execArgv === undefined ? "the agent program was started without a lock" : judgeFence(peer.hello["fence"], started.execArgv);
+    if (refusal !== null) throw new FenceRefusedError(refusal);
+  }
+
+  /** `err`, made final for the runner's life when it is a fence refusal, and logged once. */
+  private refuseFor(err: unknown): unknown {
+    if (!(err instanceof FenceRefusedError)) return err;
+    if (!this.refused) {
+      this.refused = err;
+      this.log(`[agent-host] the locked agent host can't run on this runner, so it refuses turns without a computer: ${err.message}`);
+    }
+    return this.refused;
   }
 
   /** Install the dispatch of every host call and notice to the turn it names. */
@@ -224,6 +276,7 @@ export class AgentHostSupervisor {
     peer.handle("deleteTurnOutput", async (args) => endpointFor(args.turnId).calls.deleteTurnOutput(args));
     peer.handle("putTurnOffload", async (args) => endpointFor(args.turnId).calls.putTurnOffload(args));
     peer.handle("readTurnOffload", async (args) => endpointFor(args.turnId).calls.readTurnOffload(args));
+    peer.handle("checkpointRows", async (args) => endpointFor(args.turnId).calls.checkpointRows(args));
     peer.handle("claimInput", async (args) => endpointFor(args.turnId).calls.claimInput(args));
     peer.handle("claimedInput", async (args) => endpointFor(args.turnId).calls.claimedInput(args));
     // A notice for a turn that already settled is late, and dropped.
@@ -243,7 +296,7 @@ export class AgentHostSupervisor {
   }
 
   private scheduleRestart(how: string): void {
-    if (this.stopping) return;
+    if (this.stopping || this.refused) return;
     this.log(`[agent-host] the agent host ${how}; restarting in ${this.nextDelay}ms`);
     // A start (a turn's, or the next attempt's) and a stop each clear this
     // timer, so when it fires the host is neither running nor stopped.
@@ -301,10 +354,11 @@ export class AgentHostSupervisor {
  *
  * `env` is what the host and every process it starts see (`environment.ts`).
  */
-export function processHostStarter(env: () => NodeJS.ProcessEnv): HostStarter {
+export function processHostStarter(env: () => NodeJS.ProcessEnv, options: { readonly fenced?: boolean } = {}): HostStarter {
   return () => {
-    const { command, args, env: runtimeEnv } = agentHostCommand();
-    return spawnHostProcess(command, args, { ...env(), ...runtimeEnv }).started;
+    const { command, args, env: runtimeEnv, execArgv } = agentHostCommand(process.versions, agentIdentity(), process.env.PATH ?? "", options);
+    const { started } = spawnHostProcess(command, args, { ...env(), ...runtimeEnv });
+    return execArgv === undefined ? started : { ...started, execArgv };
   };
 }
 
@@ -369,19 +423,42 @@ export function spawnHostProcess(
  * A separating runner (`shared/agent-identity.ts`) starts it through
  * `setpriv` as the agent user, with the agent's home as `HOME`: the one
  * place the runner drops privilege. Everything the host starts inherits it.
+ *
+ * `fenced` starts the locked host (`fence.ts`): the same entry under Node's
+ * permission model, granted only a read of its install root, with
+ * `execArgv` naming those flags for the hello's check. It throws a
+ * `FenceRefusedError`, spawning nothing, where the lock cannot be built: a
+ * Node without the model, or the runner running from source under tsx.
+ * Where the runner separates, the locked host is the agent user too.
  */
 export function agentHostCommand(
   versions: NodeJS.ProcessVersions = process.versions,
   identity: AgentIdentity | null = agentIdentity(),
   runnerPath: string = process.env.PATH ?? "",
-): { readonly command: string; readonly args: readonly string[]; readonly env: Readonly<Record<string, string>> } {
-  const entry = fileURLToPath(RUNNER_ENTRY_URL);
+  options: { readonly fenced?: boolean; readonly entry?: string } = {},
+): {
+  readonly command: string;
+  readonly args: readonly string[];
+  readonly env: Readonly<Record<string, string>>;
+  readonly execArgv?: readonly string[];
+} {
+  const named = options.entry ?? fileURLToPath(RUNNER_ENTRY_URL);
+  // The locked host is handed its entry's real path: Node resolves the path
+  // it is given component by component, and a link on the way (macOS's
+  // `/var`, an install behind a symlink) sits outside the one read grant.
+  const entry = options.fenced && existsSync(named) ? realpathSync(named) : named;
+  const fence = options.fenced ? fencedHostLaunch(entry) : undefined;
   // Running from source (the tests' spawned hosts, `npm start`): the entry
-  // is TypeScript, loaded the way the runner itself was.
+  // is TypeScript, loaded the way the runner itself was. A locked host never
+  // runs from source (`fencedHostLaunch` refuses it above).
   const loader = entry.endsWith(".ts") ? ["--import", "tsx"] : [];
-  const node = [process.execPath, ...loader, entry, AGENT_HOST_MODE_ARG];
-  const runtime: Readonly<Record<string, string>> = versions.electron === undefined ? {} : { ELECTRON_RUN_AS_NODE: "1" };
-  if (identity === null) return { command: node[0]!, args: node.slice(1), env: runtime };
+  const node = [process.execPath, ...(fence?.execArgv ?? []), ...loader, entry, AGENT_HOST_MODE_ARG];
+  const withFence = fence === undefined ? {} : { execArgv: fence.execArgv };
+  const runtime: Readonly<Record<string, string>> = {
+    ...(versions.electron === undefined ? {} : { ELECTRON_RUN_AS_NODE: "1" }),
+    ...(fence?.env ?? {}),
+  };
+  if (identity === null) return { command: node[0]!, args: node.slice(1), env: runtime, ...withFence };
   // By its absolute path on the runner's own PATH, never a bare name: the
   // host's environment may lead with the agent's install folders
   // (agent-host/environment.ts), and the spawn would resolve a bare name
@@ -390,7 +467,7 @@ export function agentHostCommand(
   if (setpriv === undefined) {
     throw new Error("the runner's PATH has no setpriv, so the agent host cannot start as the agent");
   }
-  return { command: setpriv, args: [...setprivArgs(identity), "--", ...node], env: { ...runtime, HOME: identity.home } };
+  return { command: setpriv, args: [...setprivArgs(identity), "--", ...node], env: { ...runtime, HOME: identity.home }, ...withFence };
 }
 
 function relayLines(stream: Readable, write: (line: string) => void): void {

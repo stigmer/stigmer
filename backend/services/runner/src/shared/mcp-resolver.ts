@@ -80,6 +80,17 @@ export interface ResolvedMcpServer {
    * included) must say so.
    */
   home: McpServerHome;
+  /**
+   * Set when the runner chose this server's address, never the agent or a
+   * plugin: `known` for one it was given or serves itself (a configured
+   * bridge, an eval try's stand-in), `inferred` for the Stigmer server's own
+   * MCP lane, taken from the runner's backend endpoint
+   * (`synthesized-attachment.ts` `platformBridge`). Such a server is never
+   * judged for reach (`mcp-manager.ts`), and an inferred one that does not
+   * answer leaves the turn without it rather than failing it. Absent for
+   * every server an agent or a plugin names.
+   */
+  addressedByRunner?: "known" | "inferred";
 }
 
 /**
@@ -202,7 +213,7 @@ function turnServerSources(agent: TurnServerAgent | undefined, plugins: readonly
  * @param input.platformValues Platform-filled keys every server may read
  *        (the caller identity); authoritative over a same-named run value.
  * @param input.transportPosture Whether stdio servers may run here (derive
- *        via resolveMcpTransportPosture(config.mode)). A stdio server under a
+ *        via resolveMcpTransportPosture(config.mode, computer)). A stdio server under a
  *        forbidding posture throws {@link McpTransportError} and fails the
  *        whole resolution — never degraded to a skipped server.
  * @param input.platformEndpoints The runner's endpoints a missing

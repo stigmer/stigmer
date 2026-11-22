@@ -436,6 +436,7 @@ export function decodeTurnInput(wire: WireTurnInput, services: HostTurnServices)
             inputs: services.storeFiles.inputs,
             outputs: services.storeFiles.outputs,
             ...(wire.workspace.offloads && services.storeFiles.offloads !== undefined && { offloads: services.storeFiles.offloads }),
+            ...(services.storeFiles.checkpointRows !== undefined && { checkpointRows: services.storeFiles.checkpointRows }),
           },
         },
     mcp: {

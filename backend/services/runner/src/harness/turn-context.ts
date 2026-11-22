@@ -109,7 +109,7 @@ import { callerIdentityValues, resolveCallerIdentity } from "../shared/caller-id
 import { discoverChannelMessaging, synthesizeChannelAttachment } from "../shared/channel-attachment.js";
 import { readChannelConversationId, synthesizeConversationAttachment } from "../shared/conversation-attachment.js";
 import { synthesizeMemoryAttachment } from "../shared/memory-attachment.js";
-import { injectSynthesizedAttachment } from "../shared/synthesized-attachment.js";
+import { injectSynthesizedAttachment, platformBridge, platformToolsOffNotice } from "../shared/synthesized-attachment.js";
 import { buildMcpApprovalDefault, deriveActiveLeases, NOTHING_LISTED, type LeaseGrant } from "../shared/approval-policy.js";
 import { ToolScope } from "../shared/tool-lists.js";
 import { SHELL_TOOL } from "@stigmer/tool-vocabulary";
@@ -129,7 +129,7 @@ import { newTurnInputs, offerStoredImage, type RunFileSets, type TurnInputs } fr
 import { newOutputsBuffer, type OutputsBuffer } from "../shared/outputs-buffer.js";
 import { newTurnOffloads } from "../shared/offload-store.js";
 import { holdPlatformMounts, mergeMounts, NO_MOUNTS, type PlatformMounts } from "../shared/platform-hold.js";
-import { hasComputer } from "../shared/computer.js";
+import { agentHasComputer, hasComputer, hasOwnHooks } from "../shared/computer.js";
 import { pluginTreeKey, sessionTreesDir } from "../shared/archive-tree.js";
 import { newTurnArchives, type ArchiveSource, type TurnArchives } from "../shared/archive-reader.js";
 import type { ApiResourceReference } from "@stigmer/apis/ai/stigmer/commons/apiresource/io_pb";
@@ -344,8 +344,13 @@ export type TurnSettlement =
       readonly discardedPaths: readonly string[];
     }
   | {
-      /** The agent's hooks cannot run as written; `message` names what and why, for the person who owns the agent. */
-      readonly kind: "hooks-refused";
+      /**
+       * The turn cannot be served as its agent is written (hooks the
+       * harness does not run, or anything a conversation without a computer
+       * cannot have); `message` names what and why, for the person who owns
+       * the agent. Never run without it.
+       */
+      readonly kind: "turn-refused";
       readonly message: string;
     }
   | {
@@ -1056,8 +1061,7 @@ export function reconcileTurnSettlement(
 }
 
 /** The transcript row a turn without the platform's own MCP servers carries (#2062). */
-export const PLATFORM_TOOLS_OFF_NOTICE =
-  "The platform's own tools (memory, channel messaging and the conversation tools) are off for this turn: no credential scoped to this run could be had.";
+export const PLATFORM_TOOLS_OFF_NOTICE = platformToolsOffNotice("no credential scoped to this run could be had");
 
 /**
  * Phases 4 to 4b: the tool surface.
@@ -1087,7 +1091,11 @@ export const PLATFORM_TOOLS_OFF_NOTICE =
  * runner holding none runs them without one, and otherwise the turn runs
  * without the platform's own servers and says so (\`PLATFORM_TOOLS_OFF_NOTICE\`).
  * The exchange is opportunistic, so a failed one never kills the run,
- * unlike the env read, where secrets are load-bearing.
+ * unlike the env read, where secrets are load-bearing. Where they connect
+ * is `shared/synthesized-attachment.ts` `platformBridge`'s: a conversation
+ * without a computer, which starts no program, reaches the Stigmer server's
+ * own MCP lane when the runner was given no bridge. A conversation without a
+ * computer also takes stdio from no server (`mcp-transport-guard.ts`).
  *
  * The approval default's MCP half is built last (which tools their servers
  * mark destructive, read live), with two bypasses shared with the Stigmer
@@ -1121,7 +1129,8 @@ export async function resolveMcpServersAndPolicies(
 
   deps.enterPhase("resolve_mcp_servers");
   await deps.reportProgress("Resolving MCP servers");
-  const transportPosture = resolveMcpTransportPosture(config.mode);
+  const computer = hasComputer(session);
+  const transportPosture = resolveMcpTransportPosture(config.mode, computer);
   const platformValues = turnPlatformValues(blueprint, session, sessionId);
   let servers = resolveTurnServers({
     agent: blueprint.agent === undefined
@@ -1177,8 +1186,11 @@ export async function resolveMcpServersAndPolicies(
     console.warn(`[turn-context] execution=${executionId}: no credential scoped to this run; the platform's own MCP servers are off for this turn`);
     deps.transcript.apply({ kind: "system_note", text: PLATFORM_TOOLS_OFF_NOTICE });
   }
+  // A conversation without a computer starts no `stigmer mcp-server`
+  // child: on a runner given no bridge, its attachments reach the Stigmer
+  // server's own MCP lane (`synthesized-attachment.ts` `platformBridge`).
   const attachmentEndpoints = {
-    bridgeEndpoint: config.mcpBridgeEndpoint,
+    ...platformBridge(config, computer),
     credential: attachmentCredential ?? null,
     backendEndpoint: config.stigmerBackendEndpoint,
   };
@@ -1464,17 +1476,31 @@ function pluginsWithHooks(plugins: readonly Plugin[]): Plugin[] {
 }
 
 /**
- * Phase 2b: refuse a turn whose agent or any of its subagents has hooks
- * when the harness does not run them, right after the blueprint and before
- * anything else is fetched or provisioned. Run without them, the hooks would be policies that
- * silently vanished; the refusal names them and says what to do. Both built
- * harnesses run hooks, so this refuses nothing today; it stays for the
- * next harness that does not.
+ * Phase 2b: refuse a turn this runner cannot serve as its agent is
+ * written, right after the blueprint and before anything else is fetched
+ * or provisioned. Run without what it names, the agent would silently lose
+ * a policy or a tool; the refusal names each cause and what to do, one
+ * sentence each.
+ *
+ *  - A hook (the turn's plugins', the agent's own, a subagent's or its
+ *    plugins') when the harness does not run hooks. Both built harnesses
+ *    run them, so this cause stays for the next harness that does not.
+ *  - For a conversation without a computer: any hook, since a hook runs a
+ *    program, and any subagent that has a computer. The server refuses
+ *    both at the agent's save and at each turn's create, in the same words
+ *    (stigmer-server `domain/run/computer.ts`); this is the runner's own
+ *    wall, because the runner is what would start the program, and a
+ *    plugin can gain a hook after the turn was created.
  */
-export function refuseUnrunnableHooks(
+export function refuseUnservableTurn(
   blueprint: ResolvedBlueprint,
   capabilities: Pick<HarnessCapabilities, "runsHooks">,
-): Extract<TurnSettlement, { kind: "hooks-refused" }> | undefined {
+  computer: boolean,
+): Extract<TurnSettlement, { kind: "turn-refused" }> | undefined {
+  if (!computer) {
+    const causes = withoutComputerCauses(blueprint);
+    return causes.length === 0 ? undefined : { kind: "turn-refused", message: causes.join(" ") };
+  }
   const described = [
     ...pluginsWithHooks(blueprint.plugins).map((plugin) => `the plugin '${plugin.metadata?.name ?? ""}'`),
     ...(blueprint.agent?.spec?.hooks ?? []).map(() => "the agent's own hooks block"),
@@ -1485,11 +1511,45 @@ export function refuseUnrunnableHooks(
   ];
   if (described.length === 0 || capabilities.runsHooks) return undefined;
   return {
-    kind: "hooks-refused",
+    kind: "turn-refused",
     message:
       `This conversation has hooks (${described.join(", ")}), and this harness does not run hooks yet. ` +
       "Run it on the Stigmer harness, or remove the hooks.",
   };
+}
+
+/** The remedy every refusal of a conversation without a computer ends with. */
+const GIVE_IT_A_COMPUTER = "or give the agent a computer";
+
+/**
+ * What a conversation without a computer cannot have, one sentence a
+ * cause, in the server's words (stigmer-server `domain/run/computer.ts`).
+ */
+function withoutComputerCauses(blueprint: ResolvedBlueprint): string[] {
+  const prefix = "This conversation's agent has no computer";
+  const pluginRunsHooks = (plugin: Plugin, of: string): string =>
+    `${prefix}, so this conversation can't use plugin '${plugin.metadata?.name ?? ""}'${of}, which runs hooks; ` +
+    `remove the plugin from the agent or the conversation, ${GIVE_IT_A_COMPUTER}.`;
+  const causes = [
+    ...pluginsWithHooks(blueprint.plugins).map((plugin) => pluginRunsHooks(plugin, "")),
+    ...(blueprint.agent !== undefined && hasOwnHooks(blueprint.agent.spec)
+      ? [`${prefix}, so it can't run its own hooks; remove its hooks, ${GIVE_IT_A_COMPUTER}.`]
+      : []),
+  ];
+  for (const subagent of blueprint.subagents) {
+    if (agentHasComputer(subagent.spec)) {
+      causes.push(
+        `${prefix}, so it can't list subagent '${subagent.name}', which has one; remove it from subagents, ` +
+          `save '${subagent.name}' without a computer and list that version, ${GIVE_IT_A_COMPUTER}.`,
+      );
+      continue;
+    }
+    causes.push(...pluginsWithHooks(subagent.plugins).map((plugin) => pluginRunsHooks(plugin, ` of subagent '${subagent.name}'`)));
+    if (hasOwnHooks(subagent.spec)) {
+      causes.push(`${prefix}, so it can't run the hooks of subagent '${subagent.name}'; remove them, ${GIVE_IT_A_COMPUTER}.`);
+    }
+  }
+  return causes;
 }
 
 /**
@@ -1506,7 +1566,7 @@ export function refuseUnrunnableHooks(
  * one the agent writes itself by its own name, with `source: "agent"`.
  *
  * A plugin whose archive cannot be fetched or verified refuses the turn
- * (`hooks-refused`), naming it: a hook that does not run as written is a
+ * (`turn-refused`), naming it: a hook that does not run as written is a
  * policy that vanished, so this is deliberately stricter than a skill, whose
  * failed download degrades.
  */
@@ -1544,7 +1604,7 @@ export async function resolveHooks(
  * The hook sources of one agent: each plugin that records hooks, mounted
  * from its verified archive, then its own inline block, taken as written.
  * A plugin that cannot be mounted for a reason its owner fixes settles the
- * turn naming it (`hooks-refused`); a transient fault is thrown.
+ * turn naming it (`turn-refused`); a transient fault is thrown.
  */
 async function hookSources(
   deps: ResolutionDeps,
@@ -1565,7 +1625,7 @@ async function hookSources(
       if (!ownersToFix(err)) throw err;
       return {
         kind: "settled",
-        settlement: { kind: "hooks-refused", message: `The hooks of plugin '${plugin.metadata?.name ?? ""}' could not be prepared: ${errorText(err)}` },
+        settlement: { kind: "turn-refused", message: `The hooks of plugin '${plugin.metadata?.name ?? ""}' could not be prepared: ${errorText(err)}` },
       };
     }
   }
@@ -1654,9 +1714,9 @@ export async function resolveSubagents(
   }
   deps.enterPhase("resolve_subagents");
   await deps.reportProgress("Resolving subagents");
-  const transportPosture = resolveMcpTransportPosture(deps.config.mode);
-  const platformValues = turnPlatformValues(blueprint, args.session, sessionId);
   const mount = hasComputer(args.session);
+  const transportPosture = resolveMcpTransportPosture(deps.config.mode, mount);
+  const platformValues = turnPlatformValues(blueprint, args.session, sessionId);
   const options = { sessionId, primaryWorkspaceDir: args.primaryDir, mount };
   const subagents: TurnSubagent[] = [];
   const loadedSkills: ApiResourceReference[] = [];
@@ -2109,8 +2169,8 @@ export async function resolveTurnContext(
   if (spec.reconcileFileReview) return resolveReconcileTurn(deps, frame, sessionId);
   const { session, blueprint } = await resolveAgentBlueprint(deps, execution, sessionId);
   deps.identifyRun({ execution, session, sessionId, blueprint });
-  const unrunnable = refuseUnrunnableHooks(blueprint, capabilities);
-  if (unrunnable !== undefined) return { kind: "settled", settlement: unrunnable };
+  const unservable = refuseUnservableTurn(blueprint, capabilities, hasComputer(session));
+  if (unservable !== undefined) return { kind: "settled", settlement: unservable };
   const fetched = await fetchValues(deps);
   if (fetched.kind === "settled") return { kind: "settled", settlement: fetched.settlement };
   let { values } = fetched;

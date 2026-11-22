@@ -14,6 +14,11 @@
  *  - a runner whose ambient credential is already scoped below it (a cloud
  *    sandbox's session token): the attachments carry it, until the cloud
  *    mints run credentials (#2080).
+ *
+ * And where they connect: a conversation without a computer, on a runner
+ * given no bridge, reaches the Stigmer server's own MCP lane over HTTP with
+ * the run's credential as its bearer, marked inferred; one with a computer
+ * keeps the stdio child there; a configured bridge serves both.
  */
 
 import { create } from "@bufbuild/protobuf";
@@ -21,12 +26,15 @@ import { describe, expect, it } from "vitest";
 import { RunSchema, RunStatusSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 import { RecalledMemoriesSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/spec_pb";
 import { SessionSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/api_pb";
+import { Computer } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
 import { SessionSpecSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/spec_pb";
 
 import { testConfig } from "../../__test-utils__/config-fixture.js";
 import type { StigmerClient } from "../../client/stigmer-client.js";
 import type { ResolvedBlueprint } from "../../shared/blueprint-resolver.js";
 import { TimingRecorder } from "../../shared/cold-start-timing.js";
+import { MEMORY_ATTACHMENT_SLUG } from "../../shared/memory-attachment.js";
+import type { ResolvedMcpServer } from "../../shared/mcp-resolver.js";
 import { NO_RUN_VALUES } from "../../shared/run-values.js";
 import { TranscriptBuilder } from "../transcript/builder.js";
 import { PLATFORM_TOOLS_OFF_NOTICE, resolveMcpServersAndPolicies, type ResolutionDeps } from "../turn-context.js";
@@ -34,7 +42,11 @@ import { TurnRowsSchema } from "../../gen/turn/ai/stigmer/runner/turn/v1/rows_pb
 
 const RUNNER_KEY = "stigmer_runner_own_key";
 
-async function resolveWith(exchange: () => Promise<string | undefined>, runnerKey: string | null) {
+async function resolveWith(
+  exchange: () => Promise<string | undefined>,
+  runnerKey: string | null,
+  where: { readonly bridge: string | null; readonly computer: boolean } = { bridge: "http://bridge.local", computer: true },
+) {
   const status = create(RunStatusSchema);
   const rows = create(TurnRowsSchema);
   const client = {
@@ -44,7 +56,7 @@ async function resolveWith(exchange: () => Promise<string | undefined>, runnerKe
   const deps: ResolutionDeps = {
     input: { executionId: "run_attach", threadId: "", turnSeq: 0 },
     client,
-    config: testConfig({ stigmerTokenRef: { current: runnerKey }, mcpBridgeEndpoint: "http://bridge.local" }),
+    config: testConfig({ stigmerTokenRef: { current: runnerKey }, mcpBridgeEndpoint: where.bridge, stigmerBackendEndpoint: "http://localhost:7234" }),
     status,
     rows,
     transcript: new TranscriptBuilder("run_attach", rows, status),
@@ -57,7 +69,7 @@ async function resolveWith(exchange: () => Promise<string | undefined>, runnerKe
     identifyRun: () => {},
     recordReconciled: async () => {},
   };
-  const session = create(SessionSchema, { metadata: { org: "org-1" } });
+  const session = create(SessionSchema, { metadata: { org: "org-1" }, status: { computer: where.computer ? Computer.UNSPECIFIED : Computer.NONE } });
   const blueprint = {
     agent: undefined,
     session,
@@ -109,5 +121,33 @@ describe("the platform's attachments' credential", () => {
     const { mcp, rows } = await resolveWith(async () => undefined, null);
     expect(mcp.platformServerSlugs.size).toBeGreaterThan(0);
     expect(rows.messages).toEqual([]);
+  });
+});
+
+describe("where the platform's attachments connect", () => {
+  /** The memory attachment's shape: the one the recall snapshot turns on here. */
+  const memoryOf = (servers: readonly ResolvedMcpServer[]) =>
+    servers.find((server) => server.slug === MEMORY_ATTACHMENT_SLUG);
+
+  it("reaches the server's own MCP lane for a conversation without a computer on a runner given no bridge", async () => {
+    const { mcp } = await resolveWith(async () => "run-scoped-token", RUNNER_KEY, { bridge: null, computer: false });
+    expect(memoryOf(mcp.servers)).toMatchObject({
+      connectionType: "http",
+      url: "http://localhost:7234/v1/mcp/memory",
+      headers: { Authorization: "Bearer run-scoped-token" },
+      addressedByRunner: "inferred",
+    });
+  });
+
+  it("keeps the stdio child for a conversation with a computer on a runner given no bridge", async () => {
+    const { mcp } = await resolveWith(async () => "run-scoped-token", RUNNER_KEY, { bridge: null, computer: true });
+    expect(memoryOf(mcp.servers)).toMatchObject({ connectionType: "stdio", command: "stigmer" });
+  });
+
+  it("serves both from a configured bridge", async () => {
+    for (const computer of [true, false]) {
+      const { mcp } = await resolveWith(async () => "run-scoped-token", RUNNER_KEY, { bridge: "http://bridge.local", computer });
+      expect(memoryOf(mcp.servers)).toMatchObject({ connectionType: "http", url: "http://bridge.local/memory", addressedByRunner: "known" });
+    }
   });
 });

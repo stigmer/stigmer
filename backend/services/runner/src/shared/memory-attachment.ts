@@ -53,6 +53,7 @@ import { MEMORY_MCP_SERVER } from "@stigmer/tool-vocabulary";
 import type { ResolvedMcpServer } from "./mcp-resolver.js";
 import { grpcTarget, SERVER_ADDRESS_ENV_KEY } from "./platform-server-address.js";
 import {
+  bridgeAddressing,
   stdioCredentialEnv,
   type SynthesizedAttachmentOptions,
 } from "./synthesized-attachment.js";
@@ -136,6 +137,7 @@ export function synthesizeMemoryAttachment(
       ...base,
       connectionType: "http",
       url: options.bridgeEndpoint.replace(/\/+$/, "") + MEMORY_ROUTE,
+      ...bridgeAddressing(options),
       headers: {
         ...(options.credential !== null && options.credential !== ""
           ? { Authorization: `Bearer ${options.credential}` }

@@ -16,7 +16,19 @@
  *    stored reference is kept only under the turn's own key prefix or as
  *    the runtime seeded it;
  *  - a usage report's counts are clamped to finite, non-negative numbers;
- *  - a plugin verify names one of the turn's own plugins.
+ *  - a plugin verify names one of the turn's own plugins;
+ *  - a relayed checkpoint op names only the turn's own thread, and is
+ *    stored for the turn's own session, which the runner names, never the
+ *    host (`shared/checkpointer/relayed-rows.ts`).
+ *
+ * Which host runs the turn is chosen here, per turn: a turn without a
+ * computer runs in the locked host where the harness has one
+ * (`hosting.ts`, `fence.ts`), every other turn in the open host. A turn the
+ * locked host can never serve on this runner (no lock to be had) settles
+ * `failed` on the actionable surface before it starts, with the reason: the
+ * runner refuses rather than run it unlocked. Its saved state is stored by
+ * the open host, on the session's file, and the file is closed once the
+ * turn settles.
  *
  * The turn's lifetime is one pending `runTurn` call. The runtime's stop is
  * forwarded as a notice; the call is answered when the adapter settles,
@@ -60,6 +72,8 @@ import {
   type TurnFields,
   encodeTurnInput, encodeOffloads } from "./codec.js";
 import { fromWireError, type WireError, type WireOutcome } from "./protocol.js";
+import { FenceRefusedError } from "./fence.js";
+import { threadsOfCheckpointOp, type CheckpointRowsOp } from "../shared/checkpointer/relayed-rows.js";
 import type { AgentHostSupervisor, RemoteTurnEndpoint } from "./supervisor.js";
 import { TurnRowsSchema, type ToolCall, type TurnRows } from "../gen/turn/ai/stigmer/runner/turn/v1/rows_pb.js";
 
@@ -69,36 +83,50 @@ export interface LiveTurnRegistry {
   openTurn(turn: { readonly executionId: string; readonly threadId: string; readonly turnKey: string }): () => void;
 }
 
+/** The hosts a harness's turns run in: the open one always, the locked one for turns without a computer where the harness has one. */
+export interface AgentHosts {
+  readonly open: AgentHostSupervisor;
+  readonly fenced?: AgentHostSupervisor;
+}
+
 /**
- * The remote stand-in for `local`, the real adapter, which the host runs.
+ * The remote stand-in for `local`, the real adapter, which the hosts run.
  * `local` lends only its name and its capabilities: the runtime branches on
  * them before and after the turn, and they are the adapter's own facts.
  */
 export function createRemoteAdapter(
   harness: HarnessName,
   local: HarnessAdapter,
-  host: AgentHostSupervisor,
+  hosts: AgentHosts,
   turns: LiveTurnRegistry,
 ): HarnessAdapter {
+  const all = hosts.fenced === undefined ? [hosts.open] : [hosts.open, hosts.fenced];
   return {
     name: local.name,
     capabilities: local.capabilities,
-    boot: (config: Config) => host.boot(harness, config),
-    shutdown: () => host.shutdown(harness),
-    releaseSession: (sessionId: string) => host.releaseSession(harness, sessionId),
-    runTurn: (input: TurnInput, sink: TurnSink) => runRemoteTurn(harness, host, turns, input, sink),
+    boot: async (config: Config) => {
+      for (const host of all) await host.boot(harness, config);
+    },
+    shutdown: async () => {
+      for (const host of [...all].reverse()) await host.shutdown(harness);
+    },
+    releaseSession: async (sessionId: string) => {
+      for (const host of all) await host.releaseSession(harness, sessionId);
+    },
+    runTurn: (input: TurnInput, sink: TurnSink) => runRemoteTurn(harness, hosts, turns, input, sink),
   };
 }
 
 async function runRemoteTurn(
   harness: HarnessName,
-  host: AgentHostSupervisor,
+  hosts: AgentHosts,
   turns: LiveTurnRegistry,
   input: TurnInput,
   sink: TurnSink,
 ): Promise<TurnOutcome> {
+  const host = !input.workspace.computer && hosts.fenced !== undefined ? hosts.fenced : hosts.open;
   const turnId = randomUUID();
-  const turn = new RemoteTurn(turnId, input, sink, host);
+  const turn = new RemoteTurn(turnId, input, sink, host, hosts.open);
   const detach = host.attachTurn(turnId, turn.endpoint);
   // The turn's own key at the proxy: one host serves every turn with one
   // token, so this is what keeps a turn's calls to its own execution.
@@ -140,6 +168,14 @@ async function runRemoteTurn(
   } catch (err) {
     if (turn.settled) throw err;
     turn.settle(undefined);
+    if (err instanceof FenceRefusedError) {
+      return {
+        kind: "failed",
+        surface: "actionable",
+        message: `This runner can't lock the agent program for a conversation without a computer (${err.message}), and it won't run one unlocked.`,
+        cause: err,
+      };
+    }
     // A turn the runtime had stopped, or asked to yield, ends as the runtime
     // asked whatever became of the host: its evidence decides the arm.
     if (sink.stopSignal.aborted || sink.yieldSignal.aborted) return { kind: "interrupted" };
@@ -153,7 +189,33 @@ async function runRemoteTurn(
     backgroundStopListener?.();
     closeTurn();
     detach();
+    if (turn.checkpointRowsUsed) await closeCheckpointRows(hosts.open, input.sessionId);
   }
+}
+
+/** The relayed turn has settled: the open host closes the session's checkpoint file. A host that is gone holds none open. */
+async function closeCheckpointRows(open: AgentHostSupervisor, sessionId: string): Promise<void> {
+  try {
+    await (await open.connection()).call("closeCheckpointRows", { sessionId });
+  } catch (err) {
+    console.warn(`[agent-host] the session's checkpoint file was not closed: session=${sessionId}, ${err instanceof Error ? err.message : String(err)}`);
+  }
+}
+
+const CHECKPOINT_OPS: ReadonlySet<string> = new Set(["get", "list", "put", "putWrites", "deleteThread"]);
+
+/**
+ * Hold a relayed checkpoint op to the turn's own thread, read as the host
+ * sent it: an op of a kind this runner does not know, or one naming any
+ * other thread, is refused, never stored.
+ */
+export function confineCheckpointOp(op: CheckpointRowsOp, threadId: string): CheckpointRowsOp {
+  const raw = op as { readonly op?: unknown };
+  if (typeof raw.op !== "string" || !CHECKPOINT_OPS.has(raw.op)) throw new Error("the agent program sent a checkpoint call this runner does not know");
+  for (const thread of threadsOfCheckpointOp(op)) {
+    if (thread !== threadId) throw new Error(`thread ${String(thread)} is not the turn's own`);
+  }
+  return op;
 }
 
 /**
@@ -197,6 +259,8 @@ class RemoteTurn {
   readonly seededKeys: ReadonlySet<string>;
   private finalCas: CasTouchedSnapshot | undefined;
   private done = false;
+  /** Whether the turn stored saved state through the open host, whose file then closes at the turn's end. */
+  checkpointRowsUsed = false;
   readonly endpoint: RemoteTurnEndpoint;
 
   constructor(
@@ -204,6 +268,7 @@ class RemoteTurn {
     private readonly input: TurnInput,
     private readonly sink: TurnSink,
     host: AgentHostSupervisor,
+    store: AgentHostSupervisor,
   ) {
     this.runtimeFields = new RuntimeFieldTracker(sink.status);
     this.seededKeys = storageKeysOf(sink);
@@ -257,6 +322,12 @@ class RemoteTurn {
         deleteTurnOutput: async ({ path }) => storeFilesOf(input).outputs.delete(path),
         putTurnOffload: async ({ content }) => offloadsOf(input).put(new Uint8Array(Buffer.from(content, "base64"))),
         readTurnOffload: async ({ key }) => Buffer.from(await offloadsOf(input).read(key)).toString("base64"),
+        checkpointRows: async ({ op }) => {
+          storeFilesOf(input);
+          const confined = confineCheckpointOp(op, input.threadId);
+          this.checkpointRowsUsed = true;
+          return (await store.connection()).call("checkpointRows", { sessionId: input.sessionId, op: confined });
+        },
         claimInput: async ({ force }) => {
           const messages = await sink.input.claim({ force });
           return { messages, pending: sink.input.pending() };

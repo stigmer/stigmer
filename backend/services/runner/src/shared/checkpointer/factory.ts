@@ -9,6 +9,9 @@
  *   replaying from the original message (stigmer/stigmer#204).
  * - http: HttpCheckpointSaver (proxy-backed) — for cloud / managed runners.
  * - memory: MemorySaver (ephemeral, zero-config) — explicit opt-in for tests.
+ * - relayed: the sqlite backend's serializer over rows the runner stores, for
+ *   a conversation without a computer, whose turn runs in the locked agent
+ *   host (`relayed-rows.ts`): the same rows in the same file.
  *
  * The returned saver is used by the deep agent activity; the Claude engine
  * keeps its conversation in its own session store.
@@ -19,6 +22,7 @@ import type { BaseCheckpointSaver } from "@langchain/langgraph-checkpoint";
 import type { CheckpointerConfig } from "./types.js";
 import { HttpCheckpointSaver } from "./http-saver.js";
 import { SqliteCheckpointSaver } from "./sqlite-saver.js";
+import { RowsCheckpointSaver } from "./rows.js";
 
 export class CheckpointerCreationError extends Error {
   readonly checkpointerType: string;
@@ -56,6 +60,14 @@ export async function createCheckpointer(
       return saver;
     }
 
+    case "relayed": {
+      if (!config.rows) {
+        throw new CheckpointerCreationError("relayed", "rows are required for the relayed checkpointer");
+      }
+      console.log("Created relayed checkpointer (rows stored by the runner)");
+      return new RowsCheckpointSaver(config.rows);
+    }
+
     case "memory":
       console.log("Created MemorySaver checkpointer (ephemeral, in-memory)");
       return new MemorySaver();
@@ -86,7 +98,7 @@ export async function createCheckpointer(
       const exhaustive: never = config.type;
       throw new CheckpointerCreationError(
         String(exhaustive),
-        `Unknown checkpointer type. Valid types: sqlite, http, memory`,
+        `Unknown checkpointer type. Valid types: sqlite, http, memory, relayed`,
       );
     }
   }

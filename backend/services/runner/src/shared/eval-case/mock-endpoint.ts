@@ -210,6 +210,9 @@ function resolvedServerOf(
     url: `http://127.0.0.1:${port}/mcp/${encodeURIComponent(server.segment)}`,
     headers: { Authorization: `Bearer ${token}` },
     home: homeOf(context, server),
+    // The runner serves the stand-in itself: its loopback address is the
+    // runner's, never the agent's, so no reach rule judges it.
+    addressedByRunner: "known",
   };
 }
 

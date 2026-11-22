@@ -15,9 +15,12 @@
  *   - the agent's own fields (a Bash entry in tools, its hooks, an
  *     Environment, COMPUTER_NONE on the Claude harness): INVALID_ARGUMENT
  *     at its save, since the write itself is wrong;
- *   - what it lists (a plugin with hooks or a local MCP server, a subagent
- *     whose pinned version has a computer): FAILED_PRECONDITION at its
- *     save, since the conflict is with another resource's state;
+ *   - an MCP server of its own whose address is this machine or its
+ *     private network: INVALID_ARGUMENT at its save (below);
+ *   - what it lists (a plugin with hooks, a local MCP server or one whose
+ *     address is this machine, a subagent whose pinned version has a
+ *     computer): FAILED_PRECONDITION at its save, since the conflict is
+ *     with another resource's state;
  *   - what a conversation adds (a repository, a folder, an Environment, the
  *     Claude harness, a plugin of its own with hooks or a local program):
  *     FAILED_PRECONDITION on every write, since the conflict is with its
@@ -27,8 +30,16 @@
  *     not run is a policy that vanished, so the turn is refused, never run
  *     without it.
  *
- * An agent's own MCP servers are reached over HTTP only, so none needs a
- * computer. A tool list elsewhere (a plugin's agent's, a message's own) may
+ * An agent's own MCP servers are reached over HTTP only, so none starts a
+ * program. But an agent without a computer runs in a program that may
+ * reach neither the machine it runs on nor that machine's private network,
+ * so a server whose host is a loopback name (`localhost`, `*.localhost`) or
+ * a loopback, private, link-local or unspecified address literal (IPv4 or
+ * IPv6, by the shared egress rule, `@stigmer/outbound/egress`) is refused,
+ * on http and https alike: the agent's own at its save, a plugin's
+ * wherever its plugins are checked. A name that resolves to such an
+ * address is not known here; the runner judges every resolved address when
+ * it connects. A tool list elsewhere (a plugin's agent's, a message's own) may
  * name Bash beside other tools: without a computer the turn simply lacks it.
  * One that names only the shell is refused, at the save that brings the
  * plugin and at the turn's create, because the runner refuses a list that
@@ -36,6 +47,9 @@
  *
  * Tests: __tests__/computer.test.ts.
  */
+import { isIP } from "node:net";
+
+import { blockedReason } from "@stigmer/outbound/egress";
 import { builtinToolOf, SHELL_TOOL } from "@stigmer/tool-vocabulary";
 
 import type { AgentSpec } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/spec_pb";
@@ -65,6 +79,36 @@ export function namesOnlyTheShell(tools: readonly string[] | undefined): boolean
   return tools !== undefined && tools.length > 0 && tools.every((entry) => builtinToolOf(entry) === SHELL_TOOL);
 }
 
+/**
+ * What an MCP server's address reaches, in words, when its host alone says
+ * it is this machine or its private network: "this machine (loopback)" or
+ * "this machine's private network (private (RFC 1918))". Undefined for any
+ * other host, and for a value that is not a URL (its save's own validation
+ * answers that).
+ */
+export function machineReachOf(url: string): string | undefined {
+  let hostname: string;
+  try {
+    hostname = new URL(url).hostname;
+  } catch {
+    return undefined;
+  }
+  const host = hostname.replace(/^\[|\]$/g, "").replace(/\.$/, "").toLowerCase();
+  if (host === "localhost" || host.endsWith(".localhost")) {
+    return "this machine (loopback)";
+  }
+  if (isIP(host) === 0) {
+    return undefined;
+  }
+  const reason = blockedReason(host, "strict");
+  if (reason === null) {
+    return undefined;
+  }
+  return reason === "loopback" || reason === "unspecified"
+    ? `this machine (${reason})`
+    : `this machine's private network (${reason})`;
+}
+
 /** What a plugin carries that needs a computer, in words; undefined when it carries nothing that does. */
 function pluginNeedsComputer(plugin: RunPlugin): string | undefined {
   if ((plugin.status.hooks?.groups.length ?? 0) > 0) {
@@ -73,6 +117,13 @@ function pluginNeedsComputer(plugin: RunPlugin): string | undefined {
   const server = plugin.status.mcpServers.find((entry) => entry.transport.case === "stdio");
   if (server !== undefined) {
     return `runs its MCP server '${server.name}' as a local program`;
+  }
+  for (const entry of plugin.status.mcpServers) {
+    if (entry.transport.case !== "http") continue;
+    const reach = machineReachOf(entry.transport.value.url);
+    if (reach !== undefined) {
+      return `has its MCP server '${entry.name}' at ${entry.transport.value.url}, which reaches ${reach}`;
+    }
   }
   const shellOnly = plugin.status.agents.find((agent) => namesOnlyTheShell(agent.tools));
   if (shellOnly !== undefined) {
@@ -120,6 +171,15 @@ export function refuseAgentWithoutComputer(
     throw invalidArgumentError(
       `this agent has no computer, so it can't name an Environment; remove environment_ref, ${remedy}`,
     );
+  }
+  for (const server of spec.mcpServers) {
+    const reach = machineReachOf(server.url);
+    if (reach !== undefined) {
+      throw invalidArgumentError(
+        `this agent has no computer, so its MCP server '${server.name}' can't be at ${server.url}, which reaches ${reach}; ` +
+          `use an address on the internet, ${remedy}`,
+      );
+    }
   }
   for (const plugin of plugins) {
     const why = pluginNeedsComputer(plugin);

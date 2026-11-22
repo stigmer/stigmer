@@ -525,6 +525,10 @@ No other mismatch exists: every other `newAuthorizeStep` call site passes the de
 
 Static web-console assets on the unified port, present only when a console export is bundled or configured. GET/HEAD only; never claims `/v1/*` or service-shaped RPC paths. Unauthenticated static-asset serving plus a synthesized `/config.json`.
 
+### platformMcpLane (`src/transport/mcp/lane.ts`)
+
+`POST /v1/mcp/memory`, `/v1/mcp/channels` and `/v1/mcp/conversation` on the unified port, present only when a composed unit declares `servesPlatformMcp` (the open-source edition's unit and the licensed enterprise unit do; the hosted edition serves the same rosters on a port of its own and declares nothing). Every other path under `/v1/mcp/` is 404, the package's full roster included; HTTP/2 is 505. It authorizes nothing itself: each tool call dials this server's own unified port on loopback as the request's caller, so the RPC it makes runs the serving chain and that RPC's own row above. Under an authentication posture the door admits only a bearer the composed verifier chain claims (401 for none or an unclaimed one, 503 for a verifier fault), and every tool call carries that bearer; on a trusted-local server the header is ignored and the calls carry none, the operator's posture every tokenless request has there.
+
 ### Artifact HTTP file server (`src/artifactstorage/file-server.ts`)
 
 A SECOND listener, not a unified-port lane: `GET /<storage_key>` on `127.0.0.1:ARTIFACT_HTTP_PORT` (unset: the unified port + 1, or ephemeral beside an ephemeral unified port; `src/boot/artifact-lane.ts`), started only when artifact storage is local, before the server reports SERVING; a lane that cannot bind fails the boot. Serves the exact bytes local artifact storage wrote, to a link that storage signed: the URL's signature and expiry are the credential (`src/artifactstorage/url-signer.ts`), checked before the disk is touched, and an unsigned, tampered, expired or re-named link is answered the 404 a missing key gets. The loopback bind is the default (0.0.0.0 inside the official container; the Kubernetes operator's front door exposes the lane at `/artifacts` on its one hostname).

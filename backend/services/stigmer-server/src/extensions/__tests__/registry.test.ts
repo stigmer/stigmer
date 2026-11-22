@@ -144,6 +144,7 @@ describe("resolveExtensions — defaults", () => {
     expect(resolved.orgLimit).toBeUndefined();
     expect(resolved.accessHistoryRetentionDays).toBeUndefined();
     expect(resolved.requireAuthentication).toBeUndefined();
+    expect(resolved.servesPlatformMcp).toBeUndefined();
     expect(resolved.authorizer).toBeUndefined();
     expect(resolved.identityVerifiers).toEqual([]);
     expect(resolved.callerGuards).toEqual([]);
@@ -216,6 +217,20 @@ describe("resolveExtensions — merge semantics", () => {
     expect(resolved.workers).toEqual([workerFactory]);
     expect(resolved.statusObservers).toEqual([observerA]);
     expect(resolved.responseDecorators).toEqual([decoratorB]);
+  });
+
+  it("serves the platform MCP lane when any unit declares it, naming each in unit order", () => {
+    expect(
+      resolveExtensions([{ name: "alpha" }, { name: "beta", servesPlatformMcp: true }])
+        .servesPlatformMcp,
+    ).toEqual({ declaredBy: ["beta"] });
+    expect(
+      resolveExtensions([
+        { name: "alpha", servesPlatformMcp: true },
+        { name: "beta", servesPlatformMcp: true },
+      ]).servesPlatformMcp,
+    ).toEqual({ declaredBy: ["alpha", "beta"] });
+    expect(resolveExtensions([{ name: "alpha" }]).servesPlatformMcp).toBeUndefined();
   });
 
   it("merges the driver points: singleton providers, name-keyed storage drivers across units", () => {

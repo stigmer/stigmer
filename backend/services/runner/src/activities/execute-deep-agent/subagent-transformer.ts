@@ -295,7 +295,7 @@ export interface SubagentTransformOptions {
   readonly mcpIndex?: McpToolIndex;
   /**
    * URL-guard posture for the Stigmer harness's `web_fetch` tool, inherited from the
-   * parent (resolveGuardPosture(config.mode) in turn-setup.ts) so a sub-agent
+   * parent (resolveGuardPosture(config.mode, computer) in turn-setup.ts) so a sub-agent
    * fetch is bounded exactly like a parent fetch.
    */
   readonly webFetchPosture: GuardPosture;

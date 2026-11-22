@@ -145,6 +145,9 @@ export const LANES = {
       "package.json",
       "package-lock.json",
       ".github/workflows/ci.agent-sandbox.yaml",
+      // The platform MCP handler the server links (`@stigmer/mcp-server/http`), and the client it bundles.
+      "mcp-server/**",
+      "sdk/typescript/**",
     ],
   },
   "ci.all-in-one.yaml": {
@@ -372,6 +375,9 @@ export const LANES = {
       "package.json",
       "package-lock.json",
       ".github/workflows/ci.conformance.yaml",
+      // The platform MCP handler the server links (`@stigmer/mcp-server/http`), and the client it bundles.
+      "mcp-server/**",
+      "sdk/typescript/**",
     ],
   },
   "ci.conformance-enterprise.yaml": {
@@ -391,6 +397,9 @@ export const LANES = {
       "package.json",
       "package-lock.json",
       ".github/workflows/ci.conformance-enterprise.yaml",
+      // The platform MCP handler the server links (`@stigmer/mcp-server/http`), and the client it bundles.
+      "mcp-server/**",
+      "sdk/typescript/**",
     ],
   },
   "ci.conformance-execution.yaml": {
@@ -421,6 +430,9 @@ export const LANES = {
       "package.json",
       "package-lock.json",
       ".github/workflows/ci.conformance-execution.yaml",
+      // The platform MCP handler the server links (`@stigmer/mcp-server/http`), and the client it bundles.
+      "mcp-server/**",
+      "sdk/typescript/**",
     ],
   },
   "ci.crate.yaml": {
@@ -562,6 +574,8 @@ export const LANES = {
       "package.json",
       "package-lock.json",
       ".github/workflows/ci.e2e-interactive.yaml",
+      // The platform MCP handler the server links (`@stigmer/mcp-server/http`), and the client it bundles.
+      "mcp-server/**",
     ],
   },
   "ci.docs-snippets.yaml": {
@@ -650,6 +664,9 @@ export const LANES = {
       // The Node version the lane sets up (ci.all-in-one says why).
       ".nvmrc",
       ".github/workflows/ci.ee.yaml",
+      // The platform MCP handler the server links (`@stigmer/mcp-server/http`), and the client it bundles.
+      "mcp-server/**",
+      "sdk/typescript/**",
     ],
   },
   "ci.go-sdk.yaml": {
@@ -980,6 +997,9 @@ export const LANES = {
       // The Node version the lane sets up (ci.all-in-one says why).
       ".nvmrc",
       ".github/workflows/ci.stigmer-server.yaml",
+      // The platform MCP handler the server links (`@stigmer/mcp-server/http`), and the client it bundles.
+      "mcp-server/**",
+      "sdk/typescript/**",
     ],
   },
   "ci.ts-workspace.yaml": {

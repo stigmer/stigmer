@@ -86,7 +86,7 @@ afterEach(() => {
 
 async function startProxy(overrides: Partial<Config> = {}): Promise<AgentProxy> {
   const proxy = await AgentProxy.start(testConfig({ stigmerTokenRef: { current: RUNNER_TOKEN }, ...overrides }));
-  proxy.authorizeHost(HOST_TOKEN);
+  proxy.authorizeHost("open", HOST_TOKEN);
   return proxy;
 }
 
@@ -135,11 +135,33 @@ describe("what a host token buys", () => {
       expect(wrong.status).toBe(401);
       const sameLength = await call(proxy, "/v1/proxy/llm/anthropic/v1/messages", { headers: { ...asHost, authorization: `Bearer ${"x".repeat(HOST_TOKEN.length)}` } });
       expect(sameLength.status, "a token of the right length is still compared").toBe(401);
-      proxy.authorizeHost("the-next-host");
+      proxy.authorizeHost("open", "the-next-host");
       const previous = await call(proxy, "/v1/proxy/llm/anthropic/v1/messages", { headers: asHost });
       expect(previous.status, "a token from a host that was replaced is worth nothing").toBe(401);
       expect(upstream.received).toHaveLength(0);
     } finally {
+      await proxy.close();
+    }
+  });
+
+  it("keeps one token per host: the locked host's restart never voids the open host's", async () => {
+    setEnv({ ANTHROPIC_BASE_URL: upstream.url, ANTHROPIC_API_KEY: "sk-operator" });
+    const proxy = await startProxy();
+    const close = proxy.openTurn({ executionId: EXECUTION, threadId: THREAD, turnKey: TURN_KEY });
+    try {
+      const turnHeaders = { "x-stigmer-execution-id": EXECUTION, "x-stigmer-turn-key": TURN_KEY };
+      proxy.authorizeHost("fenced", "the-locked-host");
+      const open = await call(proxy, "/v1/proxy/llm/anthropic/v1/messages", { headers: asHost });
+      expect(open.status, "the open host's token still stands beside the locked host's").toBe(200);
+      const locked = await call(proxy, "/v1/proxy/llm/anthropic/v1/messages", { headers: { ...turnHeaders, authorization: "Bearer the-locked-host" } });
+      expect(locked.status, "the locked host's own token is accepted").toBe(200);
+      proxy.authorizeHost("fenced", "the-locked-host-restarted");
+      const stale = await call(proxy, "/v1/proxy/llm/anthropic/v1/messages", { headers: { ...turnHeaders, authorization: "Bearer the-locked-host" } });
+      expect(stale.status, "a restart replaces only its own slot's token").toBe(401);
+      const stillOpen = await call(proxy, "/v1/proxy/llm/anthropic/v1/messages", { headers: asHost });
+      expect(stillOpen.status, "and never the open host's").toBe(200);
+    } finally {
+      close();
       await proxy.close();
     }
   });
@@ -214,7 +236,7 @@ describe("what a host token buys", () => {
     const proxy = await AgentProxy.start(testConfig({ proxyEndpoint: upstream.url, checkpointerType: "http", checkpointerProxyEndpoint: upstream.url }));
     try {
       expect((await call(proxy, "/v1/proxy/model-registry", { method: "GET", headers: { authorization: `Bearer ${HOST_TOKEN}` } })).status, "no host yet").toBe(401);
-      proxy.authorizeHost(HOST_TOKEN);
+      proxy.authorizeHost("open", HOST_TOKEN);
       expect((await call(proxy, "/v1/proxy/model-registry", { headers: { authorization: `Bearer ${HOST_TOKEN}` } })).status).toBe(405);
       const close = proxy.openTurn({ executionId: EXECUTION, threadId: THREAD, turnKey: TURN_KEY });
       close();

@@ -8,23 +8,34 @@ import {
 
 describe("resolveGuardPosture", () => {
   it("defaults to strict on cloud runners", () => {
-    expect(resolveGuardPosture("cloud", {})).toBe("strict");
+    expect(resolveGuardPosture("cloud", true, {})).toBe("strict");
   });
 
   it("defaults to relaxed on local runners", () => {
-    expect(resolveGuardPosture("local", {})).toBe("relaxed");
+    expect(resolveGuardPosture("local", true, {})).toBe("relaxed");
   });
 
   it("override=true relaxes a cloud runner", () => {
-    expect(resolveGuardPosture("cloud", { STIGMER_WEB_FETCH_ALLOW_PRIVATE: "true" })).toBe("relaxed");
+    expect(resolveGuardPosture("cloud", true, { STIGMER_WEB_FETCH_ALLOW_PRIVATE: "true" })).toBe("relaxed");
   });
 
   it("override=false hardens a local runner", () => {
-    expect(resolveGuardPosture("local", { STIGMER_WEB_FETCH_ALLOW_PRIVATE: "false" })).toBe("strict");
+    expect(resolveGuardPosture("local", true, { STIGMER_WEB_FETCH_ALLOW_PRIVATE: "false" })).toBe("strict");
   });
 
   it("ignores malformed override values", () => {
-    expect(resolveGuardPosture("cloud", { STIGMER_WEB_FETCH_ALLOW_PRIVATE: "yes" })).toBe("strict");
+    expect(resolveGuardPosture("cloud", true, { STIGMER_WEB_FETCH_ALLOW_PRIVATE: "yes" })).toBe("strict");
+  });
+});
+
+describe("resolveGuardPosture without a computer", () => {
+  it.each([
+    ["local", {}],
+    ["cloud", {}],
+    ["local", { STIGMER_WEB_FETCH_ALLOW_PRIVATE: "true" }],
+    ["cloud", { STIGMER_WEB_FETCH_ALLOW_PRIVATE: "true" }],
+  ] as const)("is strict on a %s runner with %o", (mode, env) => {
+    expect(resolveGuardPosture(mode, false, env)).toBe("strict");
   });
 });
 

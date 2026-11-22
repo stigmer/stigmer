@@ -9,9 +9,11 @@
  * credential and forwards the bytes (`relay.ts`). What a host token buys is
  * bounded here, and nothing else in the runner serves the host:
  *
- *  - Only the current host's token is accepted, in `Authorization: Bearer`
+ *  - Only a current host's token is accepted, in `Authorization: Bearer`
  *    or `x-api-key` (the two places the host's SDKs put a key), compared in
- *    constant time. One exception: on the Anthropic lane a live turn's own
+ *    constant time. A runner runs two hosts, the open one and the locked one
+ *    (`agent-host/hosting.ts`), and the proxy keeps one token per host:
+ *    a restart of one replaces only its own, never the other's. One exception: on the Anthropic lane a live turn's own
  *    key stands in for it, as that turn's ({@link AgentProxy.turnCredentialOf}).
  *    An engine that is its own program (the Claude engine, a process the host
  *    starts per turn) sends one key and no scope headers, and handing it the
@@ -81,7 +83,8 @@ interface LiveTurn {
 }
 
 export class AgentProxy implements AgentProxyGate, LiveTurnRegistry {
-  private hostToken: Buffer | undefined;
+  /** Each host's current token, by its slot. */
+  private readonly hostTokens = new Map<string, Buffer>();
   /** Live turns: each one's execution, the thread it checkpoints under, and its key. */
   private readonly live = new Set<LiveTurn>();
 
@@ -109,8 +112,8 @@ export class AgentProxy implements AgentProxyGate, LiveTurnRegistry {
     return proxy;
   }
 
-  authorizeHost(token: string): void {
-    this.hostToken = Buffer.from(token);
+  authorizeHost(slot: string, token: string): void {
+    this.hostTokens.set(slot, Buffer.from(token));
   }
 
   openTurn(turn: { readonly executionId: string; readonly threadId: string; readonly turnKey: string }): () => void {
@@ -201,11 +204,14 @@ export class AgentProxy implements AgentProxyGate, LiveTurnRegistry {
   }
 
   private isHostToken(presented: string | undefined): boolean {
-    const expected = this.hostToken;
-    if (!expected) return false;
     if (presented === undefined) return false;
     const candidate = Buffer.from(presented);
-    return candidate.length === expected.length && timingSafeEqual(candidate, expected);
+    let matched = false;
+    // Every slot is compared, so the time taken says nothing of which matched.
+    for (const expected of this.hostTokens.values()) {
+      if (candidate.length === expected.length && timingSafeEqual(candidate, expected)) matched = true;
+    }
+    return matched;
   }
 
   /** The live turn whose key the request carries, compared in constant time. */
