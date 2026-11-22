@@ -182,6 +182,21 @@ describe("the store route answers as the platform folder's route does", () => {
   });
 });
 
+describe("a conversation with a computer, whose platform folder also holds the skill on disk", () => {
+  it("lists and searches the skill once, from the store: the disk copy is left out of the platform route's answers", async () => {
+    const both = new CompositeBackend(new FilesystemBackend({ rootDir: join(root, "ws"), virtualMode: true }), {
+      [ROUTE]: new ArchiveRoutedPlatform(join(root, "platform"), readerOver(files)),
+    });
+    expect((await both.ls(ROUTE)).files?.map((file) => file.path)).toEqual([`${ROUTE}skills/`]);
+    const fromBoth = (await both.grep("needle", ROUTE)).matches ?? [];
+    const storeOnly = (await fromStore.grep("needle", ROUTE)).matches ?? [];
+    expect(fromBoth.length, "each match once").toBe(storeOnly.length);
+    expect((await both.glob("**/*.md", ROUTE)).files?.map((file) => file.path).sort()).toEqual(
+      (await fromStore.glob("**/*.md", ROUTE)).files?.map((file) => file.path).sort(),
+    );
+  });
+});
+
 describe("the store route refuses every change", () => {
   it("refuses a write, an edit and a delete with the platform route's sentence", async () => {
     const path = agentPath(`${SKILL}/SKILL.md`);
