@@ -189,7 +189,17 @@ and the command exits non-zero, so such a run is never taken as a score. It
 calls a real
 model on your own Claude Code sign-in, so it is by hand, in no lane;
 `BANK_ARGS` narrows it (`--tag=<job>`, `--case=<glob>`, `--runs=<n>`) and
-bounds it (`--max-cost-usd`, default $60 API-equivalent).
+bounds it (`--max-cost-usd`, default $60 API-equivalent). When passing a
+`{a,b}` glob through `make`, quote it or call the script directly: the shell
+expands an unquoted brace into separate `--case` arguments and only the last
+is kept.
+
+The bank is proven in one coding agent, Claude Code. Codex and Cursor read the
+same skills, tool server and docs, so an answer proven there carries over; what
+differs between the tools is how each loads the plugin (its manifest, its hooks
+file), and that is held by this package's unit tests, not by a bank run in each
+tool. A problem a person reports in Codex or Cursor is fixed when it is
+reported.
 
 To add a case: write the question in the person's own words under its job's
 folder, read the docs page that answers it, and write the rubric from that
