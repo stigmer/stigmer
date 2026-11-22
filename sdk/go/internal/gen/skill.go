@@ -106,6 +106,16 @@ func (s *SkillClient) GetArtifactDownloadUrl(ctx context.Context, input *skillv1
 	return resp, wrapErr(err)
 }
 
+func (s *SkillClient) ListFiles(ctx context.Context, input *skillv1.ListSkillFilesInput) (*skillv1.SkillFileList, error) {
+	resp, err := s.query.ListFiles(ctx, input)
+	return resp, wrapErr(err)
+}
+
+func (s *SkillClient) ReadFile(ctx context.Context, input *skillv1.ReadSkillFileInput) (*skillv1.SkillFileContent, error) {
+	resp, err := s.query.ReadFile(ctx, input)
+	return resp, wrapErr(err)
+}
+
 func (s *SkillClient) ListVersions(ctx context.Context, input *skillv1.ListSkillVersionsInput) (*skillv1.ListSkillVersionsResponse, error) {
 	resp, err := s.query.ListVersions(ctx, input)
 	return resp, wrapErr(err)

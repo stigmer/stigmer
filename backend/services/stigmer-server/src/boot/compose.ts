@@ -194,7 +194,8 @@ import {
   STAGING_KEY_PREFIX,
 } from "../domain/skill/constants.js";
 import { newSkillArtifactStorage } from "../domain/skill/storage/artifact-storage.js";
-import { newContentAddressedArchiveStore } from "../archive/content-store.js";
+import { newContentAddressedArchiveStore, newIndexedArchiveStore } from "../archive/content-store.js";
+import { fileIndexKeyPrefix } from "../archive/file-index.js";
 import {
   newSkillTransferLane,
   transferServeUrl,
@@ -1579,9 +1580,10 @@ export async function composeServer(
   // ride the same blob driver and backend selection; the key prefix
   // (`plugins/`) keeps the two stores apart and the plugin store owns its
   // keys (src/archive/content-store.ts).
-  const pluginArtifactStorage = newContentAddressedArchiveStore(
+  const pluginArtifactStorage = newIndexedArchiveStore(
     skillStorageDriver,
     PLUGIN_ARTIFACT_KEY_PREFIX,
+    fileIndexKeyPrefix("plugin"),
   );
   // Eval archives the same way, under `evals/`.
   const evalArtifactStorage = newContentAddressedArchiveStore(

@@ -70,14 +70,18 @@ import ai.stigmer.agentic.skill.v1.CreateSkillArtifactUploadUrlRequest;
 import ai.stigmer.agentic.skill.v1.GetArtifactRequest;
 import ai.stigmer.agentic.skill.v1.GetArtifactResponse;
 import ai.stigmer.agentic.skill.v1.GitProvenance;
+import ai.stigmer.agentic.skill.v1.ListSkillFilesInput;
 import ai.stigmer.agentic.skill.v1.ListSkillVersionsInput;
 import ai.stigmer.agentic.skill.v1.ListSkillVersionsResponse;
 import ai.stigmer.agentic.skill.v1.ListSkillsRequest;
 import ai.stigmer.agentic.skill.v1.PushSkillFromFileRequest;
 import ai.stigmer.agentic.skill.v1.PushSkillRequest;
+import ai.stigmer.agentic.skill.v1.ReadSkillFileInput;
 import ai.stigmer.agentic.skill.v1.Skill;
 import ai.stigmer.agentic.skill.v1.SkillArtifactDownloadUrl;
 import ai.stigmer.agentic.skill.v1.SkillArtifactUploadUrl;
+import ai.stigmer.agentic.skill.v1.SkillFileContent;
+import ai.stigmer.agentic.skill.v1.SkillFileList;
 import ai.stigmer.agentic.skill.v1.SkillList;
 import ai.stigmer.commons.apiresource.ApiResourceVisibility;
 import ai.stigmer.commons.apiresource.UpdateVisibilityInput;
@@ -100,12 +104,14 @@ Skill skill = client.skill.get("skl_01j5q3k7m8r2s4tnz2hfp0q0c3");
 | [`getArtifactDownloadUrl`](#getartifactdownloadurl) | Mint a URL for downloading a skill artifact over HTTP. |
 | [`getByReference`](#getbyreference) | Get a skill by API resource reference with version support. |
 | [`list`](#list) | List an organization's skills, newest first. |
+| [`listFiles`](#listfiles) | List the files of one version of a skill. |
 | [`listVersions`](#listversions) | List version history for a skill. |
 | [`updateVisibility`](#updatevisibility) | Update the visibility of an existing skill. |
 | [`delete`](#delete) | Delete a skill and all its versions. |
 | [`createArtifactUploadUrl`](#createartifactuploadurl) | Mint a short-lived, single-use upload URL for staging a skill artifact that exceeds the gRPC message-size cap (10MB). |
 | [`push`](#push) | Push a skill artifact. |
 | [`pushFromFile`](#pushfromfile) | Push a skill from a File holding its ZIP archive. |
+| [`readFile`](#readfile) | Read one file of one version of a skill. |
 
 ### get
 
@@ -305,6 +311,51 @@ SkillList result = client.skill.list(ListSkillsRequest.newBuilder()
 **Returns**: [`SkillList`](#skilllist)
 
 **Every page**: `listAll` (Go `ListAll`, Python `list_all`, Java `listAll`) takes the same input and yields every entry, following `nextPageToken` from the token the input names.
+
+### listFiles
+
+List the files of one version of a skill.
+
+Returns each file's path, size, SHA-256 and whether it is executable, in path order. A plugin's eval suite, when the skill's archive is a whole plugin, is left out.
+
+<SDKTabs>
+<Tab value="TypeScript">
+```typescript
+const result = await stigmer.skill.listFiles({
+  skillId: "...",
+  versionHash: "...",
+});
+```
+</Tab>
+<Tab value="Go">
+```go
+result, err := client.Skill.ListFiles(ctx, &skillv1.ListSkillFilesInput{
+  SkillId:     "...",
+  VersionHash: "...",
+})
+```
+</Tab>
+<Tab value="Python">
+```python
+result = client.skills.list_files(io_pb2.ListSkillFilesInput(
+    skill_id="...",
+    version_hash="...",
+))
+```
+</Tab>
+<Tab value="Java">
+```java
+SkillFileList result = client.skill.listFiles(ListSkillFilesInput.newBuilder()
+    .setSkillId("...")
+    .setVersionHash("...")
+    .build());
+```
+</Tab>
+</SDKTabs>
+
+**Parameters**: [`ListSkillFilesInput`](#listskillfilesinput)
+
+**Returns**: [`SkillFileList`](#skillfilelist)
 
 ### listVersions
 
@@ -592,6 +643,55 @@ Skill skill = client.skill.pushFromFile(PushSkillFromFileRequest.newBuilder()
 
 **Returns**: [`Skill`](#skill)
 
+### readFile
+
+Read one file of one version of a skill.
+
+Returns the file's bytes, up to 8 MB; a larger file is refused with FailedPrecondition. The path is matched exactly against the version's file list.
+
+<SDKTabs>
+<Tab value="TypeScript">
+```typescript
+const skillFileContent = await stigmer.skill.readFile({
+  skillId: "...",
+  versionHash: "...",
+  path: "...",
+});
+```
+</Tab>
+<Tab value="Go">
+```go
+skillFileContent, err := client.Skill.ReadFile(ctx, &skillv1.ReadSkillFileInput{
+  SkillId:     "...",
+  VersionHash: "...",
+  Path:        "...",
+})
+```
+</Tab>
+<Tab value="Python">
+```python
+skill_file_content = client.skills.read_file(io_pb2.ReadSkillFileInput(
+    skill_id="...",
+    version_hash="...",
+    path="...",
+))
+```
+</Tab>
+<Tab value="Java">
+```java
+SkillFileContent skillFileContent = client.skill.readFile(ReadSkillFileInput.newBuilder()
+    .setSkillId("...")
+    .setVersionHash("...")
+    .setPath("...")
+    .build());
+```
+</Tab>
+</SDKTabs>
+
+**Parameters**: [`ReadSkillFileInput`](#readskillfileinput)
+
+**Returns**: [`SkillFileContent`](#skillfilecontent)
+
 ## Types
 
 ### SkillInput
@@ -739,6 +839,49 @@ SkillArtifactDownloadUrl provides a URL for downloading a skill artifact over HT
     url: { type: "string", description: "URL to download the artifact ZIP via HTTP GET." },
     ttlSeconds: { type: "number", description: "Time-to-live for the download URL in seconds." },
     sizeBytes: { type: "number", description: "Size of the artifact ZIP in bytes." },
+  }}
+/>
+
+### ListSkillFilesInput
+
+ListSkillFilesInput names one version of a skill whose files to list.
+
+<TypeTable
+  type={{
+    skillId: { type: "string", description: "System-generated ID of the skill.", required: true },
+    versionHash: { type: "string", description: "The version to read, by its SHA-256 version hash: the skill's current version or one in its history." },
+  }}
+/>
+
+### SkillFileList
+
+SkillFileList is the files of one version of a skill.
+
+<TypeTable
+  type={{
+    files: { type: "SkillFileInput[]", description: "The files, in path order." },
+  }}
+/>
+
+### ReadSkillFileInput
+
+ReadSkillFileInput names one file of one version of a skill.
+
+<TypeTable
+  type={{
+    skillId: { type: "string", description: "System-generated ID of the skill.", required: true },
+    versionHash: { type: "string", description: "The version to read, as ListSkillFilesInput.version_hash." },
+    path: { type: "string", description: "The file's path, exactly as the version's file list names it." },
+  }}
+/>
+
+### SkillFileContent
+
+SkillFileContent is the bytes of one skill file.
+
+<TypeTable
+  type={{
+    content: { type: "Uint8Array", description: "The file's bytes." },
   }}
 />
 

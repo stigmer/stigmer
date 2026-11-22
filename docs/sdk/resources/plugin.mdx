@@ -116,6 +116,7 @@ plugin = client.plugins.get("plg_01j5q3k7m8r2s4tnz2hfp0q0c3")
 import ai.stigmer.agentic.plugin.v1.CreatePluginArtifactUploadUrlRequest;
 import ai.stigmer.agentic.plugin.v1.GetArtifactRequest;
 import ai.stigmer.agentic.plugin.v1.GetArtifactResponse;
+import ai.stigmer.agentic.plugin.v1.ListPluginFilesInput;
 import ai.stigmer.agentic.plugin.v1.ListPluginToolsInput;
 import ai.stigmer.agentic.plugin.v1.ListPluginToolsOutput;
 import ai.stigmer.agentic.plugin.v1.ListPluginVersionsInput;
@@ -124,8 +125,11 @@ import ai.stigmer.agentic.plugin.v1.ListPluginsRequest;
 import ai.stigmer.agentic.plugin.v1.Plugin;
 import ai.stigmer.agentic.plugin.v1.PluginArtifactDownloadUrl;
 import ai.stigmer.agentic.plugin.v1.PluginArtifactUploadUrl;
+import ai.stigmer.agentic.plugin.v1.PluginFileContent;
+import ai.stigmer.agentic.plugin.v1.PluginFileList;
 import ai.stigmer.agentic.plugin.v1.PluginList;
 import ai.stigmer.agentic.plugin.v1.PushPluginRequest;
+import ai.stigmer.agentic.plugin.v1.ReadPluginFileInput;
 import ai.stigmer.commons.apiresource.ApiResourceVisibility;
 import ai.stigmer.commons.apiresource.UpdateVisibilityInput;
 import ai.stigmer.sdk.gen.ResourceRef;
@@ -147,12 +151,14 @@ Plugin plugin = client.plugin.get("plg_01j5q3k7m8r2s4tnz2hfp0q0c3");
 | [`getArtifactDownloadUrl`](#getartifactdownloadurl) | Mint a URL for downloading a plugin archive over HTTP. |
 | [`getByReference`](#getbyreference) | Get a plugin by API resource reference with version support. |
 | [`list`](#list) | List an organization's plugins, newest first. |
+| [`listFiles`](#listfiles) | List the files of one version of a plugin. |
 | [`listTools`](#listtools) | List the tools one of a plugin's MCP servers offers now, signed in as the caller. |
 | [`listVersions`](#listversions) | List version history for a plugin. |
 | [`updateVisibility`](#updatevisibility) | Update the visibility of a plugin. |
 | [`delete`](#delete) | Delete a plugin, its evals included. |
 | [`createArtifactUploadUrl`](#createartifactuploadurl) | Mint a short-lived, single-use upload URL for staging a plugin archive that exceeds the gRPC message-size cap (10MB). |
 | [`push`](#push) | Push a plugin archive to install or upgrade it. |
+| [`readFile`](#readfile) | Read one file of one version of a plugin. |
 
 ### get
 
@@ -352,6 +358,51 @@ PluginList result = client.plugin.list(ListPluginsRequest.newBuilder()
 **Returns**: [`PluginList`](#pluginlist)
 
 **Every page**: `listAll` (Go `ListAll`, Python `list_all`, Java `listAll`) takes the same input and yields every entry, following `nextPageToken` from the token the input names.
+
+### listFiles
+
+List the files of one version of a plugin.
+
+Returns each file's path, size, SHA-256 and whether it is executable, in path order. The plugin's eval suite is left out.
+
+<SDKTabs>
+<Tab value="TypeScript">
+```typescript
+const result = await stigmer.plugin.listFiles({
+  pluginId: "...",
+  digest: "...",
+});
+```
+</Tab>
+<Tab value="Go">
+```go
+result, err := client.Plugin.ListFiles(ctx, &pluginv1.ListPluginFilesInput{
+  PluginId: "...",
+  Digest:   "...",
+})
+```
+</Tab>
+<Tab value="Python">
+```python
+result = client.plugins.list_files(io_pb2.ListPluginFilesInput(
+    plugin_id="...",
+    digest="...",
+))
+```
+</Tab>
+<Tab value="Java">
+```java
+PluginFileList result = client.plugin.listFiles(ListPluginFilesInput.newBuilder()
+    .setPluginId("...")
+    .setDigest("...")
+    .build());
+```
+</Tab>
+</SDKTabs>
+
+**Parameters**: [`ListPluginFilesInput`](#listpluginfilesinput)
+
+**Returns**: [`PluginFileList`](#pluginfilelist)
 
 ### listTools
 
@@ -631,6 +682,55 @@ Plugin plugin = client.plugin.push(PushPluginRequest.newBuilder()
 
 **Returns**: [`Plugin`](#plugin)
 
+### readFile
+
+Read one file of one version of a plugin.
+
+Returns the file's bytes, up to 8 MB; a larger file is refused with FailedPrecondition. The path is matched exactly against the version's file list.
+
+<SDKTabs>
+<Tab value="TypeScript">
+```typescript
+const pluginFileContent = await stigmer.plugin.readFile({
+  pluginId: "...",
+  digest: "...",
+  path: "...",
+});
+```
+</Tab>
+<Tab value="Go">
+```go
+pluginFileContent, err := client.Plugin.ReadFile(ctx, &pluginv1.ReadPluginFileInput{
+  PluginId: "...",
+  Digest:   "...",
+  Path:     "...",
+})
+```
+</Tab>
+<Tab value="Python">
+```python
+plugin_file_content = client.plugins.read_file(io_pb2.ReadPluginFileInput(
+    plugin_id="...",
+    digest="...",
+    path="...",
+))
+```
+</Tab>
+<Tab value="Java">
+```java
+PluginFileContent pluginFileContent = client.plugin.readFile(ReadPluginFileInput.newBuilder()
+    .setPluginId("...")
+    .setDigest("...")
+    .setPath("...")
+    .build());
+```
+</Tab>
+</SDKTabs>
+
+**Parameters**: [`ReadPluginFileInput`](#readpluginfileinput)
+
+**Returns**: [`PluginFileContent`](#pluginfilecontent)
+
 ## Types
 
 ### PluginInput
@@ -803,6 +903,49 @@ PluginArtifactDownloadUrl provides a URL for downloading a plugin archive over H
     url: { type: "string", description: "URL to download the archive ZIP via HTTP GET." },
     ttlSeconds: { type: "number", description: "Time-to-live for the download URL in seconds; 0 means no expiry." },
     sizeBytes: { type: "number", description: "Size of the archive ZIP in bytes." },
+  }}
+/>
+
+### ListPluginFilesInput
+
+ListPluginFilesInput names one version of a plugin whose files to list.
+
+<TypeTable
+  type={{
+    pluginId: { type: "string", description: "System-generated ID of the plugin.", required: true },
+    digest: { type: "string", description: "The version to read, by its SHA-256 digest: the plugin's installed version or one in its history." },
+  }}
+/>
+
+### PluginFileList
+
+PluginFileList is the files of one version of a plugin.
+
+<TypeTable
+  type={{
+    files: { type: "PluginFileInput[]", description: "The files, in path order." },
+  }}
+/>
+
+### ReadPluginFileInput
+
+ReadPluginFileInput names one file of one version of a plugin.
+
+<TypeTable
+  type={{
+    pluginId: { type: "string", description: "System-generated ID of the plugin.", required: true },
+    digest: { type: "string", description: "The version to read, as ListPluginFilesInput.digest." },
+    path: { type: "string", description: "The file's path, exactly as the version's file list names it." },
+  }}
+/>
+
+### PluginFileContent
+
+PluginFileContent is the bytes of one plugin file.
+
+<TypeTable
+  type={{
+    content: { type: "Uint8Array", description: "The file's bytes." },
   }}
 />
 

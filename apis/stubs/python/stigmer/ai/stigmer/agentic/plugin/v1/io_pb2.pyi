@@ -163,3 +163,45 @@ class PluginList(_message.Message):
     entries: _containers.RepeatedCompositeFieldContainer[_api_pb2.Plugin]
     next_page_token: str
     def __init__(self, entries: _Optional[_Iterable[_Union[_api_pb2.Plugin, _Mapping]]] = ..., next_page_token: _Optional[str] = ...) -> None: ...
+
+class ListPluginFilesInput(_message.Message):
+    __slots__ = ("plugin_id", "digest")
+    PLUGIN_ID_FIELD_NUMBER: _ClassVar[int]
+    DIGEST_FIELD_NUMBER: _ClassVar[int]
+    plugin_id: str
+    digest: str
+    def __init__(self, plugin_id: _Optional[str] = ..., digest: _Optional[str] = ...) -> None: ...
+
+class PluginFileList(_message.Message):
+    __slots__ = ("files",)
+    FILES_FIELD_NUMBER: _ClassVar[int]
+    files: _containers.RepeatedCompositeFieldContainer[PluginFile]
+    def __init__(self, files: _Optional[_Iterable[_Union[PluginFile, _Mapping]]] = ...) -> None: ...
+
+class PluginFile(_message.Message):
+    __slots__ = ("path", "size_bytes", "sha256", "executable")
+    PATH_FIELD_NUMBER: _ClassVar[int]
+    SIZE_BYTES_FIELD_NUMBER: _ClassVar[int]
+    SHA256_FIELD_NUMBER: _ClassVar[int]
+    EXECUTABLE_FIELD_NUMBER: _ClassVar[int]
+    path: str
+    size_bytes: int
+    sha256: str
+    executable: bool
+    def __init__(self, path: _Optional[str] = ..., size_bytes: _Optional[int] = ..., sha256: _Optional[str] = ..., executable: bool = ...) -> None: ...
+
+class ReadPluginFileInput(_message.Message):
+    __slots__ = ("plugin_id", "digest", "path")
+    PLUGIN_ID_FIELD_NUMBER: _ClassVar[int]
+    DIGEST_FIELD_NUMBER: _ClassVar[int]
+    PATH_FIELD_NUMBER: _ClassVar[int]
+    plugin_id: str
+    digest: str
+    path: str
+    def __init__(self, plugin_id: _Optional[str] = ..., digest: _Optional[str] = ..., path: _Optional[str] = ...) -> None: ...
+
+class PluginFileContent(_message.Message):
+    __slots__ = ("content",)
+    CONTENT_FIELD_NUMBER: _ClassVar[int]
+    content: bytes
+    def __init__(self, content: _Optional[bytes] = ...) -> None: ...

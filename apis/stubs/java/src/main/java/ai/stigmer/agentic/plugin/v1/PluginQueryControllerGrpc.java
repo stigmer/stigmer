@@ -170,6 +170,68 @@ public final class PluginQueryControllerGrpc {
     return getGetArtifactDownloadUrlMethod;
   }
 
+  private static volatile io.grpc.MethodDescriptor<ai.stigmer.agentic.plugin.v1.ListPluginFilesInput,
+      ai.stigmer.agentic.plugin.v1.PluginFileList> getListFilesMethod;
+
+  @io.grpc.stub.annotations.RpcMethod(
+      fullMethodName = SERVICE_NAME + '/' + "listFiles",
+      requestType = ai.stigmer.agentic.plugin.v1.ListPluginFilesInput.class,
+      responseType = ai.stigmer.agentic.plugin.v1.PluginFileList.class,
+      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
+  public static io.grpc.MethodDescriptor<ai.stigmer.agentic.plugin.v1.ListPluginFilesInput,
+      ai.stigmer.agentic.plugin.v1.PluginFileList> getListFilesMethod() {
+    io.grpc.MethodDescriptor<ai.stigmer.agentic.plugin.v1.ListPluginFilesInput, ai.stigmer.agentic.plugin.v1.PluginFileList> getListFilesMethod;
+    if ((getListFilesMethod = PluginQueryControllerGrpc.getListFilesMethod) == null) {
+      synchronized (PluginQueryControllerGrpc.class) {
+        if ((getListFilesMethod = PluginQueryControllerGrpc.getListFilesMethod) == null) {
+          PluginQueryControllerGrpc.getListFilesMethod = getListFilesMethod =
+              io.grpc.MethodDescriptor.<ai.stigmer.agentic.plugin.v1.ListPluginFilesInput, ai.stigmer.agentic.plugin.v1.PluginFileList>newBuilder()
+              .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
+              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "listFiles"))
+              .setSampledToLocalTracing(true)
+              .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.agentic.plugin.v1.ListPluginFilesInput.getDefaultInstance()))
+              .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.agentic.plugin.v1.PluginFileList.getDefaultInstance()))
+              .setSchemaDescriptor(new PluginQueryControllerMethodDescriptorSupplier("listFiles"))
+              .build();
+        }
+      }
+    }
+    return getListFilesMethod;
+  }
+
+  private static volatile io.grpc.MethodDescriptor<ai.stigmer.agentic.plugin.v1.ReadPluginFileInput,
+      ai.stigmer.agentic.plugin.v1.PluginFileContent> getReadFileMethod;
+
+  @io.grpc.stub.annotations.RpcMethod(
+      fullMethodName = SERVICE_NAME + '/' + "readFile",
+      requestType = ai.stigmer.agentic.plugin.v1.ReadPluginFileInput.class,
+      responseType = ai.stigmer.agentic.plugin.v1.PluginFileContent.class,
+      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
+  public static io.grpc.MethodDescriptor<ai.stigmer.agentic.plugin.v1.ReadPluginFileInput,
+      ai.stigmer.agentic.plugin.v1.PluginFileContent> getReadFileMethod() {
+    io.grpc.MethodDescriptor<ai.stigmer.agentic.plugin.v1.ReadPluginFileInput, ai.stigmer.agentic.plugin.v1.PluginFileContent> getReadFileMethod;
+    if ((getReadFileMethod = PluginQueryControllerGrpc.getReadFileMethod) == null) {
+      synchronized (PluginQueryControllerGrpc.class) {
+        if ((getReadFileMethod = PluginQueryControllerGrpc.getReadFileMethod) == null) {
+          PluginQueryControllerGrpc.getReadFileMethod = getReadFileMethod =
+              io.grpc.MethodDescriptor.<ai.stigmer.agentic.plugin.v1.ReadPluginFileInput, ai.stigmer.agentic.plugin.v1.PluginFileContent>newBuilder()
+              .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
+              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "readFile"))
+              .setSampledToLocalTracing(true)
+              .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.agentic.plugin.v1.ReadPluginFileInput.getDefaultInstance()))
+              .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.agentic.plugin.v1.PluginFileContent.getDefaultInstance()))
+              .setSchemaDescriptor(new PluginQueryControllerMethodDescriptorSupplier("readFile"))
+              .build();
+        }
+      }
+    }
+    return getReadFileMethod;
+  }
+
   private static volatile io.grpc.MethodDescriptor<ai.stigmer.agentic.plugin.v1.ListPluginVersionsInput,
       ai.stigmer.agentic.plugin.v1.ListPluginVersionsResponse> getListVersionsMethod;
 
@@ -329,6 +391,31 @@ public final class PluginQueryControllerGrpc {
 
     /**
      * <pre>
+     * List the files of one version of a plugin.
+     * Returns each file's path, size, SHA-256 and whether it is executable,
+     * in path order. The plugin's eval suite is left out.
+     * </pre>
+     */
+    default void listFiles(ai.stigmer.agentic.plugin.v1.ListPluginFilesInput request,
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.plugin.v1.PluginFileList> responseObserver) {
+      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getListFilesMethod(), responseObserver);
+    }
+
+    /**
+     * <pre>
+     * Read one file of one version of a plugin.
+     * Returns the file's bytes, up to 8 MB; a larger file is refused with
+     * FailedPrecondition. The path is matched exactly against the version's
+     * file list.
+     * </pre>
+     */
+    default void readFile(ai.stigmer.agentic.plugin.v1.ReadPluginFileInput request,
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.plugin.v1.PluginFileContent> responseObserver) {
+      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getReadFileMethod(), responseObserver);
+    }
+
+    /**
+     * <pre>
      * List version history for a plugin.
      * Returns every installed version ordered by push time (newest first), with
      * its digest, tag, actor and archive storage key.
@@ -440,6 +527,33 @@ public final class PluginQueryControllerGrpc {
 
     /**
      * <pre>
+     * List the files of one version of a plugin.
+     * Returns each file's path, size, SHA-256 and whether it is executable,
+     * in path order. The plugin's eval suite is left out.
+     * </pre>
+     */
+    public void listFiles(ai.stigmer.agentic.plugin.v1.ListPluginFilesInput request,
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.plugin.v1.PluginFileList> responseObserver) {
+      io.grpc.stub.ClientCalls.asyncUnaryCall(
+          getChannel().newCall(getListFilesMethod(), getCallOptions()), request, responseObserver);
+    }
+
+    /**
+     * <pre>
+     * Read one file of one version of a plugin.
+     * Returns the file's bytes, up to 8 MB; a larger file is refused with
+     * FailedPrecondition. The path is matched exactly against the version's
+     * file list.
+     * </pre>
+     */
+    public void readFile(ai.stigmer.agentic.plugin.v1.ReadPluginFileInput request,
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.plugin.v1.PluginFileContent> responseObserver) {
+      io.grpc.stub.ClientCalls.asyncUnaryCall(
+          getChannel().newCall(getReadFileMethod(), getCallOptions()), request, responseObserver);
+    }
+
+    /**
+     * <pre>
      * List version history for a plugin.
      * Returns every installed version ordered by push time (newest first), with
      * its digest, tag, actor and archive storage key.
@@ -533,6 +647,31 @@ public final class PluginQueryControllerGrpc {
 
     /**
      * <pre>
+     * List the files of one version of a plugin.
+     * Returns each file's path, size, SHA-256 and whether it is executable,
+     * in path order. The plugin's eval suite is left out.
+     * </pre>
+     */
+    public ai.stigmer.agentic.plugin.v1.PluginFileList listFiles(ai.stigmer.agentic.plugin.v1.ListPluginFilesInput request) throws io.grpc.StatusException {
+      return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
+          getChannel(), getListFilesMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
+     * Read one file of one version of a plugin.
+     * Returns the file's bytes, up to 8 MB; a larger file is refused with
+     * FailedPrecondition. The path is matched exactly against the version's
+     * file list.
+     * </pre>
+     */
+    public ai.stigmer.agentic.plugin.v1.PluginFileContent readFile(ai.stigmer.agentic.plugin.v1.ReadPluginFileInput request) throws io.grpc.StatusException {
+      return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
+          getChannel(), getReadFileMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
      * List version history for a plugin.
      * Returns every installed version ordered by push time (newest first), with
      * its digest, tag, actor and archive storage key.
@@ -621,6 +760,31 @@ public final class PluginQueryControllerGrpc {
     public ai.stigmer.agentic.plugin.v1.PluginArtifactDownloadUrl getArtifactDownloadUrl(ai.stigmer.agentic.plugin.v1.GetArtifactRequest request) {
       return io.grpc.stub.ClientCalls.blockingUnaryCall(
           getChannel(), getGetArtifactDownloadUrlMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
+     * List the files of one version of a plugin.
+     * Returns each file's path, size, SHA-256 and whether it is executable,
+     * in path order. The plugin's eval suite is left out.
+     * </pre>
+     */
+    public ai.stigmer.agentic.plugin.v1.PluginFileList listFiles(ai.stigmer.agentic.plugin.v1.ListPluginFilesInput request) {
+      return io.grpc.stub.ClientCalls.blockingUnaryCall(
+          getChannel(), getListFilesMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
+     * Read one file of one version of a plugin.
+     * Returns the file's bytes, up to 8 MB; a larger file is refused with
+     * FailedPrecondition. The path is matched exactly against the version's
+     * file list.
+     * </pre>
+     */
+    public ai.stigmer.agentic.plugin.v1.PluginFileContent readFile(ai.stigmer.agentic.plugin.v1.ReadPluginFileInput request) {
+      return io.grpc.stub.ClientCalls.blockingUnaryCall(
+          getChannel(), getReadFileMethod(), getCallOptions(), request);
     }
 
     /**
@@ -722,6 +886,33 @@ public final class PluginQueryControllerGrpc {
 
     /**
      * <pre>
+     * List the files of one version of a plugin.
+     * Returns each file's path, size, SHA-256 and whether it is executable,
+     * in path order. The plugin's eval suite is left out.
+     * </pre>
+     */
+    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.plugin.v1.PluginFileList> listFiles(
+        ai.stigmer.agentic.plugin.v1.ListPluginFilesInput request) {
+      return io.grpc.stub.ClientCalls.futureUnaryCall(
+          getChannel().newCall(getListFilesMethod(), getCallOptions()), request);
+    }
+
+    /**
+     * <pre>
+     * Read one file of one version of a plugin.
+     * Returns the file's bytes, up to 8 MB; a larger file is refused with
+     * FailedPrecondition. The path is matched exactly against the version's
+     * file list.
+     * </pre>
+     */
+    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.plugin.v1.PluginFileContent> readFile(
+        ai.stigmer.agentic.plugin.v1.ReadPluginFileInput request) {
+      return io.grpc.stub.ClientCalls.futureUnaryCall(
+          getChannel().newCall(getReadFileMethod(), getCallOptions()), request);
+    }
+
+    /**
+     * <pre>
      * List version history for a plugin.
      * Returns every installed version ordered by push time (newest first), with
      * its digest, tag, actor and archive storage key.
@@ -739,7 +930,9 @@ public final class PluginQueryControllerGrpc {
   private static final int METHODID_LIST = 2;
   private static final int METHODID_GET_ARTIFACT = 3;
   private static final int METHODID_GET_ARTIFACT_DOWNLOAD_URL = 4;
-  private static final int METHODID_LIST_VERSIONS = 5;
+  private static final int METHODID_LIST_FILES = 5;
+  private static final int METHODID_READ_FILE = 6;
+  private static final int METHODID_LIST_VERSIONS = 7;
 
   private static final class MethodHandlers<Req, Resp> implements
       io.grpc.stub.ServerCalls.UnaryMethod<Req, Resp>,
@@ -777,6 +970,14 @@ public final class PluginQueryControllerGrpc {
         case METHODID_GET_ARTIFACT_DOWNLOAD_URL:
           serviceImpl.getArtifactDownloadUrl((ai.stigmer.agentic.plugin.v1.GetArtifactRequest) request,
               (io.grpc.stub.StreamObserver<ai.stigmer.agentic.plugin.v1.PluginArtifactDownloadUrl>) responseObserver);
+          break;
+        case METHODID_LIST_FILES:
+          serviceImpl.listFiles((ai.stigmer.agentic.plugin.v1.ListPluginFilesInput) request,
+              (io.grpc.stub.StreamObserver<ai.stigmer.agentic.plugin.v1.PluginFileList>) responseObserver);
+          break;
+        case METHODID_READ_FILE:
+          serviceImpl.readFile((ai.stigmer.agentic.plugin.v1.ReadPluginFileInput) request,
+              (io.grpc.stub.StreamObserver<ai.stigmer.agentic.plugin.v1.PluginFileContent>) responseObserver);
           break;
         case METHODID_LIST_VERSIONS:
           serviceImpl.listVersions((ai.stigmer.agentic.plugin.v1.ListPluginVersionsInput) request,
@@ -835,6 +1036,20 @@ public final class PluginQueryControllerGrpc {
               ai.stigmer.agentic.plugin.v1.GetArtifactRequest,
               ai.stigmer.agentic.plugin.v1.PluginArtifactDownloadUrl>(
                 service, METHODID_GET_ARTIFACT_DOWNLOAD_URL)))
+        .addMethod(
+          getListFilesMethod(),
+          io.grpc.stub.ServerCalls.asyncUnaryCall(
+            new MethodHandlers<
+              ai.stigmer.agentic.plugin.v1.ListPluginFilesInput,
+              ai.stigmer.agentic.plugin.v1.PluginFileList>(
+                service, METHODID_LIST_FILES)))
+        .addMethod(
+          getReadFileMethod(),
+          io.grpc.stub.ServerCalls.asyncUnaryCall(
+            new MethodHandlers<
+              ai.stigmer.agentic.plugin.v1.ReadPluginFileInput,
+              ai.stigmer.agentic.plugin.v1.PluginFileContent>(
+                service, METHODID_READ_FILE)))
         .addMethod(
           getListVersionsMethod(),
           io.grpc.stub.ServerCalls.asyncUnaryCall(
@@ -895,6 +1110,8 @@ public final class PluginQueryControllerGrpc {
               .addMethod(getListMethod())
               .addMethod(getGetArtifactMethod())
               .addMethod(getGetArtifactDownloadUrlMethod())
+              .addMethod(getListFilesMethod())
+              .addMethod(getReadFileMethod())
               .addMethod(getListVersionsMethod())
               .build();
         }

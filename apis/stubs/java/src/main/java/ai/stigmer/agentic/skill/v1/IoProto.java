@@ -101,6 +101,31 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
   static final 
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
       internal_static_ai_stigmer_agentic_skill_v1_SkillList_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_ai_stigmer_agentic_skill_v1_ListSkillFilesInput_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      internal_static_ai_stigmer_agentic_skill_v1_ListSkillFilesInput_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_ai_stigmer_agentic_skill_v1_SkillFileList_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      internal_static_ai_stigmer_agentic_skill_v1_SkillFileList_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_ai_stigmer_agentic_skill_v1_SkillFile_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      internal_static_ai_stigmer_agentic_skill_v1_SkillFile_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_ai_stigmer_agentic_skill_v1_ReadSkillFileInput_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      internal_static_ai_stigmer_agentic_skill_v1_ReadSkillFileInput_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_ai_stigmer_agentic_skill_v1_SkillFileContent_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      internal_static_ai_stigmer_agentic_skill_v1_SkillFileContent_fieldAccessorTable;
 
   public static com.google.protobuf.Descriptors.FileDescriptor
       getDescriptor() {
@@ -183,11 +208,24 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
       " \001(\tR\003key\022\024\n\005value\030\002 \001(\tR\005value:\0028\001\"q\n\tS" +
       "killList\022<\n\007entries\030\001 \003(\0132\".ai.stigmer.a" +
       "gentic.skill.v1.SkillR\007entries\022&\n\017next_p" +
-      "age_token\030\002 \001(\tR\rnextPageTokenB\232\001B\007IoPro" +
-      "toP\001\242\002\004ASAS\252\002\033Ai.Stigmer.Agentic.Skill.V" +
-      "1\312\002\033Ai\\Stigmer\\Agentic\\Skill\\V1\342\002\'Ai\\Sti" +
-      "gmer\\Agentic\\Skill\\V1\\GPBMetadata\352\002\037Ai::" +
-      "Stigmer::Agentic::Skill::V1b\006proto3"
+      "age_token\030\002 \001(\tR\rnextPageToken\"u\n\023ListSk" +
+      "illFilesInput\022!\n\010skill_id\030\001 \001(\tB\006\272H\003\310\001\001R" +
+      "\007skillId\022;\n\014version_hash\030\002 \001(\tB\030\272H\025r\0232\021^" +
+      "$|^[0-9a-f]{64}$R\013versionHash\"M\n\rSkillFi" +
+      "leList\022<\n\005files\030\001 \003(\0132&.ai.stigmer.agent" +
+      "ic.skill.v1.SkillFileR\005files\"v\n\tSkillFil" +
+      "e\022\022\n\004path\030\001 \001(\tR\004path\022\035\n\nsize_bytes\030\002 \001(" +
+      "\003R\tsizeBytes\022\026\n\006sha256\030\003 \001(\tR\006sha256\022\036\n\n" +
+      "executable\030\004 \001(\010R\nexecutable\"\224\001\n\022ReadSki" +
+      "llFileInput\022!\n\010skill_id\030\001 \001(\tB\006\272H\003\310\001\001R\007s" +
+      "killId\022;\n\014version_hash\030\002 \001(\tB\030\272H\025r\0232\021^$|" +
+      "^[0-9a-f]{64}$R\013versionHash\022\036\n\004path\030\003 \001(" +
+      "\tB\n\272H\007r\005\020\001\030\200 R\004path\",\n\020SkillFileContent\022" +
+      "\030\n\007content\030\001 \001(\014R\007contentB\232\001B\007IoProtoP\001\242" +
+      "\002\004ASAS\252\002\033Ai.Stigmer.Agentic.Skill.V1\312\002\033A" +
+      "i\\Stigmer\\Agentic\\Skill\\V1\342\002\'Ai\\Stigmer\\" +
+      "Agentic\\Skill\\V1\\GPBMetadata\352\002\037Ai::Stigm" +
+      "er::Agentic::Skill::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -288,6 +326,36 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_skill_v1_SkillList_descriptor,
         new java.lang.String[] { "Entries", "NextPageToken", });
+    internal_static_ai_stigmer_agentic_skill_v1_ListSkillFilesInput_descriptor =
+      getDescriptor().getMessageType(13);
+    internal_static_ai_stigmer_agentic_skill_v1_ListSkillFilesInput_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+        internal_static_ai_stigmer_agentic_skill_v1_ListSkillFilesInput_descriptor,
+        new java.lang.String[] { "SkillId", "VersionHash", });
+    internal_static_ai_stigmer_agentic_skill_v1_SkillFileList_descriptor =
+      getDescriptor().getMessageType(14);
+    internal_static_ai_stigmer_agentic_skill_v1_SkillFileList_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+        internal_static_ai_stigmer_agentic_skill_v1_SkillFileList_descriptor,
+        new java.lang.String[] { "Files", });
+    internal_static_ai_stigmer_agentic_skill_v1_SkillFile_descriptor =
+      getDescriptor().getMessageType(15);
+    internal_static_ai_stigmer_agentic_skill_v1_SkillFile_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+        internal_static_ai_stigmer_agentic_skill_v1_SkillFile_descriptor,
+        new java.lang.String[] { "Path", "SizeBytes", "Sha256", "Executable", });
+    internal_static_ai_stigmer_agentic_skill_v1_ReadSkillFileInput_descriptor =
+      getDescriptor().getMessageType(16);
+    internal_static_ai_stigmer_agentic_skill_v1_ReadSkillFileInput_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+        internal_static_ai_stigmer_agentic_skill_v1_ReadSkillFileInput_descriptor,
+        new java.lang.String[] { "SkillId", "VersionHash", "Path", });
+    internal_static_ai_stigmer_agentic_skill_v1_SkillFileContent_descriptor =
+      getDescriptor().getMessageType(17);
+    internal_static_ai_stigmer_agentic_skill_v1_SkillFileContent_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+        internal_static_ai_stigmer_agentic_skill_v1_SkillFileContent_descriptor,
+        new java.lang.String[] { "Content", });
     descriptor.resolveAllFeaturesImmutable();
     ai.stigmer.agentic.skill.v1.ApiProto.getDescriptor();
     ai.stigmer.agentic.skill.v1.StatusProto.getDescriptor();

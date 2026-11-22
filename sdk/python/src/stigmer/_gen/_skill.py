@@ -101,6 +101,18 @@ class SkillClient:
         except grpc.RpcError as e:
             raise wrap_error(e) from e
 
+    def list_files(self, input: io_pb2.ListSkillFilesInput) -> io_pb2.SkillFileList:
+        try:
+            return self._query.listFiles(input)
+        except grpc.RpcError as e:
+            raise wrap_error(e) from e
+
+    def read_file(self, input: io_pb2.ReadSkillFileInput) -> io_pb2.SkillFileContent:
+        try:
+            return self._query.readFile(input)
+        except grpc.RpcError as e:
+            raise wrap_error(e) from e
+
     def list_versions(self, input: io_pb2.ListSkillVersionsInput) -> io_pb2.ListSkillVersionsResponse:
         try:
             return self._query.listVersions(input)

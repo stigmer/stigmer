@@ -26,13 +26,15 @@ var File_ai_stigmer_agentic_plugin_v1_query_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_plugin_v1_query_proto_rawDesc = "" +
 	"\n" +
-	"(ai/stigmer/agentic/plugin/v1/query.proto\x12\x1cai.stigmer.agentic.plugin.v1\x1a&ai/stigmer/agentic/plugin/v1/api.proto\x1a%ai/stigmer/agentic/plugin/v1/io.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a8ai/stigmer/commons/apiresource/rpc_service_options.proto\x1a+ai/stigmer/commons/rpc/method_options.proto2\x8c\x06\n" +
+	"(ai/stigmer/agentic/plugin/v1/query.proto\x12\x1cai.stigmer.agentic.plugin.v1\x1a&ai/stigmer/agentic/plugin/v1/api.proto\x1a%ai/stigmer/agentic/plugin/v1/io.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a8ai/stigmer/commons/apiresource/rpc_service_options.proto\x1a+ai/stigmer/commons/rpc/method_options.proto2\xdd\b\n" +
 	"\x15PluginQueryController\x12\x80\x01\n" +
 	"\x03get\x12&.ai.stigmer.agentic.plugin.v1.PluginId\x1a$.ai.stigmer.agentic.plugin.v1.Plugin\"+¸\x18'\b\x01\x10:\"\x05value*\x1aunauthorized to get plugin\x12r\n" +
 	"\x0egetByReference\x124.ai.stigmer.commons.apiresource.ApiResourceReference\x1a$.ai.stigmer.agentic.plugin.v1.Plugin\"\x04и\x18\x01\x12h\n" +
 	"\x04list\x120.ai.stigmer.agentic.plugin.v1.ListPluginsRequest\x1a(.ai.stigmer.agentic.plugin.v1.PluginList\"\x04и\x18\x01\x12x\n" +
 	"\vgetArtifact\x120.ai.stigmer.agentic.plugin.v1.GetArtifactRequest\x1a1.ai.stigmer.agentic.plugin.v1.GetArtifactResponse\"\x04и\x18\x01\x12\x89\x01\n" +
-	"\x16getArtifactDownloadUrl\x120.ai.stigmer.agentic.plugin.v1.GetArtifactRequest\x1a7.ai.stigmer.agentic.plugin.v1.PluginArtifactDownloadUrl\"\x04и\x18\x01\x12\x85\x01\n" +
+	"\x16getArtifactDownloadUrl\x120.ai.stigmer.agentic.plugin.v1.GetArtifactRequest\x1a7.ai.stigmer.agentic.plugin.v1.PluginArtifactDownloadUrl\"\x04и\x18\x01\x12\xa5\x01\n" +
+	"\tlistFiles\x122.ai.stigmer.agentic.plugin.v1.ListPluginFilesInput\x1a,.ai.stigmer.agentic.plugin.v1.PluginFileList\"6¸\x182\b\x01\x10:\"\tplugin_id*!unauthorized to read plugin files\x12\xa6\x01\n" +
+	"\breadFile\x121.ai.stigmer.agentic.plugin.v1.ReadPluginFileInput\x1a/.ai.stigmer.agentic.plugin.v1.PluginFileContent\"6¸\x182\b\x01\x10:\"\tplugin_id*!unauthorized to read plugin files\x12\x85\x01\n" +
 	"\flistVersions\x125.ai.stigmer.agentic.plugin.v1.ListPluginVersionsInput\x1a8.ai.stigmer.agentic.plugin.v1.ListPluginVersionsResponse\"\x04и\x18\x01\x1a\x04\xa0\xff+:B\x93\x02\n" +
 	" com.ai.stigmer.agentic.plugin.v1B\n" +
 	"QueryProtoP\x01ZNgithub.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/plugin/v1;pluginv1\xa2\x02\x04ASAP\xaa\x02\x1cAi.Stigmer.Agentic.Plugin.V1\xca\x02\x1cAi\\Stigmer\\Agentic\\Plugin\\V1\xe2\x02(Ai\\Stigmer\\Agentic\\Plugin\\V1\\GPBMetadata\xea\x02 Ai::Stigmer::Agentic::Plugin::V1b\x06proto3"
@@ -42,31 +44,39 @@ var file_ai_stigmer_agentic_plugin_v1_query_proto_goTypes = []any{
 	(*apiresource.ApiResourceReference)(nil), // 1: ai.stigmer.commons.apiresource.ApiResourceReference
 	(*ListPluginsRequest)(nil),               // 2: ai.stigmer.agentic.plugin.v1.ListPluginsRequest
 	(*GetArtifactRequest)(nil),               // 3: ai.stigmer.agentic.plugin.v1.GetArtifactRequest
-	(*ListPluginVersionsInput)(nil),          // 4: ai.stigmer.agentic.plugin.v1.ListPluginVersionsInput
-	(*Plugin)(nil),                           // 5: ai.stigmer.agentic.plugin.v1.Plugin
-	(*PluginList)(nil),                       // 6: ai.stigmer.agentic.plugin.v1.PluginList
-	(*GetArtifactResponse)(nil),              // 7: ai.stigmer.agentic.plugin.v1.GetArtifactResponse
-	(*PluginArtifactDownloadUrl)(nil),        // 8: ai.stigmer.agentic.plugin.v1.PluginArtifactDownloadUrl
-	(*ListPluginVersionsResponse)(nil),       // 9: ai.stigmer.agentic.plugin.v1.ListPluginVersionsResponse
+	(*ListPluginFilesInput)(nil),             // 4: ai.stigmer.agentic.plugin.v1.ListPluginFilesInput
+	(*ReadPluginFileInput)(nil),              // 5: ai.stigmer.agentic.plugin.v1.ReadPluginFileInput
+	(*ListPluginVersionsInput)(nil),          // 6: ai.stigmer.agentic.plugin.v1.ListPluginVersionsInput
+	(*Plugin)(nil),                           // 7: ai.stigmer.agentic.plugin.v1.Plugin
+	(*PluginList)(nil),                       // 8: ai.stigmer.agentic.plugin.v1.PluginList
+	(*GetArtifactResponse)(nil),              // 9: ai.stigmer.agentic.plugin.v1.GetArtifactResponse
+	(*PluginArtifactDownloadUrl)(nil),        // 10: ai.stigmer.agentic.plugin.v1.PluginArtifactDownloadUrl
+	(*PluginFileList)(nil),                   // 11: ai.stigmer.agentic.plugin.v1.PluginFileList
+	(*PluginFileContent)(nil),                // 12: ai.stigmer.agentic.plugin.v1.PluginFileContent
+	(*ListPluginVersionsResponse)(nil),       // 13: ai.stigmer.agentic.plugin.v1.ListPluginVersionsResponse
 }
 var file_ai_stigmer_agentic_plugin_v1_query_proto_depIdxs = []int32{
-	0, // 0: ai.stigmer.agentic.plugin.v1.PluginQueryController.get:input_type -> ai.stigmer.agentic.plugin.v1.PluginId
-	1, // 1: ai.stigmer.agentic.plugin.v1.PluginQueryController.getByReference:input_type -> ai.stigmer.commons.apiresource.ApiResourceReference
-	2, // 2: ai.stigmer.agentic.plugin.v1.PluginQueryController.list:input_type -> ai.stigmer.agentic.plugin.v1.ListPluginsRequest
-	3, // 3: ai.stigmer.agentic.plugin.v1.PluginQueryController.getArtifact:input_type -> ai.stigmer.agentic.plugin.v1.GetArtifactRequest
-	3, // 4: ai.stigmer.agentic.plugin.v1.PluginQueryController.getArtifactDownloadUrl:input_type -> ai.stigmer.agentic.plugin.v1.GetArtifactRequest
-	4, // 5: ai.stigmer.agentic.plugin.v1.PluginQueryController.listVersions:input_type -> ai.stigmer.agentic.plugin.v1.ListPluginVersionsInput
-	5, // 6: ai.stigmer.agentic.plugin.v1.PluginQueryController.get:output_type -> ai.stigmer.agentic.plugin.v1.Plugin
-	5, // 7: ai.stigmer.agentic.plugin.v1.PluginQueryController.getByReference:output_type -> ai.stigmer.agentic.plugin.v1.Plugin
-	6, // 8: ai.stigmer.agentic.plugin.v1.PluginQueryController.list:output_type -> ai.stigmer.agentic.plugin.v1.PluginList
-	7, // 9: ai.stigmer.agentic.plugin.v1.PluginQueryController.getArtifact:output_type -> ai.stigmer.agentic.plugin.v1.GetArtifactResponse
-	8, // 10: ai.stigmer.agentic.plugin.v1.PluginQueryController.getArtifactDownloadUrl:output_type -> ai.stigmer.agentic.plugin.v1.PluginArtifactDownloadUrl
-	9, // 11: ai.stigmer.agentic.plugin.v1.PluginQueryController.listVersions:output_type -> ai.stigmer.agentic.plugin.v1.ListPluginVersionsResponse
-	6, // [6:12] is the sub-list for method output_type
-	0, // [0:6] is the sub-list for method input_type
-	0, // [0:0] is the sub-list for extension type_name
-	0, // [0:0] is the sub-list for extension extendee
-	0, // [0:0] is the sub-list for field type_name
+	0,  // 0: ai.stigmer.agentic.plugin.v1.PluginQueryController.get:input_type -> ai.stigmer.agentic.plugin.v1.PluginId
+	1,  // 1: ai.stigmer.agentic.plugin.v1.PluginQueryController.getByReference:input_type -> ai.stigmer.commons.apiresource.ApiResourceReference
+	2,  // 2: ai.stigmer.agentic.plugin.v1.PluginQueryController.list:input_type -> ai.stigmer.agentic.plugin.v1.ListPluginsRequest
+	3,  // 3: ai.stigmer.agentic.plugin.v1.PluginQueryController.getArtifact:input_type -> ai.stigmer.agentic.plugin.v1.GetArtifactRequest
+	3,  // 4: ai.stigmer.agentic.plugin.v1.PluginQueryController.getArtifactDownloadUrl:input_type -> ai.stigmer.agentic.plugin.v1.GetArtifactRequest
+	4,  // 5: ai.stigmer.agentic.plugin.v1.PluginQueryController.listFiles:input_type -> ai.stigmer.agentic.plugin.v1.ListPluginFilesInput
+	5,  // 6: ai.stigmer.agentic.plugin.v1.PluginQueryController.readFile:input_type -> ai.stigmer.agentic.plugin.v1.ReadPluginFileInput
+	6,  // 7: ai.stigmer.agentic.plugin.v1.PluginQueryController.listVersions:input_type -> ai.stigmer.agentic.plugin.v1.ListPluginVersionsInput
+	7,  // 8: ai.stigmer.agentic.plugin.v1.PluginQueryController.get:output_type -> ai.stigmer.agentic.plugin.v1.Plugin
+	7,  // 9: ai.stigmer.agentic.plugin.v1.PluginQueryController.getByReference:output_type -> ai.stigmer.agentic.plugin.v1.Plugin
+	8,  // 10: ai.stigmer.agentic.plugin.v1.PluginQueryController.list:output_type -> ai.stigmer.agentic.plugin.v1.PluginList
+	9,  // 11: ai.stigmer.agentic.plugin.v1.PluginQueryController.getArtifact:output_type -> ai.stigmer.agentic.plugin.v1.GetArtifactResponse
+	10, // 12: ai.stigmer.agentic.plugin.v1.PluginQueryController.getArtifactDownloadUrl:output_type -> ai.stigmer.agentic.plugin.v1.PluginArtifactDownloadUrl
+	11, // 13: ai.stigmer.agentic.plugin.v1.PluginQueryController.listFiles:output_type -> ai.stigmer.agentic.plugin.v1.PluginFileList
+	12, // 14: ai.stigmer.agentic.plugin.v1.PluginQueryController.readFile:output_type -> ai.stigmer.agentic.plugin.v1.PluginFileContent
+	13, // 15: ai.stigmer.agentic.plugin.v1.PluginQueryController.listVersions:output_type -> ai.stigmer.agentic.plugin.v1.ListPluginVersionsResponse
+	8,  // [8:16] is the sub-list for method output_type
+	0,  // [0:8] is the sub-list for method input_type
+	0,  // [0:0] is the sub-list for extension type_name
+	0,  // [0:0] is the sub-list for extension extendee
+	0,  // [0:0] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_agentic_plugin_v1_query_proto_init() }

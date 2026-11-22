@@ -78,6 +78,7 @@ export {
   type EvalEngineUnsupportedFeature,
   type EvalUnsupportedFeature,
   evalCaseUnsupportedOn,
+  evalSuiteDir,
   readEvalFolder,
   readEvalSuite,
 } from "./evals/read-eval-suite.js";

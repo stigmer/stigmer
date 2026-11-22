@@ -106,6 +106,31 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
   static final 
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
       internal_static_ai_stigmer_agentic_plugin_v1_PluginList_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_ai_stigmer_agentic_plugin_v1_ListPluginFilesInput_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      internal_static_ai_stigmer_agentic_plugin_v1_ListPluginFilesInput_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_ai_stigmer_agentic_plugin_v1_PluginFileList_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      internal_static_ai_stigmer_agentic_plugin_v1_PluginFileList_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_ai_stigmer_agentic_plugin_v1_PluginFile_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      internal_static_ai_stigmer_agentic_plugin_v1_PluginFile_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_ai_stigmer_agentic_plugin_v1_ReadPluginFileInput_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      internal_static_ai_stigmer_agentic_plugin_v1_ReadPluginFileInput_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_ai_stigmer_agentic_plugin_v1_PluginFileContent_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      internal_static_ai_stigmer_agentic_plugin_v1_PluginFileContent_fieldAccessorTable;
 
   public static com.google.protobuf.Descriptors.FileDescriptor
       getDescriptor() {
@@ -178,11 +203,23 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
       "\001(\tR\005value:\0028\001\"t\n\nPluginList\022>\n\007entries\030" +
       "\001 \003(\0132$.ai.stigmer.agentic.plugin.v1.Plu" +
       "ginR\007entries\022&\n\017next_page_token\030\002 \001(\tR\rn" +
-      "extPageTokenB\236\001B\007IoProtoP\001\242\002\004ASAP\252\002\034Ai.S" +
-      "tigmer.Agentic.Plugin.V1\312\002\034Ai\\Stigmer\\Ag" +
-      "entic\\Plugin\\V1\342\002(Ai\\Stigmer\\Agentic\\Plu" +
-      "gin\\V1\\GPBMetadata\352\002 Ai::Stigmer::Agenti" +
-      "c::Plugin::V1b\006proto3"
+      "extPageToken\"j\n\024ListPluginFilesInput\022#\n\t" +
+      "plugin_id\030\001 \001(\tB\006\272H\003\310\001\001R\010pluginId\022-\n\006dig" +
+      "est\030\002 \001(\tB\025\272H\022r\0202\016^[0-9a-f]{64}$R\006digest" +
+      "\"P\n\016PluginFileList\022>\n\005files\030\001 \003(\0132(.ai.s" +
+      "tigmer.agentic.plugin.v1.PluginFileR\005fil" +
+      "es\"w\n\nPluginFile\022\022\n\004path\030\001 \001(\tR\004path\022\035\n\n" +
+      "size_bytes\030\002 \001(\003R\tsizeBytes\022\026\n\006sha256\030\003 " +
+      "\001(\tR\006sha256\022\036\n\nexecutable\030\004 \001(\010R\nexecuta" +
+      "ble\"\211\001\n\023ReadPluginFileInput\022#\n\tplugin_id" +
+      "\030\001 \001(\tB\006\272H\003\310\001\001R\010pluginId\022-\n\006digest\030\002 \001(\t" +
+      "B\025\272H\022r\0202\016^[0-9a-f]{64}$R\006digest\022\036\n\004path\030" +
+      "\003 \001(\tB\n\272H\007r\005\020\001\030\200 R\004path\"-\n\021PluginFileCon" +
+      "tent\022\030\n\007content\030\001 \001(\014R\007contentB\236\001B\007IoPro" +
+      "toP\001\242\002\004ASAP\252\002\034Ai.Stigmer.Agentic.Plugin." +
+      "V1\312\002\034Ai\\Stigmer\\Agentic\\Plugin\\V1\342\002(Ai\\S" +
+      "tigmer\\Agentic\\Plugin\\V1\\GPBMetadata\352\002 A" +
+      "i::Stigmer::Agentic::Plugin::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -289,6 +326,36 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_plugin_v1_PluginList_descriptor,
         new java.lang.String[] { "Entries", "NextPageToken", });
+    internal_static_ai_stigmer_agentic_plugin_v1_ListPluginFilesInput_descriptor =
+      getDescriptor().getMessageType(15);
+    internal_static_ai_stigmer_agentic_plugin_v1_ListPluginFilesInput_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+        internal_static_ai_stigmer_agentic_plugin_v1_ListPluginFilesInput_descriptor,
+        new java.lang.String[] { "PluginId", "Digest", });
+    internal_static_ai_stigmer_agentic_plugin_v1_PluginFileList_descriptor =
+      getDescriptor().getMessageType(16);
+    internal_static_ai_stigmer_agentic_plugin_v1_PluginFileList_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+        internal_static_ai_stigmer_agentic_plugin_v1_PluginFileList_descriptor,
+        new java.lang.String[] { "Files", });
+    internal_static_ai_stigmer_agentic_plugin_v1_PluginFile_descriptor =
+      getDescriptor().getMessageType(17);
+    internal_static_ai_stigmer_agentic_plugin_v1_PluginFile_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+        internal_static_ai_stigmer_agentic_plugin_v1_PluginFile_descriptor,
+        new java.lang.String[] { "Path", "SizeBytes", "Sha256", "Executable", });
+    internal_static_ai_stigmer_agentic_plugin_v1_ReadPluginFileInput_descriptor =
+      getDescriptor().getMessageType(18);
+    internal_static_ai_stigmer_agentic_plugin_v1_ReadPluginFileInput_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+        internal_static_ai_stigmer_agentic_plugin_v1_ReadPluginFileInput_descriptor,
+        new java.lang.String[] { "PluginId", "Digest", "Path", });
+    internal_static_ai_stigmer_agentic_plugin_v1_PluginFileContent_descriptor =
+      getDescriptor().getMessageType(19);
+    internal_static_ai_stigmer_agentic_plugin_v1_PluginFileContent_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+        internal_static_ai_stigmer_agentic_plugin_v1_PluginFileContent_descriptor,
+        new java.lang.String[] { "Content", });
     descriptor.resolveAllFeaturesImmutable();
     ai.stigmer.agentic.plugin.v1.ApiProto.getDescriptor();
     ai.stigmer.commons.apiresource.EnumProto.getDescriptor();
