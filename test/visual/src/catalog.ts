@@ -306,6 +306,7 @@ export const THREAD_STATES = [
   "streaming",
   "tools",
   "approval",
+  "waiting-on-app",
   "file-review",
   "subagent-running",
   "subagent-finished",
