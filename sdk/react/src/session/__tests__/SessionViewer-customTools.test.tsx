@@ -6,7 +6,8 @@
  * more; a viewer opened again tells it again; a conversation with nothing
  * waiting tells it nothing; a viewer who may not answer (someone watching,
  * a teammate who sends but does not decide) is never told, and its card
- * gets no answer while the owner's does; a handler that throws or rejects
+ * gets no answer while the owner's does; nothing is told before the server
+ * confirmed the viewer decides; a handler that throws or rejects
  * is reported once, never called again for the call, and the thread goes on.
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
@@ -16,7 +17,7 @@ import { ToolCardsContext, type CustomToolAnswer, type ToolCallInfo, type ToolCa
 
 const answerCustomToolUse = vi.fn(async (_id: string, _text: string, _options?: { readonly isError?: boolean }) => {});
 let conv = { ...conversationOf(scenarios["waiting-on-app"]), answerCustomToolUse };
-let access = { canSend: true, canDecide: true };
+let access = { canSend: true, canDecide: true, decisionConfirmed: true };
 
 const workspace = {
   entries: [],
@@ -112,7 +113,7 @@ const waiting = scenarios["waiting-on-app"];
 
 beforeEach(() => {
   conv = { ...conversationOf(waiting), answerCustomToolUse };
-  access = { canSend: true, canDecide: true };
+  access = { canSend: true, canDecide: true, decisionConfirmed: true };
   answerCustomToolUse.mockClear();
 });
 
@@ -158,9 +159,19 @@ describe("SessionViewer's onCustomToolUse", () => {
     const heard = vi.fn();
     render(<SessionViewer sessionId="ses_1" org="demo" audience="observer" onCustomToolUse={heard} />);
     cleanup();
-    access = { canSend: true, canDecide: false };
+    access = { canSend: true, canDecide: false, decisionConfirmed: false };
     render(<SessionViewer sessionId="ses_1" org="demo" onCustomToolUse={heard} />);
     expect(heard).not.toHaveBeenCalled();
+  });
+
+  it("waits for the server's own yes before telling: never while the check is in flight or failed", () => {
+    access = { canSend: true, canDecide: true, decisionConfirmed: false };
+    const heard = vi.fn();
+    const { rerender } = render(<SessionViewer sessionId="ses_1" org="demo" onCustomToolUse={heard} />);
+    expect(heard).not.toHaveBeenCalled();
+    access = { canSend: true, canDecide: true, decisionConfirmed: true };
+    rerender(<SessionViewer sessionId="ses_1" org="demo" onCustomToolUse={heard} />);
+    expect(heard).toHaveBeenCalledTimes(1);
   });
 
   it("gives the owner's card an answer and a watcher's card none", () => {
@@ -198,7 +209,7 @@ describe("SessionViewer's onCustomToolUse", () => {
     expect(heard).toHaveBeenCalledTimes(1);
     expect(error.mock.calls.filter((args) => String(args[0]).includes("onCustomToolUse threw"))).toHaveLength(1);
     expect(screen.getByRole("article", { name: "User message" })).toBeTruthy();
-    expect(screen.getByText(/Waiting for the app/)).toBeTruthy();
+    expect(screen.getAllByText(/Waiting for the app/).length).toBeGreaterThan(0);
   });
 
   it("reports a handler whose promise rejects, never as an unhandled rejection", async () => {

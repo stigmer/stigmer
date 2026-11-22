@@ -2,7 +2,9 @@
 // thread: a card registered under the tool's declared name draws it, and
 // gets an `answer` bound to the call only while the call waits on the app
 // and the viewer may answer; the answer reaches the thread's handler with
-// the call's id, the text and `isError`, one stable function per call; once
+// the call's id, the text and `isError`, one stable function per call, kept
+// in the conversation it was made in; a call named like a built-in tool
+// still reads as the app's; once
 // answered the card draws the result as history with no answer. With no
 // card, the kit's row says "Waiting for the app" and opens to what the
 // agent asked, with no button. A plan item and a run group read a call
@@ -125,6 +127,18 @@ describe("useCustomToolAnswers", () => {
     expect(answer).toHaveBeenCalledWith("ctu-1", "ok", undefined);
   });
 
+  it("keeps an answer in the conversation it was made in when the viewer moves to another", async () => {
+    const first = vi.fn<AnswerCustomToolUse>().mockResolvedValue(undefined);
+    const second = vi.fn<AnswerCustomToolUse>().mockResolvedValue(undefined);
+    const { result, rerender } = renderHook(({ fn, scope }) => useCustomToolAnswers(fn, scope), { initialProps: { fn: first, scope: "ses_a" } });
+    const fromA = result.current!("ctu-a");
+    rerender({ fn: second, scope: "ses_b" });
+    await fromA("ok");
+    expect(first).toHaveBeenCalledWith("ctu-a", "ok", undefined);
+    expect(second).not.toHaveBeenCalled();
+    expect(result.current!("ctu-a")).not.toBe(fromA);
+  });
+
   it("gives nothing while there is no handler", () => {
     const { result } = renderHook(() => useCustomToolAnswers(undefined));
     expect(result.current).toBeUndefined();
@@ -153,6 +167,12 @@ describe("the kit's row for a call waiting on the app, with no card", () => {
     expect(screen.getByText("payments-prod")).toBeTruthy();
     expect(screen.getByText("auth_method")).toBeTruthy();
     expect(screen.queryByRole("button", { name: /^(allow|deny|approve|register|submit|answer)$/i })).toBeNull();
+  });
+
+  it("reads a call named like a built-in tool as the app's, waiting for the app", () => {
+    render(view(<ToolCallItem toolUse={toolUse({ name: "search", custom: true, input: { query: "accounts" } })} />, { cards: null }));
+    expect(screen.getByText(/Waiting for the app/)).toBeTruthy();
+    expect(screen.getByText("Search")).toBeTruthy();
   });
 
   it("never says the person is the one waited on", () => {

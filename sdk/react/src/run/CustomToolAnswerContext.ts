@@ -28,13 +28,18 @@ export const CustomToolAnswerContext = createContext<CustomToolAnswerContextValu
 /**
  * @internal One stable {@link CustomToolAnswer} per call id over `answer`,
  * so a card's memo and a host's stored callback keep one function for a
- * call across renders. Each binds the latest `answer` when called; the map
- * is dropped when `answer` comes and goes (a viewer that may no longer
- * answer). Undefined while `answer` is.
+ * call across renders. Each answer belongs to the `scope` (the session) it
+ * was made in: it calls the newest handler while the scope stays, and the
+ * handler it was made with once the scope moved on, so a panel opened from
+ * one conversation never answers into the next. The map is dropped when the
+ * scope changes or `answer` comes and goes. Undefined while `answer` is.
  */
-export function useCustomToolAnswers(answer: AnswerCustomToolUse | undefined): ((customToolUseId: string) => CustomToolAnswer) | undefined {
-  const latest = useRef(answer);
-  latest.current = answer;
+export function useCustomToolAnswers(
+  answer: AnswerCustomToolUse | undefined,
+  scope = "",
+): ((customToolUseId: string) => CustomToolAnswer) | undefined {
+  const latest = useRef({ answer, scope });
+  latest.current = { answer, scope };
   const answers = answer !== undefined;
   return useMemo(() => {
     if (!answers) return undefined;
@@ -42,19 +47,21 @@ export function useCustomToolAnswers(answer: AnswerCustomToolUse | undefined): (
     return (id: string): CustomToolAnswer => {
       let fn = map.get(id);
       if (fn === undefined) {
-        // The handler this viewer held when the answer was made: a host's
+        // The handler this scope held when the answer was made: a host's
         // panel may outlive the chat, and the handler closes over the
         // client and the ids, not the component.
         const held = latest.current;
         fn = (text, options) => {
-          const send = latest.current ?? held;
+          const now = latest.current;
+          const send = now.scope === held.scope && now.answer !== undefined ? now.answer : held.answer;
           return send === undefined ? Promise.resolve() : send(id, text, options);
         };
         map.set(id, fn);
       }
       return fn;
     };
-  }, [answers]);
+    // The scope keys the map: a new conversation starts a new one.
+  }, [answers, scope]);
 }
 
 /**

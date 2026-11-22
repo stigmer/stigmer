@@ -8,7 +8,9 @@
  *
  * Pass `null` to ask nothing (a guest's or an observer's presentation is
  * already decided). Both checks fail open, so a transient error never
- * hides a control; the server refuses whatever the answer misses.
+ * hides a control; the server refuses whatever the answer misses. An act
+ * the kit takes once on the reader's behalf (telling the host about a call
+ * of its own tools) waits for `decisionConfirmed`, the server's own yes.
  */
 import { useMemo } from "react";
 import { useCheckPermission } from "../grant/useCheckPermission.js";
@@ -19,6 +21,12 @@ export interface UseSessionAccessReturn {
   readonly canSend: boolean;
   /** Whether the reader may stop its runs and make their decisions. */
   readonly canDecide: boolean;
+  /**
+   * Whether the server has answered that the reader decides: `canDecide`
+   * without its fail-open, so false while the check is in flight and after
+   * it failed.
+   */
+  readonly decisionConfirmed: boolean;
 }
 
 /**
@@ -32,6 +40,8 @@ export function useSessionAccess(sessionId: string | null): UseSessionAccessRetu
     [sessionId],
   );
   const { allowed: canSend } = useCheckPermission(resource, "can_create_run_in");
-  const { allowed: canDecide } = useCheckPermission(resource, "can_edit");
-  return useMemo(() => ({ canSend, canDecide }), [canSend, canDecide]);
+  const decide = useCheckPermission(resource, "can_edit");
+  const canDecide = decide.allowed;
+  const decisionConfirmed = decide.allowed && !decide.isLoading && decide.error === null;
+  return useMemo(() => ({ canSend, canDecide, decisionConfirmed }), [canSend, canDecide, decisionConfirmed]);
 }

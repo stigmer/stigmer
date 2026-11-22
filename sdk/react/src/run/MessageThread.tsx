@@ -1571,7 +1571,7 @@ export function MessageThread({
   // The answer to a call of the app's own tools, one stable function per
   // call, for a host's card (see CustomToolAnswerContext); apart from the
   // approvals', as on the wire.
-  const answerFor = useCustomToolAnswers(onAnswerCustomToolUse);
+  const answerFor = useCustomToolAnswers(onAnswerCustomToolUse, sessionId ?? "");
   const customToolAnswerCtx = useMemo<CustomToolAnswerContextValue>(() => ({ answerFor }), [answerFor]);
 
   const withRunScores = (thread: ReactNode): ReactNode => (

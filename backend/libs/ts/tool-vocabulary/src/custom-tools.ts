@@ -24,12 +24,16 @@
 //    `password`, `token`, `auth`, ...): the runner redacts such an argument
 //    on every stored row, so the host would read `[REDACTED]` where the
 //    agent wrote a value, in its card, its callback and its own server's
-//    read of the log. The rule covers the properties the schema declares.
-//    A property the model adds beyond them (where the schema allows extra
-//    properties) is still redacted, since the host never declared it; and a
-//    conversation declared before the rule keeps its tools, as the rule
-//    runs where tools are declared (create and update) and when the runner
-//    offers them, never on a stored call.
+//    read of the log. The rule reads the schema's top-level `properties`
+//    only: a field named another way (through `allOf`, `anyOf`, `oneOf`,
+//    `if`/`then`, `dependentSchemas`, a top-level `$ref`, or `required`
+//    alone) is not refused and is still redacted, as is a property the model
+//    adds beyond those declared (where the schema allows extra properties).
+//    The rule runs wherever this check runs: where tools are declared
+//    (create and update) and each time the runner offers them, so a
+//    conversation that declared such a field before the rule is offered no
+//    custom tools from its next turn, and its next update is refused until
+//    the field is renamed.
 //
 // A call's input is checked against its tool's schema with
 // `@cfworker/json-schema` (draft 2020-12), the validator the Stigmer

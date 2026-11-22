@@ -427,11 +427,14 @@ export function SessionViewer({
   // Who may answer a call of the app's own tools: whoever may answer an
   // approval, by the same rule (the thread's `onAnswerToolUse` below).
   const answersCustomTools = !isReader && !isGuest && !isParticipant;
-  const customToolAnswerFor = useCustomToolAnswers(answersCustomTools ? conv.answerCustomToolUse : undefined);
+  const customToolAnswerFor = useCustomToolAnswers(answersCustomTools ? conv.answerCustomToolUse : undefined, sessionId);
+  // The host is told once per call, so the telling waits for the server's
+  // own yes (the access checks fail open for what they draw).
+  const tellsHost = answersCustomTools && access.decisionConfirmed;
   useCustomToolUseCallback({
     calls: conv.customToolUses,
     sessionId,
-    answerFor: customToolAnswerFor,
+    answerFor: tellsHost ? customToolAnswerFor : undefined,
     onCustomToolUse,
   });
   const creatorName = creatorDisplayName(conv.session);
