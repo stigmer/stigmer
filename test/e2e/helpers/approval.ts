@@ -3,7 +3,7 @@
 // the mock LLM, so the browser only renders and resolves what was seeded.
 import { expect, type Page, type Locator } from "@playwright/test";
 import { create } from "@bufbuild/protobuf";
-import type { HookSourceInput, Stigmer } from "@stigmer/client";
+import type { CustomToolInput, HookSourceInput, Stigmer } from "@stigmer/client";
 import { Harness } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
 import { RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 import { TerminateRunInputSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/io_pb";
@@ -57,6 +57,12 @@ export interface SeedGatedSessionOptions {
   readonly message?: string;
   /** The seeded agent's hooks (`AgentSpec.hooks`), for a gate a hook decides. */
   readonly agentHooks?: HookSourceInput[];
+  /**
+   * The app's own tools the session declares (`custom_tools`). A gate block
+   * naming one is a call that waits for the app's answer
+   * (`answerCustomToolUse`), never a person's approval.
+   */
+  readonly customTools?: CustomToolInput[];
 }
 
 /** A single gated `write_file` block; `content` controls the inline preview height. */
@@ -136,6 +142,7 @@ export async function seedGatedSession(
     agentRef: { org, slug: agent.metadata!.slug },
     harness: Harness.STIGMER,
     fileReview: true,
+    ...(opts.customTools && { customTools: opts.customTools }),
   });
   const sessionId = session.metadata!.id;
 
