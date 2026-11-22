@@ -797,6 +797,10 @@ describe("session create and update — the host app's own tools (custom_tools)"
       [{ ...FORM, name: "Bash" }, "The name of custom tool 'Bash' is a built-in tool's; choose another."],
       [{ ...FORM, name: "mcp__forms__show" }, "The name of custom tool 'mcp__forms__show' may not start with mcp__, which names an MCP server's tools."],
       [create(CustomToolSchema, { ...FORM, inputSchema: { type: "string" } }), 'The input_schema of custom tool \'show_registration_form\' must describe an object ({"type": "object", ...}).'],
+      [
+        create(CustomToolSchema, { ...FORM, inputSchema: { type: "object", properties: { service: { type: "string" }, auth: { type: "string" } } } }),
+        'The input_schema of custom tool \'show_registration_form\' has a property named "auth", a name whose value the platform redacts from every tool call, so the app would read [REDACTED] in its place; rename it to say what it holds (as "auth_method" says it for "auth").',
+      ],
     ];
     for (const [tool, message] of refusals) {
       const error = await grpcError(() => createSession({ customTools: [tool] }));
