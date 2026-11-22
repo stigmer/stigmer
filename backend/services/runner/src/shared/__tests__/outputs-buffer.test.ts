@@ -66,6 +66,15 @@ describe("the set-aside store", () => {
     await expect(mine.read("artifacts/run_1/toolcalls/x.txt")).rejects.toBeInstanceOf(OffloadKeyError);
   });
 
+  it("uploads with a bare MIME type, which the server's artifact lane takes", async () => {
+    const { storage } = makeInMemoryArtifactStorage();
+    const key = await newTurnOffloads(storage, "run_1", "ses_1").put(new TextEncoder().encode("long result"));
+    const contentType = storage.upload.mock.calls[0]?.[2] as string;
+    // The lane's rule (stigmer-server artifactstorage/runner-lane/key-rules.ts MIME_TYPE_PATTERN): type/subtype, no parameters.
+    expect(contentType).toMatch(/^[a-zA-Z0-9][a-zA-Z0-9!#$&\-^_.+]*\/[a-zA-Z0-9][a-zA-Z0-9!#$&\-^_.+]*$/);
+    expect(storage.upload).toHaveBeenCalledWith(key, expect.any(Buffer), contentType);
+  });
+
   it("refuses a result past its bound", async () => {
     const { storage } = makeInMemoryArtifactStorage();
     await expect(newTurnOffloads(storage, "run_1", "ses_1").put(bytes(MAX_OFFLOAD_BYTES + 1))).rejects.toBeInstanceOf(OffloadKeyError);
