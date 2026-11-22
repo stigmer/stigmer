@@ -573,6 +573,60 @@ public interface SessionEventOrBuilder extends
 
   /**
    * <pre>
+   * The agent called one of the host app's own tools (SessionSpec.custom_tools).
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.session.v1.AgentCustomToolUseEvent agent_custom_tool_use = 28 [json_name = "agentCustomToolUse", (.ai.stigmer.commons.apiresource.event_type) = "agent.custom_tool_use"];</code>
+   * @return Whether the agentCustomToolUse field is set.
+   */
+  boolean hasAgentCustomToolUse();
+  /**
+   * <pre>
+   * The agent called one of the host app's own tools (SessionSpec.custom_tools).
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.session.v1.AgentCustomToolUseEvent agent_custom_tool_use = 28 [json_name = "agentCustomToolUse", (.ai.stigmer.commons.apiresource.event_type) = "agent.custom_tool_use"];</code>
+   * @return The agentCustomToolUse.
+   */
+  ai.stigmer.agentic.session.v1.AgentCustomToolUseEvent getAgentCustomToolUse();
+  /**
+   * <pre>
+   * The agent called one of the host app's own tools (SessionSpec.custom_tools).
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.session.v1.AgentCustomToolUseEvent agent_custom_tool_use = 28 [json_name = "agentCustomToolUse", (.ai.stigmer.commons.apiresource.event_type) = "agent.custom_tool_use"];</code>
+   */
+  ai.stigmer.agentic.session.v1.AgentCustomToolUseEventOrBuilder getAgentCustomToolUseOrBuilder();
+
+  /**
+   * <pre>
+   * The host app answered a call to one of its own tools.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.session.v1.UserCustomToolResultEvent user_custom_tool_result = 29 [json_name = "userCustomToolResult", (.ai.stigmer.commons.apiresource.event_type) = "user.custom_tool_result"];</code>
+   * @return Whether the userCustomToolResult field is set.
+   */
+  boolean hasUserCustomToolResult();
+  /**
+   * <pre>
+   * The host app answered a call to one of its own tools.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.session.v1.UserCustomToolResultEvent user_custom_tool_result = 29 [json_name = "userCustomToolResult", (.ai.stigmer.commons.apiresource.event_type) = "user.custom_tool_result"];</code>
+   * @return The userCustomToolResult.
+   */
+  ai.stigmer.agentic.session.v1.UserCustomToolResultEvent getUserCustomToolResult();
+  /**
+   * <pre>
+   * The host app answered a call to one of its own tools.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.session.v1.UserCustomToolResultEvent user_custom_tool_result = 29 [json_name = "userCustomToolResult", (.ai.stigmer.commons.apiresource.event_type) = "user.custom_tool_result"];</code>
+   */
+  ai.stigmer.agentic.session.v1.UserCustomToolResultEventOrBuilder getUserCustomToolResultOrBuilder();
+
+  /**
+   * <pre>
    * The text of the agent's thinking.
    * </pre>
    *

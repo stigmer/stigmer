@@ -12,13 +12,14 @@ import { file_ai_stigmer_commons_apiresource_field_options } from "../../../comm
 import type { ApiResourceReference } from "../../../commons/apiresource/io_pb.js";
 import { file_ai_stigmer_commons_apiresource_io } from "../../../commons/apiresource/io_pb.js";
 import { file_buf_validate_validate } from "../../../../../buf/validate/validate_pb.js";
-import type { Message } from "@bufbuild/protobuf";
+import { file_google_protobuf_struct } from "@bufbuild/protobuf/wkt";
+import type { JsonObject, Message } from "@bufbuild/protobuf";
 
 /**
  * Describes the file ai/stigmer/agentic/session/v1/spec.proto.
  */
 export const file_ai_stigmer_agentic_session_v1_spec: GenFile = /*@__PURE__*/
-  fileDesc("CihhaS9zdGlnbWVyL2FnZW50aWMvc2Vzc2lvbi92MS9zcGVjLnByb3RvEh1haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MSK6BgoLU2Vzc2lvblNwZWMSTQoJYWdlbnRfcmVmGA4gASgLMjQuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLkFwaVJlc291cmNlUmVmZXJlbmNlQgTghSwoEg8KB3N1YmplY3QYAiABKAkSSgoIbWV0YWRhdGEYBSADKAsyOC5haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MS5TZXNzaW9uU3BlYy5NZXRhZGF0YUVudHJ5Ek4KCnNraWxsX3JlZnMYCCADKAsyNC5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuQXBpUmVzb3VyY2VSZWZlcmVuY2VCBOCFLCsSQQoHaGFybmVzcxgKIAEoDjImLmFpLnN0aWdtZXIuYWdlbnRpYy5zZXNzaW9uLnYxLkhhcm5lc3NCCLpIBYIBAhABEkgKEGV4ZWN1dGlvbl90YXJnZXQYDCABKA4yLi5haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MS5FeGVjdXRpb25UYXJnZXQSUgoGdmF1bHRzGA8gAygLMjQuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLkFwaVJlc291cmNlUmVmZXJlbmNlQgy6SAWSAQIQFOCFLDsSGAoQaW5jbHVkZV9teV92YXVsdBgSIAEoCBJLCgdwbHVnaW5zGBMgAygLMjQuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLkFwaVJlc291cmNlUmVmZXJlbmNlQgTghSw6EhMKC2ZpbGVfcmV2aWV3GBQgASgIElMKD2Vudmlyb25tZW50X3JlZhgVIAEoCzI0LmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZVJlZmVyZW5jZUIE4IUsQxJMCglyZXNvdXJjZXMYFiADKAsyLi5haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MS5TZXNzaW9uUmVzb3VyY2VCCbpIBpIBAxDoBxovCg1NZXRhZGF0YUVudHJ5EgsKA2tleRgBIAEoCRINCgV2YWx1ZRgCIAEoCToCOAFiBnByb3RvMw", [file_ai_stigmer_agentic_session_v1_enum, file_ai_stigmer_agentic_session_v1_resource, file_ai_stigmer_commons_apiresource_field_options, file_ai_stigmer_commons_apiresource_io, file_buf_validate_validate]);
+  fileDesc("CihhaS9zdGlnbWVyL2FnZW50aWMvc2Vzc2lvbi92MS9zcGVjLnByb3RvEh1haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MSKFBwoLU2Vzc2lvblNwZWMSTQoJYWdlbnRfcmVmGA4gASgLMjQuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLkFwaVJlc291cmNlUmVmZXJlbmNlQgTghSwoEg8KB3N1YmplY3QYAiABKAkSSgoIbWV0YWRhdGEYBSADKAsyOC5haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MS5TZXNzaW9uU3BlYy5NZXRhZGF0YUVudHJ5Ek4KCnNraWxsX3JlZnMYCCADKAsyNC5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuQXBpUmVzb3VyY2VSZWZlcmVuY2VCBOCFLCsSQQoHaGFybmVzcxgKIAEoDjImLmFpLnN0aWdtZXIuYWdlbnRpYy5zZXNzaW9uLnYxLkhhcm5lc3NCCLpIBYIBAhABEkgKEGV4ZWN1dGlvbl90YXJnZXQYDCABKA4yLi5haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MS5FeGVjdXRpb25UYXJnZXQSUgoGdmF1bHRzGA8gAygLMjQuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLkFwaVJlc291cmNlUmVmZXJlbmNlQgy6SAWSAQIQFOCFLDsSGAoQaW5jbHVkZV9teV92YXVsdBgSIAEoCBJLCgdwbHVnaW5zGBMgAygLMjQuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLkFwaVJlc291cmNlUmVmZXJlbmNlQgTghSw6EhMKC2ZpbGVfcmV2aWV3GBQgASgIElMKD2Vudmlyb25tZW50X3JlZhgVIAEoCzI0LmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZVJlZmVyZW5jZUIE4IUsQxJMCglyZXNvdXJjZXMYFiADKAsyLi5haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MS5TZXNzaW9uUmVzb3VyY2VCCbpIBpIBAxDoBxJJCgxjdXN0b21fdG9vbHMYFyADKAsyKS5haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MS5DdXN0b21Ub29sQgi6SAWSAQIQIBovCg1NZXRhZGF0YUVudHJ5EgsKA2tleRgBIAEoCRINCgV2YWx1ZRgCIAEoCToCOAEikAEKCkN1c3RvbVRvb2wSKgoEbmFtZRgBIAEoCUIcukgZchcyFV5bYS16QS1aMC05Xy1dezEsNjR9JBIfCgtkZXNjcmlwdGlvbhgCIAEoCUIKukgHcgUQARiAIBI1CgxpbnB1dF9zY2hlbWEYAyABKAsyFy5nb29nbGUucHJvdG9idWYuU3RydWN0Qga6SAPIAQFiBnByb3RvMw", [file_ai_stigmer_agentic_session_v1_enum, file_ai_stigmer_agentic_session_v1_resource, file_ai_stigmer_commons_apiresource_field_options, file_ai_stigmer_commons_apiresource_io, file_buf_validate_validate, file_google_protobuf_struct]);
 
 /**
  * SessionSpec defines the configurable properties of a session.
@@ -203,6 +204,33 @@ export type SessionSpec = Message<"ai.stigmer.agentic.session.v1.SessionSpec"> &
    * @generated from field: repeated ai.stigmer.agentic.session.v1.SessionResource resources = 22;
    */
   resources: SessionResource[];
+
+  /**
+   * Tools the host app answers itself, offered to the agent beside its own.
+   *
+   * The agent sees each under its name and calls it with input that
+   * matches its input_schema. A call that does not match is refused to the
+   * agent, which reads why and may try again. A call that matches is
+   * recorded as an agent.custom_tool_use, and the session goes idle with
+   * stop_reason requires_action naming it, as a call waiting for an
+   * approval does. The host answers with answerCustomToolUse (or a
+   * user.custom_tool_result), at once or after its person acts, and the
+   * turn carries on with the answer. A call nobody answers waits; stopping
+   * the session ends it.
+   *
+   * Only the conversation's main agent is offered them, and only on a turn
+   * a person can answer: a chat-link visitor's, a messaging channel's or a
+   * schedule's turn offers none. The agent's tool lists do not apply to
+   * them. Fixed once a turn has run.
+   *
+   * Names are letters, digits, _ and -, at most 64, unique, and not a
+   * built-in tool's name or one starting mcp__. Each input_schema is a JSON
+   * Schema object ({"type": "object", ...}). At most 32 tools and 64 KB of
+   * schemas in all.
+   *
+   * @generated from field: repeated ai.stigmer.agentic.session.v1.CustomTool custom_tools = 23;
+   */
+  customTools: CustomTool[];
 };
 
 /**
@@ -211,4 +239,40 @@ export type SessionSpec = Message<"ai.stigmer.agentic.session.v1.SessionSpec"> &
  */
 export const SessionSpecSchema: GenMessage<SessionSpec> = /*@__PURE__*/
   messageDesc(file_ai_stigmer_agentic_session_v1_spec, 0);
+
+/**
+ * CustomTool is one tool the host app answers itself (SessionSpec.custom_tools):
+ * Claude Managed Agents' custom tool, its type implied.
+ *
+ * @generated from message ai.stigmer.agentic.session.v1.CustomTool
+ */
+export type CustomTool = Message<"ai.stigmer.agentic.session.v1.CustomTool"> & {
+  /**
+   * The tool's name as the agent sees it: letters, digits, _ and -, at most 64.
+   *
+   * @generated from field: string name = 1;
+   */
+  name: string;
+
+  /**
+   * What the tool does and when to call it, for the agent.
+   *
+   * @generated from field: string description = 2;
+   */
+  description: string;
+
+  /**
+   * The JSON Schema the tool's input must match: an object schema.
+   *
+   * @generated from field: google.protobuf.Struct input_schema = 3;
+   */
+  inputSchema?: JsonObject;
+};
+
+/**
+ * Describes the message ai.stigmer.agentic.session.v1.CustomTool.
+ * Use `create(CustomToolSchema)` to create a new message.
+ */
+export const CustomToolSchema: GenMessage<CustomTool> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_agentic_session_v1_spec, 1);
 

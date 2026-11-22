@@ -1,7 +1,8 @@
-// The package entry: re-exports the tool vocabulary (vocabulary.ts) and the
-// MCP server names (mcp-servers.ts) that the runner and the control plane
-// both read, so neither reaches into a file path. Nothing else lives here;
-// the tables and their trade-offs are documented and pinned beside them.
+// The package entry: re-exports the tool vocabulary (vocabulary.ts), the
+// MCP server names (mcp-servers.ts) and the custom-tool check
+// (custom-tools.ts) that the runner and the control plane both read, so
+// neither reaches into a file path. Nothing else lives here; the tables and
+// their trade-offs are documented and pinned beside them.
 
 export {
   CLAUDE_TOOLS,
@@ -26,3 +27,11 @@ export {
   accessTokenVariable,
   isReservedMcpServerName,
 } from "./mcp-servers.js";
+export {
+  CUSTOM_TOOL_LIMITS,
+  CUSTOM_TOOL_NAME_PATTERN,
+  customToolInputProblem,
+  customToolsProblem,
+  isReservedCustomToolName,
+  type CustomToolDeclaration,
+} from "./custom-tools.js";

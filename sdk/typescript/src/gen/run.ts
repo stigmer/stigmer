@@ -16,7 +16,7 @@ import { RunQueryController } from "@stigmer/apis/ai/stigmer/agentic/run/v1/quer
 import { RunSpecSchema, ConversationCatchupSchema, type ConversationCatchup } from "@stigmer/apis/ai/stigmer/agentic/run/v1/spec_pb";
 import { Harness, ExecutionTarget, GitWriteBackMode } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
 import { FileResourceSchema, GitRepositoryResourceSchema, LocalPathResourceSchema, SessionResourceSchema, type FileResource, type GitRepositoryResource, type LocalPathResource, type SessionResource } from "@stigmer/apis/ai/stigmer/agentic/session/v1/resource_pb";
-import { SessionSpecSchema, type SessionSpec } from "@stigmer/apis/ai/stigmer/agentic/session/v1/spec_pb";
+import { CustomToolSchema, SessionSpecSchema, type CustomTool, type SessionSpec } from "@stigmer/apis/ai/stigmer/agentic/session/v1/spec_pb";
 import { ApiResourceVisibility } from "@stigmer/apis/ai/stigmer/commons/apiresource/enum_pb";
 import { ApiResourceIdSchema, ApiResourceReferenceSchema } from "@stigmer/apis/ai/stigmer/commons/apiresource/io_pb";
 import { ApiResourceMetadataSchema } from "@stigmer/apis/ai/stigmer/commons/apiresource/metadata_pb";
@@ -243,6 +243,7 @@ export interface SessionSpecInput {
   fileReview?: boolean;
   environmentRef?: ResourceRef;
   resources?: SessionResourceInput[];
+  customTools?: CustomToolInput[];
 }
 
 /** SDK input type for SessionResource. */
@@ -271,6 +272,13 @@ export interface GitRepositoryResourceInput {
 /** SDK input type for LocalPathResource. */
 export interface LocalPathResourceInput {
   path?: string;
+}
+
+/** SDK input type for CustomTool. */
+export interface CustomToolInput {
+  name?: string;
+  description?: string;
+  inputSchema: JsonObject;
 }
 
 /** SDK input type for RunConfig. */
@@ -377,6 +385,14 @@ function buildSessionResourceProto(input: SessionResourceInput) {
   return msg;
 }
 
+function buildCustomToolProto(input: CustomToolInput) {
+  return Object.assign(create(CustomToolSchema), stripUndefined({
+    name: input.name,
+    description: input.description,
+    inputSchema: input.inputSchema,
+  }));
+}
+
 function buildSessionSpecProto(input: SessionSpecInput) {
   const msg = create(SessionSpecSchema);
   if (input.agentRef?.slug || input.agentRef?.org || input.agentRef?.id) msg.agentRef = create(ApiResourceReferenceSchema, { ...input.agentRef, kind: 40 });
@@ -391,6 +407,7 @@ function buildSessionSpecProto(input: SessionSpecInput) {
   if (input.fileReview !== undefined) msg.fileReview = input.fileReview;
   if (input.environmentRef?.slug || input.environmentRef?.org || input.environmentRef?.id) msg.environmentRef = create(ApiResourceReferenceSchema, { ...input.environmentRef, kind: 67 });
   if (input.resources) msg.resources = input.resources.map(buildSessionResourceProto);
+  if (input.customTools) msg.customTools = input.customTools.map(buildCustomToolProto);
   return msg;
 }
 
@@ -547,6 +564,14 @@ function toSessionResourceInput(msg: SessionResource): SessionResourceInput {
   };
 }
 
+function toCustomToolInput(msg: CustomTool): CustomToolInput {
+  return {
+    name: msg.name || undefined,
+    description: msg.description || undefined,
+    inputSchema: msg.inputSchema ?? {},
+  };
+}
+
 function toSessionSpecInput(msg: SessionSpec): SessionSpecInput {
   return {
     agentRef: toResourceRefInput(msg.agentRef),
@@ -561,6 +586,7 @@ function toSessionSpecInput(msg: SessionSpec): SessionSpecInput {
     fileReview: msg.fileReview || undefined,
     environmentRef: toResourceRefInput(msg.environmentRef),
     resources: msg.resources?.length ? msg.resources.map(toSessionResourceInput) : undefined,
+    customTools: msg.customTools?.length ? msg.customTools.map(toCustomToolInput) : undefined,
   };
 }
 

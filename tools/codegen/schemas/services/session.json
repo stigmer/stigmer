@@ -57,6 +57,14 @@
           "description": "Allow or deny a tool use that waits for an answer.\n\n A call that needs a person's answer is an agent.tool_use (or\n agent.mcp_tool_use) with evaluated_permission ask, and the session goes\n idle with stop_reason requires_action naming it. The answer is appended\n as a user.tool_confirmation. A deny may carry a message, which the\n agent reads. When every waiting call of the turn is answered, the turn\n resumes; until then the session re-states requires_action with the\n calls still waiting.\n\n ## Error Conditions\n\n - NOT_FOUND: the tool use is not one of this conversation's calls that\n   asked\n - FAILED_PRECONDITION: the call no longer waits (its turn moved on or\n   was stopped), or it was already answered the other way (an answer is\n   final)\n\n ## Idempotency\n\n The same answer sent again records nothing new and returns the event\n first recorded."
         },
         {
+          "name": "AnswerCustomToolUse",
+          "inputType": "AnswerCustomToolUseInput",
+          "inputFullType": "ai.stigmer.agentic.session.v1.AnswerCustomToolUseInput",
+          "outputType": "SessionEvent",
+          "outputFullType": "ai.stigmer.agentic.session.v1.SessionEvent",
+          "description": "Answer a call of one of the host app's own tools.\n\n A call the agent makes to a tool in the session's custom_tools is an\n agent.custom_tool_use, and the session goes idle with stop_reason\n requires_action naming it. The answer is appended as a\n user.custom_tool_result, which the agent reads as the tool's result;\n is_error tells it the tool failed. When every waiting call of the turn\n is answered, the turn resumes; until then the session re-states\n requires_action with the calls still waiting. The host answers from\n its own server as the person whose conversation it is, as it would\n answer an approval.\n\n ## Error Conditions\n\n - NOT_FOUND: the event is not one of this conversation's custom tool\n   uses\n - FAILED_PRECONDITION: the call no longer waits (its turn moved on or\n   was stopped), or it was already answered otherwise (an answer is\n   final)\n - INVALID_ARGUMENT: the content holds a block other than text\n\n ## Idempotency\n\n The same answer sent again records nothing new and returns the event\n first recorded."
+        },
+        {
           "name": "GrantPermission",
           "inputType": "GrantPermissionInput",
           "inputFullType": "ai.stigmer.agentic.session.v1.GrantPermissionInput",
@@ -680,6 +688,30 @@
           "oneofGroup": "event"
         },
         {
+          "name": "AgentCustomToolUse",
+          "jsonName": "agentCustomToolUse",
+          "protoField": "agent_custom_tool_use",
+          "type": {
+            "kind": "message",
+            "messageType": "AgentCustomToolUseEvent"
+          },
+          "description": "The agent called one of the host app's own tools (SessionSpec.custom_tools).",
+          "required": false,
+          "oneofGroup": "event"
+        },
+        {
+          "name": "UserCustomToolResult",
+          "jsonName": "userCustomToolResult",
+          "protoField": "user_custom_tool_result",
+          "type": {
+            "kind": "message",
+            "messageType": "UserCustomToolResultEvent"
+          },
+          "description": "The host app answered a call to one of its own tools.",
+          "required": false,
+          "oneofGroup": "event"
+        },
+        {
           "name": "StigmerAgentThinking",
           "jsonName": "stigmerAgentThinking",
           "protoField": "stigmer_agent_thinking",
@@ -846,6 +878,67 @@
           "description": "An MCP tool the turn called, as the model was offered it: its\n description and input schema.",
           "required": false,
           "oneofGroup": "event"
+        }
+      ]
+    },
+    {
+      "name": "AnswerCustomToolUseInput",
+      "description": "AnswerCustomToolUseInput answers a call of one of the host app's own\n tools: Managed Agents' user.custom_tool_result parameters, with the\n session.",
+      "protoType": "ai.stigmer.agentic.session.v1.AnswerCustomToolUseInput",
+      "protoFile": "apis/ai/stigmer/agentic/session/v1/io.proto",
+      "fields": [
+        {
+          "name": "SessionId",
+          "jsonName": "sessionId",
+          "protoField": "session_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The conversation.",
+          "required": false,
+          "validation": {
+            "minLength": 1
+          }
+        },
+        {
+          "name": "CustomToolUseId",
+          "jsonName": "customToolUseId",
+          "protoField": "custom_tool_use_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The agent.custom_tool_use event to answer, as the requires_action\n idle's event_ids name it.",
+          "required": false,
+          "validation": {
+            "minLength": 1
+          }
+        },
+        {
+          "name": "Content",
+          "jsonName": "content",
+          "protoField": "content",
+          "type": {
+            "kind": "array",
+            "elementType": {
+              "kind": "message",
+              "messageType": "ContentBlock"
+            }
+          },
+          "description": "The answer the agent reads: text blocks, at most 100,000 characters in\n all.",
+          "required": false,
+          "validation": {
+            "maxItems": 100
+          }
+        },
+        {
+          "name": "IsError",
+          "jsonName": "isError",
+          "protoField": "is_error",
+          "type": {
+            "kind": "bool"
+          },
+          "description": "Whether the tool failed; the agent reads the content as the error.",
+          "required": false
         }
       ]
     },

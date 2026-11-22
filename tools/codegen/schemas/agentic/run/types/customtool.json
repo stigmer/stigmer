@@ -1,0 +1,48 @@
+{
+  "name": "CustomTool",
+  "description": "CustomTool is one tool the host app answers itself (SessionSpec.custom_tools):\n Claude Managed Agents' custom tool, its type implied.",
+  "protoType": "ai.stigmer.agentic.session.v1.CustomTool",
+  "protoFile": "apis/ai/stigmer/agentic/session/v1/spec.proto",
+  "fields": [
+    {
+      "name": "Name",
+      "jsonName": "name",
+      "protoField": "name",
+      "type": {
+        "kind": "string"
+      },
+      "description": "The tool's name as the agent sees it: letters, digits, _ and -, at most 64.",
+      "required": false,
+      "validation": {
+        "pattern": "^[a-zA-Z0-9_-]{1,64}$"
+      }
+    },
+    {
+      "name": "Description",
+      "jsonName": "description",
+      "protoField": "description",
+      "type": {
+        "kind": "string"
+      },
+      "description": "What the tool does and when to call it, for the agent.",
+      "required": false,
+      "validation": {
+        "minLength": 1,
+        "maxLength": 4096
+      }
+    },
+    {
+      "name": "InputSchema",
+      "jsonName": "inputSchema",
+      "protoField": "input_schema",
+      "type": {
+        "kind": "struct"
+      },
+      "description": "The JSON Schema the tool's input must match: an object schema.",
+      "required": true,
+      "validation": {
+        "required": true
+      }
+    }
+  ]
+}

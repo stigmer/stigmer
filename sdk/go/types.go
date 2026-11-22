@@ -95,6 +95,7 @@ type GitRepositoryResourceInput = gen.GitRepositoryResourceInput
 type LocalPathResourceInput = gen.LocalPathResourceInput
 type RunInput = gen.RunInput
 type SessionSpecInput = gen.SessionSpecInput
+type CustomToolInput = gen.CustomToolInput
 type ConversationCatchupInput = gen.ConversationCatchupInput
 type EvalCaseContextInput = gen.EvalCaseContextInput
 type EvalMockServerInput = gen.EvalMockServerInput

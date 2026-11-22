@@ -3,16 +3,16 @@
 import { wrapError } from "./errors.js";
 import { stripUndefined, toResourceRefInput, toResourceRefInputs } from "./proto-utils.js";
 import { type ResourceRef } from "./types.js";
-import { create, type MessageInitShape } from "@bufbuild/protobuf";
+import { create, type MessageInitShape, type JsonObject } from "@bufbuild/protobuf";
 import { createClient, type Client, type Transport } from "@connectrpc/connect";
 import { SessionSchema, type Session } from "@stigmer/apis/ai/stigmer/agentic/session/v1/api_pb";
 import { SessionCommandController } from "@stigmer/apis/ai/stigmer/agentic/session/v1/command_pb";
 import { Harness, ExecutionTarget, GitWriteBackMode } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
 import { SessionEventSchema, type SessionEvent } from "@stigmer/apis/ai/stigmer/agentic/session/v1/event_pb";
-import { SessionIdSchema, UpdateSessionInputSchema, UpdateSessionSubjectRequestSchema, ReviewFileChangesInputSchema, ReviewFileChangesResponseSchema, ConfirmToolUseInputSchema, GrantPermissionInputSchema, GrantPermissionResponseSchema, StopBackgroundCommandInputSchema, InterruptSessionInputSchema, InterruptSessionResponseSchema, ListSessionsRequestSchema, SessionListSchema, ListSessionsByAgentRequestSchema, ListSessionsByChannelRequestSchema, ListSessionEventsRequestSchema, SessionEventListSchema, StreamSessionEventsRequestSchema, StreamSessionEventsResponseSchema, StreamAttentionRequestSchema, AttentionSchema, type UpdateSessionSubjectRequest, type ReviewFileChangesInput, type ReviewFileChangesResponse, type ConfirmToolUseInput, type GrantPermissionInput, type GrantPermissionResponse, type StopBackgroundCommandInput, type InterruptSessionInput, type InterruptSessionResponse, type ListSessionsRequest, type SessionList, type ListSessionsByAgentRequest, type ListSessionsByChannelRequest, type ListSessionEventsRequest, type SessionEventList, type StreamSessionEventsRequest, type StreamSessionEventsResponse, type StreamAttentionRequest, type Attention } from "@stigmer/apis/ai/stigmer/agentic/session/v1/io_pb";
+import { SessionIdSchema, UpdateSessionInputSchema, UpdateSessionSubjectRequestSchema, ReviewFileChangesInputSchema, ReviewFileChangesResponseSchema, ConfirmToolUseInputSchema, AnswerCustomToolUseInputSchema, GrantPermissionInputSchema, GrantPermissionResponseSchema, StopBackgroundCommandInputSchema, InterruptSessionInputSchema, InterruptSessionResponseSchema, ListSessionsRequestSchema, SessionListSchema, ListSessionsByAgentRequestSchema, ListSessionsByChannelRequestSchema, ListSessionEventsRequestSchema, SessionEventListSchema, StreamSessionEventsRequestSchema, StreamSessionEventsResponseSchema, StreamAttentionRequestSchema, AttentionSchema, type UpdateSessionSubjectRequest, type ReviewFileChangesInput, type ReviewFileChangesResponse, type ConfirmToolUseInput, type AnswerCustomToolUseInput, type GrantPermissionInput, type GrantPermissionResponse, type StopBackgroundCommandInput, type InterruptSessionInput, type InterruptSessionResponse, type ListSessionsRequest, type SessionList, type ListSessionsByAgentRequest, type ListSessionsByChannelRequest, type ListSessionEventsRequest, type SessionEventList, type StreamSessionEventsRequest, type StreamSessionEventsResponse, type StreamAttentionRequest, type Attention } from "@stigmer/apis/ai/stigmer/agentic/session/v1/io_pb";
 import { SessionQueryController } from "@stigmer/apis/ai/stigmer/agentic/session/v1/query_pb";
 import { FileResourceSchema, GitRepositoryResourceSchema, LocalPathResourceSchema, SessionResourceSchema, type FileResource, type GitRepositoryResource, type LocalPathResource, type SessionResource } from "@stigmer/apis/ai/stigmer/agentic/session/v1/resource_pb";
-import { SessionSpecSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/spec_pb";
+import { SessionSpecSchema, CustomToolSchema, type CustomTool } from "@stigmer/apis/ai/stigmer/agentic/session/v1/spec_pb";
 import { ApiResourceVisibility } from "@stigmer/apis/ai/stigmer/commons/apiresource/enum_pb";
 import { ApiResourceReferenceSchema } from "@stigmer/apis/ai/stigmer/commons/apiresource/io_pb";
 import { ApiResourceMetadataSchema } from "@stigmer/apis/ai/stigmer/commons/apiresource/metadata_pb";
@@ -60,6 +60,12 @@ export class SessionClient {
   async confirmToolUse(input: MessageInitShape<typeof ConfirmToolUseInputSchema>): Promise<SessionEvent> {
     try {
       return await this.command.confirmToolUse(input);
+    } catch (e) { throw wrapError(e); }
+  }
+
+  async answerCustomToolUse(input: MessageInitShape<typeof AnswerCustomToolUseInputSchema>): Promise<SessionEvent> {
+    try {
+      return await this.command.answerCustomToolUse(input);
     } catch (e) { throw wrapError(e); }
   }
 
@@ -202,6 +208,7 @@ export interface SessionInput {
   fileReview?: boolean;
   environmentRef?: ResourceRef;
   resources?: SessionResourceInput[];
+  customTools?: CustomToolInput[];
 }
 
 /** SDK input type for SessionResource. */
@@ -230,6 +237,13 @@ export interface GitRepositoryResourceInput {
 /** SDK input type for LocalPathResource. */
 export interface LocalPathResourceInput {
   path?: string;
+}
+
+/** SDK input type for CustomTool. */
+export interface CustomToolInput {
+  name?: string;
+  description?: string;
+  inputSchema: JsonObject;
 }
 
 function buildFileResourceProto(input: FileResourceInput) {
@@ -268,6 +282,14 @@ function buildSessionResourceProto(input: SessionResourceInput) {
   return msg;
 }
 
+function buildCustomToolProto(input: CustomToolInput) {
+  return Object.assign(create(CustomToolSchema), stripUndefined({
+    name: input.name,
+    description: input.description,
+    inputSchema: input.inputSchema,
+  }));
+}
+
 export function buildSessionProto(input: SessionInput): Session {
   const agentRef = (input.agentRef?.slug || input.agentRef?.org || input.agentRef?.id) ? create(ApiResourceReferenceSchema, { ...input.agentRef, kind: 40 }) : undefined;
   const skillRefs = input.skillRefs?.map(r => create(ApiResourceReferenceSchema, { ...r, kind: 43 }));
@@ -275,6 +297,7 @@ export function buildSessionProto(input: SessionInput): Session {
   const plugins = input.plugins?.map(r => create(ApiResourceReferenceSchema, { ...r, kind: 58 }));
   const environmentRef = (input.environmentRef?.slug || input.environmentRef?.org || input.environmentRef?.id) ? create(ApiResourceReferenceSchema, { ...input.environmentRef, kind: 67 }) : undefined;
   const resources = input.resources?.map(buildSessionResourceProto);
+  const customTools = input.customTools?.map(buildCustomToolProto);
   return Object.assign(create(SessionSchema), {
     apiVersion: "agentic.stigmer.ai/v1",
     kind: "Session",
@@ -299,6 +322,7 @@ export function buildSessionProto(input: SessionInput): Session {
       fileReview: input.fileReview,
       environmentRef,
       resources,
+      customTools,
     })),
   }) as Session;
 }
@@ -332,6 +356,14 @@ function toSessionResourceInput(msg: SessionResource): SessionResourceInput {
     file: msg.resource?.case === "file" ? toFileResourceInput(msg.resource.value) : undefined,
     gitRepository: msg.resource?.case === "gitRepository" ? toGitRepositoryResourceInput(msg.resource.value) : undefined,
     localPath: msg.resource?.case === "localPath" ? toLocalPathResourceInput(msg.resource.value) : undefined,
+  };
+}
+
+function toCustomToolInput(msg: CustomTool): CustomToolInput {
+  return {
+    name: msg.name || undefined,
+    description: msg.description || undefined,
+    inputSchema: msg.inputSchema ?? {},
   };
 }
 
@@ -370,5 +402,6 @@ export function toSessionInput(resource: Session): SessionInput {
     fileReview: spec.fileReview || undefined,
     environmentRef: toResourceRefInput(spec.environmentRef),
     resources: spec.resources?.length ? spec.resources.map(toSessionResourceInput) : undefined,
+    customTools: spec.customTools?.length ? spec.customTools.map(toCustomToolInput) : undefined,
   };
 }

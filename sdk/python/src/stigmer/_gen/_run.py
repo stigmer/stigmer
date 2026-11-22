@@ -289,6 +289,7 @@ class SessionSpecInput:
     file_review: bool = False
     environment_ref: ResourceRef | None = None
     resources: list[SessionResourceInput] = field(default_factory=list)
+    custom_tools: list[CustomToolInput] = field(default_factory=list)
 
     def _to_proto(self) -> session_spec_pb2.SessionSpec:
         msg = session_spec_pb2.SessionSpec(
@@ -322,6 +323,26 @@ class SessionSpecInput:
             msg.environment_ref.CopyFrom(_ref)
         for item in self.resources:
             msg.resources.append(item._to_proto())
+        for item in self.custom_tools:
+            msg.custom_tools.append(item._to_proto())
+        return msg
+
+
+@dataclass
+class CustomToolInput:
+    """SDK input type for CustomTool."""
+
+    input_schema: dict[str, Any]
+    name: str = ""
+    description: str = ""
+
+    def _to_proto(self) -> session_spec_pb2.CustomTool:
+        msg = session_spec_pb2.CustomTool(
+            name=self.name,
+            description=self.description,
+        )
+        if self.input_schema:
+            msg.input_schema.update(self.input_schema)
         return msg
 
 

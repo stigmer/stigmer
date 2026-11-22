@@ -96,6 +96,12 @@ message SessionEvent {
     // A person stopped the session's unfinished work.
     UserInterruptEvent user_interrupt = 27 [(ai.stigmer.commons.apiresource.event_type) = "user.interrupt"];
 
+    // The agent called one of the host app's own tools (SessionSpec.custom_tools).
+    AgentCustomToolUseEvent agent_custom_tool_use = 28 [(ai.stigmer.commons.apiresource.event_type) = "agent.custom_tool_use"];
+
+    // The host app answered a call to one of its own tools.
+    UserCustomToolResultEvent user_custom_tool_result = 29 [(ai.stigmer.commons.apiresource.event_type) = "user.custom_tool_result"];
+
     // Stigmer's own events (types starting with stigmer.): optional for a
     // Managed Agents client, which skips a type it does not know. Each is
     // listed with the reason Managed Agents has none in docs/sdk/streaming.mdx
@@ -455,6 +461,51 @@ message UserToolConfirmationEvent {
 
   // Why the call was denied, for the agent to read; only with deny.
   string deny_message = 4;
+
+  // When the event was appended, as RFC 3339 UTC.
+  string processed_at = 5;
+
+  // The thread whose call was answered; empty for the primary thread.
+  string session_thread_id = 6;
+}
+
+// AgentCustomToolUseEvent is the agent calling one of the host app's own
+// tools: agent.custom_tool_use. The call waits for the host's answer (a
+// user.custom_tool_result naming it), and the session goes idle with
+// stop_reason requires_action naming this event.
+message AgentCustomToolUseEvent {
+  // The event's id, unique in its session; the host's answer names it.
+  string id = 1 [(buf.validate.field).string.pattern = "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"];
+
+  // The tool's name, as the session's custom_tools declares it.
+  string name = 2 [(buf.validate.field).string.min_len = 1];
+
+  // The tool's input, which matched its input_schema.
+  google.protobuf.Struct input = 3 [(buf.validate.field).required = true];
+
+  // When the event was appended, as RFC 3339 UTC.
+  string processed_at = 4;
+
+  // The thread that made the call; empty for the primary thread. Only the
+  // main agent calls custom tools, so it is always empty.
+  string session_thread_id = 5;
+}
+
+// UserCustomToolResultEvent is the host app's answer to a call of one of
+// its own tools: user.custom_tool_result. Written by the server only, by
+// SessionCommandController.answerCustomToolUse or the Managed Agents send.
+message UserCustomToolResultEvent {
+  // The event's id, unique in its session: letters, digits, _ . : -, at most 128.
+  string id = 1 [(buf.validate.field).string.pattern = "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"];
+
+  // The agent.custom_tool_use event answered.
+  string custom_tool_use_id = 2 [(buf.validate.field).string.min_len = 1];
+
+  // The answer, which the agent reads as the tool's result: text blocks.
+  repeated ContentBlock content = 3;
+
+  // Whether the tool failed; the agent reads the content as the error.
+  bool is_error = 4;
 
   // When the event was appended, as RFC 3339 UTC.
   string processed_at = 5;

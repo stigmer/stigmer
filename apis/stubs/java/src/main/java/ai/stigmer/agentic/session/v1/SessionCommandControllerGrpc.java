@@ -201,6 +201,37 @@ public final class SessionCommandControllerGrpc {
     return getConfirmToolUseMethod;
   }
 
+  private static volatile io.grpc.MethodDescriptor<ai.stigmer.agentic.session.v1.AnswerCustomToolUseInput,
+      ai.stigmer.agentic.session.v1.SessionEvent> getAnswerCustomToolUseMethod;
+
+  @io.grpc.stub.annotations.RpcMethod(
+      fullMethodName = SERVICE_NAME + '/' + "answerCustomToolUse",
+      requestType = ai.stigmer.agentic.session.v1.AnswerCustomToolUseInput.class,
+      responseType = ai.stigmer.agentic.session.v1.SessionEvent.class,
+      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
+  public static io.grpc.MethodDescriptor<ai.stigmer.agentic.session.v1.AnswerCustomToolUseInput,
+      ai.stigmer.agentic.session.v1.SessionEvent> getAnswerCustomToolUseMethod() {
+    io.grpc.MethodDescriptor<ai.stigmer.agentic.session.v1.AnswerCustomToolUseInput, ai.stigmer.agentic.session.v1.SessionEvent> getAnswerCustomToolUseMethod;
+    if ((getAnswerCustomToolUseMethod = SessionCommandControllerGrpc.getAnswerCustomToolUseMethod) == null) {
+      synchronized (SessionCommandControllerGrpc.class) {
+        if ((getAnswerCustomToolUseMethod = SessionCommandControllerGrpc.getAnswerCustomToolUseMethod) == null) {
+          SessionCommandControllerGrpc.getAnswerCustomToolUseMethod = getAnswerCustomToolUseMethod =
+              io.grpc.MethodDescriptor.<ai.stigmer.agentic.session.v1.AnswerCustomToolUseInput, ai.stigmer.agentic.session.v1.SessionEvent>newBuilder()
+              .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
+              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "answerCustomToolUse"))
+              .setSampledToLocalTracing(true)
+              .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.agentic.session.v1.AnswerCustomToolUseInput.getDefaultInstance()))
+              .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.agentic.session.v1.SessionEvent.getDefaultInstance()))
+              .setSchemaDescriptor(new SessionCommandControllerMethodDescriptorSupplier("answerCustomToolUse"))
+              .build();
+        }
+      }
+    }
+    return getAnswerCustomToolUseMethod;
+  }
+
   private static volatile io.grpc.MethodDescriptor<ai.stigmer.agentic.session.v1.GrantPermissionInput,
       ai.stigmer.agentic.session.v1.GrantPermissionResponse> getGrantPermissionMethod;
 
@@ -564,6 +595,35 @@ public final class SessionCommandControllerGrpc {
 
     /**
      * <pre>
+     * Answer a call of one of the host app's own tools.
+     * A call the agent makes to a tool in the session's custom_tools is an
+     * agent.custom_tool_use, and the session goes idle with stop_reason
+     * requires_action naming it. The answer is appended as a
+     * user.custom_tool_result, which the agent reads as the tool's result;
+     * is_error tells it the tool failed. When every waiting call of the turn
+     * is answered, the turn resumes; until then the session re-states
+     * requires_action with the calls still waiting. The host answers from
+     * its own server as the person whose conversation it is, as it would
+     * answer an approval.
+     * ## Error Conditions
+     * - NOT_FOUND: the event is not one of this conversation's custom tool
+     *   uses
+     * - FAILED_PRECONDITION: the call no longer waits (its turn moved on or
+     *   was stopped), or it was already answered otherwise (an answer is
+     *   final)
+     * - INVALID_ARGUMENT: the content holds a block other than text
+     * ## Idempotency
+     * The same answer sent again records nothing new and returns the event
+     * first recorded.
+     * </pre>
+     */
+    default void answerCustomToolUse(ai.stigmer.agentic.session.v1.AnswerCustomToolUseInput request,
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.session.v1.SessionEvent> responseObserver) {
+      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getAnswerCustomToolUseMethod(), responseObserver);
+    }
+
+    /**
+     * <pre>
      * Allow a tool use, and every call of its class for the rest of the turn.
      * The class is the call's built-in category (write, delete or shell), its
      * MCP server, or, when a hook asked, that hook on that tool. The grant is
@@ -825,6 +885,36 @@ public final class SessionCommandControllerGrpc {
 
     /**
      * <pre>
+     * Answer a call of one of the host app's own tools.
+     * A call the agent makes to a tool in the session's custom_tools is an
+     * agent.custom_tool_use, and the session goes idle with stop_reason
+     * requires_action naming it. The answer is appended as a
+     * user.custom_tool_result, which the agent reads as the tool's result;
+     * is_error tells it the tool failed. When every waiting call of the turn
+     * is answered, the turn resumes; until then the session re-states
+     * requires_action with the calls still waiting. The host answers from
+     * its own server as the person whose conversation it is, as it would
+     * answer an approval.
+     * ## Error Conditions
+     * - NOT_FOUND: the event is not one of this conversation's custom tool
+     *   uses
+     * - FAILED_PRECONDITION: the call no longer waits (its turn moved on or
+     *   was stopped), or it was already answered otherwise (an answer is
+     *   final)
+     * - INVALID_ARGUMENT: the content holds a block other than text
+     * ## Idempotency
+     * The same answer sent again records nothing new and returns the event
+     * first recorded.
+     * </pre>
+     */
+    public void answerCustomToolUse(ai.stigmer.agentic.session.v1.AnswerCustomToolUseInput request,
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.session.v1.SessionEvent> responseObserver) {
+      io.grpc.stub.ClientCalls.asyncUnaryCall(
+          getChannel().newCall(getAnswerCustomToolUseMethod(), getCallOptions()), request, responseObserver);
+    }
+
+    /**
+     * <pre>
      * Allow a tool use, and every call of its class for the rest of the turn.
      * The class is the call's built-in category (write, delete or shell), its
      * MCP server, or, when a hook asked, that hook on that tool. The grant is
@@ -1072,6 +1162,35 @@ public final class SessionCommandControllerGrpc {
 
     /**
      * <pre>
+     * Answer a call of one of the host app's own tools.
+     * A call the agent makes to a tool in the session's custom_tools is an
+     * agent.custom_tool_use, and the session goes idle with stop_reason
+     * requires_action naming it. The answer is appended as a
+     * user.custom_tool_result, which the agent reads as the tool's result;
+     * is_error tells it the tool failed. When every waiting call of the turn
+     * is answered, the turn resumes; until then the session re-states
+     * requires_action with the calls still waiting. The host answers from
+     * its own server as the person whose conversation it is, as it would
+     * answer an approval.
+     * ## Error Conditions
+     * - NOT_FOUND: the event is not one of this conversation's custom tool
+     *   uses
+     * - FAILED_PRECONDITION: the call no longer waits (its turn moved on or
+     *   was stopped), or it was already answered otherwise (an answer is
+     *   final)
+     * - INVALID_ARGUMENT: the content holds a block other than text
+     * ## Idempotency
+     * The same answer sent again records nothing new and returns the event
+     * first recorded.
+     * </pre>
+     */
+    public ai.stigmer.agentic.session.v1.SessionEvent answerCustomToolUse(ai.stigmer.agentic.session.v1.AnswerCustomToolUseInput request) throws io.grpc.StatusException {
+      return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
+          getChannel(), getAnswerCustomToolUseMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
      * Allow a tool use, and every call of its class for the rest of the turn.
      * The class is the call's built-in category (write, delete or shell), its
      * MCP server, or, when a hook asked, that hook on that tool. The grant is
@@ -1309,6 +1428,35 @@ public final class SessionCommandControllerGrpc {
     public ai.stigmer.agentic.session.v1.SessionEvent confirmToolUse(ai.stigmer.agentic.session.v1.ConfirmToolUseInput request) {
       return io.grpc.stub.ClientCalls.blockingUnaryCall(
           getChannel(), getConfirmToolUseMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
+     * Answer a call of one of the host app's own tools.
+     * A call the agent makes to a tool in the session's custom_tools is an
+     * agent.custom_tool_use, and the session goes idle with stop_reason
+     * requires_action naming it. The answer is appended as a
+     * user.custom_tool_result, which the agent reads as the tool's result;
+     * is_error tells it the tool failed. When every waiting call of the turn
+     * is answered, the turn resumes; until then the session re-states
+     * requires_action with the calls still waiting. The host answers from
+     * its own server as the person whose conversation it is, as it would
+     * answer an approval.
+     * ## Error Conditions
+     * - NOT_FOUND: the event is not one of this conversation's custom tool
+     *   uses
+     * - FAILED_PRECONDITION: the call no longer waits (its turn moved on or
+     *   was stopped), or it was already answered otherwise (an answer is
+     *   final)
+     * - INVALID_ARGUMENT: the content holds a block other than text
+     * ## Idempotency
+     * The same answer sent again records nothing new and returns the event
+     * first recorded.
+     * </pre>
+     */
+    public ai.stigmer.agentic.session.v1.SessionEvent answerCustomToolUse(ai.stigmer.agentic.session.v1.AnswerCustomToolUseInput request) {
+      return io.grpc.stub.ClientCalls.blockingUnaryCall(
+          getChannel(), getAnswerCustomToolUseMethod(), getCallOptions(), request);
     }
 
     /**
@@ -1560,6 +1708,36 @@ public final class SessionCommandControllerGrpc {
 
     /**
      * <pre>
+     * Answer a call of one of the host app's own tools.
+     * A call the agent makes to a tool in the session's custom_tools is an
+     * agent.custom_tool_use, and the session goes idle with stop_reason
+     * requires_action naming it. The answer is appended as a
+     * user.custom_tool_result, which the agent reads as the tool's result;
+     * is_error tells it the tool failed. When every waiting call of the turn
+     * is answered, the turn resumes; until then the session re-states
+     * requires_action with the calls still waiting. The host answers from
+     * its own server as the person whose conversation it is, as it would
+     * answer an approval.
+     * ## Error Conditions
+     * - NOT_FOUND: the event is not one of this conversation's custom tool
+     *   uses
+     * - FAILED_PRECONDITION: the call no longer waits (its turn moved on or
+     *   was stopped), or it was already answered otherwise (an answer is
+     *   final)
+     * - INVALID_ARGUMENT: the content holds a block other than text
+     * ## Idempotency
+     * The same answer sent again records nothing new and returns the event
+     * first recorded.
+     * </pre>
+     */
+    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.session.v1.SessionEvent> answerCustomToolUse(
+        ai.stigmer.agentic.session.v1.AnswerCustomToolUseInput request) {
+      return io.grpc.stub.ClientCalls.futureUnaryCall(
+          getChannel().newCall(getAnswerCustomToolUseMethod(), getCallOptions()), request);
+    }
+
+    /**
+     * <pre>
      * Allow a tool use, and every call of its class for the rest of the turn.
      * The class is the call's built-in category (write, delete or shell), its
      * MCP server, or, when a hook asked, that hook on that tool. The grant is
@@ -1683,12 +1861,13 @@ public final class SessionCommandControllerGrpc {
   private static final int METHODID_UPDATE_SUBJECT = 3;
   private static final int METHODID_REVIEW_FILE_CHANGES = 4;
   private static final int METHODID_CONFIRM_TOOL_USE = 5;
-  private static final int METHODID_GRANT_PERMISSION = 6;
-  private static final int METHODID_STOP_BACKGROUND_COMMAND = 7;
-  private static final int METHODID_INTERRUPT = 8;
-  private static final int METHODID_DELETE = 9;
-  private static final int METHODID_APPEND_EVENTS = 10;
-  private static final int METHODID_CLAIM_INPUT = 11;
+  private static final int METHODID_ANSWER_CUSTOM_TOOL_USE = 6;
+  private static final int METHODID_GRANT_PERMISSION = 7;
+  private static final int METHODID_STOP_BACKGROUND_COMMAND = 8;
+  private static final int METHODID_INTERRUPT = 9;
+  private static final int METHODID_DELETE = 10;
+  private static final int METHODID_APPEND_EVENTS = 11;
+  private static final int METHODID_CLAIM_INPUT = 12;
 
   private static final class MethodHandlers<Req, Resp> implements
       io.grpc.stub.ServerCalls.UnaryMethod<Req, Resp>,
@@ -1729,6 +1908,10 @@ public final class SessionCommandControllerGrpc {
           break;
         case METHODID_CONFIRM_TOOL_USE:
           serviceImpl.confirmToolUse((ai.stigmer.agentic.session.v1.ConfirmToolUseInput) request,
+              (io.grpc.stub.StreamObserver<ai.stigmer.agentic.session.v1.SessionEvent>) responseObserver);
+          break;
+        case METHODID_ANSWER_CUSTOM_TOOL_USE:
+          serviceImpl.answerCustomToolUse((ai.stigmer.agentic.session.v1.AnswerCustomToolUseInput) request,
               (io.grpc.stub.StreamObserver<ai.stigmer.agentic.session.v1.SessionEvent>) responseObserver);
           break;
         case METHODID_GRANT_PERMISSION:
@@ -1815,6 +1998,13 @@ public final class SessionCommandControllerGrpc {
               ai.stigmer.agentic.session.v1.ConfirmToolUseInput,
               ai.stigmer.agentic.session.v1.SessionEvent>(
                 service, METHODID_CONFIRM_TOOL_USE)))
+        .addMethod(
+          getAnswerCustomToolUseMethod(),
+          io.grpc.stub.ServerCalls.asyncUnaryCall(
+            new MethodHandlers<
+              ai.stigmer.agentic.session.v1.AnswerCustomToolUseInput,
+              ai.stigmer.agentic.session.v1.SessionEvent>(
+                service, METHODID_ANSWER_CUSTOM_TOOL_USE)))
         .addMethod(
           getGrantPermissionMethod(),
           io.grpc.stub.ServerCalls.asyncUnaryCall(
@@ -1911,6 +2101,7 @@ public final class SessionCommandControllerGrpc {
               .addMethod(getUpdateSubjectMethod())
               .addMethod(getReviewFileChangesMethod())
               .addMethod(getConfirmToolUseMethod())
+              .addMethod(getAnswerCustomToolUseMethod())
               .addMethod(getGrantPermissionMethod())
               .addMethod(getStopBackgroundCommandMethod())
               .addMethod(getInterruptMethod())

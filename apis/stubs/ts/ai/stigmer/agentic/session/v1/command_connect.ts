@@ -5,7 +5,7 @@
 
 import { Session } from "./api_pbjs";
 import { MethodKind } from "@bufbuild/protobuf";
-import { AppendSessionEventsInput, AppendSessionEventsResponse, ClaimSessionInputInput, ClaimSessionInputResponse, ConfirmToolUseInput, GrantPermissionInput, GrantPermissionResponse, InterruptSessionInput, InterruptSessionResponse, ReviewFileChangesInput, ReviewFileChangesResponse, SessionId, StopBackgroundCommandInput, UpdateSessionInput, UpdateSessionSubjectRequest } from "./io_pbjs";
+import { AnswerCustomToolUseInput, AppendSessionEventsInput, AppendSessionEventsResponse, ClaimSessionInputInput, ClaimSessionInputResponse, ConfirmToolUseInput, GrantPermissionInput, GrantPermissionResponse, InterruptSessionInput, InterruptSessionResponse, ReviewFileChangesInput, ReviewFileChangesResponse, SessionId, StopBackgroundCommandInput, UpdateSessionInput, UpdateSessionSubjectRequest } from "./io_pbjs";
 import { SessionEvent } from "./event_pbjs";
 
 /**
@@ -142,6 +142,41 @@ export const SessionCommandController = {
     confirmToolUse: {
       name: "confirmToolUse",
       I: ConfirmToolUseInput,
+      O: SessionEvent,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * Answer a call of one of the host app's own tools.
+     *
+     * A call the agent makes to a tool in the session's custom_tools is an
+     * agent.custom_tool_use, and the session goes idle with stop_reason
+     * requires_action naming it. The answer is appended as a
+     * user.custom_tool_result, which the agent reads as the tool's result;
+     * is_error tells it the tool failed. When every waiting call of the turn
+     * is answered, the turn resumes; until then the session re-states
+     * requires_action with the calls still waiting. The host answers from
+     * its own server as the person whose conversation it is, as it would
+     * answer an approval.
+     *
+     * ## Error Conditions
+     *
+     * - NOT_FOUND: the event is not one of this conversation's custom tool
+     *   uses
+     * - FAILED_PRECONDITION: the call no longer waits (its turn moved on or
+     *   was stopped), or it was already answered otherwise (an answer is
+     *   final)
+     * - INVALID_ARGUMENT: the content holds a block other than text
+     *
+     * ## Idempotency
+     *
+     * The same answer sent again records nothing new and returns the event
+     * first recorded.
+     *
+     * @generated from rpc ai.stigmer.agentic.session.v1.SessionCommandController.answerCustomToolUse
+     */
+    answerCustomToolUse: {
+      name: "answerCustomToolUse",
+      I: AnswerCustomToolUseInput,
       O: SessionEvent,
       kind: MethodKind.Unary,
     },

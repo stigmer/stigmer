@@ -36,6 +36,11 @@ public final class SpecProto extends com.google.protobuf.GeneratedFile {
   static final 
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
       internal_static_ai_stigmer_agentic_session_v1_SessionSpec_MetadataEntry_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_ai_stigmer_agentic_session_v1_CustomTool_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      internal_static_ai_stigmer_agentic_session_v1_CustomTool_fieldAccessorTable;
 
   public static com.google.protobuf.Descriptors.FileDescriptor
       getDescriptor() {
@@ -52,35 +57,43 @@ public final class SpecProto extends com.google.protobuf.GeneratedFile {
       "o\0322ai/stigmer/commons/apiresource/field_" +
       "options.proto\032\'ai/stigmer/commons/apires" +
       "ource/io.proto\032\033buf/validate/validate.pr" +
-      "oto\"\320\007\n\013SessionSpec\022W\n\tagent_ref\030\016 \001(\01324" +
-      ".ai.stigmer.commons.apiresource.ApiResou" +
-      "rceReferenceB\004\340\205,(R\010agentRef\022\030\n\007subject\030" +
-      "\002 \001(\tR\007subject\022T\n\010metadata\030\005 \003(\01328.ai.st" +
-      "igmer.agentic.session.v1.SessionSpec.Met" +
-      "adataEntryR\010metadata\022Y\n\nskill_refs\030\010 \003(\013" +
-      "24.ai.stigmer.commons.apiresource.ApiRes" +
-      "ourceReferenceB\004\340\205,+R\tskillRefs\022J\n\007harne" +
-      "ss\030\n \001(\0162&.ai.stigmer.agentic.session.v1" +
-      ".HarnessB\010\272H\005\202\001\002\020\001R\007harness\022Y\n\020execution" +
-      "_target\030\014 \001(\0162..ai.stigmer.agentic.sessi" +
-      "on.v1.ExecutionTargetR\017executionTarget\022Z" +
-      "\n\006vaults\030\017 \003(\01324.ai.stigmer.commons.apir" +
-      "esource.ApiResourceReferenceB\014\272H\005\222\001\002\020\024\340\205" +
-      ",;R\006vaults\022(\n\020include_my_vault\030\022 \001(\010R\016in" +
-      "cludeMyVault\022T\n\007plugins\030\023 \003(\01324.ai.stigm" +
-      "er.commons.apiresource.ApiResourceRefere" +
-      "nceB\004\340\205,:R\007plugins\022\037\n\013file_review\030\024 \001(\010R" +
-      "\nfileReview\022c\n\017environment_ref\030\025 \001(\01324.a" +
-      "i.stigmer.commons.apiresource.ApiResourc" +
-      "eReferenceB\004\340\205,CR\016environmentRef\022W\n\treso" +
-      "urces\030\026 \003(\0132..ai.stigmer.agentic.session" +
-      ".v1.SessionResourceB\t\272H\006\222\001\003\020\350\007R\tresource" +
-      "s\032;\n\rMetadataEntry\022\020\n\003key\030\001 \001(\tR\003key\022\024\n\005" +
-      "value\030\002 \001(\tR\005value:\0028\001B\244\001B\tSpecProtoP\001\242\002" +
-      "\004ASAS\252\002\035Ai.Stigmer.Agentic.Session.V1\312\002\035" +
-      "Ai\\Stigmer\\Agentic\\Session\\V1\342\002)Ai\\Stigm" +
-      "er\\Agentic\\Session\\V1\\GPBMetadata\352\002!Ai::" +
-      "Stigmer::Agentic::Session::V1b\006proto3"
+      "oto\032\034google/protobuf/struct.proto\"\250\010\n\013Se" +
+      "ssionSpec\022W\n\tagent_ref\030\016 \001(\01324.ai.stigme" +
+      "r.commons.apiresource.ApiResourceReferen" +
+      "ceB\004\340\205,(R\010agentRef\022\030\n\007subject\030\002 \001(\tR\007sub" +
+      "ject\022T\n\010metadata\030\005 \003(\01328.ai.stigmer.agen" +
+      "tic.session.v1.SessionSpec.MetadataEntry" +
+      "R\010metadata\022Y\n\nskill_refs\030\010 \003(\01324.ai.stig" +
+      "mer.commons.apiresource.ApiResourceRefer" +
+      "enceB\004\340\205,+R\tskillRefs\022J\n\007harness\030\n \001(\0162&" +
+      ".ai.stigmer.agentic.session.v1.HarnessB\010" +
+      "\272H\005\202\001\002\020\001R\007harness\022Y\n\020execution_target\030\014 " +
+      "\001(\0162..ai.stigmer.agentic.session.v1.Exec" +
+      "utionTargetR\017executionTarget\022Z\n\006vaults\030\017" +
+      " \003(\01324.ai.stigmer.commons.apiresource.Ap" +
+      "iResourceReferenceB\014\272H\005\222\001\002\020\024\340\205,;R\006vaults" +
+      "\022(\n\020include_my_vault\030\022 \001(\010R\016includeMyVau" +
+      "lt\022T\n\007plugins\030\023 \003(\01324.ai.stigmer.commons" +
+      ".apiresource.ApiResourceReferenceB\004\340\205,:R" +
+      "\007plugins\022\037\n\013file_review\030\024 \001(\010R\nfileRevie" +
+      "w\022c\n\017environment_ref\030\025 \001(\01324.ai.stigmer." +
+      "commons.apiresource.ApiResourceReference" +
+      "B\004\340\205,CR\016environmentRef\022W\n\tresources\030\026 \003(" +
+      "\0132..ai.stigmer.agentic.session.v1.Sessio" +
+      "nResourceB\t\272H\006\222\001\003\020\350\007R\tresources\022V\n\014custo" +
+      "m_tools\030\027 \003(\0132).ai.stigmer.agentic.sessi" +
+      "on.v1.CustomToolB\010\272H\005\222\001\002\020 R\013customTools\032" +
+      ";\n\rMetadataEntry\022\020\n\003key\030\001 \001(\tR\003key\022\024\n\005va" +
+      "lue\030\002 \001(\tR\005value:\0028\001\"\260\001\n\nCustomTool\0220\n\004n" +
+      "ame\030\001 \001(\tB\034\272H\031r\0272\025^[a-zA-Z0-9_-]{1,64}$R" +
+      "\004name\022,\n\013description\030\002 \001(\tB\n\272H\007r\005\020\001\030\200 R\013" +
+      "description\022B\n\014input_schema\030\003 \001(\0132\027.goog" +
+      "le.protobuf.StructB\006\272H\003\310\001\001R\013inputSchemaB" +
+      "\244\001B\tSpecProtoP\001\242\002\004ASAS\252\002\035Ai.Stigmer.Agen" +
+      "tic.Session.V1\312\002\035Ai\\Stigmer\\Agentic\\Sess" +
+      "ion\\V1\342\002)Ai\\Stigmer\\Agentic\\Session\\V1\\G" +
+      "PBMetadata\352\002!Ai::Stigmer::Agentic::Sessi" +
+      "on::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -90,25 +103,33 @@ public final class SpecProto extends com.google.protobuf.GeneratedFile {
           ai.stigmer.commons.apiresource.FieldOptionsProto.getDescriptor(),
           ai.stigmer.commons.apiresource.IoProto.getDescriptor(),
           build.buf.validate.ValidateProto.getDescriptor(),
+          com.google.protobuf.StructProto.getDescriptor(),
         });
     internal_static_ai_stigmer_agentic_session_v1_SessionSpec_descriptor =
       getDescriptor().getMessageType(0);
     internal_static_ai_stigmer_agentic_session_v1_SessionSpec_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_session_v1_SessionSpec_descriptor,
-        new java.lang.String[] { "AgentRef", "Subject", "Metadata", "SkillRefs", "Harness", "ExecutionTarget", "Vaults", "IncludeMyVault", "Plugins", "FileReview", "EnvironmentRef", "Resources", });
+        new java.lang.String[] { "AgentRef", "Subject", "Metadata", "SkillRefs", "Harness", "ExecutionTarget", "Vaults", "IncludeMyVault", "Plugins", "FileReview", "EnvironmentRef", "Resources", "CustomTools", });
     internal_static_ai_stigmer_agentic_session_v1_SessionSpec_MetadataEntry_descriptor =
       internal_static_ai_stigmer_agentic_session_v1_SessionSpec_descriptor.getNestedType(0);
     internal_static_ai_stigmer_agentic_session_v1_SessionSpec_MetadataEntry_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_session_v1_SessionSpec_MetadataEntry_descriptor,
         new java.lang.String[] { "Key", "Value", });
+    internal_static_ai_stigmer_agentic_session_v1_CustomTool_descriptor =
+      getDescriptor().getMessageType(1);
+    internal_static_ai_stigmer_agentic_session_v1_CustomTool_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+        internal_static_ai_stigmer_agentic_session_v1_CustomTool_descriptor,
+        new java.lang.String[] { "Name", "Description", "InputSchema", });
     descriptor.resolveAllFeaturesImmutable();
     ai.stigmer.agentic.session.v1.EnumProto.getDescriptor();
     ai.stigmer.agentic.session.v1.ResourceProto.getDescriptor();
     ai.stigmer.commons.apiresource.FieldOptionsProto.getDescriptor();
     ai.stigmer.commons.apiresource.IoProto.getDescriptor();
     build.buf.validate.ValidateProto.getDescriptor();
+    com.google.protobuf.StructProto.getDescriptor();
     com.google.protobuf.ExtensionRegistry registry =
         com.google.protobuf.ExtensionRegistry.newInstance();
     registry.add(ai.stigmer.commons.apiresource.FieldOptionsProto.referenceKind);

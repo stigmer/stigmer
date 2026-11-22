@@ -39,6 +39,7 @@ private static final long serialVersionUID = 0L;
     vaults_ = java.util.Collections.emptyList();
     plugins_ = java.util.Collections.emptyList();
     resources_ = java.util.Collections.emptyList();
+    customTools_ = java.util.Collections.emptyList();
   }
 
   public static final com.google.protobuf.Descriptors.Descriptor
@@ -921,6 +922,167 @@ java.lang.String defaultValue) {
     return resources_.get(index);
   }
 
+  public static final int CUSTOM_TOOLS_FIELD_NUMBER = 23;
+  @SuppressWarnings("serial")
+  private java.util.List<ai.stigmer.agentic.session.v1.CustomTool> customTools_;
+  /**
+   * <pre>
+   * Tools the host app answers itself, offered to the agent beside its own.
+   *
+   * The agent sees each under its name and calls it with input that
+   * matches its input_schema. A call that does not match is refused to the
+   * agent, which reads why and may try again. A call that matches is
+   * recorded as an agent.custom_tool_use, and the session goes idle with
+   * stop_reason requires_action naming it, as a call waiting for an
+   * approval does. The host answers with answerCustomToolUse (or a
+   * user.custom_tool_result), at once or after its person acts, and the
+   * turn carries on with the answer. A call nobody answers waits; stopping
+   * the session ends it.
+   *
+   * Only the conversation's main agent is offered them, and only on a turn
+   * a person can answer: a chat-link visitor's, a messaging channel's or a
+   * schedule's turn offers none. The agent's tool lists do not apply to
+   * them. Fixed once a turn has run.
+   *
+   * Names are letters, digits, _ and -, at most 64, unique, and not a
+   * built-in tool's name or one starting mcp__. Each input_schema is a JSON
+   * Schema object ({"type": "object", ...}). At most 32 tools and 64 KB of
+   * schemas in all.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.session.v1.CustomTool custom_tools = 23 [json_name = "customTools", (.buf.validate.field) = { ... }</code>
+   */
+  @java.lang.Override
+  public java.util.List<ai.stigmer.agentic.session.v1.CustomTool> getCustomToolsList() {
+    return customTools_;
+  }
+  /**
+   * <pre>
+   * Tools the host app answers itself, offered to the agent beside its own.
+   *
+   * The agent sees each under its name and calls it with input that
+   * matches its input_schema. A call that does not match is refused to the
+   * agent, which reads why and may try again. A call that matches is
+   * recorded as an agent.custom_tool_use, and the session goes idle with
+   * stop_reason requires_action naming it, as a call waiting for an
+   * approval does. The host answers with answerCustomToolUse (or a
+   * user.custom_tool_result), at once or after its person acts, and the
+   * turn carries on with the answer. A call nobody answers waits; stopping
+   * the session ends it.
+   *
+   * Only the conversation's main agent is offered them, and only on a turn
+   * a person can answer: a chat-link visitor's, a messaging channel's or a
+   * schedule's turn offers none. The agent's tool lists do not apply to
+   * them. Fixed once a turn has run.
+   *
+   * Names are letters, digits, _ and -, at most 64, unique, and not a
+   * built-in tool's name or one starting mcp__. Each input_schema is a JSON
+   * Schema object ({"type": "object", ...}). At most 32 tools and 64 KB of
+   * schemas in all.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.session.v1.CustomTool custom_tools = 23 [json_name = "customTools", (.buf.validate.field) = { ... }</code>
+   */
+  @java.lang.Override
+  public java.util.List<? extends ai.stigmer.agentic.session.v1.CustomToolOrBuilder> 
+      getCustomToolsOrBuilderList() {
+    return customTools_;
+  }
+  /**
+   * <pre>
+   * Tools the host app answers itself, offered to the agent beside its own.
+   *
+   * The agent sees each under its name and calls it with input that
+   * matches its input_schema. A call that does not match is refused to the
+   * agent, which reads why and may try again. A call that matches is
+   * recorded as an agent.custom_tool_use, and the session goes idle with
+   * stop_reason requires_action naming it, as a call waiting for an
+   * approval does. The host answers with answerCustomToolUse (or a
+   * user.custom_tool_result), at once or after its person acts, and the
+   * turn carries on with the answer. A call nobody answers waits; stopping
+   * the session ends it.
+   *
+   * Only the conversation's main agent is offered them, and only on a turn
+   * a person can answer: a chat-link visitor's, a messaging channel's or a
+   * schedule's turn offers none. The agent's tool lists do not apply to
+   * them. Fixed once a turn has run.
+   *
+   * Names are letters, digits, _ and -, at most 64, unique, and not a
+   * built-in tool's name or one starting mcp__. Each input_schema is a JSON
+   * Schema object ({"type": "object", ...}). At most 32 tools and 64 KB of
+   * schemas in all.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.session.v1.CustomTool custom_tools = 23 [json_name = "customTools", (.buf.validate.field) = { ... }</code>
+   */
+  @java.lang.Override
+  public int getCustomToolsCount() {
+    return customTools_.size();
+  }
+  /**
+   * <pre>
+   * Tools the host app answers itself, offered to the agent beside its own.
+   *
+   * The agent sees each under its name and calls it with input that
+   * matches its input_schema. A call that does not match is refused to the
+   * agent, which reads why and may try again. A call that matches is
+   * recorded as an agent.custom_tool_use, and the session goes idle with
+   * stop_reason requires_action naming it, as a call waiting for an
+   * approval does. The host answers with answerCustomToolUse (or a
+   * user.custom_tool_result), at once or after its person acts, and the
+   * turn carries on with the answer. A call nobody answers waits; stopping
+   * the session ends it.
+   *
+   * Only the conversation's main agent is offered them, and only on a turn
+   * a person can answer: a chat-link visitor's, a messaging channel's or a
+   * schedule's turn offers none. The agent's tool lists do not apply to
+   * them. Fixed once a turn has run.
+   *
+   * Names are letters, digits, _ and -, at most 64, unique, and not a
+   * built-in tool's name or one starting mcp__. Each input_schema is a JSON
+   * Schema object ({"type": "object", ...}). At most 32 tools and 64 KB of
+   * schemas in all.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.session.v1.CustomTool custom_tools = 23 [json_name = "customTools", (.buf.validate.field) = { ... }</code>
+   */
+  @java.lang.Override
+  public ai.stigmer.agentic.session.v1.CustomTool getCustomTools(int index) {
+    return customTools_.get(index);
+  }
+  /**
+   * <pre>
+   * Tools the host app answers itself, offered to the agent beside its own.
+   *
+   * The agent sees each under its name and calls it with input that
+   * matches its input_schema. A call that does not match is refused to the
+   * agent, which reads why and may try again. A call that matches is
+   * recorded as an agent.custom_tool_use, and the session goes idle with
+   * stop_reason requires_action naming it, as a call waiting for an
+   * approval does. The host answers with answerCustomToolUse (or a
+   * user.custom_tool_result), at once or after its person acts, and the
+   * turn carries on with the answer. A call nobody answers waits; stopping
+   * the session ends it.
+   *
+   * Only the conversation's main agent is offered them, and only on a turn
+   * a person can answer: a chat-link visitor's, a messaging channel's or a
+   * schedule's turn offers none. The agent's tool lists do not apply to
+   * them. Fixed once a turn has run.
+   *
+   * Names are letters, digits, _ and -, at most 64, unique, and not a
+   * built-in tool's name or one starting mcp__. Each input_schema is a JSON
+   * Schema object ({"type": "object", ...}). At most 32 tools and 64 KB of
+   * schemas in all.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.session.v1.CustomTool custom_tools = 23 [json_name = "customTools", (.buf.validate.field) = { ... }</code>
+   */
+  @java.lang.Override
+  public ai.stigmer.agentic.session.v1.CustomToolOrBuilder getCustomToolsOrBuilder(
+      int index) {
+    return customTools_.get(index);
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -973,6 +1135,9 @@ java.lang.String defaultValue) {
     }
     for (int i = 0; i < resources_.size(); i++) {
       output.writeMessage(22, resources_.get(i));
+    }
+    for (int i = 0; i < customTools_.size(); i++) {
+      output.writeMessage(23, customTools_.get(i));
     }
     getUnknownFields().writeTo(output);
   }
@@ -1056,6 +1221,15 @@ java.lang.String defaultValue) {
           }
           size += 2 * count;
         }
+
+        {
+          final int count = customTools_.size();
+          for (int i = 0; i < count; i++) {
+            size += com.google.protobuf.CodedOutputStream
+              .computeMessageSizeNoTag(customTools_.get(i));
+          }
+          size += 2 * count;
+        }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
     return size;
@@ -1099,6 +1273,8 @@ java.lang.String defaultValue) {
     }
     if (!getResourcesList()
         .equals(other.getResourcesList())) return false;
+    if (!getCustomToolsList()
+        .equals(other.getCustomToolsList())) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -1149,6 +1325,10 @@ java.lang.String defaultValue) {
     if (getResourcesCount() > 0) {
       hash = (37 * hash) + RESOURCES_FIELD_NUMBER;
       hash = (53 * hash) + getResourcesList().hashCode();
+    }
+    if (getCustomToolsCount() > 0) {
+      hash = (37 * hash) + CUSTOM_TOOLS_FIELD_NUMBER;
+      hash = (53 * hash) + getCustomToolsList().hashCode();
     }
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
@@ -1312,6 +1492,7 @@ java.lang.String defaultValue) {
         internalGetPluginsFieldBuilder();
         internalGetEnvironmentRefFieldBuilder();
         internalGetResourcesFieldBuilder();
+        internalGetCustomToolsFieldBuilder();
       }
     }
     @java.lang.Override
@@ -1362,6 +1543,13 @@ java.lang.String defaultValue) {
         resourcesBuilder_.clear();
       }
       bitField0_ = (bitField0_ & ~0x00000800);
+      if (customToolsBuilder_ == null) {
+        customTools_ = java.util.Collections.emptyList();
+      } else {
+        customTools_ = null;
+        customToolsBuilder_.clear();
+      }
+      bitField0_ = (bitField0_ & ~0x00001000);
       return this;
     }
 
@@ -1430,6 +1618,15 @@ java.lang.String defaultValue) {
         result.resources_ = resources_;
       } else {
         result.resources_ = resourcesBuilder_.build();
+      }
+      if (customToolsBuilder_ == null) {
+        if (((bitField0_ & 0x00001000) != 0)) {
+          customTools_ = java.util.Collections.unmodifiableList(customTools_);
+          bitField0_ = (bitField0_ & ~0x00001000);
+        }
+        result.customTools_ = customTools_;
+      } else {
+        result.customTools_ = customToolsBuilder_.build();
       }
     }
 
@@ -1612,6 +1809,32 @@ java.lang.String defaultValue) {
           }
         }
       }
+      if (customToolsBuilder_ == null) {
+        if (!other.customTools_.isEmpty()) {
+          if (customTools_.isEmpty()) {
+            customTools_ = other.customTools_;
+            bitField0_ = (bitField0_ & ~0x00001000);
+          } else {
+            ensureCustomToolsIsMutable();
+            customTools_.addAll(other.customTools_);
+          }
+          onChanged();
+        }
+      } else {
+        if (!other.customTools_.isEmpty()) {
+          if (customToolsBuilder_.isEmpty()) {
+            customToolsBuilder_.dispose();
+            customToolsBuilder_ = null;
+            customTools_ = other.customTools_;
+            bitField0_ = (bitField0_ & ~0x00001000);
+            customToolsBuilder_ = 
+              com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders ?
+                 internalGetCustomToolsFieldBuilder() : null;
+          } else {
+            customToolsBuilder_.addAllMessages(other.customTools_);
+          }
+        }
+      }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
       return this;
@@ -1738,6 +1961,19 @@ java.lang.String defaultValue) {
               }
               break;
             } // case 178
+            case 186: {
+              ai.stigmer.agentic.session.v1.CustomTool m =
+                  input.readMessage(
+                      ai.stigmer.agentic.session.v1.CustomTool.parser(),
+                      extensionRegistry);
+              if (customToolsBuilder_ == null) {
+                ensureCustomToolsIsMutable();
+                customTools_.add(m);
+              } else {
+                customToolsBuilder_.addMessage(m);
+              }
+              break;
+            } // case 186
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -4785,6 +5021,678 @@ java.lang.String defaultValue) {
         resources_ = null;
       }
       return resourcesBuilder_;
+    }
+
+    private java.util.List<ai.stigmer.agentic.session.v1.CustomTool> customTools_ =
+      java.util.Collections.emptyList();
+    private void ensureCustomToolsIsMutable() {
+      if (!((bitField0_ & 0x00001000) != 0)) {
+        customTools_ = new java.util.ArrayList<ai.stigmer.agentic.session.v1.CustomTool>(customTools_);
+        bitField0_ |= 0x00001000;
+       }
+    }
+
+    private com.google.protobuf.RepeatedFieldBuilder<
+        ai.stigmer.agentic.session.v1.CustomTool, ai.stigmer.agentic.session.v1.CustomTool.Builder, ai.stigmer.agentic.session.v1.CustomToolOrBuilder> customToolsBuilder_;
+
+    /**
+     * <pre>
+     * Tools the host app answers itself, offered to the agent beside its own.
+     *
+     * The agent sees each under its name and calls it with input that
+     * matches its input_schema. A call that does not match is refused to the
+     * agent, which reads why and may try again. A call that matches is
+     * recorded as an agent.custom_tool_use, and the session goes idle with
+     * stop_reason requires_action naming it, as a call waiting for an
+     * approval does. The host answers with answerCustomToolUse (or a
+     * user.custom_tool_result), at once or after its person acts, and the
+     * turn carries on with the answer. A call nobody answers waits; stopping
+     * the session ends it.
+     *
+     * Only the conversation's main agent is offered them, and only on a turn
+     * a person can answer: a chat-link visitor's, a messaging channel's or a
+     * schedule's turn offers none. The agent's tool lists do not apply to
+     * them. Fixed once a turn has run.
+     *
+     * Names are letters, digits, _ and -, at most 64, unique, and not a
+     * built-in tool's name or one starting mcp__. Each input_schema is a JSON
+     * Schema object ({"type": "object", ...}). At most 32 tools and 64 KB of
+     * schemas in all.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.session.v1.CustomTool custom_tools = 23 [json_name = "customTools", (.buf.validate.field) = { ... }</code>
+     */
+    public java.util.List<ai.stigmer.agentic.session.v1.CustomTool> getCustomToolsList() {
+      if (customToolsBuilder_ == null) {
+        return java.util.Collections.unmodifiableList(customTools_);
+      } else {
+        return customToolsBuilder_.getMessageList();
+      }
+    }
+    /**
+     * <pre>
+     * Tools the host app answers itself, offered to the agent beside its own.
+     *
+     * The agent sees each under its name and calls it with input that
+     * matches its input_schema. A call that does not match is refused to the
+     * agent, which reads why and may try again. A call that matches is
+     * recorded as an agent.custom_tool_use, and the session goes idle with
+     * stop_reason requires_action naming it, as a call waiting for an
+     * approval does. The host answers with answerCustomToolUse (or a
+     * user.custom_tool_result), at once or after its person acts, and the
+     * turn carries on with the answer. A call nobody answers waits; stopping
+     * the session ends it.
+     *
+     * Only the conversation's main agent is offered them, and only on a turn
+     * a person can answer: a chat-link visitor's, a messaging channel's or a
+     * schedule's turn offers none. The agent's tool lists do not apply to
+     * them. Fixed once a turn has run.
+     *
+     * Names are letters, digits, _ and -, at most 64, unique, and not a
+     * built-in tool's name or one starting mcp__. Each input_schema is a JSON
+     * Schema object ({"type": "object", ...}). At most 32 tools and 64 KB of
+     * schemas in all.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.session.v1.CustomTool custom_tools = 23 [json_name = "customTools", (.buf.validate.field) = { ... }</code>
+     */
+    public int getCustomToolsCount() {
+      if (customToolsBuilder_ == null) {
+        return customTools_.size();
+      } else {
+        return customToolsBuilder_.getCount();
+      }
+    }
+    /**
+     * <pre>
+     * Tools the host app answers itself, offered to the agent beside its own.
+     *
+     * The agent sees each under its name and calls it with input that
+     * matches its input_schema. A call that does not match is refused to the
+     * agent, which reads why and may try again. A call that matches is
+     * recorded as an agent.custom_tool_use, and the session goes idle with
+     * stop_reason requires_action naming it, as a call waiting for an
+     * approval does. The host answers with answerCustomToolUse (or a
+     * user.custom_tool_result), at once or after its person acts, and the
+     * turn carries on with the answer. A call nobody answers waits; stopping
+     * the session ends it.
+     *
+     * Only the conversation's main agent is offered them, and only on a turn
+     * a person can answer: a chat-link visitor's, a messaging channel's or a
+     * schedule's turn offers none. The agent's tool lists do not apply to
+     * them. Fixed once a turn has run.
+     *
+     * Names are letters, digits, _ and -, at most 64, unique, and not a
+     * built-in tool's name or one starting mcp__. Each input_schema is a JSON
+     * Schema object ({"type": "object", ...}). At most 32 tools and 64 KB of
+     * schemas in all.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.session.v1.CustomTool custom_tools = 23 [json_name = "customTools", (.buf.validate.field) = { ... }</code>
+     */
+    public ai.stigmer.agentic.session.v1.CustomTool getCustomTools(int index) {
+      if (customToolsBuilder_ == null) {
+        return customTools_.get(index);
+      } else {
+        return customToolsBuilder_.getMessage(index);
+      }
+    }
+    /**
+     * <pre>
+     * Tools the host app answers itself, offered to the agent beside its own.
+     *
+     * The agent sees each under its name and calls it with input that
+     * matches its input_schema. A call that does not match is refused to the
+     * agent, which reads why and may try again. A call that matches is
+     * recorded as an agent.custom_tool_use, and the session goes idle with
+     * stop_reason requires_action naming it, as a call waiting for an
+     * approval does. The host answers with answerCustomToolUse (or a
+     * user.custom_tool_result), at once or after its person acts, and the
+     * turn carries on with the answer. A call nobody answers waits; stopping
+     * the session ends it.
+     *
+     * Only the conversation's main agent is offered them, and only on a turn
+     * a person can answer: a chat-link visitor's, a messaging channel's or a
+     * schedule's turn offers none. The agent's tool lists do not apply to
+     * them. Fixed once a turn has run.
+     *
+     * Names are letters, digits, _ and -, at most 64, unique, and not a
+     * built-in tool's name or one starting mcp__. Each input_schema is a JSON
+     * Schema object ({"type": "object", ...}). At most 32 tools and 64 KB of
+     * schemas in all.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.session.v1.CustomTool custom_tools = 23 [json_name = "customTools", (.buf.validate.field) = { ... }</code>
+     */
+    public Builder setCustomTools(
+        int index, ai.stigmer.agentic.session.v1.CustomTool value) {
+      if (customToolsBuilder_ == null) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        ensureCustomToolsIsMutable();
+        customTools_.set(index, value);
+        onChanged();
+      } else {
+        customToolsBuilder_.setMessage(index, value);
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Tools the host app answers itself, offered to the agent beside its own.
+     *
+     * The agent sees each under its name and calls it with input that
+     * matches its input_schema. A call that does not match is refused to the
+     * agent, which reads why and may try again. A call that matches is
+     * recorded as an agent.custom_tool_use, and the session goes idle with
+     * stop_reason requires_action naming it, as a call waiting for an
+     * approval does. The host answers with answerCustomToolUse (or a
+     * user.custom_tool_result), at once or after its person acts, and the
+     * turn carries on with the answer. A call nobody answers waits; stopping
+     * the session ends it.
+     *
+     * Only the conversation's main agent is offered them, and only on a turn
+     * a person can answer: a chat-link visitor's, a messaging channel's or a
+     * schedule's turn offers none. The agent's tool lists do not apply to
+     * them. Fixed once a turn has run.
+     *
+     * Names are letters, digits, _ and -, at most 64, unique, and not a
+     * built-in tool's name or one starting mcp__. Each input_schema is a JSON
+     * Schema object ({"type": "object", ...}). At most 32 tools and 64 KB of
+     * schemas in all.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.session.v1.CustomTool custom_tools = 23 [json_name = "customTools", (.buf.validate.field) = { ... }</code>
+     */
+    public Builder setCustomTools(
+        int index, ai.stigmer.agentic.session.v1.CustomTool.Builder builderForValue) {
+      if (customToolsBuilder_ == null) {
+        ensureCustomToolsIsMutable();
+        customTools_.set(index, builderForValue.build());
+        onChanged();
+      } else {
+        customToolsBuilder_.setMessage(index, builderForValue.build());
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Tools the host app answers itself, offered to the agent beside its own.
+     *
+     * The agent sees each under its name and calls it with input that
+     * matches its input_schema. A call that does not match is refused to the
+     * agent, which reads why and may try again. A call that matches is
+     * recorded as an agent.custom_tool_use, and the session goes idle with
+     * stop_reason requires_action naming it, as a call waiting for an
+     * approval does. The host answers with answerCustomToolUse (or a
+     * user.custom_tool_result), at once or after its person acts, and the
+     * turn carries on with the answer. A call nobody answers waits; stopping
+     * the session ends it.
+     *
+     * Only the conversation's main agent is offered them, and only on a turn
+     * a person can answer: a chat-link visitor's, a messaging channel's or a
+     * schedule's turn offers none. The agent's tool lists do not apply to
+     * them. Fixed once a turn has run.
+     *
+     * Names are letters, digits, _ and -, at most 64, unique, and not a
+     * built-in tool's name or one starting mcp__. Each input_schema is a JSON
+     * Schema object ({"type": "object", ...}). At most 32 tools and 64 KB of
+     * schemas in all.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.session.v1.CustomTool custom_tools = 23 [json_name = "customTools", (.buf.validate.field) = { ... }</code>
+     */
+    public Builder addCustomTools(ai.stigmer.agentic.session.v1.CustomTool value) {
+      if (customToolsBuilder_ == null) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        ensureCustomToolsIsMutable();
+        customTools_.add(value);
+        onChanged();
+      } else {
+        customToolsBuilder_.addMessage(value);
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Tools the host app answers itself, offered to the agent beside its own.
+     *
+     * The agent sees each under its name and calls it with input that
+     * matches its input_schema. A call that does not match is refused to the
+     * agent, which reads why and may try again. A call that matches is
+     * recorded as an agent.custom_tool_use, and the session goes idle with
+     * stop_reason requires_action naming it, as a call waiting for an
+     * approval does. The host answers with answerCustomToolUse (or a
+     * user.custom_tool_result), at once or after its person acts, and the
+     * turn carries on with the answer. A call nobody answers waits; stopping
+     * the session ends it.
+     *
+     * Only the conversation's main agent is offered them, and only on a turn
+     * a person can answer: a chat-link visitor's, a messaging channel's or a
+     * schedule's turn offers none. The agent's tool lists do not apply to
+     * them. Fixed once a turn has run.
+     *
+     * Names are letters, digits, _ and -, at most 64, unique, and not a
+     * built-in tool's name or one starting mcp__. Each input_schema is a JSON
+     * Schema object ({"type": "object", ...}). At most 32 tools and 64 KB of
+     * schemas in all.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.session.v1.CustomTool custom_tools = 23 [json_name = "customTools", (.buf.validate.field) = { ... }</code>
+     */
+    public Builder addCustomTools(
+        int index, ai.stigmer.agentic.session.v1.CustomTool value) {
+      if (customToolsBuilder_ == null) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        ensureCustomToolsIsMutable();
+        customTools_.add(index, value);
+        onChanged();
+      } else {
+        customToolsBuilder_.addMessage(index, value);
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Tools the host app answers itself, offered to the agent beside its own.
+     *
+     * The agent sees each under its name and calls it with input that
+     * matches its input_schema. A call that does not match is refused to the
+     * agent, which reads why and may try again. A call that matches is
+     * recorded as an agent.custom_tool_use, and the session goes idle with
+     * stop_reason requires_action naming it, as a call waiting for an
+     * approval does. The host answers with answerCustomToolUse (or a
+     * user.custom_tool_result), at once or after its person acts, and the
+     * turn carries on with the answer. A call nobody answers waits; stopping
+     * the session ends it.
+     *
+     * Only the conversation's main agent is offered them, and only on a turn
+     * a person can answer: a chat-link visitor's, a messaging channel's or a
+     * schedule's turn offers none. The agent's tool lists do not apply to
+     * them. Fixed once a turn has run.
+     *
+     * Names are letters, digits, _ and -, at most 64, unique, and not a
+     * built-in tool's name or one starting mcp__. Each input_schema is a JSON
+     * Schema object ({"type": "object", ...}). At most 32 tools and 64 KB of
+     * schemas in all.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.session.v1.CustomTool custom_tools = 23 [json_name = "customTools", (.buf.validate.field) = { ... }</code>
+     */
+    public Builder addCustomTools(
+        ai.stigmer.agentic.session.v1.CustomTool.Builder builderForValue) {
+      if (customToolsBuilder_ == null) {
+        ensureCustomToolsIsMutable();
+        customTools_.add(builderForValue.build());
+        onChanged();
+      } else {
+        customToolsBuilder_.addMessage(builderForValue.build());
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Tools the host app answers itself, offered to the agent beside its own.
+     *
+     * The agent sees each under its name and calls it with input that
+     * matches its input_schema. A call that does not match is refused to the
+     * agent, which reads why and may try again. A call that matches is
+     * recorded as an agent.custom_tool_use, and the session goes idle with
+     * stop_reason requires_action naming it, as a call waiting for an
+     * approval does. The host answers with answerCustomToolUse (or a
+     * user.custom_tool_result), at once or after its person acts, and the
+     * turn carries on with the answer. A call nobody answers waits; stopping
+     * the session ends it.
+     *
+     * Only the conversation's main agent is offered them, and only on a turn
+     * a person can answer: a chat-link visitor's, a messaging channel's or a
+     * schedule's turn offers none. The agent's tool lists do not apply to
+     * them. Fixed once a turn has run.
+     *
+     * Names are letters, digits, _ and -, at most 64, unique, and not a
+     * built-in tool's name or one starting mcp__. Each input_schema is a JSON
+     * Schema object ({"type": "object", ...}). At most 32 tools and 64 KB of
+     * schemas in all.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.session.v1.CustomTool custom_tools = 23 [json_name = "customTools", (.buf.validate.field) = { ... }</code>
+     */
+    public Builder addCustomTools(
+        int index, ai.stigmer.agentic.session.v1.CustomTool.Builder builderForValue) {
+      if (customToolsBuilder_ == null) {
+        ensureCustomToolsIsMutable();
+        customTools_.add(index, builderForValue.build());
+        onChanged();
+      } else {
+        customToolsBuilder_.addMessage(index, builderForValue.build());
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Tools the host app answers itself, offered to the agent beside its own.
+     *
+     * The agent sees each under its name and calls it with input that
+     * matches its input_schema. A call that does not match is refused to the
+     * agent, which reads why and may try again. A call that matches is
+     * recorded as an agent.custom_tool_use, and the session goes idle with
+     * stop_reason requires_action naming it, as a call waiting for an
+     * approval does. The host answers with answerCustomToolUse (or a
+     * user.custom_tool_result), at once or after its person acts, and the
+     * turn carries on with the answer. A call nobody answers waits; stopping
+     * the session ends it.
+     *
+     * Only the conversation's main agent is offered them, and only on a turn
+     * a person can answer: a chat-link visitor's, a messaging channel's or a
+     * schedule's turn offers none. The agent's tool lists do not apply to
+     * them. Fixed once a turn has run.
+     *
+     * Names are letters, digits, _ and -, at most 64, unique, and not a
+     * built-in tool's name or one starting mcp__. Each input_schema is a JSON
+     * Schema object ({"type": "object", ...}). At most 32 tools and 64 KB of
+     * schemas in all.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.session.v1.CustomTool custom_tools = 23 [json_name = "customTools", (.buf.validate.field) = { ... }</code>
+     */
+    public Builder addAllCustomTools(
+        java.lang.Iterable<? extends ai.stigmer.agentic.session.v1.CustomTool> values) {
+      if (customToolsBuilder_ == null) {
+        ensureCustomToolsIsMutable();
+        com.google.protobuf.AbstractMessageLite.Builder.addAll(
+            values, customTools_);
+        onChanged();
+      } else {
+        customToolsBuilder_.addAllMessages(values);
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Tools the host app answers itself, offered to the agent beside its own.
+     *
+     * The agent sees each under its name and calls it with input that
+     * matches its input_schema. A call that does not match is refused to the
+     * agent, which reads why and may try again. A call that matches is
+     * recorded as an agent.custom_tool_use, and the session goes idle with
+     * stop_reason requires_action naming it, as a call waiting for an
+     * approval does. The host answers with answerCustomToolUse (or a
+     * user.custom_tool_result), at once or after its person acts, and the
+     * turn carries on with the answer. A call nobody answers waits; stopping
+     * the session ends it.
+     *
+     * Only the conversation's main agent is offered them, and only on a turn
+     * a person can answer: a chat-link visitor's, a messaging channel's or a
+     * schedule's turn offers none. The agent's tool lists do not apply to
+     * them. Fixed once a turn has run.
+     *
+     * Names are letters, digits, _ and -, at most 64, unique, and not a
+     * built-in tool's name or one starting mcp__. Each input_schema is a JSON
+     * Schema object ({"type": "object", ...}). At most 32 tools and 64 KB of
+     * schemas in all.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.session.v1.CustomTool custom_tools = 23 [json_name = "customTools", (.buf.validate.field) = { ... }</code>
+     */
+    public Builder clearCustomTools() {
+      if (customToolsBuilder_ == null) {
+        customTools_ = java.util.Collections.emptyList();
+        bitField0_ = (bitField0_ & ~0x00001000);
+        onChanged();
+      } else {
+        customToolsBuilder_.clear();
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Tools the host app answers itself, offered to the agent beside its own.
+     *
+     * The agent sees each under its name and calls it with input that
+     * matches its input_schema. A call that does not match is refused to the
+     * agent, which reads why and may try again. A call that matches is
+     * recorded as an agent.custom_tool_use, and the session goes idle with
+     * stop_reason requires_action naming it, as a call waiting for an
+     * approval does. The host answers with answerCustomToolUse (or a
+     * user.custom_tool_result), at once or after its person acts, and the
+     * turn carries on with the answer. A call nobody answers waits; stopping
+     * the session ends it.
+     *
+     * Only the conversation's main agent is offered them, and only on a turn
+     * a person can answer: a chat-link visitor's, a messaging channel's or a
+     * schedule's turn offers none. The agent's tool lists do not apply to
+     * them. Fixed once a turn has run.
+     *
+     * Names are letters, digits, _ and -, at most 64, unique, and not a
+     * built-in tool's name or one starting mcp__. Each input_schema is a JSON
+     * Schema object ({"type": "object", ...}). At most 32 tools and 64 KB of
+     * schemas in all.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.session.v1.CustomTool custom_tools = 23 [json_name = "customTools", (.buf.validate.field) = { ... }</code>
+     */
+    public Builder removeCustomTools(int index) {
+      if (customToolsBuilder_ == null) {
+        ensureCustomToolsIsMutable();
+        customTools_.remove(index);
+        onChanged();
+      } else {
+        customToolsBuilder_.remove(index);
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Tools the host app answers itself, offered to the agent beside its own.
+     *
+     * The agent sees each under its name and calls it with input that
+     * matches its input_schema. A call that does not match is refused to the
+     * agent, which reads why and may try again. A call that matches is
+     * recorded as an agent.custom_tool_use, and the session goes idle with
+     * stop_reason requires_action naming it, as a call waiting for an
+     * approval does. The host answers with answerCustomToolUse (or a
+     * user.custom_tool_result), at once or after its person acts, and the
+     * turn carries on with the answer. A call nobody answers waits; stopping
+     * the session ends it.
+     *
+     * Only the conversation's main agent is offered them, and only on a turn
+     * a person can answer: a chat-link visitor's, a messaging channel's or a
+     * schedule's turn offers none. The agent's tool lists do not apply to
+     * them. Fixed once a turn has run.
+     *
+     * Names are letters, digits, _ and -, at most 64, unique, and not a
+     * built-in tool's name or one starting mcp__. Each input_schema is a JSON
+     * Schema object ({"type": "object", ...}). At most 32 tools and 64 KB of
+     * schemas in all.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.session.v1.CustomTool custom_tools = 23 [json_name = "customTools", (.buf.validate.field) = { ... }</code>
+     */
+    public ai.stigmer.agentic.session.v1.CustomTool.Builder getCustomToolsBuilder(
+        int index) {
+      return internalGetCustomToolsFieldBuilder().getBuilder(index);
+    }
+    /**
+     * <pre>
+     * Tools the host app answers itself, offered to the agent beside its own.
+     *
+     * The agent sees each under its name and calls it with input that
+     * matches its input_schema. A call that does not match is refused to the
+     * agent, which reads why and may try again. A call that matches is
+     * recorded as an agent.custom_tool_use, and the session goes idle with
+     * stop_reason requires_action naming it, as a call waiting for an
+     * approval does. The host answers with answerCustomToolUse (or a
+     * user.custom_tool_result), at once or after its person acts, and the
+     * turn carries on with the answer. A call nobody answers waits; stopping
+     * the session ends it.
+     *
+     * Only the conversation's main agent is offered them, and only on a turn
+     * a person can answer: a chat-link visitor's, a messaging channel's or a
+     * schedule's turn offers none. The agent's tool lists do not apply to
+     * them. Fixed once a turn has run.
+     *
+     * Names are letters, digits, _ and -, at most 64, unique, and not a
+     * built-in tool's name or one starting mcp__. Each input_schema is a JSON
+     * Schema object ({"type": "object", ...}). At most 32 tools and 64 KB of
+     * schemas in all.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.session.v1.CustomTool custom_tools = 23 [json_name = "customTools", (.buf.validate.field) = { ... }</code>
+     */
+    public ai.stigmer.agentic.session.v1.CustomToolOrBuilder getCustomToolsOrBuilder(
+        int index) {
+      if (customToolsBuilder_ == null) {
+        return customTools_.get(index);  } else {
+        return customToolsBuilder_.getMessageOrBuilder(index);
+      }
+    }
+    /**
+     * <pre>
+     * Tools the host app answers itself, offered to the agent beside its own.
+     *
+     * The agent sees each under its name and calls it with input that
+     * matches its input_schema. A call that does not match is refused to the
+     * agent, which reads why and may try again. A call that matches is
+     * recorded as an agent.custom_tool_use, and the session goes idle with
+     * stop_reason requires_action naming it, as a call waiting for an
+     * approval does. The host answers with answerCustomToolUse (or a
+     * user.custom_tool_result), at once or after its person acts, and the
+     * turn carries on with the answer. A call nobody answers waits; stopping
+     * the session ends it.
+     *
+     * Only the conversation's main agent is offered them, and only on a turn
+     * a person can answer: a chat-link visitor's, a messaging channel's or a
+     * schedule's turn offers none. The agent's tool lists do not apply to
+     * them. Fixed once a turn has run.
+     *
+     * Names are letters, digits, _ and -, at most 64, unique, and not a
+     * built-in tool's name or one starting mcp__. Each input_schema is a JSON
+     * Schema object ({"type": "object", ...}). At most 32 tools and 64 KB of
+     * schemas in all.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.session.v1.CustomTool custom_tools = 23 [json_name = "customTools", (.buf.validate.field) = { ... }</code>
+     */
+    public java.util.List<? extends ai.stigmer.agentic.session.v1.CustomToolOrBuilder> 
+         getCustomToolsOrBuilderList() {
+      if (customToolsBuilder_ != null) {
+        return customToolsBuilder_.getMessageOrBuilderList();
+      } else {
+        return java.util.Collections.unmodifiableList(customTools_);
+      }
+    }
+    /**
+     * <pre>
+     * Tools the host app answers itself, offered to the agent beside its own.
+     *
+     * The agent sees each under its name and calls it with input that
+     * matches its input_schema. A call that does not match is refused to the
+     * agent, which reads why and may try again. A call that matches is
+     * recorded as an agent.custom_tool_use, and the session goes idle with
+     * stop_reason requires_action naming it, as a call waiting for an
+     * approval does. The host answers with answerCustomToolUse (or a
+     * user.custom_tool_result), at once or after its person acts, and the
+     * turn carries on with the answer. A call nobody answers waits; stopping
+     * the session ends it.
+     *
+     * Only the conversation's main agent is offered them, and only on a turn
+     * a person can answer: a chat-link visitor's, a messaging channel's or a
+     * schedule's turn offers none. The agent's tool lists do not apply to
+     * them. Fixed once a turn has run.
+     *
+     * Names are letters, digits, _ and -, at most 64, unique, and not a
+     * built-in tool's name or one starting mcp__. Each input_schema is a JSON
+     * Schema object ({"type": "object", ...}). At most 32 tools and 64 KB of
+     * schemas in all.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.session.v1.CustomTool custom_tools = 23 [json_name = "customTools", (.buf.validate.field) = { ... }</code>
+     */
+    public ai.stigmer.agentic.session.v1.CustomTool.Builder addCustomToolsBuilder() {
+      return internalGetCustomToolsFieldBuilder().addBuilder(
+          ai.stigmer.agentic.session.v1.CustomTool.getDefaultInstance());
+    }
+    /**
+     * <pre>
+     * Tools the host app answers itself, offered to the agent beside its own.
+     *
+     * The agent sees each under its name and calls it with input that
+     * matches its input_schema. A call that does not match is refused to the
+     * agent, which reads why and may try again. A call that matches is
+     * recorded as an agent.custom_tool_use, and the session goes idle with
+     * stop_reason requires_action naming it, as a call waiting for an
+     * approval does. The host answers with answerCustomToolUse (or a
+     * user.custom_tool_result), at once or after its person acts, and the
+     * turn carries on with the answer. A call nobody answers waits; stopping
+     * the session ends it.
+     *
+     * Only the conversation's main agent is offered them, and only on a turn
+     * a person can answer: a chat-link visitor's, a messaging channel's or a
+     * schedule's turn offers none. The agent's tool lists do not apply to
+     * them. Fixed once a turn has run.
+     *
+     * Names are letters, digits, _ and -, at most 64, unique, and not a
+     * built-in tool's name or one starting mcp__. Each input_schema is a JSON
+     * Schema object ({"type": "object", ...}). At most 32 tools and 64 KB of
+     * schemas in all.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.session.v1.CustomTool custom_tools = 23 [json_name = "customTools", (.buf.validate.field) = { ... }</code>
+     */
+    public ai.stigmer.agentic.session.v1.CustomTool.Builder addCustomToolsBuilder(
+        int index) {
+      return internalGetCustomToolsFieldBuilder().addBuilder(
+          index, ai.stigmer.agentic.session.v1.CustomTool.getDefaultInstance());
+    }
+    /**
+     * <pre>
+     * Tools the host app answers itself, offered to the agent beside its own.
+     *
+     * The agent sees each under its name and calls it with input that
+     * matches its input_schema. A call that does not match is refused to the
+     * agent, which reads why and may try again. A call that matches is
+     * recorded as an agent.custom_tool_use, and the session goes idle with
+     * stop_reason requires_action naming it, as a call waiting for an
+     * approval does. The host answers with answerCustomToolUse (or a
+     * user.custom_tool_result), at once or after its person acts, and the
+     * turn carries on with the answer. A call nobody answers waits; stopping
+     * the session ends it.
+     *
+     * Only the conversation's main agent is offered them, and only on a turn
+     * a person can answer: a chat-link visitor's, a messaging channel's or a
+     * schedule's turn offers none. The agent's tool lists do not apply to
+     * them. Fixed once a turn has run.
+     *
+     * Names are letters, digits, _ and -, at most 64, unique, and not a
+     * built-in tool's name or one starting mcp__. Each input_schema is a JSON
+     * Schema object ({"type": "object", ...}). At most 32 tools and 64 KB of
+     * schemas in all.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.session.v1.CustomTool custom_tools = 23 [json_name = "customTools", (.buf.validate.field) = { ... }</code>
+     */
+    public java.util.List<ai.stigmer.agentic.session.v1.CustomTool.Builder> 
+         getCustomToolsBuilderList() {
+      return internalGetCustomToolsFieldBuilder().getBuilderList();
+    }
+    private com.google.protobuf.RepeatedFieldBuilder<
+        ai.stigmer.agentic.session.v1.CustomTool, ai.stigmer.agentic.session.v1.CustomTool.Builder, ai.stigmer.agentic.session.v1.CustomToolOrBuilder> 
+        internalGetCustomToolsFieldBuilder() {
+      if (customToolsBuilder_ == null) {
+        customToolsBuilder_ = new com.google.protobuf.RepeatedFieldBuilder<
+            ai.stigmer.agentic.session.v1.CustomTool, ai.stigmer.agentic.session.v1.CustomTool.Builder, ai.stigmer.agentic.session.v1.CustomToolOrBuilder>(
+                customTools_,
+                ((bitField0_ & 0x00001000) != 0),
+                getParentForChildren(),
+                isClean());
+        customTools_ = null;
+      }
+      return customToolsBuilder_;
     }
 
     // @@protoc_insertion_point(builder_scope:ai.stigmer.agentic.session.v1.SessionSpec)

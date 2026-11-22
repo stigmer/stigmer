@@ -25,6 +25,7 @@ const (
 	SessionCommandController_UpdateSubject_FullMethodName         = "/ai.stigmer.agentic.session.v1.SessionCommandController/updateSubject"
 	SessionCommandController_ReviewFileChanges_FullMethodName     = "/ai.stigmer.agentic.session.v1.SessionCommandController/reviewFileChanges"
 	SessionCommandController_ConfirmToolUse_FullMethodName        = "/ai.stigmer.agentic.session.v1.SessionCommandController/confirmToolUse"
+	SessionCommandController_AnswerCustomToolUse_FullMethodName   = "/ai.stigmer.agentic.session.v1.SessionCommandController/answerCustomToolUse"
 	SessionCommandController_GrantPermission_FullMethodName       = "/ai.stigmer.agentic.session.v1.SessionCommandController/grantPermission"
 	SessionCommandController_StopBackgroundCommand_FullMethodName = "/ai.stigmer.agentic.session.v1.SessionCommandController/stopBackgroundCommand"
 	SessionCommandController_Interrupt_FullMethodName             = "/ai.stigmer.agentic.session.v1.SessionCommandController/interrupt"
@@ -114,6 +115,32 @@ type SessionCommandControllerClient interface {
 	// The same answer sent again records nothing new and returns the event
 	// first recorded.
 	ConfirmToolUse(ctx context.Context, in *ConfirmToolUseInput, opts ...grpc.CallOption) (*SessionEvent, error)
+	// Answer a call of one of the host app's own tools.
+	//
+	// A call the agent makes to a tool in the session's custom_tools is an
+	// agent.custom_tool_use, and the session goes idle with stop_reason
+	// requires_action naming it. The answer is appended as a
+	// user.custom_tool_result, which the agent reads as the tool's result;
+	// is_error tells it the tool failed. When every waiting call of the turn
+	// is answered, the turn resumes; until then the session re-states
+	// requires_action with the calls still waiting. The host answers from
+	// its own server as the person whose conversation it is, as it would
+	// answer an approval.
+	//
+	// ## Error Conditions
+	//
+	//   - NOT_FOUND: the event is not one of this conversation's custom tool
+	//     uses
+	//   - FAILED_PRECONDITION: the call no longer waits (its turn moved on or
+	//     was stopped), or it was already answered otherwise (an answer is
+	//     final)
+	//   - INVALID_ARGUMENT: the content holds a block other than text
+	//
+	// ## Idempotency
+	//
+	// The same answer sent again records nothing new and returns the event
+	// first recorded.
+	AnswerCustomToolUse(ctx context.Context, in *AnswerCustomToolUseInput, opts ...grpc.CallOption) (*SessionEvent, error)
 	// Allow a tool use, and every call of its class for the rest of the turn.
 	//
 	// The class is the call's built-in category (write, delete or shell), its
@@ -267,6 +294,16 @@ func (c *sessionCommandControllerClient) ConfirmToolUse(ctx context.Context, in 
 	return out, nil
 }
 
+func (c *sessionCommandControllerClient) AnswerCustomToolUse(ctx context.Context, in *AnswerCustomToolUseInput, opts ...grpc.CallOption) (*SessionEvent, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(SessionEvent)
+	err := c.cc.Invoke(ctx, SessionCommandController_AnswerCustomToolUse_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *sessionCommandControllerClient) GrantPermission(ctx context.Context, in *GrantPermissionInput, opts ...grpc.CallOption) (*GrantPermissionResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(GrantPermissionResponse)
@@ -408,6 +445,32 @@ type SessionCommandControllerServer interface {
 	// The same answer sent again records nothing new and returns the event
 	// first recorded.
 	ConfirmToolUse(context.Context, *ConfirmToolUseInput) (*SessionEvent, error)
+	// Answer a call of one of the host app's own tools.
+	//
+	// A call the agent makes to a tool in the session's custom_tools is an
+	// agent.custom_tool_use, and the session goes idle with stop_reason
+	// requires_action naming it. The answer is appended as a
+	// user.custom_tool_result, which the agent reads as the tool's result;
+	// is_error tells it the tool failed. When every waiting call of the turn
+	// is answered, the turn resumes; until then the session re-states
+	// requires_action with the calls still waiting. The host answers from
+	// its own server as the person whose conversation it is, as it would
+	// answer an approval.
+	//
+	// ## Error Conditions
+	//
+	//   - NOT_FOUND: the event is not one of this conversation's custom tool
+	//     uses
+	//   - FAILED_PRECONDITION: the call no longer waits (its turn moved on or
+	//     was stopped), or it was already answered otherwise (an answer is
+	//     final)
+	//   - INVALID_ARGUMENT: the content holds a block other than text
+	//
+	// ## Idempotency
+	//
+	// The same answer sent again records nothing new and returns the event
+	// first recorded.
+	AnswerCustomToolUse(context.Context, *AnswerCustomToolUseInput) (*SessionEvent, error)
 	// Allow a tool use, and every call of its class for the rest of the turn.
 	//
 	// The class is the call's built-in category (write, delete or shell), its
@@ -517,6 +580,9 @@ func (UnimplementedSessionCommandControllerServer) ReviewFileChanges(context.Con
 }
 func (UnimplementedSessionCommandControllerServer) ConfirmToolUse(context.Context, *ConfirmToolUseInput) (*SessionEvent, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ConfirmToolUse not implemented")
+}
+func (UnimplementedSessionCommandControllerServer) AnswerCustomToolUse(context.Context, *AnswerCustomToolUseInput) (*SessionEvent, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method AnswerCustomToolUse not implemented")
 }
 func (UnimplementedSessionCommandControllerServer) GrantPermission(context.Context, *GrantPermissionInput) (*GrantPermissionResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GrantPermission not implemented")
@@ -664,6 +730,24 @@ func _SessionCommandController_ConfirmToolUse_Handler(srv interface{}, ctx conte
 	return interceptor(ctx, in, info, handler)
 }
 
+func _SessionCommandController_AnswerCustomToolUse_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(AnswerCustomToolUseInput)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(SessionCommandControllerServer).AnswerCustomToolUse(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: SessionCommandController_AnswerCustomToolUse_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(SessionCommandControllerServer).AnswerCustomToolUse(ctx, req.(*AnswerCustomToolUseInput))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _SessionCommandController_GrantPermission_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(GrantPermissionInput)
 	if err := dec(in); err != nil {
@@ -802,6 +886,10 @@ var SessionCommandController_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "confirmToolUse",
 			Handler:    _SessionCommandController_ConfirmToolUse_Handler,
+		},
+		{
+			MethodName: "answerCustomToolUse",
+			Handler:    _SessionCommandController_AnswerCustomToolUse_Handler,
 		},
 		{
 			MethodName: "grantPermission",

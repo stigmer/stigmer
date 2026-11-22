@@ -47,6 +47,11 @@ class SessionCommandControllerStub(object):
                 request_serializer=ai_dot_stigmer_dot_agentic_dot_session_dot_v1_dot_io__pb2.ConfirmToolUseInput.SerializeToString,
                 response_deserializer=ai_dot_stigmer_dot_agentic_dot_session_dot_v1_dot_event__pb2.SessionEvent.FromString,
                 _registered_method=True)
+        self.answerCustomToolUse = channel.unary_unary(
+                '/ai.stigmer.agentic.session.v1.SessionCommandController/answerCustomToolUse',
+                request_serializer=ai_dot_stigmer_dot_agentic_dot_session_dot_v1_dot_io__pb2.AnswerCustomToolUseInput.SerializeToString,
+                response_deserializer=ai_dot_stigmer_dot_agentic_dot_session_dot_v1_dot_event__pb2.SessionEvent.FromString,
+                _registered_method=True)
         self.grantPermission = channel.unary_unary(
                 '/ai.stigmer.agentic.session.v1.SessionCommandController/grantPermission',
                 request_serializer=ai_dot_stigmer_dot_agentic_dot_session_dot_v1_dot_io__pb2.GrantPermissionInput.SerializeToString,
@@ -178,6 +183,37 @@ class SessionCommandControllerServicer(object):
         - FAILED_PRECONDITION: the call no longer waits (its turn moved on or
         was stopped), or it was already answered the other way (an answer is
         final)
+
+        ## Idempotency
+
+        The same answer sent again records nothing new and returns the event
+        first recorded.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def answerCustomToolUse(self, request, context):
+        """Answer a call of one of the host app's own tools.
+
+        A call the agent makes to a tool in the session's custom_tools is an
+        agent.custom_tool_use, and the session goes idle with stop_reason
+        requires_action naming it. The answer is appended as a
+        user.custom_tool_result, which the agent reads as the tool's result;
+        is_error tells it the tool failed. When every waiting call of the turn
+        is answered, the turn resumes; until then the session re-states
+        requires_action with the calls still waiting. The host answers from
+        its own server as the person whose conversation it is, as it would
+        answer an approval.
+
+        ## Error Conditions
+
+        - NOT_FOUND: the event is not one of this conversation's custom tool
+        uses
+        - FAILED_PRECONDITION: the call no longer waits (its turn moved on or
+        was stopped), or it was already answered otherwise (an answer is
+        final)
+        - INVALID_ARGUMENT: the content holds a block other than text
 
         ## Idempotency
 
@@ -332,6 +368,11 @@ def add_SessionCommandControllerServicer_to_server(servicer, server):
             'confirmToolUse': grpc.unary_unary_rpc_method_handler(
                     servicer.confirmToolUse,
                     request_deserializer=ai_dot_stigmer_dot_agentic_dot_session_dot_v1_dot_io__pb2.ConfirmToolUseInput.FromString,
+                    response_serializer=ai_dot_stigmer_dot_agentic_dot_session_dot_v1_dot_event__pb2.SessionEvent.SerializeToString,
+            ),
+            'answerCustomToolUse': grpc.unary_unary_rpc_method_handler(
+                    servicer.answerCustomToolUse,
+                    request_deserializer=ai_dot_stigmer_dot_agentic_dot_session_dot_v1_dot_io__pb2.AnswerCustomToolUseInput.FromString,
                     response_serializer=ai_dot_stigmer_dot_agentic_dot_session_dot_v1_dot_event__pb2.SessionEvent.SerializeToString,
             ),
             'grantPermission': grpc.unary_unary_rpc_method_handler(
@@ -527,6 +568,33 @@ class SessionCommandController(object):
             target,
             '/ai.stigmer.agentic.session.v1.SessionCommandController/confirmToolUse',
             ai_dot_stigmer_dot_agentic_dot_session_dot_v1_dot_io__pb2.ConfirmToolUseInput.SerializeToString,
+            ai_dot_stigmer_dot_agentic_dot_session_dot_v1_dot_event__pb2.SessionEvent.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def answerCustomToolUse(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/ai.stigmer.agentic.session.v1.SessionCommandController/answerCustomToolUse',
+            ai_dot_stigmer_dot_agentic_dot_session_dot_v1_dot_io__pb2.AnswerCustomToolUseInput.SerializeToString,
             ai_dot_stigmer_dot_agentic_dot_session_dot_v1_dot_event__pb2.SessionEvent.FromString,
             options,
             channel_credentials,

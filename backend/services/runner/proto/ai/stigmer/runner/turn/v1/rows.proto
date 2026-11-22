@@ -373,6 +373,14 @@ message ToolCall {
   // the unattended skip resolved its ask. The lease scope of an APPROVE_ALL
   // row reads it: a hook's lease clears only that hook's asks on that tool.
   string approval_policy_hook = 27;
+
+  // Whether the call is to one of the host app's own tools
+  // (SessionSpec.custom_tools). Such a call waits in
+  // TOOL_CALL_WAITING_APPROVAL for the host's answer, a
+  // user.custom_tool_result, never a person's approval: its row is written
+  // to the session's log as an agent.custom_tool_use, and the server writes
+  // its result, so the runner writes none (harness/custom-tool-answers.ts).
+  bool custom_tool = 28;
 }
 
 // Represents a sub-agent invocation within a run.

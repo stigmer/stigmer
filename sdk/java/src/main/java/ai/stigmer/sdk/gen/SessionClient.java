@@ -2,6 +2,7 @@
 
 package ai.stigmer.sdk.gen;
 
+import ai.stigmer.agentic.session.v1.AnswerCustomToolUseInput;
 import ai.stigmer.agentic.session.v1.Attention;
 import ai.stigmer.agentic.session.v1.ConfirmToolUseInput;
 import ai.stigmer.agentic.session.v1.GrantPermissionInput;
@@ -77,6 +78,12 @@ public final class SessionClient {
     public SessionEvent confirmToolUse(ConfirmToolUseInput input) {
         try {
             return command.confirmToolUse(input);
+        } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
+    }
+
+    public SessionEvent answerCustomToolUse(AnswerCustomToolUseInput input) {
+        try {
+            return command.answerCustomToolUse(input);
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
     }
 
