@@ -11,9 +11,12 @@
  * What the lock grants, and nothing else: reading the install root
  * ({@link fenceReadRoot}), the folder that holds the entry and every package
  * the host loads at run time. No write, no child process, no worker thread,
- * no native addon, no WASI. Node 22 has no network permission; a turn's reach
- * is held by the runner's own checks (`tools/url-guard.ts`,
- * `shared/mcp-manager.ts`).
+ * no native addon, no WASI. A turn's reach is held by the runner's own checks
+ * (`tools/url-guard.ts`, `shared/mcp-manager.ts`), not by Node: Node 22 has
+ * no network permission, and a Node that has one (25 and later, where the
+ * model refuses every socket unless granted) is given `--allow-net`, since
+ * the host's every call (the local proxy, the platform's MCP lane, the
+ * model) is a socket.
  *
  * The host proves its lock in its hello ({@link currentFence}): whether the
  * permission model is on, the flags it was started with, and Node's own
@@ -141,7 +144,7 @@ export const NO_LANGSMITH_PROFILE = ".stigmer-locked-host-no-langsmith-profile.j
 
 /** How the locked host is started: its Node flags, and what its environment needs beside the open host's. */
 export interface FencedHostLaunch {
-  /** The permission flag in the spelling this Node takes, and one read grant of the install root. */
+  /** The permission flag in the spelling this Node takes, one read grant of the install root, and the network where Node locks it. */
   readonly execArgv: readonly string[];
   readonly env: Readonly<Record<string, string>>;
 }
@@ -163,7 +166,8 @@ export function fencedHostLaunch(
   const flag = permissionFlag(allowed);
   if (flag === null) throw new FenceRefusedError(`this Node (${process.version}) has no permission model`);
   const root = readRoot(entry);
-  return { execArgv: [flag, `--allow-fs-read=${root}`], env: { LANGSMITH_CONFIG_FILE: join(root, NO_LANGSMITH_PROFILE) } };
+  const net = allowed.has("--allow-net") ? ["--allow-net"] : [];
+  return { execArgv: [flag, `--allow-fs-read=${root}`, ...net], env: { LANGSMITH_CONFIG_FILE: join(root, NO_LANGSMITH_PROFILE) } };
 }
 
 /** The environment names the locked host never starts with: Node's own options (nothing re-grants), and LangChain's tracer, which would try a worker thread ({@link fencedHostLaunch} sets the one LangSmith name it needs). */

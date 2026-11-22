@@ -99,7 +99,9 @@ function fenceFlags() {
   const flags = process.allowedNodeEnvironmentFlags;
   const permission = flags.has("--permission") ? "--permission" : flags.has("--experimental-permission") ? "--experimental-permission" : null;
   if (permission === null) fail(`${process.version} has no permission model`);
-  return [permission, `--allow-fs-read=${fenceReadRoot()}`];
+  // A Node whose permission model also locks the network (25 and later) is
+  // given it: reach is the runner's checks, not Node's (`fencedHostLaunch`).
+  return [permission, `--allow-fs-read=${fenceReadRoot()}`, ...(flags.has("--allow-net") ? ["--allow-net"] : [])];
 }
 
 const flags = fenced ? fenceFlags() : [];

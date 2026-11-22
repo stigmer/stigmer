@@ -104,6 +104,14 @@ describe("the locked host's flags", () => {
     });
   });
 
+  it("grant the network on a Node whose permission model locks it, since reach is the runner's checks", () => {
+    expect(fencedHostLaunch("/opt/runner/dist/main.js", new Set(["--permission", "--allow-net"]), () => "/opt/runner/dist").execArgv).toEqual([
+      "--permission",
+      "--allow-fs-read=/opt/runner/dist",
+      "--allow-net",
+    ]);
+  });
+
   it("are refused from source, naming the built runner, and on a Node without the model", () => {
     expect(() => fencedHostLaunch("/repo/src/main.ts", new Set(["--permission"]), () => "/repo")).toThrow(FenceRefusedError);
     expect(() => fencedHostLaunch("/repo/src/main.ts", new Set(["--permission"]), () => "/repo")).toThrow(/node dist\/main\.js/);
