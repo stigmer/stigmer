@@ -35,6 +35,8 @@
  */
 
 import { ArchiveFileNotFoundError, NO_TURN_ARCHIVES } from "../shared/archive-reader.js";
+import { InputFileNotFoundError } from "../shared/inputs-reader.js";
+import type { TurnOffloads } from "../shared/offload-store.js";
 import { AsyncLocalStorage } from "node:async_hooks";
 import { randomBytes, randomUUID } from "node:crypto";
 import { posix } from "node:path";
@@ -43,7 +45,7 @@ import { SessionSpecSchema, type SessionSpec } from "@stigmer/apis/ai/stigmer/ag
 import { RunStatusSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 import type { Config } from "../config.js";
 import type { HarnessName } from "../harness/registry.js";
-import type { FailureSurface, HarnessAdapter, TurnInput, TurnOutcome, TurnSink, UsageDelta } from "../harness/types.js";
+import type { FailureSurface, HarnessAdapter, TurnInput, TurnOutcome, TurnSink, TurnStoreFiles, UsageDelta } from "../harness/types.js";
 import { isStopKind, type StopDetail } from "../shared/stop-kind.js";
 import { executionFingerprintKey } from "../shared/fingerprint-secret.js";
 import type { CasTouchedSnapshot } from "../shared/filereview/cas-touched.js";
@@ -171,6 +173,23 @@ function withinTurn(endpoint: RemoteTurnEndpoint): RemoteTurnEndpoint {
   return { calls: wrapped(endpoint.calls), notices: wrapped(endpoint.notices) };
 }
 
+/**
+ * The files of a turn without a computer, which the runner holds and
+ * answers for: a host that asks for them on a turn with a computer is
+ * refused, never served from a disk.
+ */
+function storeFilesOf(input: TurnInput): TurnStoreFiles {
+  if (input.workspace.computer) throw new Error("this turn has a computer; its files are on its workspace, not the store");
+  return input.workspace.files;
+}
+
+/** The turn's set-aside store, or a refusal where the runner has none. */
+function offloadsOf(input: TurnInput): TurnOffloads {
+  const offloads = storeFilesOf(input).offloads;
+  if (offloads === undefined) throw new Error("this runner has no artifact storage to set results aside in");
+  return offloads;
+}
+
 /** One remote turn's runner side: the handlers the host's calls reach. */
 class RemoteTurn {
   private readonly runtimeFields: RuntimeFieldTracker;
@@ -217,6 +236,27 @@ class RemoteTurn {
             throw err;
           }
         },
+        listTurnInputs: async () => storeFilesOf(input).inputs.list(),
+        readTurnInput: async ({ path }) => {
+          try {
+            return { content: Buffer.from(await storeFilesOf(input).inputs.read(path)).toString("base64") };
+          } catch (err) {
+            if (err instanceof InputFileNotFoundError) return { missing: true };
+            throw err;
+          }
+        },
+        listTurnOutputs: async () => storeFilesOf(input).outputs.list(),
+        readTurnOutput: async ({ path }) => {
+          const bytes = await storeFilesOf(input).outputs.read(path);
+          return bytes === undefined ? { missing: true } : { content: Buffer.from(bytes).toString("base64") };
+        },
+        writeTurnOutput: async ({ path, content }) => {
+          await storeFilesOf(input).outputs.write(path, new Uint8Array(Buffer.from(content, "base64")));
+          return null;
+        },
+        deleteTurnOutput: async ({ path }) => storeFilesOf(input).outputs.delete(path),
+        putTurnOffload: async ({ content }) => offloadsOf(input).put(new Uint8Array(Buffer.from(content, "base64"))),
+        readTurnOffload: async ({ key }) => Buffer.from(await offloadsOf(input).read(key)).toString("base64"),
         claimInput: async ({ force }) => {
           const messages = await sink.input.claim({ force });
           return { messages, pending: sink.input.pending() };

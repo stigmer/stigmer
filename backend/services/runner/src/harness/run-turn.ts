@@ -62,7 +62,7 @@ import { runWithExecutionContext } from "../shared/execution-context.js";
 import { CANCELLATION_PULSE_MS, startHeartbeat } from "../shared/heartbeat.js";
 import { describeCauseChain } from "../shared/error-chain.js";
 import { describeExecutionError } from "../shared/model-error.js";
-import { collectOutputs } from "../shared/outputs.js";
+import { collectOutputs, returnOutputFiles } from "../shared/outputs.js";
 import { savePlanOutput } from "../shared/plan-file.js";
 import { readEvalFiles } from "../shared/eval-case/read-files.js";
 import { StallTimeoutError, startStallWatchdog, type StallWatchdog } from "../shared/stall-watchdog.js";
@@ -359,7 +359,7 @@ async function runTurn(deps: TurnRuntimeDeps, input: NormalizedActivityInput, ru
       runMessages: () => client.listRunSessionEvents(engineTurn!.sessionId, executionId, [USER_MESSAGE_EVENT_TYPE]),
       queuedMessageIds: () => engineTurn!.execution.spec?.queuedMessageIds ?? [],
     },
-    (blocks) => mountMessageFiles(client, engineTurn!, adapter.capabilities, blocks),
+    (blocks) => mountMessageFiles(client, engineTurn!, adapter.capabilities, blocks, frame.inputs),
   );
   const chokepoint = new PersistChokepoint({
     client,
@@ -493,7 +493,9 @@ async function runTurn(deps: TurnRuntimeDeps, input: NormalizedActivityInput, ru
     if (sessionId === undefined) return;
     outputsSessionId = undefined;
     heartbeatPhase = "outputs";
-    await collectOutputs({ client, executionId, sessionId });
+    // A turn without a computer saved its outputs in memory, not a folder.
+    if (frame.outputs !== undefined) await returnOutputFiles({ client, executionId }, frame.outputs.snapshot());
+    else await collectOutputs({ client, executionId, sessionId });
   }
 
   /**
@@ -908,7 +910,7 @@ async function runTurn(deps: TurnRuntimeDeps, input: NormalizedActivityInput, ru
       const interactionMode = turn.execution.spec?.interactionMode ?? InteractionMode.UNSPECIFIED;
       if (interactionMode === InteractionMode.PLAN && finalText && outputsSessionId !== undefined) {
         try {
-          await savePlanOutput({ sessionId: outputsSessionId, planText: finalText });
+          await savePlanOutput({ sessionId: outputsSessionId, planText: finalText, ...(frame.outputs !== undefined && { outputs: frame.outputs }) });
         } catch (err) {
           console.warn(`${activityName} plan not saved (non-fatal): execution=${executionId}, error=${err}`);
         }

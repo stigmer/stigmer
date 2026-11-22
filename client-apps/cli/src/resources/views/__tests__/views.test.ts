@@ -436,6 +436,16 @@ describe("CLI-09 the views leave out what a resource does not carry", () => {
     expect(draw(ApiResourceKind.agent, AgentSchema, agent)).toContain("Environment\n  Computer:  no\n");
   });
 
+  it("lists what an agent's last save warned of", () => {
+    const message = "skill 'deploy' has scripts this agent can't run without a computer; it can still read them";
+    const agent = create(AgentSchema, {
+      metadata: { name: "A", slug: "a", org: "o" },
+      spec: { computer: Computer.NONE },
+      status: { warnings: [{ kind: "skill-scripts", message, skill: "deploy" }] },
+    });
+    expect(draw(ApiResourceKind.agent, AgentSchema, agent)).toContain(`Warnings\n  ${message}\n`);
+  });
+
   it("draws a bare skill, environment and organization as their titles and what is always said", () => {
     expect(bare(ApiResourceKind.skill, { slug: "s", org: "o" })).toBe("\ns  acme/s\n");
     expect(bare(ApiResourceKind.skill, { slug: "s" })).toBe("\ns  s\n");

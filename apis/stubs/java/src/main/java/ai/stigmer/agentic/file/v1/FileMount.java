@@ -7,7 +7,8 @@ package ai.stigmer.agentic.file.v1;
 
 /**
  * <pre>
- * FileMount is one File to place under .stigmer/uploads/.
+ * FileMount is one File to place under .stigmer/uploads/, or one output
+ * to show under .stigmer/outputs/.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.file.v1.FileMount}
@@ -109,7 +110,8 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object mountPath_ = "";
   /**
    * <pre>
-   * Where the agent finds it, relative to .stigmer/uploads/.
+   * Where the agent finds it, relative to .stigmer/uploads/ (an output:
+   * relative to .stigmer/outputs/).
    * </pre>
    *
    * <code>string mount_path = 2 [json_name = "mountPath"];</code>
@@ -130,7 +132,8 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Where the agent finds it, relative to .stigmer/uploads/.
+   * Where the agent finds it, relative to .stigmer/uploads/ (an output:
+   * relative to .stigmer/outputs/).
    * </pre>
    *
    * <code>string mount_path = 2 [json_name = "mountPath"];</code>
@@ -509,7 +512,8 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * FileMount is one File to place under .stigmer/uploads/.
+   * FileMount is one File to place under .stigmer/uploads/, or one output
+   * to show under .stigmer/outputs/.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.file.v1.FileMount}
@@ -812,7 +816,8 @@ private static final long serialVersionUID = 0L;
     private java.lang.Object mountPath_ = "";
     /**
      * <pre>
-     * Where the agent finds it, relative to .stigmer/uploads/.
+     * Where the agent finds it, relative to .stigmer/uploads/ (an output:
+     * relative to .stigmer/outputs/).
      * </pre>
      *
      * <code>string mount_path = 2 [json_name = "mountPath"];</code>
@@ -832,7 +837,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Where the agent finds it, relative to .stigmer/uploads/.
+     * Where the agent finds it, relative to .stigmer/uploads/ (an output:
+     * relative to .stigmer/outputs/).
      * </pre>
      *
      * <code>string mount_path = 2 [json_name = "mountPath"];</code>
@@ -853,7 +859,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Where the agent finds it, relative to .stigmer/uploads/.
+     * Where the agent finds it, relative to .stigmer/uploads/ (an output:
+     * relative to .stigmer/outputs/).
      * </pre>
      *
      * <code>string mount_path = 2 [json_name = "mountPath"];</code>
@@ -870,7 +877,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Where the agent finds it, relative to .stigmer/uploads/.
+     * Where the agent finds it, relative to .stigmer/uploads/ (an output:
+     * relative to .stigmer/outputs/).
      * </pre>
      *
      * <code>string mount_path = 2 [json_name = "mountPath"];</code>
@@ -884,7 +892,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Where the agent finds it, relative to .stigmer/uploads/.
+     * Where the agent finds it, relative to .stigmer/uploads/ (an output:
+     * relative to .stigmer/outputs/).
      * </pre>
      *
      * <code>string mount_path = 2 [json_name = "mountPath"];</code>

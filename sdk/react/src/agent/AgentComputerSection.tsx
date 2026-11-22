@@ -17,19 +17,29 @@
  * always runs with a computer. A reader sees the switch disabled, in the
  * state the agent has.
  *
+ * Without a computer, the server's warnings of the agent's last save
+ * (`AgentStatus.warnings`: a skill whose scripts it can't run) follow the
+ * sentence, one quiet line each, the skill's name set in mono. They are the
+ * server's words, shown as they come; the switch on hides them, as a
+ * computer runs the scripts.
+ *
  * Pinned by `__tests__/AgentDetailView.computer.test.tsx`.
  */
 
 import { useId, useState } from "react";
 import type { AgentSpec } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/spec_pb";
+import type { AgentWarning } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/status_pb";
 import { Computer } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
 import { Section } from "../resource-detail/Section.js";
 import { Switch } from "../switch/Switch.js";
+import { CircleAlert } from "lucide-react";
 import { COMPUTER_COPY, agentHasComputer, computerLocked } from "./computer.js";
 
 /** Props for {@link AgentComputerSection}. */
 export interface AgentComputerSectionProps {
   readonly spec: AgentSpec | undefined;
+  /** The server's warnings of the agent's last save (`AgentStatus.warnings`); shown only without a computer. */
+  readonly warnings?: readonly AgentWarning[];
   readonly editable: boolean;
   /** The server's message for the last failed save of this section. */
   readonly error?: string;
@@ -52,7 +62,7 @@ export interface AgentComputerSectionProps {
  * />
  * ```
  */
-export function AgentComputerSection({ spec, editable, error, onSave, onEditStart }: AgentComputerSectionProps) {
+export function AgentComputerSection({ spec, warnings = [], editable, error, onSave, onEditStart }: AgentComputerSectionProps) {
   const id = useId();
   const [pending, setPending] = useState<boolean | null>(null);
   const locked = computerLocked(spec);
@@ -102,6 +112,18 @@ export function AgentComputerSection({ spec, editable, error, onSave, onEditStar
             </p>
           </div>
         </div>
+        {!checked && warnings.length > 0 && (
+          <ul className="stg:ml-11 stg:flex stg:list-none stg:flex-col stg:gap-1 stg:p-0" aria-label={COMPUTER_COPY.warningsLabel}>
+            {warnings.map((warning, index) => (
+              <li key={`${warning.kind}:${warning.skill}:${index}`} className="stg:flex stg:items-baseline stg:gap-2 stg:text-xs stg:text-muted-foreground">
+                <CircleAlert aria-hidden className="stg:relative stg:top-px stg:size-3 stg:shrink-0" />
+                <span>
+                  {warning.skill ? <SkillNamed message={warning.message} skill={warning.skill} /> : warning.message}
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
         {error && (
           <p className="stg:text-xs stg:text-destructive" role="alert">
             {error}
@@ -109,5 +131,19 @@ export function AgentComputerSection({ spec, editable, error, onSave, onEditStar
         )}
       </div>
     </Section>
+  );
+}
+
+/** A warning's sentence with its skill's name, where the sentence quotes it, set in mono. */
+function SkillNamed({ message, skill }: { readonly message: string; readonly skill: string }) {
+  const quoted = `'${skill}'`;
+  const at = message.indexOf(quoted);
+  if (at === -1) return <>{message}</>;
+  return (
+    <>
+      {message.slice(0, at)}
+      <span className="stg:font-mono stg:text-foreground">{skill}</span>
+      {message.slice(at + quoted.length)}
+    </>
   );
 }

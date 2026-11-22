@@ -35,6 +35,13 @@
  *
  * A path's text in a message names it as the platform route would
  * (`/skills/<name>/…`), and a path in a result is relative to this route.
+ *
+ * The same tree serves every read-only folder a conversation without a
+ * computer reads from the store (`computerless-files.ts`): its Files under
+ * `uploads/`, an eval try's reference folders under `inputs/`, and, live
+ * and writable through a subclass there, its outputs and the results it set
+ * aside. Each hands a {@link StoreFileSource}; a live one is listed on every
+ * call, since a write changes it.
  */
 
 import { posix } from "node:path";
@@ -58,8 +65,25 @@ import { applyGrepMaxCount, normalizeReadPagination } from "deepagents";
 import picomatch from "picomatch";
 
 import { ArchiveFileNotFoundError } from "../../shared/archive-reader.js";
-import type { ArchiveFileInfo, ArchiveFolder, TurnArchiveFiles } from "../../shared/archive-reader.js";
+import { InputFileNotFoundError } from "../../shared/inputs-reader.js";
 import { readOnlyPlatformContent } from "./platform-route.js";
+
+/** One file of a store-backed tree, by its path under the platform folder (`<route>/…`). */
+export interface StoreFileInfo {
+  readonly path: string;
+  readonly size: number;
+}
+
+/** What a store-backed tree lists and reads; a path it does not hold throws a not-found error of the reader's. */
+export interface StoreFileSource {
+  list(): Promise<readonly StoreFileInfo[]>;
+  read(path: string): Promise<Uint8Array>;
+}
+
+/** Whether a reader's error says the path is not one of its files. */
+export function isNotFound(err: unknown): boolean {
+  return err instanceof ArchiveFileNotFoundError || err instanceof InputFileNotFoundError;
+}
 
 
 /** deepagents' "this file is empty" reminder (1.14 `EMPTY_CONTENT_WARNING`). */
@@ -112,21 +136,23 @@ export const NON_PLAIN_MIME_TYPES: Readonly<Record<string, string>> = {
   ".cjs": "application/javascript",
 };
 
-function mimeTypeOf(path: string): string {
+export function mimeTypeOf(path: string): string {
   return NON_PLAIN_MIME_TYPES[posix.extname(path).toLocaleLowerCase()] ?? "text/plain";
 }
 
-function isText(mimeType: string): boolean {
+export function isText(mimeType: string): boolean {
   return mimeType.startsWith("text/") || mimeType === "application/json" || mimeType === "application/javascript" || mimeType === "image/svg+xml";
 }
 
 /** One route's files: the reader's listing under `route/`, by route-relative path (`/<name>/…`). */
 export class StoreContentBackend implements BackendProtocolV2 {
-  private listing: Promise<ReadonlyMap<string, ArchiveFileInfo>> | undefined;
+  private listing: Promise<ReadonlyMap<string, StoreFileInfo>> | undefined;
 
+  /** `live`: list on every call (a tree a write changes), never once per backend. */
   constructor(
-    private readonly route: ArchiveFolder,
-    private readonly files: TurnArchiveFiles,
+    protected readonly route: string,
+    private readonly files: StoreFileSource,
+    private readonly live = false,
   ) {}
 
   async ls(path: string): Promise<LsResult> {
@@ -210,15 +236,15 @@ export class StoreContentBackend implements BackendProtocolV2 {
     return { files: files.sort((a, b) => a.path.localeCompare(b.path)) };
   }
 
-  write(filePath: string): WriteResult {
+  async write(filePath: string, _content?: string): Promise<WriteResult> {
     return { error: readOnlyPlatformContent(this.platformPath(filePath)) };
   }
 
-  edit(filePath: string): EditResult {
+  async edit(filePath: string, _oldString?: string, _newString?: string, _replaceAll?: boolean): Promise<EditResult> {
     return { error: readOnlyPlatformContent(this.platformPath(filePath)) };
   }
 
-  delete(filePath: string): DeleteResult {
+  async delete(filePath: string): Promise<DeleteResult> {
     return { error: readOnlyPlatformContent(this.platformPath(filePath)) };
   }
 
@@ -235,8 +261,9 @@ export class StoreContentBackend implements BackendProtocolV2 {
     return responses;
   }
 
-  /** The listing under this route, by route-relative path; read once per backend, a failed read not kept. */
-  private files_(): Promise<ReadonlyMap<string, ArchiveFileInfo>> {
+  /** The listing under this route, by route-relative path; read once per backend (every call when live), a failed read not kept. */
+  protected files_(): Promise<ReadonlyMap<string, StoreFileInfo>> {
+    if (this.live) this.listing = undefined;
     this.listing ??= this.files.list().then(
       (all) => {
         const prefix = `${this.route}/`;
@@ -252,7 +279,7 @@ export class StoreContentBackend implements BackendProtocolV2 {
   }
 
   /** A file's bytes, or the answer deepagents' filesystem backend gives for a path that is not one. */
-  private async open(filePath: string): Promise<{ readonly bytes: Uint8Array } | { readonly error: string }> {
+  protected async open(filePath: string): Promise<{ readonly bytes: Uint8Array } | { readonly error: string }> {
     const listing = await this.files_();
     const shown = this.platformPath(filePath);
     if (!listing.has(filePath)) {
@@ -262,13 +289,13 @@ export class StoreContentBackend implements BackendProtocolV2 {
     try {
       return { bytes: await this.files.read(`${this.route}${filePath}`) };
     } catch (err) {
-      if (err instanceof ArchiveFileNotFoundError) return { error: `Error reading file '${shown}': ENOENT: no such file or directory` };
+      if (isNotFound(err)) return { error: `Error reading file '${shown}': ENOENT: no such file or directory` };
       return { error: `Error reading file '${shown}': ${err instanceof Error ? err.message : String(err)}` };
     }
   }
 
   /** The path as the platform route's backend names it: under the platform folder. */
-  private platformPath(routedPath: string): string {
+  protected platformPath(routedPath: string): string {
     return `/${this.route}${routedPath}`;
   }
 }

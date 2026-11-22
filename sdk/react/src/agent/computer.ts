@@ -44,6 +44,7 @@ export const COMPUTER_COPY = {
   locked: "The Claude Agent harness always works on a computer. Pick the Stigmer harness in Run defaults to turn it off.",
   saving: "Saving",
   environmentNotApplying: "Environments don't apply here: this agent has no computer",
+  warningsLabel: "Skills with scripts",
 } as const;
 
 /** Why the Claude harness isn't offered for an agent without a computer; `agentName` names it, else "this agent". */

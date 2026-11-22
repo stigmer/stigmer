@@ -10,13 +10,16 @@
  * - a reader sees the switch disabled;
  * - with no computer, the Environment section says it doesn't apply and
  *   offers no edit, and the run defaults' harness choice offers Stigmer
- *   alone, saying why.
+ *   alone, saying why;
+ * - with no computer, the save's warnings (a skill with scripts) follow the
+ *   switch's sentence, the skill's name in mono; with one, they don't show.
  */
 import { describe, it, expect, vi, afterEach, beforeEach } from "vitest";
 import { render, screen, fireEvent, cleanup, waitFor, within } from "@testing-library/react";
 import { create, type MessageInitShape } from "@bufbuild/protobuf";
 import { Code, ConnectError } from "@connectrpc/connect";
 import { AgentSpecSchema } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/spec_pb";
+import { AgentStatusSchema, AgentWarningSchema } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/status_pb";
 import type { Agent } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb";
 import { Computer, Harness } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
 import { samples } from "@stigmer/react-core/test";
@@ -56,6 +59,36 @@ function renderAgent(
 const theSwitch = () => screen.findByRole("switch", { name: COMPUTER_COPY.label });
 
 describe("AgentDetailView computer", () => {
+  it("shows the save's skill warnings under the sentence without a computer, and none with one", async () => {
+    const message = "skill 'pdf-tools' has scripts this agent can't run without a computer; it can still read them";
+    for (const [computer, shown] of [
+      [Computer.NONE, true],
+      [Computer.REQUIRED, false],
+    ] as const) {
+      const agent = agentWith({ computer });
+      agent.status ??= create(AgentStatusSchema);
+      agent.status.warnings = [create(AgentWarningSchema, { kind: "skill-scripts", message, skill: "pdf-tools" })];
+      renderAgent(agent);
+      await theSwitch();
+      const list = screen.queryByRole("list", { name: COMPUTER_COPY.warningsLabel });
+      expect(list !== null, Computer[computer]).toBe(shown);
+      if (list !== null) {
+        expect(list.textContent).toBe(message.replace("'pdf-tools'", "pdf-tools"));
+        expect(within(list).getByText("pdf-tools").className).toContain("stg:font-mono");
+      }
+      cleanup();
+    }
+  });
+
+  it("shows a warning whose sentence does not quote its skill as the server wrote it", async () => {
+    const agent = agentWith({ computer: Computer.NONE });
+    agent.status ??= create(AgentStatusSchema);
+    agent.status.warnings = [create(AgentWarningSchema, { kind: "skill-scripts", message: "a skill carries scripts", skill: "pdf-tools" })];
+    renderAgent(agent);
+    await theSwitch();
+    expect(screen.getByRole("list", { name: COMPUTER_COPY.warningsLabel }).textContent).toBe("a skill carries scripts");
+  });
+
   it("reads on for a computer and for an agent saved before the setting, off for none", async () => {
     for (const [computer, on] of [
       [Computer.REQUIRED, true],

@@ -166,8 +166,9 @@ message EvalRunCase {
   repeated string case_tags = 3;
 
   // Why the case is not run, as in "not run: plugins" for a feature
-  // Stigmer does not run yet, or "not run: scaffold skipped"; empty when
-  // the case runs.
+  // Stigmer does not run yet, "not run: scaffold skipped", or "not run:
+  // needs a computer" for a case with a scaffold on an agent without one;
+  // empty when the case runs.
   //
   // @internal
   // A case is never run degraded: one that needs an unsupported feature is

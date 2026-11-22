@@ -25,6 +25,7 @@ import { Code } from "@connectrpc/connect";
 import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiResourceVisibility } from "@stigmer/apis/ai/stigmer/commons/apiresource/enum_pb";
 import type { Organization } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/api_pb";
+import type { Agent } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb";
 import { UpdateOrganizationPoliciesInputSchema } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/io_pb";
 import { OrganizationQueryController } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/query_pb";
 import {
@@ -183,7 +184,7 @@ export async function applyMessage(
   const visibilityWarning = await applyDeclaredVisibility(controller, handler, message, applied);
   await applyDeclaredPolicies(controller, handler, message, applied);
   const slugWarning = await applyDeclaredSlug(controller, handler, message, applied, visibilityWarning);
-  const warning = combineWarnings(orgWarning, visibilityWarning, slugWarning);
+  const warning = combineWarnings(orgWarning, visibilityWarning, slugWarning, ...savedWarnings(handler, applied));
   const result = buildApplyResult(handler, applied, verb);
   return { result, warning, applied };
 }
@@ -363,6 +364,17 @@ async function applyNamingSlug(controller: ControllerFn, handler: ApplyHandler, 
       `${handler.displayName} '${err.slug}' was renamed to '${err.currentSlug}'; update the file's metadata.slug to '${err.currentSlug}' and apply again`,
     );
   }
+}
+
+/**
+ * What the server's save warned of on the applied resource, each a
+ * sentence: an agent's `status.warnings` (a skill whose scripts an agent
+ * without a computer cannot run). Printed beside the command's own
+ * warnings; a save never fails over one.
+ */
+function savedWarnings(handler: ApplyHandler, applied: Message): string[] {
+  if (handler.kind !== ApiResourceKind.agent) return [];
+  return ((applied as Agent).status?.warnings ?? []).map((warning) => warning.message);
 }
 
 function combineWarnings(...warnings: (string | undefined)[]): string | undefined {

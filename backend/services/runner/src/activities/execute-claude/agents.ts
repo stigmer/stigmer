@@ -38,7 +38,7 @@
 import type { AgentDefinition } from "@anthropic-ai/claude-agent-sdk";
 import { Harness } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
 
-import type { TurnInput } from "../../harness/types.js";
+import type { ComputerTurnInput } from "../../harness/types.js";
 import type { ResolvedMcpServer } from "../../shared/mcp-resolver.js";
 import { resolveToApiModelId } from "../../shared/model-registry.js";
 import { shellRunValues } from "../../shared/shell-env.js";
@@ -69,7 +69,7 @@ export interface SubagentSpec {
 }
 
 /** The turn's sub-agents the main agent may start (the header). */
-export async function subagentSpecsOf(input: TurnInput): Promise<SubagentSpec[]> {
+export async function subagentSpecsOf(input: ComputerTurnInput): Promise<SubagentSpec[]> {
   const mainScope = input.mcp.toolScope;
   const specs: SubagentSpec[] = [];
   for (const agent of input.blueprint.pluginAgents) {
@@ -115,7 +115,7 @@ export async function subagentSpecsOf(input: TurnInput): Promise<SubagentSpec[]>
  * server may call one of its tools.
  */
 export function bridgeServersOf(
-  input: TurnInput,
+  input: ComputerTurnInput,
   specs: readonly SubagentSpec[],
 ): { readonly servers: ResolvedMcpServer[]; readonly inScope: (slug: string, tool: string) => boolean } {
   const owners: { readonly slugs: ReadonlySet<string>; readonly scope: ToolScope }[] = [
@@ -170,7 +170,7 @@ export interface TurnAgents {
  * apart.
  */
 export function turnAgentsOf(
-  input: TurnInput,
+  input: ComputerTurnInput,
   specs: readonly SubagentSpec[],
   bridge: Pick<McpBridge, "offered" | "serverOf">,
   opts: { readonly planMode: boolean; readonly structuredOutput: boolean },
@@ -282,7 +282,7 @@ export async function agentDefinitionsOf(agents: TurnAgents, promptOf: (world: S
  * `tools` that resolves to nothing refuses the turn
  * (`shared/tool-lists.ts` `ToolListResolutionError`).
  */
-export function checkAgentToolLists(input: TurnInput, agents: TurnAgents, bridge: Pick<McpBridge, "offered" | "serverOf">, opts: { readonly planMode: boolean }): void {
+export function checkAgentToolLists(input: ComputerTurnInput, agents: TurnAgents, bridge: Pick<McpBridge, "offered" | "serverOf">, opts: { readonly planMode: boolean }): void {
   const log = (line: string): void => console.warn(`[claude-turn] ${line}`);
   const rootScope = input.mcp.toolScope;
   checkMainToolListResolution(rootScope, inventoryOf(agents.root.builtins, input.mcp.servers, bridge), log);

@@ -1031,7 +1031,7 @@
           "type": {
             "kind": "string"
           },
-          "description": "Why the case is not run, as in \"not run: plugins\" for a feature\n Stigmer does not run yet, or \"not run: scaffold skipped\"; empty when\n the case runs.",
+          "description": "Why the case is not run, as in \"not run: plugins\" for a feature\n Stigmer does not run yet, \"not run: scaffold skipped\", or \"not run:\n needs a computer\" for a case with a scaffold on an agent without one;\n empty when the case runs.",
           "required": false
         },
         {

@@ -186,7 +186,8 @@ public final class RunFileControllerGrpc {
      * <pre>
      * The Files a run's conversation holds (SessionSpec.resources), each with
      * where the agent finds it under .stigmer/uploads/ and a link to its
-     * bytes, valid for an hour.
+     * bytes, valid for an hour, and the newest File the conversation's agent
+     * saved at each path of its outputs folder.
      * </pre>
      */
     default void mount(ai.stigmer.agentic.file.v1.MountRunFilesInput request,
@@ -264,7 +265,8 @@ public final class RunFileControllerGrpc {
      * <pre>
      * The Files a run's conversation holds (SessionSpec.resources), each with
      * where the agent finds it under .stigmer/uploads/ and a link to its
-     * bytes, valid for an hour.
+     * bytes, valid for an hour, and the newest File the conversation's agent
+     * saved at each path of its outputs folder.
      * </pre>
      */
     public void mount(ai.stigmer.agentic.file.v1.MountRunFilesInput request,
@@ -327,7 +329,8 @@ public final class RunFileControllerGrpc {
      * <pre>
      * The Files a run's conversation holds (SessionSpec.resources), each with
      * where the agent finds it under .stigmer/uploads/ and a link to its
-     * bytes, valid for an hour.
+     * bytes, valid for an hour, and the newest File the conversation's agent
+     * saved at each path of its outputs folder.
      * </pre>
      */
     public ai.stigmer.agentic.file.v1.RunFileMounts mount(ai.stigmer.agentic.file.v1.MountRunFilesInput request) throws io.grpc.StatusException {
@@ -387,7 +390,8 @@ public final class RunFileControllerGrpc {
      * <pre>
      * The Files a run's conversation holds (SessionSpec.resources), each with
      * where the agent finds it under .stigmer/uploads/ and a link to its
-     * bytes, valid for an hour.
+     * bytes, valid for an hour, and the newest File the conversation's agent
+     * saved at each path of its outputs folder.
      * </pre>
      */
     public ai.stigmer.agentic.file.v1.RunFileMounts mount(ai.stigmer.agentic.file.v1.MountRunFilesInput request) {
@@ -447,7 +451,8 @@ public final class RunFileControllerGrpc {
      * <pre>
      * The Files a run's conversation holds (SessionSpec.resources), each with
      * where the agent finds it under .stigmer/uploads/ and a link to its
-     * bytes, valid for an hour.
+     * bytes, valid for an hour, and the newest File the conversation's agent
+     * saved at each path of its outputs folder.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.file.v1.RunFileMounts> mount(

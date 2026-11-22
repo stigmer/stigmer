@@ -78,4 +78,58 @@ public interface AgentStatusOrBuilder extends
    */
   com.google.protobuf.ByteString
       getVersionHashBytes();
+
+  /**
+   * <pre>
+   * Warnings the last save recorded: what the agent's skills carry that it
+   * cannot use as configured, such as scripts an agent without a computer
+   * cannot run. A save never fails over one.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.agent.v1.AgentWarning warnings = 4 [json_name = "warnings"];</code>
+   */
+  java.util.List<ai.stigmer.agentic.agent.v1.AgentWarning> 
+      getWarningsList();
+  /**
+   * <pre>
+   * Warnings the last save recorded: what the agent's skills carry that it
+   * cannot use as configured, such as scripts an agent without a computer
+   * cannot run. A save never fails over one.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.agent.v1.AgentWarning warnings = 4 [json_name = "warnings"];</code>
+   */
+  ai.stigmer.agentic.agent.v1.AgentWarning getWarnings(int index);
+  /**
+   * <pre>
+   * Warnings the last save recorded: what the agent's skills carry that it
+   * cannot use as configured, such as scripts an agent without a computer
+   * cannot run. A save never fails over one.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.agent.v1.AgentWarning warnings = 4 [json_name = "warnings"];</code>
+   */
+  int getWarningsCount();
+  /**
+   * <pre>
+   * Warnings the last save recorded: what the agent's skills carry that it
+   * cannot use as configured, such as scripts an agent without a computer
+   * cannot run. A save never fails over one.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.agent.v1.AgentWarning warnings = 4 [json_name = "warnings"];</code>
+   */
+  java.util.List<? extends ai.stigmer.agentic.agent.v1.AgentWarningOrBuilder> 
+      getWarningsOrBuilderList();
+  /**
+   * <pre>
+   * Warnings the last save recorded: what the agent's skills carry that it
+   * cannot use as configured, such as scripts an agent without a computer
+   * cannot run. A save never fails over one.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.agent.v1.AgentWarning warnings = 4 [json_name = "warnings"];</code>
+   */
+  ai.stigmer.agentic.agent.v1.AgentWarningOrBuilder getWarningsOrBuilder(
+      int index);
 }

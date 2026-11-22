@@ -55,6 +55,12 @@ export const IMAGE_REMOVED_TEXT = "(This image was removed from the conversation
 /** What the middleware reads images from. */
 export interface ImageRefOptions {
   readonly sessionId: string;
+  /**
+   * A File's bytes by id, where the conversation has no mount on disk (a
+   * conversation without a computer reads them from the store,
+   * `shared/inputs-reader.ts` `readStoredFile`); absent, the mount is read.
+   */
+  readonly readFile?: (fileId: string) => Promise<Buffer | undefined>;
 }
 
 /** The middleware (module header). */
@@ -64,7 +70,7 @@ export function createImageRefMiddleware(options: ImageRefOptions) {
   async function inlineOf(fileId: string): Promise<LangChainImageBlock | undefined> {
     const known = held.get(fileId);
     if (known !== undefined) return known;
-    const bytes = await readMountedFile(options.sessionId, fileId);
+    const bytes = options.readFile !== undefined ? await options.readFile(fileId) : await readMountedFile(options.sessionId, fileId);
     const mimeType = bytes === undefined ? undefined : sniffImageMime(bytes);
     if (bytes === undefined || mimeType === undefined || bytes.length > MAX_VISION_IMAGE_BYTES) {
       console.warn(`[image-refs] session=${options.sessionId} file=${fileId} is not on the mount; the model reads that it was removed`);

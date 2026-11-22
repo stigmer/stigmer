@@ -24,7 +24,8 @@ import "buf/validate/validate.proto";
 service RunFileController {
   // The Files a run's conversation holds (SessionSpec.resources), each with
   // where the agent finds it under .stigmer/uploads/ and a link to its
-  // bytes, valid for an hour.
+  // bytes, valid for an hour, and the newest File the conversation's agent
+  // saved at each path of its outputs folder.
   //
   // @internal
   // Runner-only. Skip-authorization with a handler-level gate: the bearer
@@ -33,6 +34,9 @@ service RunFileController {
   // decision the session event log's append asks). Every other caller is
   // refused with PERMISSION_DENIED. A File the conversation no longer holds
   // as its own is left out; each link is signed for the runner's reader.
+  // The outputs are read through the File list index's session key, so a
+  // conversation without a computer, which keeps no outputs folder on disk,
+  // still finds what an earlier turn saved.
   rpc mount(MountRunFilesInput) returns (RunFileMounts) {
     option (ai.stigmer.commons.rpc.is_skip_authorization) = true;
     option (ai.stigmer.commons.rpc.is_runner_only) = true;
@@ -80,14 +84,27 @@ message MountRunFilesInput {
 message RunFileMounts {
   // One per File the conversation holds, in its resources' order.
   repeated FileMount entries = 1;
+
+  // The newest File the conversation's agent saved at each path of its
+  // outputs folder, each with mount_path relative to .stigmer/outputs/.
+  //
+  // @internal
+  // Read through the File list index's session key: the conversation's
+  // Files whose output_path is set, of the run's organization, the newest
+  // (spec audit created_at, ties by id) for each output_path. An output
+  // File is not one of the conversation's resources, so entries never
+  // names it.
+  repeated FileMount outputs = 2;
 }
 
-// FileMount is one File to place under .stigmer/uploads/.
+// FileMount is one File to place under .stigmer/uploads/, or one output
+// to show under .stigmer/outputs/.
 message FileMount {
   // The File's id.
   string file_id = 1;
 
-  // Where the agent finds it, relative to .stigmer/uploads/.
+  // Where the agent finds it, relative to .stigmer/uploads/ (an output:
+  // relative to .stigmer/outputs/).
   string mount_path = 2;
 
   // The File's name and type.

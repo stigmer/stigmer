@@ -382,6 +382,19 @@ export class StigmerClient {
   }
 
   /**
+   * The run's Files as {@link mountRunFiles} answers them, with the
+   * conversation's earlier outputs beside them (`RunFileMounts.outputs`),
+   * which a turn without a computer reads from the store.
+   */
+  async mountRunFileSets(runId: string, scopedToken?: string): Promise<{ readonly entries: FileMount[]; readonly outputs: FileMount[] }> {
+    const answer = await this.runFiles.mount(
+      create(MountRunFilesInputSchema, { runId }),
+      scopedToken ? { headers: { authorization: `Bearer ${scopedToken}` } } : undefined,
+    );
+    return { entries: answer.entries, outputs: answer.outputs };
+  }
+
+  /**
    * One upload link per output a turn saved (`shared/outputs.ts`), in the
    * request's order. Authenticated as {@link mountRunFiles} is.
    */

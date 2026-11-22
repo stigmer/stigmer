@@ -73,7 +73,10 @@ func (x *MountRunFilesInput) GetRunId() string {
 type RunFileMounts struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// One per File the conversation holds, in its resources' order.
-	Entries       []*FileMount `protobuf:"bytes,1,rep,name=entries,proto3" json:"entries,omitempty"`
+	Entries []*FileMount `protobuf:"bytes,1,rep,name=entries,proto3" json:"entries,omitempty"`
+	// The newest File the conversation's agent saved at each path of its
+	// outputs folder, each with mount_path relative to .stigmer/outputs/.
+	Outputs       []*FileMount `protobuf:"bytes,2,rep,name=outputs,proto3" json:"outputs,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -115,12 +118,21 @@ func (x *RunFileMounts) GetEntries() []*FileMount {
 	return nil
 }
 
-// FileMount is one File to place under .stigmer/uploads/.
+func (x *RunFileMounts) GetOutputs() []*FileMount {
+	if x != nil {
+		return x.Outputs
+	}
+	return nil
+}
+
+// FileMount is one File to place under .stigmer/uploads/, or one output
+// to show under .stigmer/outputs/.
 type FileMount struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// The File's id.
 	FileId string `protobuf:"bytes,1,opt,name=file_id,json=fileId,proto3" json:"file_id,omitempty"`
-	// Where the agent finds it, relative to .stigmer/uploads/.
+	// Where the agent finds it, relative to .stigmer/uploads/ (an output:
+	// relative to .stigmer/outputs/).
 	MountPath string `protobuf:"bytes,2,opt,name=mount_path,json=mountPath,proto3" json:"mount_path,omitempty"`
 	// The File's name and type.
 	Filename string `protobuf:"bytes,3,opt,name=filename,proto3" json:"filename,omitempty"`
@@ -608,9 +620,10 @@ const file_ai_stigmer_agentic_file_v1_run_files_proto_rawDesc = "" +
 	"\n" +
 	"*ai/stigmer/agentic/file/v1/run_files.proto\x12\x1aai.stigmer.agentic.file.v1\x1a$ai/stigmer/agentic/file/v1/api.proto\x1a+ai/stigmer/commons/rpc/method_options.proto\x1a\x1bbuf/validate/validate.proto\"4\n" +
 	"\x12MountRunFilesInput\x12\x1e\n" +
-	"\x06run_id\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x05runId\"P\n" +
+	"\x06run_id\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x05runId\"\x91\x01\n" +
 	"\rRunFileMounts\x12?\n" +
-	"\aentries\x18\x01 \x03(\v2%.ai.stigmer.agentic.file.v1.FileMountR\aentries\"\xad\x01\n" +
+	"\aentries\x18\x01 \x03(\v2%.ai.stigmer.agentic.file.v1.FileMountR\aentries\x12?\n" +
+	"\aoutputs\x18\x02 \x03(\v2%.ai.stigmer.agentic.file.v1.FileMountR\aoutputs\"\xad\x01\n" +
 	"\tFileMount\x12\x17\n" +
 	"\afile_id\x18\x01 \x01(\tR\x06fileId\x12\x1d\n" +
 	"\n" +
@@ -685,21 +698,22 @@ var file_ai_stigmer_agentic_file_v1_run_files_proto_goTypes = []any{
 }
 var file_ai_stigmer_agentic_file_v1_run_files_proto_depIdxs = []int32{
 	2,  // 0: ai.stigmer.agentic.file.v1.RunFileMounts.entries:type_name -> ai.stigmer.agentic.file.v1.FileMount
-	4,  // 1: ai.stigmer.agentic.file.v1.CreateOutputUploadsInput.entries:type_name -> ai.stigmer.agentic.file.v1.OutputUploadRequest
-	6,  // 2: ai.stigmer.agentic.file.v1.OutputUploads.entries:type_name -> ai.stigmer.agentic.file.v1.OutputUpload
-	8,  // 3: ai.stigmer.agentic.file.v1.RegisterOutputsInput.entries:type_name -> ai.stigmer.agentic.file.v1.OutputToRegister
-	10, // 4: ai.stigmer.agentic.file.v1.RegisteredOutputs.files:type_name -> ai.stigmer.agentic.file.v1.File
-	0,  // 5: ai.stigmer.agentic.file.v1.RunFileController.mount:input_type -> ai.stigmer.agentic.file.v1.MountRunFilesInput
-	3,  // 6: ai.stigmer.agentic.file.v1.RunFileController.createOutputUploads:input_type -> ai.stigmer.agentic.file.v1.CreateOutputUploadsInput
-	7,  // 7: ai.stigmer.agentic.file.v1.RunFileController.registerOutputs:input_type -> ai.stigmer.agentic.file.v1.RegisterOutputsInput
-	1,  // 8: ai.stigmer.agentic.file.v1.RunFileController.mount:output_type -> ai.stigmer.agentic.file.v1.RunFileMounts
-	5,  // 9: ai.stigmer.agentic.file.v1.RunFileController.createOutputUploads:output_type -> ai.stigmer.agentic.file.v1.OutputUploads
-	9,  // 10: ai.stigmer.agentic.file.v1.RunFileController.registerOutputs:output_type -> ai.stigmer.agentic.file.v1.RegisteredOutputs
-	8,  // [8:11] is the sub-list for method output_type
-	5,  // [5:8] is the sub-list for method input_type
-	5,  // [5:5] is the sub-list for extension type_name
-	5,  // [5:5] is the sub-list for extension extendee
-	0,  // [0:5] is the sub-list for field type_name
+	2,  // 1: ai.stigmer.agentic.file.v1.RunFileMounts.outputs:type_name -> ai.stigmer.agentic.file.v1.FileMount
+	4,  // 2: ai.stigmer.agentic.file.v1.CreateOutputUploadsInput.entries:type_name -> ai.stigmer.agentic.file.v1.OutputUploadRequest
+	6,  // 3: ai.stigmer.agentic.file.v1.OutputUploads.entries:type_name -> ai.stigmer.agentic.file.v1.OutputUpload
+	8,  // 4: ai.stigmer.agentic.file.v1.RegisterOutputsInput.entries:type_name -> ai.stigmer.agentic.file.v1.OutputToRegister
+	10, // 5: ai.stigmer.agentic.file.v1.RegisteredOutputs.files:type_name -> ai.stigmer.agentic.file.v1.File
+	0,  // 6: ai.stigmer.agentic.file.v1.RunFileController.mount:input_type -> ai.stigmer.agentic.file.v1.MountRunFilesInput
+	3,  // 7: ai.stigmer.agentic.file.v1.RunFileController.createOutputUploads:input_type -> ai.stigmer.agentic.file.v1.CreateOutputUploadsInput
+	7,  // 8: ai.stigmer.agentic.file.v1.RunFileController.registerOutputs:input_type -> ai.stigmer.agentic.file.v1.RegisterOutputsInput
+	1,  // 9: ai.stigmer.agentic.file.v1.RunFileController.mount:output_type -> ai.stigmer.agentic.file.v1.RunFileMounts
+	5,  // 10: ai.stigmer.agentic.file.v1.RunFileController.createOutputUploads:output_type -> ai.stigmer.agentic.file.v1.OutputUploads
+	9,  // 11: ai.stigmer.agentic.file.v1.RunFileController.registerOutputs:output_type -> ai.stigmer.agentic.file.v1.RegisteredOutputs
+	9,  // [9:12] is the sub-list for method output_type
+	6,  // [6:9] is the sub-list for method input_type
+	6,  // [6:6] is the sub-list for extension type_name
+	6,  // [6:6] is the sub-list for extension extendee
+	0,  // [0:6] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_agentic_file_v1_run_files_proto_init() }

@@ -188,7 +188,8 @@ import {
   readServedFile,
   resolveServedVersion,
 } from "../../archive/serve-files.js";
-import type { ServedArchiveBinding, ServedVersion } from "../../archive/serve-files.js";
+import type { ServedVersion } from "../../archive/serve-files.js";
+import { servedPlugin } from "./served-files.js";
 import type { OpenedArchive } from "../../archive/open-files.js";
 
 export interface PluginControllerDeps {
@@ -199,6 +200,11 @@ export interface PluginControllerDeps {
   /** The composed list read scope — list narrows through it; undefined = the OSS full scan. */
   readonly listReadScope: ListReadScope | undefined;
   readonly artifactStorage: IndexedArchiveStore;
+  /**
+   * The plugins' file reads, shared with the agent's save
+   * (domain/agent/skill-warnings.ts); absent, the controller makes its own.
+   */
+  readonly fileReads?: ArchiveFileReads;
   /** The one fetch install's sign-in probe dials a plugin's server addresses with, under the edition's egress policy. */
   readonly outboundFetch: OutboundFetch;
   /** The skill lane's staging port (one upload surface for every archive); absent, the lane answers FailedPrecondition. */
@@ -214,7 +220,7 @@ export function registerPluginServices(
   router: ConnectRouter,
   deps: PluginControllerDeps,
 ): void {
-  const fileReads = newArchiveFileReads(deps.artifactStorage, "plugin", deps.logger);
+  const fileReads = deps.fileReads ?? newArchiveFileReads(deps.artifactStorage, "plugin", deps.logger);
   router.service(PluginCommandController, {
     push: (req, ctx) => push(deps, req, ctx),
     createArtifactUploadUrl: (req, ctx) =>
@@ -634,17 +640,6 @@ async function getByReference(
   return reqCtx.get(TARGET_RESOURCE_KEY) as Plugin;
 }
 
-/** How a plugin's files are served (archive/serve-files.ts). */
-const servedPlugin: ServedArchiveBinding<typeof PluginSchema> = {
-  kind: ApiResourceKind.plugin,
-  schema: PluginSchema,
-  noun: "plugin",
-  headHashOf: (plugin) => plugin.status?.digest ?? "",
-  storageKeyOf: (plugin) => plugin.status?.artifactStorageKey ?? "",
-  suiteDirOf: (plugin) => plugin.status?.evals?.dir,
-  keyForHash: (hash) => `${PLUGIN_ARTIFACT_KEY_PREFIX}${hash}.zip`,
-  nameOf: (plugin) => plugin.metadata?.slug || plugin.metadata?.id || "",
-};
 
 /**
  * Authorizes a file read by its annotation (can_view on plugin_id), then

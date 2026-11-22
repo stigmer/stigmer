@@ -90,49 +90,51 @@ public final class RunFilesProto extends com.google.protobuf.GeneratedFile {
       "gmer/agentic/file/v1/api.proto\032+ai/stigm" +
       "er/commons/rpc/method_options.proto\032\033buf" +
       "/validate/validate.proto\"4\n\022MountRunFile" +
-      "sInput\022\036\n\006run_id\030\001 \001(\tB\007\272H\004r\002\020\001R\005runId\"P" +
-      "\n\rRunFileMounts\022?\n\007entries\030\001 \003(\0132%.ai.st" +
-      "igmer.agentic.file.v1.FileMountR\007entries" +
-      "\"\255\001\n\tFileMount\022\027\n\007file_id\030\001 \001(\tR\006fileId\022" +
-      "\035\n\nmount_path\030\002 \001(\tR\tmountPath\022\032\n\010filena" +
-      "me\030\003 \001(\tR\010filename\022\033\n\tmime_type\030\004 \001(\tR\010m" +
-      "imeType\022\035\n\nsize_bytes\030\005 \001(\003R\tsizeBytes\022\020" +
-      "\n\003url\030\006 \001(\tR\003url\"\222\001\n\030CreateOutputUploads" +
-      "Input\022\036\n\006run_id\030\001 \001(\tB\007\272H\004r\002\020\001R\005runId\022V\n" +
-      "\007entries\030\002 \003(\0132/.ai.stigmer.agentic.file" +
-      ".v1.OutputUploadRequestB\013\272H\010\222\001\005\010\001\020\364\003R\007en" +
-      "tries\"j\n\023OutputUploadRequest\022+\n\013output_p" +
-      "ath\030\001 \001(\tB\n\272H\007r\005\020\001\030\200\010R\noutputPath\022&\n\nsiz" +
-      "e_bytes\030\002 \001(\003B\007\272H\004\"\002 \000R\tsizeBytes\"S\n\rOut" +
-      "putUploads\022B\n\007entries\030\001 \003(\0132(.ai.stigmer" +
-      ".agentic.file.v1.OutputUploadR\007entries\"\201" +
-      "\001\n\014OutputUpload\022\037\n\013output_path\030\001 \001(\tR\nou" +
-      "tputPath\022\035\n\nupload_ref\030\002 \001(\tR\tuploadRef\022" +
-      "\020\n\003url\030\003 \001(\tR\003url\022\037\n\013ttl_seconds\030\004 \001(\005R\n" +
-      "ttlSeconds\"\213\001\n\024RegisterOutputsInput\022\036\n\006r" +
-      "un_id\030\001 \001(\tB\007\272H\004r\002\020\001R\005runId\022S\n\007entries\030\002" +
-      " \003(\0132,.ai.stigmer.agentic.file.v1.Output" +
-      "ToRegisterB\013\272H\010\222\001\005\010\001\020\364\003R\007entries\"\245\001\n\020Out" +
-      "putToRegister\022+\n\013output_path\030\001 \001(\tB\n\272H\007r" +
-      "\005\020\001\030\200\010R\noutputPath\022&\n\nupload_ref\030\002 \001(\tB\007" +
-      "\272H\004r\002\020\001R\tuploadRef\022<\n\016content_sha256\030\003 \001" +
-      "(\tB\025\272H\022r\0202\016^[0-9a-f]{64}$R\rcontentSha256" +
-      "\"K\n\021RegisteredOutputs\0226\n\005files\030\001 \003(\0132 .a" +
-      "i.stigmer.agentic.file.v1.FileR\005files2\202\003" +
-      "\n\021RunFileController\022l\n\005mount\022..ai.stigme" +
-      "r.agentic.file.v1.MountRunFilesInput\032).a" +
-      "i.stigmer.agentic.file.v1.RunFileMounts\"" +
-      "\010\320\270\030\001\330\270\030\001\022\200\001\n\023createOutputUploads\0224.ai.s" +
-      "tigmer.agentic.file.v1.CreateOutputUploa" +
-      "dsInput\032).ai.stigmer.agentic.file.v1.Out" +
-      "putUploads\"\010\320\270\030\001\330\270\030\001\022|\n\017registerOutputs\022" +
-      "0.ai.stigmer.agentic.file.v1.RegisterOut" +
-      "putsInput\032-.ai.stigmer.agentic.file.v1.R" +
-      "egisteredOutputs\"\010\320\270\030\001\330\270\030\001B\234\001B\rRunFilesP" +
-      "rotoP\001\242\002\004ASAF\252\002\032Ai.Stigmer.Agentic.File." +
-      "V1\312\002\032Ai\\Stigmer\\Agentic\\File\\V1\342\002&Ai\\Sti" +
-      "gmer\\Agentic\\File\\V1\\GPBMetadata\352\002\036Ai::S" +
-      "tigmer::Agentic::File::V1b\006proto3"
+      "sInput\022\036\n\006run_id\030\001 \001(\tB\007\272H\004r\002\020\001R\005runId\"\221" +
+      "\001\n\rRunFileMounts\022?\n\007entries\030\001 \003(\0132%.ai.s" +
+      "tigmer.agentic.file.v1.FileMountR\007entrie" +
+      "s\022?\n\007outputs\030\002 \003(\0132%.ai.stigmer.agentic." +
+      "file.v1.FileMountR\007outputs\"\255\001\n\tFileMount" +
+      "\022\027\n\007file_id\030\001 \001(\tR\006fileId\022\035\n\nmount_path\030" +
+      "\002 \001(\tR\tmountPath\022\032\n\010filename\030\003 \001(\tR\010file" +
+      "name\022\033\n\tmime_type\030\004 \001(\tR\010mimeType\022\035\n\nsiz" +
+      "e_bytes\030\005 \001(\003R\tsizeBytes\022\020\n\003url\030\006 \001(\tR\003u" +
+      "rl\"\222\001\n\030CreateOutputUploadsInput\022\036\n\006run_i" +
+      "d\030\001 \001(\tB\007\272H\004r\002\020\001R\005runId\022V\n\007entries\030\002 \003(\013" +
+      "2/.ai.stigmer.agentic.file.v1.OutputUplo" +
+      "adRequestB\013\272H\010\222\001\005\010\001\020\364\003R\007entries\"j\n\023Outpu" +
+      "tUploadRequest\022+\n\013output_path\030\001 \001(\tB\n\272H\007" +
+      "r\005\020\001\030\200\010R\noutputPath\022&\n\nsize_bytes\030\002 \001(\003B" +
+      "\007\272H\004\"\002 \000R\tsizeBytes\"S\n\rOutputUploads\022B\n\007" +
+      "entries\030\001 \003(\0132(.ai.stigmer.agentic.file." +
+      "v1.OutputUploadR\007entries\"\201\001\n\014OutputUploa" +
+      "d\022\037\n\013output_path\030\001 \001(\tR\noutputPath\022\035\n\nup" +
+      "load_ref\030\002 \001(\tR\tuploadRef\022\020\n\003url\030\003 \001(\tR\003" +
+      "url\022\037\n\013ttl_seconds\030\004 \001(\005R\nttlSeconds\"\213\001\n" +
+      "\024RegisterOutputsInput\022\036\n\006run_id\030\001 \001(\tB\007\272" +
+      "H\004r\002\020\001R\005runId\022S\n\007entries\030\002 \003(\0132,.ai.stig" +
+      "mer.agentic.file.v1.OutputToRegisterB\013\272H" +
+      "\010\222\001\005\010\001\020\364\003R\007entries\"\245\001\n\020OutputToRegister\022" +
+      "+\n\013output_path\030\001 \001(\tB\n\272H\007r\005\020\001\030\200\010R\noutput" +
+      "Path\022&\n\nupload_ref\030\002 \001(\tB\007\272H\004r\002\020\001R\tuploa" +
+      "dRef\022<\n\016content_sha256\030\003 \001(\tB\025\272H\022r\0202\016^[0" +
+      "-9a-f]{64}$R\rcontentSha256\"K\n\021Registered" +
+      "Outputs\0226\n\005files\030\001 \003(\0132 .ai.stigmer.agen" +
+      "tic.file.v1.FileR\005files2\202\003\n\021RunFileContr" +
+      "oller\022l\n\005mount\022..ai.stigmer.agentic.file" +
+      ".v1.MountRunFilesInput\032).ai.stigmer.agen" +
+      "tic.file.v1.RunFileMounts\"\010\320\270\030\001\330\270\030\001\022\200\001\n\023" +
+      "createOutputUploads\0224.ai.stigmer.agentic" +
+      ".file.v1.CreateOutputUploadsInput\032).ai.s" +
+      "tigmer.agentic.file.v1.OutputUploads\"\010\320\270" +
+      "\030\001\330\270\030\001\022|\n\017registerOutputs\0220.ai.stigmer.a" +
+      "gentic.file.v1.RegisterOutputsInput\032-.ai" +
+      ".stigmer.agentic.file.v1.RegisteredOutpu" +
+      "ts\"\010\320\270\030\001\330\270\030\001B\234\001B\rRunFilesProtoP\001\242\002\004ASAF\252" +
+      "\002\032Ai.Stigmer.Agentic.File.V1\312\002\032Ai\\Stigme" +
+      "r\\Agentic\\File\\V1\342\002&Ai\\Stigmer\\Agentic\\F" +
+      "ile\\V1\\GPBMetadata\352\002\036Ai::Stigmer::Agenti" +
+      "c::File::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -152,7 +154,7 @@ public final class RunFilesProto extends com.google.protobuf.GeneratedFile {
     internal_static_ai_stigmer_agentic_file_v1_RunFileMounts_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_file_v1_RunFileMounts_descriptor,
-        new java.lang.String[] { "Entries", });
+        new java.lang.String[] { "Entries", "Outputs", });
     internal_static_ai_stigmer_agentic_file_v1_FileMount_descriptor =
       getDescriptor().getMessageType(2);
     internal_static_ai_stigmer_agentic_file_v1_FileMount_fieldAccessorTable = new

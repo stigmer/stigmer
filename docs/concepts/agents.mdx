@@ -363,6 +363,29 @@ names the thing to remove:
 - **Each message**, when a Plugin it uses has since gained a hook or a local
   program.
 
+### Its files, without a computer
+
+An Agent without a computer still has files, just not on a disk. Its file tools
+see the same paths they would with a computer:
+
+| Path                | What it holds                                                                                                                                                                                                            |
+| ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `/`                 | The Agent's own notes. They're kept with the conversation, so a note written in one message is there in the next, and its subagents share them. A note holds up to 256 KB, and a conversation's notes up to 1 MB.        |
+| `.stigmer/uploads/` | The conversation's uploaded files, read when the Agent opens one (up to 8 MB a file).                                                                                                                                    |
+| `.stigmer/outputs/` | What the Agent saves for the person. It comes back as the conversation's Files when the message ends, and the Agent finds it there in later messages and can save a new version (up to 8 MB a file and 32 MB a message). |
+| `.stigmer/skills/`  | Its [Skills](/docs/concepts/skills), read from the store one file at a time.                                                                                                                                             |
+
+A tool result too long to keep whole is set aside where the Agent can read it
+back, outside the conversation's saved history. A file past a limit is refused
+with a sentence the Agent reads, so it can shorten what it writes or tell the
+person.
+
+Saving an Agent without a computer that uses a Skill with scripts warns that it
+can't run them: `stigmer apply` prints the warning, `stigmer get agent` lists
+it, and the console shows it under the switch. The Agent can still read the
+scripts. An eval case that builds its starting folder with a script doesn't run
+for such an Agent; its row reads "not run: needs a computer".
+
 A new Agent that doesn't name `computer` gets one (`COMPUTER_REQUIRED`), and an
 Agent saved before the setting existed keeps the one it had. Saving an Agent
 again without the field keeps what it has, so a YAML file written before the

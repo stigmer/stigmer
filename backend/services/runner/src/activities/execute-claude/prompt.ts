@@ -49,7 +49,7 @@ import { open, realpath } from "node:fs/promises";
 import { basename, dirname, isAbsolute, join, relative } from "node:path";
 import { InteractionMode } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 
-import type { TurnInput } from "../../harness/types.js";
+import type { ComputerTurnInput } from "../../harness/types.js";
 import { subagentPromptExtras } from "../../shared/subagents.js";
 import { effectiveInstructions } from "../../shared/builtin-assistant-prompt.js";
 import { formatChannelTemplatesSection } from "../../shared/channel-attachment.js";
@@ -87,7 +87,7 @@ const MAX_INSTRUCTION_FILE_BYTES = 4 * 1024 * 1024;
 
 /** The system prompt's append for one turn (the header's order). */
 export function composeSystemAppend(
-  input: TurnInput,
+  input: ComputerTurnInput,
   recalledMemories: RecalledMemoriesContent | undefined,
   repositoryInstructionsSection: string,
   ownSkillsSection = "",
@@ -214,7 +214,7 @@ export function workspaceInstructionReader(primaryDir: string): InstructionReade
  * highlighted, then the conversation catchup, then what the person typed,
  * each set off by a rule (the header).
  */
-export function composeTurnMessage(input: TurnInput): string {
+export function composeTurnMessage(input: ComputerTurnInput): string {
   const spec = input.execution.spec!;
   const primaryDir = input.workspace.primaryDir;
   const parts: string[] = [];
@@ -233,13 +233,13 @@ export function composeTurnMessage(input: TurnInput): string {
 }
 
 /** The turn's file groups with each path made real: the engine's file tools take absolute paths. */
-function inRealPaths(files: TurnInput["files"], primaryDir: string): InputFileGroups {
+function inRealPaths(files: ComputerTurnInput["files"], primaryDir: string): InputFileGroups {
   const real = <T extends { readonly relativePath: string }>(file: T): T => ({ ...file, relativePath: join(primaryDir, file.relativePath) });
   return { message: files.message.map(real), conversation: files.conversation.map(real), references: files.references.map(real) };
 }
 
 /** The `## Input Files` part: the shared lines under this engine's intro. */
-function inputFilesPart(files: InputFileGroups, input: TurnInput): string {
+function inputFilesPart(files: InputFileGroups, input: ComputerTurnInput): string {
   const lines = inputFileLines(files, visionPromptInfoOf(input.files));
   let part =
     "## Input Files\n\nThese files were provided as read-only reference material for the task. " +

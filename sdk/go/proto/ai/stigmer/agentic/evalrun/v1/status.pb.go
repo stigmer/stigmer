@@ -589,8 +589,9 @@ type EvalRunCase struct {
 	// The case's tags.
 	CaseTags []string `protobuf:"bytes,3,rep,name=case_tags,json=caseTags,proto3" json:"case_tags,omitempty"`
 	// Why the case is not run, as in "not run: plugins" for a feature
-	// Stigmer does not run yet, or "not run: scaffold skipped"; empty when
-	// the case runs.
+	// Stigmer does not run yet, "not run: scaffold skipped", or "not run:
+	// needs a computer" for a case with a scaffold on an agent without one;
+	// empty when the case runs.
 	NotRunReason string `protobuf:"bytes,4,opt,name=not_run_reason,json=notRunReason,proto3" json:"not_run_reason,omitempty"`
 	// Results per target, in the eval run's target order.
 	Targets []*EvalRunCaseTarget `protobuf:"bytes,5,rep,name=targets,proto3" json:"targets,omitempty"`

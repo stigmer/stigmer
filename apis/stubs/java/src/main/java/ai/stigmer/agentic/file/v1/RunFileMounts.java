@@ -33,6 +33,7 @@ private static final long serialVersionUID = 0L;
   }
   private RunFileMounts() {
     entries_ = java.util.Collections.emptyList();
+    outputs_ = java.util.Collections.emptyList();
   }
 
   public static final com.google.protobuf.Descriptors.Descriptor
@@ -114,6 +115,72 @@ private static final long serialVersionUID = 0L;
     return entries_.get(index);
   }
 
+  public static final int OUTPUTS_FIELD_NUMBER = 2;
+  @SuppressWarnings("serial")
+  private java.util.List<ai.stigmer.agentic.file.v1.FileMount> outputs_;
+  /**
+   * <pre>
+   * The newest File the conversation's agent saved at each path of its
+   * outputs folder, each with mount_path relative to .stigmer/outputs/.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.file.v1.FileMount outputs = 2 [json_name = "outputs"];</code>
+   */
+  @java.lang.Override
+  public java.util.List<ai.stigmer.agentic.file.v1.FileMount> getOutputsList() {
+    return outputs_;
+  }
+  /**
+   * <pre>
+   * The newest File the conversation's agent saved at each path of its
+   * outputs folder, each with mount_path relative to .stigmer/outputs/.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.file.v1.FileMount outputs = 2 [json_name = "outputs"];</code>
+   */
+  @java.lang.Override
+  public java.util.List<? extends ai.stigmer.agentic.file.v1.FileMountOrBuilder> 
+      getOutputsOrBuilderList() {
+    return outputs_;
+  }
+  /**
+   * <pre>
+   * The newest File the conversation's agent saved at each path of its
+   * outputs folder, each with mount_path relative to .stigmer/outputs/.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.file.v1.FileMount outputs = 2 [json_name = "outputs"];</code>
+   */
+  @java.lang.Override
+  public int getOutputsCount() {
+    return outputs_.size();
+  }
+  /**
+   * <pre>
+   * The newest File the conversation's agent saved at each path of its
+   * outputs folder, each with mount_path relative to .stigmer/outputs/.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.file.v1.FileMount outputs = 2 [json_name = "outputs"];</code>
+   */
+  @java.lang.Override
+  public ai.stigmer.agentic.file.v1.FileMount getOutputs(int index) {
+    return outputs_.get(index);
+  }
+  /**
+   * <pre>
+   * The newest File the conversation's agent saved at each path of its
+   * outputs folder, each with mount_path relative to .stigmer/outputs/.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.file.v1.FileMount outputs = 2 [json_name = "outputs"];</code>
+   */
+  @java.lang.Override
+  public ai.stigmer.agentic.file.v1.FileMountOrBuilder getOutputsOrBuilder(
+      int index) {
+    return outputs_.get(index);
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -131,6 +198,9 @@ private static final long serialVersionUID = 0L;
     for (int i = 0; i < entries_.size(); i++) {
       output.writeMessage(1, entries_.get(i));
     }
+    for (int i = 0; i < outputs_.size(); i++) {
+      output.writeMessage(2, outputs_.get(i));
+    }
     getUnknownFields().writeTo(output);
   }
 
@@ -146,6 +216,15 @@ private static final long serialVersionUID = 0L;
           for (int i = 0; i < count; i++) {
             size += com.google.protobuf.CodedOutputStream
               .computeMessageSizeNoTag(entries_.get(i));
+          }
+          size += 1 * count;
+        }
+
+        {
+          final int count = outputs_.size();
+          for (int i = 0; i < count; i++) {
+            size += com.google.protobuf.CodedOutputStream
+              .computeMessageSizeNoTag(outputs_.get(i));
           }
           size += 1 * count;
         }
@@ -166,6 +245,8 @@ private static final long serialVersionUID = 0L;
 
     if (!getEntriesList()
         .equals(other.getEntriesList())) return false;
+    if (!getOutputsList()
+        .equals(other.getOutputsList())) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -180,6 +261,10 @@ private static final long serialVersionUID = 0L;
     if (getEntriesCount() > 0) {
       hash = (37 * hash) + ENTRIES_FIELD_NUMBER;
       hash = (53 * hash) + getEntriesList().hashCode();
+    }
+    if (getOutputsCount() > 0) {
+      hash = (37 * hash) + OUTPUTS_FIELD_NUMBER;
+      hash = (53 * hash) + getOutputsList().hashCode();
     }
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
@@ -323,6 +408,13 @@ private static final long serialVersionUID = 0L;
         entriesBuilder_.clear();
       }
       bitField0_ = (bitField0_ & ~0x00000001);
+      if (outputsBuilder_ == null) {
+        outputs_ = java.util.Collections.emptyList();
+      } else {
+        outputs_ = null;
+        outputsBuilder_.clear();
+      }
+      bitField0_ = (bitField0_ & ~0x00000002);
       return this;
     }
 
@@ -364,6 +456,15 @@ private static final long serialVersionUID = 0L;
         result.entries_ = entries_;
       } else {
         result.entries_ = entriesBuilder_.build();
+      }
+      if (outputsBuilder_ == null) {
+        if (((bitField0_ & 0x00000002) != 0)) {
+          outputs_ = java.util.Collections.unmodifiableList(outputs_);
+          bitField0_ = (bitField0_ & ~0x00000002);
+        }
+        result.outputs_ = outputs_;
+      } else {
+        result.outputs_ = outputsBuilder_.build();
       }
     }
 
@@ -409,6 +510,32 @@ private static final long serialVersionUID = 0L;
           }
         }
       }
+      if (outputsBuilder_ == null) {
+        if (!other.outputs_.isEmpty()) {
+          if (outputs_.isEmpty()) {
+            outputs_ = other.outputs_;
+            bitField0_ = (bitField0_ & ~0x00000002);
+          } else {
+            ensureOutputsIsMutable();
+            outputs_.addAll(other.outputs_);
+          }
+          onChanged();
+        }
+      } else {
+        if (!other.outputs_.isEmpty()) {
+          if (outputsBuilder_.isEmpty()) {
+            outputsBuilder_.dispose();
+            outputsBuilder_ = null;
+            outputs_ = other.outputs_;
+            bitField0_ = (bitField0_ & ~0x00000002);
+            outputsBuilder_ = 
+              com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders ?
+                 internalGetOutputsFieldBuilder() : null;
+          } else {
+            outputsBuilder_.addAllMessages(other.outputs_);
+          }
+        }
+      }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
       return this;
@@ -448,6 +575,19 @@ private static final long serialVersionUID = 0L;
               }
               break;
             } // case 10
+            case 18: {
+              ai.stigmer.agentic.file.v1.FileMount m =
+                  input.readMessage(
+                      ai.stigmer.agentic.file.v1.FileMount.parser(),
+                      extensionRegistry);
+              if (outputsBuilder_ == null) {
+                ensureOutputsIsMutable();
+                outputs_.add(m);
+              } else {
+                outputsBuilder_.addMessage(m);
+              }
+              break;
+            } // case 18
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -775,6 +915,336 @@ private static final long serialVersionUID = 0L;
         entries_ = null;
       }
       return entriesBuilder_;
+    }
+
+    private java.util.List<ai.stigmer.agentic.file.v1.FileMount> outputs_ =
+      java.util.Collections.emptyList();
+    private void ensureOutputsIsMutable() {
+      if (!((bitField0_ & 0x00000002) != 0)) {
+        outputs_ = new java.util.ArrayList<ai.stigmer.agentic.file.v1.FileMount>(outputs_);
+        bitField0_ |= 0x00000002;
+       }
+    }
+
+    private com.google.protobuf.RepeatedFieldBuilder<
+        ai.stigmer.agentic.file.v1.FileMount, ai.stigmer.agentic.file.v1.FileMount.Builder, ai.stigmer.agentic.file.v1.FileMountOrBuilder> outputsBuilder_;
+
+    /**
+     * <pre>
+     * The newest File the conversation's agent saved at each path of its
+     * outputs folder, each with mount_path relative to .stigmer/outputs/.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.file.v1.FileMount outputs = 2 [json_name = "outputs"];</code>
+     */
+    public java.util.List<ai.stigmer.agentic.file.v1.FileMount> getOutputsList() {
+      if (outputsBuilder_ == null) {
+        return java.util.Collections.unmodifiableList(outputs_);
+      } else {
+        return outputsBuilder_.getMessageList();
+      }
+    }
+    /**
+     * <pre>
+     * The newest File the conversation's agent saved at each path of its
+     * outputs folder, each with mount_path relative to .stigmer/outputs/.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.file.v1.FileMount outputs = 2 [json_name = "outputs"];</code>
+     */
+    public int getOutputsCount() {
+      if (outputsBuilder_ == null) {
+        return outputs_.size();
+      } else {
+        return outputsBuilder_.getCount();
+      }
+    }
+    /**
+     * <pre>
+     * The newest File the conversation's agent saved at each path of its
+     * outputs folder, each with mount_path relative to .stigmer/outputs/.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.file.v1.FileMount outputs = 2 [json_name = "outputs"];</code>
+     */
+    public ai.stigmer.agentic.file.v1.FileMount getOutputs(int index) {
+      if (outputsBuilder_ == null) {
+        return outputs_.get(index);
+      } else {
+        return outputsBuilder_.getMessage(index);
+      }
+    }
+    /**
+     * <pre>
+     * The newest File the conversation's agent saved at each path of its
+     * outputs folder, each with mount_path relative to .stigmer/outputs/.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.file.v1.FileMount outputs = 2 [json_name = "outputs"];</code>
+     */
+    public Builder setOutputs(
+        int index, ai.stigmer.agentic.file.v1.FileMount value) {
+      if (outputsBuilder_ == null) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        ensureOutputsIsMutable();
+        outputs_.set(index, value);
+        onChanged();
+      } else {
+        outputsBuilder_.setMessage(index, value);
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * The newest File the conversation's agent saved at each path of its
+     * outputs folder, each with mount_path relative to .stigmer/outputs/.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.file.v1.FileMount outputs = 2 [json_name = "outputs"];</code>
+     */
+    public Builder setOutputs(
+        int index, ai.stigmer.agentic.file.v1.FileMount.Builder builderForValue) {
+      if (outputsBuilder_ == null) {
+        ensureOutputsIsMutable();
+        outputs_.set(index, builderForValue.build());
+        onChanged();
+      } else {
+        outputsBuilder_.setMessage(index, builderForValue.build());
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * The newest File the conversation's agent saved at each path of its
+     * outputs folder, each with mount_path relative to .stigmer/outputs/.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.file.v1.FileMount outputs = 2 [json_name = "outputs"];</code>
+     */
+    public Builder addOutputs(ai.stigmer.agentic.file.v1.FileMount value) {
+      if (outputsBuilder_ == null) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        ensureOutputsIsMutable();
+        outputs_.add(value);
+        onChanged();
+      } else {
+        outputsBuilder_.addMessage(value);
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * The newest File the conversation's agent saved at each path of its
+     * outputs folder, each with mount_path relative to .stigmer/outputs/.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.file.v1.FileMount outputs = 2 [json_name = "outputs"];</code>
+     */
+    public Builder addOutputs(
+        int index, ai.stigmer.agentic.file.v1.FileMount value) {
+      if (outputsBuilder_ == null) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        ensureOutputsIsMutable();
+        outputs_.add(index, value);
+        onChanged();
+      } else {
+        outputsBuilder_.addMessage(index, value);
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * The newest File the conversation's agent saved at each path of its
+     * outputs folder, each with mount_path relative to .stigmer/outputs/.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.file.v1.FileMount outputs = 2 [json_name = "outputs"];</code>
+     */
+    public Builder addOutputs(
+        ai.stigmer.agentic.file.v1.FileMount.Builder builderForValue) {
+      if (outputsBuilder_ == null) {
+        ensureOutputsIsMutable();
+        outputs_.add(builderForValue.build());
+        onChanged();
+      } else {
+        outputsBuilder_.addMessage(builderForValue.build());
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * The newest File the conversation's agent saved at each path of its
+     * outputs folder, each with mount_path relative to .stigmer/outputs/.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.file.v1.FileMount outputs = 2 [json_name = "outputs"];</code>
+     */
+    public Builder addOutputs(
+        int index, ai.stigmer.agentic.file.v1.FileMount.Builder builderForValue) {
+      if (outputsBuilder_ == null) {
+        ensureOutputsIsMutable();
+        outputs_.add(index, builderForValue.build());
+        onChanged();
+      } else {
+        outputsBuilder_.addMessage(index, builderForValue.build());
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * The newest File the conversation's agent saved at each path of its
+     * outputs folder, each with mount_path relative to .stigmer/outputs/.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.file.v1.FileMount outputs = 2 [json_name = "outputs"];</code>
+     */
+    public Builder addAllOutputs(
+        java.lang.Iterable<? extends ai.stigmer.agentic.file.v1.FileMount> values) {
+      if (outputsBuilder_ == null) {
+        ensureOutputsIsMutable();
+        com.google.protobuf.AbstractMessageLite.Builder.addAll(
+            values, outputs_);
+        onChanged();
+      } else {
+        outputsBuilder_.addAllMessages(values);
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * The newest File the conversation's agent saved at each path of its
+     * outputs folder, each with mount_path relative to .stigmer/outputs/.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.file.v1.FileMount outputs = 2 [json_name = "outputs"];</code>
+     */
+    public Builder clearOutputs() {
+      if (outputsBuilder_ == null) {
+        outputs_ = java.util.Collections.emptyList();
+        bitField0_ = (bitField0_ & ~0x00000002);
+        onChanged();
+      } else {
+        outputsBuilder_.clear();
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * The newest File the conversation's agent saved at each path of its
+     * outputs folder, each with mount_path relative to .stigmer/outputs/.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.file.v1.FileMount outputs = 2 [json_name = "outputs"];</code>
+     */
+    public Builder removeOutputs(int index) {
+      if (outputsBuilder_ == null) {
+        ensureOutputsIsMutable();
+        outputs_.remove(index);
+        onChanged();
+      } else {
+        outputsBuilder_.remove(index);
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * The newest File the conversation's agent saved at each path of its
+     * outputs folder, each with mount_path relative to .stigmer/outputs/.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.file.v1.FileMount outputs = 2 [json_name = "outputs"];</code>
+     */
+    public ai.stigmer.agentic.file.v1.FileMount.Builder getOutputsBuilder(
+        int index) {
+      return internalGetOutputsFieldBuilder().getBuilder(index);
+    }
+    /**
+     * <pre>
+     * The newest File the conversation's agent saved at each path of its
+     * outputs folder, each with mount_path relative to .stigmer/outputs/.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.file.v1.FileMount outputs = 2 [json_name = "outputs"];</code>
+     */
+    public ai.stigmer.agentic.file.v1.FileMountOrBuilder getOutputsOrBuilder(
+        int index) {
+      if (outputsBuilder_ == null) {
+        return outputs_.get(index);  } else {
+        return outputsBuilder_.getMessageOrBuilder(index);
+      }
+    }
+    /**
+     * <pre>
+     * The newest File the conversation's agent saved at each path of its
+     * outputs folder, each with mount_path relative to .stigmer/outputs/.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.file.v1.FileMount outputs = 2 [json_name = "outputs"];</code>
+     */
+    public java.util.List<? extends ai.stigmer.agentic.file.v1.FileMountOrBuilder> 
+         getOutputsOrBuilderList() {
+      if (outputsBuilder_ != null) {
+        return outputsBuilder_.getMessageOrBuilderList();
+      } else {
+        return java.util.Collections.unmodifiableList(outputs_);
+      }
+    }
+    /**
+     * <pre>
+     * The newest File the conversation's agent saved at each path of its
+     * outputs folder, each with mount_path relative to .stigmer/outputs/.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.file.v1.FileMount outputs = 2 [json_name = "outputs"];</code>
+     */
+    public ai.stigmer.agentic.file.v1.FileMount.Builder addOutputsBuilder() {
+      return internalGetOutputsFieldBuilder().addBuilder(
+          ai.stigmer.agentic.file.v1.FileMount.getDefaultInstance());
+    }
+    /**
+     * <pre>
+     * The newest File the conversation's agent saved at each path of its
+     * outputs folder, each with mount_path relative to .stigmer/outputs/.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.file.v1.FileMount outputs = 2 [json_name = "outputs"];</code>
+     */
+    public ai.stigmer.agentic.file.v1.FileMount.Builder addOutputsBuilder(
+        int index) {
+      return internalGetOutputsFieldBuilder().addBuilder(
+          index, ai.stigmer.agentic.file.v1.FileMount.getDefaultInstance());
+    }
+    /**
+     * <pre>
+     * The newest File the conversation's agent saved at each path of its
+     * outputs folder, each with mount_path relative to .stigmer/outputs/.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.file.v1.FileMount outputs = 2 [json_name = "outputs"];</code>
+     */
+    public java.util.List<ai.stigmer.agentic.file.v1.FileMount.Builder> 
+         getOutputsBuilderList() {
+      return internalGetOutputsFieldBuilder().getBuilderList();
+    }
+    private com.google.protobuf.RepeatedFieldBuilder<
+        ai.stigmer.agentic.file.v1.FileMount, ai.stigmer.agentic.file.v1.FileMount.Builder, ai.stigmer.agentic.file.v1.FileMountOrBuilder> 
+        internalGetOutputsFieldBuilder() {
+      if (outputsBuilder_ == null) {
+        outputsBuilder_ = new com.google.protobuf.RepeatedFieldBuilder<
+            ai.stigmer.agentic.file.v1.FileMount, ai.stigmer.agentic.file.v1.FileMount.Builder, ai.stigmer.agentic.file.v1.FileMountOrBuilder>(
+                outputs_,
+                ((bitField0_ & 0x00000002) != 0),
+                getParentForChildren(),
+                isClean());
+        outputs_ = null;
+      }
+      return outputsBuilder_;
     }
 
     // @@protoc_insertion_point(builder_scope:ai.stigmer.agentic.file.v1.RunFileMounts)

@@ -111,7 +111,8 @@ export async function runDeepAgentTurn(
     const workspace = buildDeepAgentWorkspace(input);
     // What this engine observes touching CAS-owned paths — the one capture
     // fact the runtime cannot read from the tree (`harness/capture.ts`).
-    sink.bindCasObservations(() => workspace.casObserver.snapshot());
+    // A turn without a computer has no tree, and binds nothing.
+    if (workspace.kind === "disk") sink.bindCasObservations(() => workspace.casObserver.snapshot());
     const tools = await connectTools(input, sink);
     connection = tools.connection;
     if (sink.stopSignal.aborted) return { kind: "interrupted" };

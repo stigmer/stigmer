@@ -19,10 +19,10 @@ import type { TurnInput, TurnSink, TurnSubagent } from "../../harness/types.js";
 import { hookServerNamesOf } from "../../shared/hooks/tool-view.js";
 import { normalizeWorkspacePathArg } from "../../middleware/path-normalization.js";
 import type { HookEvaluator, HookPermissionMode } from "../../shared/hooks/evaluate.js";
-import { buildHookEvaluator as buildEvaluator, hookPermissionMode } from "../../shared/hooks/setup.js";
+import { buildHookEvaluator as buildEvaluator, hookPermissionMode, HookSetupError } from "../../shared/hooks/setup.js";
 import { StigmerToolViews } from "../../shared/hooks/tool-view.js";
 
-export { HookSetupError } from "../../shared/hooks/setup.js";
+export { HookSetupError };
 
 /**
  * The turn's hook evaluator, or `null` when the agent has no hook this
@@ -35,6 +35,13 @@ export async function buildHookEvaluator(
   stallTimeoutMs: number,
   subagent?: TurnSubagent,
 ): Promise<HookEvaluator | null> {
+  if (!input.workspace.computer) {
+    // A hook is a command, and a conversation without a computer runs
+    // none: the server refuses such an agent at save and at each turn, and
+    // a turn that still carries one is refused here, never run without it.
+    if (input.hooks.sources.length === 0 && (subagent?.hooks.length ?? 0) === 0) return null;
+    throw new HookSetupError("this agent has hooks, which run commands, and it has no computer to run them on; remove the hooks or give the agent a computer");
+  }
   const primaryDir = input.workspace.primaryDir;
   const serverNames = new Map([...input.hooks.serverNames, ...hookServerNamesOf(subagent?.servers ?? [])]);
   return buildEvaluator({

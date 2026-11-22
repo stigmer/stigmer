@@ -139,7 +139,8 @@ An Agent opens a Skill's files one at a time, as it needs them. It reads
 fetched alone and checked against the version you pushed. An Agent without a
 [computer](/docs/concepts/agents#a-computer-or-none) keeps no copy of its Skills
 at all, so if its 50 MB Skill's job needs one 4 KB reference, it moves about 4
-KB, not the whole archive.
+KB, not the whole archive. It can read a Skill's `scripts/` but not run them,
+and saving it with a Skill that has scripts says so.
 
 An Agent with a computer, which every Agent on the Claude harness has, also gets
 each Skill as files its commands can run, such as the Skill's `scripts/`, so it

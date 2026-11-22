@@ -665,7 +665,7 @@ EvalRunCase is one case of the suite and its results.
     caseName: { type: "string", description: "The case's name, from its case.yaml or its directory." },
     path: { type: "string", description: "The case's directory, relative to the plugin's root, as in \"evals/review-fires\", or to the Eval's, as in \"review-fires\"." },
     caseTags: { type: "string[]", description: "The case's tags." },
-    notRunReason: { type: "string", description: "Why the case is not run, as in \"not run: plugins\" for a feature Stigmer does not run yet, or \"not run: scaffold skipped\"; empty when the case runs." },
+    notRunReason: { type: "string", description: "Why the case is not run, as in \"not run: plugins\" for a feature Stigmer does not run yet, \"not run: scaffold skipped\", or \"not run: needs a computer\" for a case with a scaffold on an agent without one; empty when the case runs." },
     targets: { type: "EvalRunCaseTarget[]", description: "Results per target, in the eval run's target order.", typeDescriptionLink: "#evalruncasetarget" },
     notes: { type: "string[]", description: "Notes about how the case was run, as in \"max_turns 4 raised to the run's minimum of 10 tool rounds\"." },
     mockedServers: { type: "EvalRunMockedServer[]", description: "The MCP servers the case answers with mocks, and those it leaves unstarted, as Claude Code's mocked: line: a plugin's servers for a plugin's case; the agent's and its plugins' servers for an Eval's.", typeDescriptionLink: "#evalrunmockedserver" },

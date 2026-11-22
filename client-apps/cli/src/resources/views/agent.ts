@@ -3,8 +3,11 @@
 // skills, MCP servers, tools, subagents and plugins it works with; whether
 // its conversations have a computer, the Environment they run in and the
 // values it declares; the
-// settings a run starts from. Everything comes from the agent itself
-// (apis/ai/stigmer/agentic/agent/v1/spec.proto); `-o yaml` prints it whole.
+// settings a run starts from; and what its last save warned of
+// (status.warnings), such as a skill whose scripts an agent without a
+// computer cannot run. Everything comes from the agent itself
+// (apis/ai/stigmer/agentic/agent/v1/spec.proto and status.proto); `-o yaml`
+// prints it whole.
 
 import type { JsonValue } from "@bufbuild/protobuf";
 import { asObject, audited, instant, type JsonObject, obj, runSettingFields, str } from "../render.js";
@@ -40,6 +43,7 @@ export const agentView: KindView = {
         ],
       },
       { title: "Run settings", fields: runSettingFields(spec, {}) },
+      { title: "Warnings", lines: objects(obj(json, "status").warnings).map((warning) => str(warning, "message")) },
     ];
   },
 };

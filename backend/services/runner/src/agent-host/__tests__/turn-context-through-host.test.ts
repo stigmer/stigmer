@@ -17,6 +17,9 @@ import { turnInputFixture } from "../../__test-utils__/turn-input-fixture.js";
 import { NO_TURN_INPUT } from "../../harness/turn-input.js";
 import { currentRunCredential, withRunCredential } from "../../shared/run-credential-store.js";
 import { ArchiveFileNotFoundError, type TurnArchiveFiles } from "../../shared/archive-reader.js";
+import { InputFileNotFoundError } from "../../shared/inputs-reader.js";
+import { newOutputsBuffer } from "../../shared/outputs-buffer.js";
+import type { TurnStoreFiles } from "../../harness/types.js";
 
 describe("the agent host's calls to the runtime", () => {
   it("run in the turn's context, with the run credential the activity entered", async () => {
@@ -142,5 +145,71 @@ describe("the agent host's calls to the runtime", () => {
 
     expect(answers[0]).toBe("not found: skills/notes/nothing.md");
     expect(answers[1], "any other failure crosses as itself, never as not found").toContain("the store is unreachable");
+  });
+
+  it("serve a turn without a computer its files across the host, each call answered by the runner", async () => {
+    const seen: Record<string, unknown> = {};
+    const row = loopbackHostedRow({
+      harness: "stigmer",
+      adapter: {
+        name: "store-probe",
+        capabilities: DEEP_AGENT_CAPABILITIES,
+        boot: async () => {},
+        shutdown: async () => {},
+        releaseSession: async () => {},
+        runTurn: async (input) => {
+          if (input.workspace.computer) return { kind: "completed" };
+          const { inputs, outputs, offloads } = input.workspace.files;
+          seen.listed = (await inputs.list()).map((file) => file.path);
+          seen.read = new TextDecoder().decode(await inputs.read("uploads/brief.txt"));
+          seen.missing = await inputs.read("uploads/none.txt").then(
+            () => "found",
+            (err: unknown) => (err instanceof InputFileNotFoundError ? "not found" : String(err)),
+          );
+          await outputs.write("reply.md", new TextEncoder().encode("v1"));
+          seen.output = new TextDecoder().decode((await outputs.read("reply.md")) ?? new Uint8Array());
+          seen.outputs = (await outputs.list()).map((file) => file.path);
+          seen.noOutput = await outputs.read("none.md");
+          seen.deleted = await outputs.delete("reply.md");
+          const key = await offloads!.put(new TextEncoder().encode("kept"));
+          seen.kept = new TextDecoder().decode(await offloads!.read(key));
+          return { kind: "completed" };
+        },
+      },
+    });
+    await row.adapter.boot(testConfig());
+    const files = new Map([["uploads/brief.txt", "brief"]]);
+    const kept = new Map<string, Uint8Array>();
+    const store: TurnStoreFiles = {
+      inputs: {
+        list: async () => [...files.keys()].map((path) => ({ path, size: 5, fileId: "file_1", mimeType: "text/plain" })),
+        read: async (path) => {
+          const text = files.get(path);
+          if (text === undefined) throw new InputFileNotFoundError(path);
+          return new TextEncoder().encode(text);
+        },
+      },
+      outputs: newOutputsBuffer(),
+      offloads: {
+        put: async (bytes) => {
+          kept.set("key_1", bytes);
+          return "key_1";
+        },
+        read: async (key) => kept.get(key) ?? new Uint8Array(),
+      },
+    };
+
+    await row.adapter.runTurn({ ...turnInputFixture(), workspace: { computer: false, files: store } }, new RecordingTurnSink());
+
+    expect(seen).toEqual({
+      listed: ["uploads/brief.txt"],
+      read: "brief",
+      missing: "not found",
+      output: "v1",
+      outputs: ["reply.md"],
+      noOutput: undefined,
+      deleted: true,
+      kept: "kept",
+    });
   });
 });

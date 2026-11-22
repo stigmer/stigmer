@@ -208,6 +208,7 @@ function everythingInput(shape: EverythingShape): TurnInput {
     execution,
     skills: { root: [...shape.skills], bySubAgent: new Map() },
     workspace: {
+      computer: true,
       dirs: ["/ws"],
       primaryDir: "/ws",
       gitWorkspace: false,
