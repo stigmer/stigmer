@@ -110,7 +110,7 @@ const saved = new Map<string, string | undefined>();
 beforeAll(async () => {
   await upstream.start();
   proxy = await AgentProxy.start(testConfig({ proxyEndpoint: null }));
-  proxy.authorizeHost(HOST_TOKEN);
+  proxy.authorizeHost("open", HOST_TOKEN);
   closeTurn = proxy.openTurn({ executionId: EXECUTION, threadId: "thread-ses-lanes", turnKey: TURN_KEY });
 });
 

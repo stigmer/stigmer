@@ -41,6 +41,9 @@ import { Peer, type LineChannel } from "./channel.js";
 import { serveExec, serveFs } from "./fs-service.js";
 import { decodeTurnInput, encodeAdapterProjection, encodeCasSnapshot } from "./codec.js";
 import { HostTurn, type HostPeer } from "./host-sink.js";
+import { CheckpointFiles } from "./checkpoint-files.js";
+import { currentFence } from "./fence.js";
+import { RelayedCheckpointRows } from "../shared/checkpointer/relayed-rows.js";
 import {
   AGENT_HOST_PROTOCOL_VERSION,
   toWireErrorChain,
@@ -74,6 +77,7 @@ export function serveAgentHost(channel: LineChannel, rows: readonly HarnessRow[]
   const turns = new Map<string, HostTurn>();
   const keys = new Map<string, Buffer>();
   const booted: HarnessRow[] = [];
+  const checkpointFiles = new CheckpointFiles();
   let configured: { readonly wire: HostConfigWire; readonly done: Promise<void> } | undefined;
 
   // The first boot's configuration is the host's; every boot waits until the
@@ -116,6 +120,12 @@ export function serveAgentHost(channel: LineChannel, rows: readonly HarnessRow[]
   // The runtime's operations on the agent's paths, performed with the agent's rights.
   peer.handle("fs", (request) => serveFs(request));
   peer.handle("exec", (request) => serveExec(request));
+  // A locked host's saved state, on its session's file, for the session the runner names.
+  peer.handle("checkpointRows", ({ sessionId, op }) => checkpointFiles.serve(sessionId, op));
+  peer.handle("closeCheckpointRows", async ({ sessionId }) => {
+    checkpointFiles.close(sessionId);
+    return null;
+  });
 
   peer.handle("runTurn", async (args): Promise<WireSettlement> => {
     const { turnId, harness, input: wireInput } = args;
@@ -155,6 +165,7 @@ export function serveAgentHost(channel: LineChannel, rows: readonly HarnessRow[]
           put: async (bytes) => peer.call("putTurnOffload", { turnId, content: Buffer.from(bytes).toString("base64") }),
           read: async (key) => new Uint8Array(Buffer.from(await peer.call("readTurnOffload", { turnId, key }), "base64")),
         },
+        checkpointRows: new RelayedCheckpointRows((op) => peer.call("checkpointRows", { turnId, op })),
       },
     });
     const turn = new HostTurn(peer, turnId, input, args.status, args.rows, args.timing);
@@ -191,7 +202,8 @@ export function serveAgentHost(channel: LineChannel, rows: readonly HarnessRow[]
     }
   });
 
-  peer.sendHello(AGENT_HOST_PROTOCOL_VERSION);
+  peer.sendHello(AGENT_HOST_PROTOCOL_VERSION, { fence: currentFence() });
+  peer.onClose(() => checkpointFiles.closeAll());
   return {
     closed: new Promise((resolve) => peer.onClose(resolve)),
     fingerprintKey: (executionId) => keys.get(executionId),

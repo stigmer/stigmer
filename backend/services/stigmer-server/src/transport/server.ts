@@ -30,6 +30,13 @@
  *                                                   everything under the
  *                                                   prefix, OPTIONS
  *                                                   included)
+ *      prefix       /v1/mcp/                       (the platform MCP lane:
+ *                                                   memory, channels and
+ *                                                   conversation rosters;
+ *                                                   absent unless a
+ *                                                   composed unit declares
+ *                                                   servesPlatformMcp,
+ *                                                   mcp/lane.ts)
  *      prefix       /temporal.api.workflowservice.v1.WorkflowService/
  *                                                  (the Temporal worker
  *                                                   lane: a sandboxed
@@ -67,6 +74,7 @@ import {
   MAX_MESSAGE_BYTES,
   MODEL_REGISTRY_PATH,
   OAUTH_CLIENT_DOCUMENT_PATH,
+  PLATFORM_MCP_PATH_PREFIX,
   RUNNER_ARTIFACT_DOWNLOAD_PATH,
   RUNNER_ARTIFACT_UPLOAD_PATH,
   SHUTDOWN_DRAIN_TIMEOUT_MS,
@@ -117,6 +125,13 @@ export interface UnifiedPortServerOptions {
    * through to the adapter's 404.
    */
   managedAgentsLane?: LaneHandler;
+  /**
+   * Lane 2: the platform MCP lane (mcp/lane.ts), the memory, channels and
+   * conversation rosters under `/v1/mcp/`. Present only when a composed
+   * unit declares `servesPlatformMcp`; absent, the prefix falls through to
+   * the adapter's 404, as every unknown path does.
+   */
+  platformMcpLane?: LaneHandler;
   /**
    * Lane 2: the Temporal worker lane (temporal-worker-door/lane.ts), the
    * only way a sandboxed runner reaches Temporal. It authenticates each
@@ -224,6 +239,13 @@ export function createUnifiedPortServer(
       path.startsWith(MANAGED_AGENTS_PATH_PREFIX)
     ) {
       options.managedAgentsLane(request, response);
+      return;
+    }
+    if (
+      options.platformMcpLane !== undefined &&
+      path.startsWith(PLATFORM_MCP_PATH_PREFIX)
+    ) {
+      options.platformMcpLane(request, response);
       return;
     }
     if (

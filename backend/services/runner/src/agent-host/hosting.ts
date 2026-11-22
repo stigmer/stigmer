@@ -1,6 +1,6 @@
 /**
  * The composition roots' one call into the agent host: start the local
- * proxy, set up the supervisor, and hand back the harness table with every
+ * proxy, set up the supervisors, and hand back the harness table with every
  * hosted harness's adapter replaced by its remote stand-in
  * (`remote-adapter.ts`). The roots then boot, bind, release and shut down
  * the returned rows exactly as they did the table itself; the registry
@@ -11,6 +11,13 @@
  * the runner's own user until a separating shape starts it as another one,
  * so the engines run in one kind of process everywhere and the one path is
  * the one every test sees.
+ *
+ * Two hosts over one proxy. The open host runs every turn with a computer
+ * and every operation on the agent's paths (`agentFs()`). The locked host
+ * (`fence.ts`) runs the Stigmer harness's turns without a computer, under
+ * Node's permission model, and starts at its first such turn: it is never
+ * handed an `fs` or `exec` call. Where the runner separates, both run as
+ * the agent user.
  *
  * The host sees the environment the agent's tools have always seen
  * (`environment.ts`). When the sandbox has an Environment with packages, the folders they
@@ -27,7 +34,7 @@ import { homedir } from "node:os";
 
 import type { Config } from "../config.js";
 import { HOSTED_HARNESSES } from "../harness-adapters.js";
-import type { HarnessRow } from "../harness/registry.js";
+import type { HarnessName, HarnessRow } from "../harness/registry.js";
 import { AgentProxy } from "../agent-proxy/server.js";
 import { agentHostEnvironment, withEnvironmentPath } from "./environment.js";
 import { startEnvironmentInstall } from "../environment/install.js";
@@ -35,9 +42,17 @@ import { sandboxEnvironmentFrom } from "../environment/spec.js";
 import { installAgentFs, refusingAgentFs } from "../shared/agent-fs.js";
 import { handOverToAgent, type HandoverIo } from "../shared/agent-handover.js";
 import { agentIdentity, prepareAgentSeparation, type AgentIdentity } from "../shared/agent-identity.js";
+import { fencedHostEnvironment } from "./fence.js";
 import { createRemoteAdapter } from "./remote-adapter.js";
 import { remoteAgentFs } from "./remote-fs.js";
 import { AgentHostSupervisor, processHostStarter, type HostStarter } from "./supervisor.js";
+
+/**
+ * The harnesses whose turns without a computer run in the locked host. The
+ * Claude engine is its own program, which no conversation without a
+ * computer runs (`execute-claude/turn.ts` refuses one).
+ */
+const FENCED_HARNESSES: ReadonlySet<HarnessName> = new Set<HarnessName>(["stigmer"]);
 
 /** The table the root runs, and what to release once its harnesses have shut down. */
 export interface HostedHarnesses {
@@ -49,6 +64,8 @@ export interface HostedHarnesses {
 export interface HostHarnessesOptions {
   /** How the host is started; the tests serve one in-process. Defaults to a child process. */
   readonly start?: HostStarter;
+  /** How the locked host is started; defaults to a child process under Node's permission model (`fence.ts`). */
+  readonly startFenced?: HostStarter;
   /** Who the host runs as; defaults to this process's facts (`shared/agent-identity.ts`). */
   readonly identity?: AgentIdentity | null;
   /** How a separating runner that cannot drop to the agent leaves; defaults to `process.exit`. */
@@ -79,11 +96,18 @@ export async function hostHarnesses(
   const environment = sandboxEnvironmentFrom();
   startEnvironmentInstall(environment);
   const proxy = await AgentProxy.start(config);
+  const hostEnvironment = (): NodeJS.ProcessEnv => withEnvironmentPath(agentHostEnvironment(), environment, identity);
   const supervisor = new AgentHostSupervisor({
     proxy,
-    start:
-      options.start ??
-      processHostStarter(() => withEnvironmentPath(agentHostEnvironment(), environment, identity)),
+    slot: "open",
+    start: options.start ?? processHostStarter(hostEnvironment),
+  });
+  const fenced = new AgentHostSupervisor({
+    proxy,
+    slot: "fenced",
+    fenced: true,
+    startOnFirstUse: true,
+    start: options.startFenced ?? processHostStarter(() => fencedHostEnvironment(hostEnvironment()), { fenced: true }),
   });
   // From here on, the runtime's operations on the agent's paths are the host's.
   const restoreFs = installAgentFs(
@@ -95,7 +119,15 @@ export async function hostHarnesses(
   return {
     rows: rows.map((row) =>
       HOSTED_HARNESSES.has(row.harness)
-        ? { harness: row.harness, adapter: createRemoteAdapter(row.harness, row.adapter, supervisor, proxy) }
+        ? {
+            harness: row.harness,
+            adapter: createRemoteAdapter(
+              row.harness,
+              row.adapter,
+              { open: supervisor, ...(FENCED_HARNESSES.has(row.harness) ? { fenced } : {}) },
+              proxy,
+            ),
+          }
         : row,
     ),
     close: async () => {

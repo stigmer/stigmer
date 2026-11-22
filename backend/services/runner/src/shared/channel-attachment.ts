@@ -47,6 +47,7 @@ import type { StigmerClient } from "../client/stigmer-client.js";
 import type { ResolvedMcpServer } from "./mcp-resolver.js";
 import { grpcTarget, SERVER_ADDRESS_ENV_KEY } from "./platform-server-address.js";
 import {
+  bridgeAddressing,
   stdioCredentialEnv,
   type SynthesizedAttachmentOptions,
 } from "./synthesized-attachment.js";
@@ -142,6 +143,7 @@ export function synthesizeChannelAttachment(
       ...base,
       connectionType: "http",
       url: options.bridgeEndpoint.replace(/\/+$/, "") + CHANNELS_ROUTE,
+      ...bridgeAddressing(options),
       headers: options.credential !== null && options.credential !== ""
         ? { Authorization: `Bearer ${options.credential}` }
         : undefined,

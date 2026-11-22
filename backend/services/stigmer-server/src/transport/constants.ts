@@ -52,6 +52,15 @@ export const OAUTH_CLIENT_DOCUMENT_PATH = "/v1/oauth/client.json";
  */
 export const MANAGED_AGENTS_PATH_PREFIX = "/v1/sessions/";
 /**
+ * The platform MCP lane (mcp/lane.ts): the memory, channels and
+ * conversation rosters, `/v1/mcp/memory`, `/v1/mcp/channels` and
+ * `/v1/mcp/conversation`, on a composition that declares
+ * `servesPlatformMcp`. A runner builds these URLs from the server address
+ * it already holds, for a turn whose agent program may start no local
+ * MCP child: a byte-pinned path, shared with the runner.
+ */
+export const PLATFORM_MCP_PATH_PREFIX = "/v1/mcp/";
+/**
  * The runner artifact lane (artifactstorage/runner-lane/lane.ts): a runner
  * asks for a short-lived URL on the artifact store's bucket for a key
  * under its run. Two exact paths, the runner's wire

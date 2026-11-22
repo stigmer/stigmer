@@ -115,7 +115,7 @@ function hostileHarness(
     releaseSession: async () => {},
     runTurn: async () => ({ kind: "completed" }),
   };
-  return createRemoteAdapter("stigmer", local, supervisor, proxy);
+  return createRemoteAdapter("stigmer", local, { open: supervisor }, proxy);
 }
 
 describe("a host that does not follow the rules", () => {

@@ -14,7 +14,11 @@
   "types": "./src/index.ts",
   "exports": {
     ".": "./src/index.ts",
-    "./docs": "./src/domains/docs/reader.ts"
+    "./docs": "./src/domains/docs/reader.ts",
+    "./http": {
+      "types": "./dist/http.d.ts",
+      "default": "./dist/http.js"
+    }
   },
   "scripts": {
     "start": "tsx src/cli/mcp-server-stigmer.ts",
@@ -50,6 +54,10 @@
       "./docs": {
         "types": "./dist/domains/docs/reader.d.ts",
         "import": "./dist/domains/docs/reader.js"
+      },
+      "./http": {
+        "types": "./dist/http.d.ts",
+        "import": "./dist/http.js"
       }
     }
   },

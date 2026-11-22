@@ -14,7 +14,7 @@
 import { mkdirSync } from "node:fs";
 import type { BaseMessage } from "@langchain/core/messages";
 import { ApprovalMode } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
-import type { Computer } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
+import { Computer } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
 
 import { savedAgentFixture } from "../../../__test-utils__/execution-record-fixture.js";
 import type { ScriptedClock, HermeticEnvironment } from "../../../__test-utils__/hermetic-activity.js";
@@ -65,7 +65,10 @@ export function stigmerCustomToolSubject(env: HermeticEnvironment, clock: Script
         ...(computer !== undefined ? { computer } : {}),
         ...(scenario.unattended === true ? { approvalMode: ApprovalMode.UNATTENDED } : {}),
         ...(scenario.agentTools !== undefined ? { tools: [...scenario.agentTools] } : {}),
-        ...(helper !== undefined ? { subagents: [savedAgentFixture("helper", { description: "Registers services.", instructions: HELPER_INSTRUCTIONS })] } : {}),
+        // A conversation without a computer lists only subagents without one.
+        ...(helper !== undefined
+          ? { subagents: [savedAgentFixture("helper", { description: "Registers services.", instructions: HELPER_INSTRUCTIONS, ...(computer === Computer.NONE ? { computer } : {}) })] }
+          : {}),
       });
       const read = new Map<string, ModelRead>();
       let mainTools: readonly string[] = [];

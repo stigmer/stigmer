@@ -200,6 +200,20 @@ export interface ServerExtension {
    */
   readonly requireAuthentication?: true;
   /**
+   * Serve the platform's MCP rosters (memory, channels, conversation and the
+   * full one) on the unified port under `/v1/mcp/` (transport/mcp/lane.ts):
+   * the address a runner gives a conversation without a computer, whose
+   * agent program may start no local MCP child. A composition that serves
+   * them elsewhere, or not at all, leaves it undeclared, and the prefix
+   * answers the adapter's 404 like any unknown path.
+   *
+   * Any unit may declare it (a fact about the composition, not a
+   * single-instance seam): the open-source edition's unit, the licensed
+   * enterprise unit and the conformance suite's library entry do. Typed as
+   * the literal `true`, as `requireAuthentication` is.
+   */
+  readonly servesPlatformMcp?: true;
+  /**
    * How an app installed on a person's computer signs in to this
    * composition (single-instance point): the identity provider's issuer,
    * the audience its access tokens carry here, and the public native
@@ -293,6 +307,13 @@ export interface ResolvedExtensions {
    * both name it.
    */
   readonly requireAuthentication: { readonly declaredBy: string } | undefined;
+  /**
+   * The units that declare `servesPlatformMcp`, in unit order, or undefined
+   * when none does (the lane is not composed).
+   */
+  readonly servesPlatformMcp:
+    | { readonly declaredBy: ReadonlyArray<string> }
+    | undefined;
   /**
    * The unit-declared native sign-in, with the declaring unit's name, or
    * undefined when no unit declares one. compose.ts holds it against the
@@ -508,6 +529,7 @@ export function resolveExtensions(
   let accessHistoryRetentionDays: number | undefined;
   let accessHistoryRetentionDeclaredBy: string | undefined;
   let requireAuthenticationDeclaredBy: string | undefined;
+  const servesPlatformMcpDeclaredBy: string[] = [];
   let nativeSignIn: NativeSignInDeclaration | undefined;
   let nativeSignInDeclaredBy: string | undefined;
   let authorizer: Authorizer | undefined;
@@ -647,6 +669,10 @@ export function resolveExtensions(
         );
       }
       requireAuthenticationDeclaredBy = unit.name;
+    }
+
+    if (unit.servesPlatformMcp !== undefined) {
+      servesPlatformMcpDeclaredBy.push(unit.name);
     }
 
     if (unit.nativeSignIn !== undefined) {
@@ -1112,6 +1138,10 @@ export function resolveExtensions(
     requireAuthentication:
       requireAuthenticationDeclaredBy !== undefined
         ? { declaredBy: requireAuthenticationDeclaredBy }
+        : undefined,
+    servesPlatformMcp:
+      servesPlatformMcpDeclaredBy.length > 0
+        ? { declaredBy: servesPlatformMcpDeclaredBy }
         : undefined,
     nativeSignIn:
       nativeSignIn !== undefined && nativeSignInDeclaredBy !== undefined

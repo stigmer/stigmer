@@ -72,6 +72,7 @@ import type { TurnArchiveFiles } from "../shared/archive-reader.js";
 import type { TurnInputFiles } from "../shared/inputs-reader.js";
 import type { TurnOutputFiles } from "../shared/outputs-buffer.js";
 import type { TurnOffloads } from "../shared/offload-store.js";
+import type { CheckpointRows } from "../shared/checkpointer/rows.js";
 import type { TurnInputChannel } from "./turn-input.js";
 import type { TranscriptMessage } from "@stigmer/eval-runtime";
 import type { Run, RunStatus } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
@@ -227,6 +228,14 @@ export interface TurnStoreFiles {
   readonly outputs: TurnOutputFiles;
   /** Where long results are set aside (`shared/offload-store.ts`); absent on a runner without artifact storage. */
   readonly offloads?: TurnOffloads;
+  /**
+   * The conversation's saved state as rows the runner stores, in the agent
+   * host that runs the turn (`shared/checkpointer/relayed-rows.ts`): set
+   * there, where the engine may open no file, and read by the engine's
+   * local saver in place of the session's file. Absent in the runner's own
+   * process.
+   */
+  readonly checkpointRows?: CheckpointRows;
 }
 
 /** The provisioned workspace (phase 2c) and the capture posture derived from it. */

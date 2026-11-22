@@ -355,13 +355,36 @@ need one when it is set up, not partway through a conversation, and each refusal
 names the thing to remove:
 
 - **Saving the Agent** with `Bash` in `tools`, its own `hooks`, an
-  `environment_ref`, a Plugin that runs hooks or starts a local MCP server, or a
-  subagent that has a computer.
+  `environment_ref`, a Plugin that runs hooks or starts a local MCP server, a
+  subagent that has a computer, or an MCP server (its own or a Plugin's) at an
+  address on the machine it runs on or a private network, such as
+  `http://localhost:3000/mcp` or `https://10.0.0.5/mcp`.
 - **Starting a conversation or a routine** on it with a git repository or a
   folder attached, an Environment, or the Claude harness. Uploaded files still
   work.
 - **Each message**, when a Plugin it uses has since gained a hook or a local
   program.
+
+### What it can reach
+
+A conversation without a computer reaches only the internet. Its `web_fetch` and
+its MCP servers can't reach the machine the conversation runs on or the private
+network around it, wherever that runs: a fetch of `http://localhost:3000/admin`
+is refused with a sentence the Agent reads, and an MCP server whose name turns
+out to point at a private address fails the message, naming the server.
+Operators who loosen these rules for their own runners don't loosen them for an
+Agent without a computer.
+
+Its memory, channels and conversation tools still work: the runner reaches them
+on the Stigmer server over the network, with the conversation's own credential.
+If the server doesn't offer them (an older server), the message goes on without
+them and the conversation says so.
+
+The program that runs such a conversation is started with Node's own lock on: it
+can't open a file, start a process or load native code, even by mistake. A
+runner that can't start it locked (an older Node, or a runner started from
+source during development) refuses these conversations with a sentence saying
+why, rather than run them unlocked.
 
 ### Its files, without a computer
 

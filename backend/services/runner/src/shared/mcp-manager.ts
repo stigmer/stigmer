@@ -27,6 +27,26 @@
  * resolution time by shared/mcp-transport-guard.ts — servers reaching
  * this manager have already passed it.
  *
+ * Reach policy is enforced here, at connect, because only here is every
+ * server's address final (`McpConnectOptions.reach`): for a conversation
+ * without a computer, each HTTP server an agent or a plugin names is judged
+ * by the strict rule of `@stigmer/outbound/egress` (every address its name
+ * resolves to; no loopback, private or link-local one) before anything is
+ * dialled, and one refused fails the turn with {@link McpReachError}, as a
+ * server that cannot be connected fails it. The check is not pinned to the
+ * socket (the adapter's transport resolves the name again), as
+ * `tools/url-guard.ts` says of itself. A server whose address the runner
+ * chose (`ResolvedMcpServer.addressedByRunner`: a bridge, the Stigmer
+ * server's own lane, an eval try's stand-in) is never judged: the agent
+ * named no address.
+ *
+ * An inferred platform server (the Stigmer server's MCP lane, which nobody
+ * configured and a server from before the lane does not have) that does
+ * not answer leaves the turn without its tools instead of failing it: the
+ * result names it (`unanswered`) and the engine says so in the transcript
+ * (`synthesized-attachment.ts` `platformToolsOffNotice`). Every other
+ * server that fails to connect fails the turn, as before.
+ *
  * Stdio env contract (oss#256): a subprocess receives exactly the
  * variables declared in the server's spec.env (resolved upstream by
  * filterEnvToDeclaredKeys) plus the MCP SDK's minimal base environment
@@ -49,6 +69,13 @@
 import { MultiServerMCPClient } from "@langchain/mcp-adapters";
 import type { Connection } from "@langchain/mcp-adapters";
 import type { DynamicStructuredTool } from "@langchain/core/tools";
+import {
+  checkEgress,
+  describeRefusal,
+  egressPolicyForPosture,
+  nodeLookup,
+  type LookupFn,
+} from "@stigmer/outbound/egress";
 import type { ResolvedMcpServer } from "./mcp-resolver.js";
 import { withNetworkErrorCapture } from "./mcp-network-errors.js";
 import { sanitizeSchemaPatterns } from "./mcp-schema-sanitizer.js";
@@ -118,6 +145,54 @@ export interface McpConnectionResult {
   serverToolMap: Record<string, DynamicStructuredTool[]>;
   /** Each tool's engine name, and the server and tool each engine name stands for. */
   index: McpToolIndex;
+  /** The inferred platform servers that did not answer, which the turn runs without (the module header). */
+  unanswered: readonly { readonly slug: string; readonly url: string }[];
+}
+
+export interface McpConnectOptions {
+  /**
+   * The rule every server an agent or a plugin names must pass before
+   * anything is dialled: `strict` for a conversation without a computer
+   * (the module header). Absent: no reach rule, as for a conversation
+   * with a computer.
+   */
+  readonly reach?: "strict";
+  /** How a server's hostname is resolved for the reach rule; the tests stand one in. */
+  readonly lookup?: LookupFn;
+}
+
+/** A server the reach rule refused; the message names it and why, for the agent's author, and is safe to show. */
+export class McpReachError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "McpReachError";
+  }
+}
+
+const defaultLookup = nodeLookup();
+
+/**
+ * Judge every HTTP server an agent or a plugin names under `reach`, in
+ * order, before anything connects; the first refused one throws.
+ *
+ * @throws McpReachError naming the server and the reason.
+ */
+export async function assertServersReachable(
+  servers: readonly ResolvedMcpServer[],
+  reach: "strict",
+  lookup: LookupFn = defaultLookup,
+): Promise<void> {
+  const policy = egressPolicyForPosture(reach);
+  for (const server of servers) {
+    if (server.connectionType === "stdio" || server.url === undefined || server.addressedByRunner !== undefined) continue;
+    const check = await checkEgress(server.url, policy, { lookup });
+    if (check.ok) continue;
+    throw new McpReachError(
+      `MCP server '${server.slug}' is refused: a conversation without a computer reaches no machine of its own, ` +
+        `so it doesn't reach the one it runs on or the private network around it. ${describeRefusal(check.refusal)} ` +
+        `Use a server on a public address, or give the agent a computer.`,
+    );
+  }
 }
 
 /**
@@ -128,15 +203,34 @@ export interface McpConnectionResult {
  */
 export async function connectMcpServers(
   servers: ResolvedMcpServer[],
+  options: McpConnectOptions = {},
 ): Promise<McpConnectionResult> {
+  if (options.reach !== undefined) await assertServersReachable(servers, options.reach, options.lookup);
   const connectionConfig = toMcpClientConfig(servers);
 
   if (Object.keys(connectionConfig).length === 0) {
     const client = new MultiServerMCPClient({});
-    return { client, tools: [], serverToolMap: {}, index: McpToolIndex.EMPTY };
+    return { client, tools: [], serverToolMap: {}, index: McpToolIndex.EMPTY, unanswered: [] };
   }
 
-  const client = new MultiServerMCPClient(connectionConfig);
+  // Only an inferred platform server may fail to connect without failing
+  // the turn (the module header); the adapter calls this for each server
+  // that does, and a throw here is the default's throw.
+  const inferred = new Map(
+    servers.filter((server) => server.addressedByRunner === "inferred" && server.url !== undefined).map((server) => [server.slug, server.url ?? ""] as const),
+  );
+  const unanswered: { slug: string; url: string }[] = [];
+  const client = new MultiServerMCPClient({
+    mcpServers: connectionConfig,
+    ...(inferred.size > 0 && {
+      onConnectionError: ({ serverName, error }: { serverName: string; error?: unknown }): void => {
+        const url = inferred.get(serverName);
+        if (url === undefined) throw error;
+        console.warn(`[MCP] Server '${serverName}' at ${url} did not answer; the turn runs without its tools: ${error instanceof Error ? error.message : String(error)}`);
+        unanswered.push({ slug: serverName, url });
+      },
+    }),
+  });
   const discoveredToolMap = await withNetworkErrorCapture(httpServerUrlsOf(connectionConfig), () => client.initializeConnections());
 
   // Drop unicode-invalid regex patterns from every discovered tool's input
@@ -194,5 +288,5 @@ export async function connectMcpServers(
       .join(", ")}`,
   );
 
-  return { client, tools, serverToolMap, index };
+  return { client, tools, serverToolMap, index, unanswered };
 }

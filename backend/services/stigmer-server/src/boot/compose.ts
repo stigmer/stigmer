@@ -140,6 +140,7 @@ import { clientDocument, clientDocumentUrlFor } from "../domain/vault/sign-in/cl
 import { createOAuthClientDocumentLane } from "../transport/oauth-client/lane.js";
 import { MAX_MESSAGE_BYTES } from "../transport/constants.js";
 import { createManagedAgentsLane } from "../transport/managed-agents/lane.js";
+import { createPlatformMcpLane } from "../transport/mcp/lane.js";
 import type { SignInFreshener } from "../domain/vault/resolve.js";
 import { newVaultService } from "../domain/vault/service.js";
 import { deleteAllMyVaultsOf } from "../domain/vault/delete.js";
@@ -2653,6 +2654,21 @@ export async function composeServer(
       })
     : undefined;
 
+  // The platform MCP lane (transport/mcp/lane.ts): the memory, channels
+  // and conversation rosters over HTTP, for a turn whose agent program may
+  // start no local MCP child. Composed only where a unit declares it; the
+  // cloud serves the same rosters on a port of its own.
+  const platformMcpLane =
+    extensions.servesPlatformMcp === undefined
+      ? undefined
+      : createPlatformMcpLane({
+          logger,
+          backendPort: () => unifiedBoundPort,
+          authentication: requireAuthentication
+            ? { required: true, identityVerifiers }
+            : { required: false },
+        });
+
   const server = createUnifiedPortServer({
     logger,
     routes,
@@ -2678,6 +2694,7 @@ export async function composeServer(
     skillTransferLane,
     ...(fileTransferLane === undefined ? {} : { fileTransferLane }),
     managedAgentsLane,
+    ...(platformMcpLane === undefined ? {} : { platformMcpLane }),
     temporalWorkerDoorLane,
     consoleLane,
     localOnly: !requireAuthentication,

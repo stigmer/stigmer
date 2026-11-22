@@ -58,7 +58,7 @@
 import { CONVERSATION_MCP_SERVER } from "@stigmer/tool-vocabulary";
 
 import type { ResolvedMcpServer } from "./mcp-resolver.js";
-import type { SynthesizedAttachmentOptions } from "./synthesized-attachment.js";
+import { bridgeAddressing, type SynthesizedAttachmentOptions } from "./synthesized-attachment.js";
 
 /**
  * The synthesized attachment's slug. Reserved: no plugin server is named
@@ -134,6 +134,7 @@ export function synthesizeConversationAttachment(
     home: { kind: "platform" },
     connectionType: "http",
     url: options.bridgeEndpoint.replace(/\/+$/, "") + CONVERSATION_ROUTE,
+    ...bridgeAddressing(options),
     headers: options.credential !== null && options.credential !== ""
       ? { Authorization: `Bearer ${options.credential}` }
       : undefined,

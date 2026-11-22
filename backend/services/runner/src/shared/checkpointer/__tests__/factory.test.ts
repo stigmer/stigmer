@@ -6,6 +6,8 @@ import { MemorySaver } from "@langchain/langgraph-checkpoint";
 import { createCheckpointer, CheckpointerCreationError } from "../factory.js";
 import { HttpCheckpointSaver } from "../http-saver.js";
 import { SqliteCheckpointSaver } from "../sqlite-saver.js";
+import { RowsCheckpointSaver } from "../rows.js";
+import { RelayedCheckpointRows } from "../relayed-rows.js";
 
 describe("createCheckpointer", () => {
   const tempDirs: string[] = [];
@@ -33,6 +35,14 @@ describe("createCheckpointer", () => {
     await expect(
       createCheckpointer({ type: "sqlite" }),
     ).rejects.toThrow(CheckpointerCreationError);
+  });
+
+  it("returns the serializer over the given rows for type=relayed, and refuses it without rows", async () => {
+    const rows = new RelayedCheckpointRows(async () => null);
+    const saver = await createCheckpointer({ type: "relayed", rows });
+    expect(saver).toBeInstanceOf(RowsCheckpointSaver);
+    expect(saver).not.toBeInstanceOf(SqliteCheckpointSaver);
+    await expect(createCheckpointer({ type: "relayed" })).rejects.toThrow(CheckpointerCreationError);
   });
 
   it("returns HttpCheckpointSaver for type=http", async () => {

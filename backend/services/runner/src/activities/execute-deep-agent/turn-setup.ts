@@ -54,6 +54,7 @@ import { ensureCheckpointDbPath } from "../../shared/workspace/platform-dir.js";
 import { LocalWorkspaceBackend } from "../../shared/workspace/local-backend.js";
 import type { WorkspaceBackend } from "../../shared/workspace/types.js";
 import { connectMcpServers, type McpConnectionResult } from "../../shared/mcp-manager.js";
+import { platformToolsOffNotice, serverDidNotAnswer } from "../../shared/synthesized-attachment.js";
 import { formatChannelTemplatesSection } from "../../shared/channel-attachment.js";
 import { isPathCapturable, resolvesIntoGitDirectory } from "../../shared/filereview/git-substrate.js";
 import { resolveWorkspacePath } from "../../shared/file-change.js";
@@ -231,8 +232,20 @@ export async function resolveModelName(input: TurnInput): Promise<string> {
  * per session — a session has exactly one thread (`thread-{sessionId}`), so
  * checkpoint lifetime tracks session lifetime. Opened per turn and closed
  * in the adapter's `finally` (`turn.ts`).
+ *
+ * A turn without a computer that the locked agent host runs opens no file:
+ * where the runner checkpoints locally, its saver is the same serializer
+ * over rows the runner stores in that same file (`relayed`,
+ * `shared/checkpointer/relayed-rows.ts`). Proxied runners keep the http
+ * saver, which opens no file either.
  */
 export async function openCheckpointer(input: TurnInput, sink: TurnSink, config: DeepAgentAdapterConfig): Promise<BaseCheckpointSaver> {
+  const relayedRows = config.checkpointerType === "sqlite" && !input.workspace.computer ? input.workspace.files.checkpointRows : undefined;
+  if (relayedRows !== undefined) {
+    const relayed = await createCheckpointer({ type: "relayed", rows: relayedRows });
+    sink.setupTiming.mark("create_checkpointer");
+    return relayed;
+  }
   const checkpointer = await createCheckpointer({
     type: config.checkpointerType,
     proxyEndpoint: config.checkpointerProxyEndpoint ?? undefined,
@@ -322,6 +335,13 @@ export function captureInputsOf(disk: DiskWorkspace | undefined): typeof NO_TREE
  * (`mcp-gate.ts`) guarded against beside its channel-only reason; the
  * runtime resolves unconditionally, so the one remaining question is
  * "anything to connect?" (since #1096).
+ *
+ * A conversation without a computer reaches no machine of its own: every
+ * server its agent or plugins name is judged by the strict reach rule
+ * before anything is dialled, and one refused fails the turn
+ * (`shared/mcp-manager.ts`). Its platform servers may stand on the Stigmer
+ * server's inferred MCP lane; when that lane does not answer, the turn runs
+ * without them and the transcript says so.
  */
 export async function connectTools(input: TurnInput, sink: TurnSink): Promise<DeepAgentTools> {
   const servers = new Map(input.mcp.servers.map((server) => [server.slug, server] as const));
@@ -334,7 +354,11 @@ export async function connectTools(input: TurnInput, sink: TurnSink): Promise<De
     return { connection: undefined, mcpTools: [], serverToolMap: new Map(), mcpIndex: McpToolIndex.EMPTY };
   }
   await sink.reportProgress("Connecting tools…");
-  const connection = await connectMcpServers([...servers.values()]);
+  const connection = await connectMcpServers([...servers.values()], input.workspace.computer ? {} : { reach: "strict" });
+  const unanswered = connection.unanswered[0];
+  if (unanswered !== undefined) {
+    sink.transcript.apply({ kind: "system_note", text: platformToolsOffNotice(serverDidNotAnswer(new URL(unanswered.url).origin)) });
+  }
   const serverToolMap = new Map<string, readonly DynamicStructuredTool[]>(Object.entries(connection.serverToolMap));
   sink.setupTiming.mark("connect_mcp");
   sink.recordActivity();
@@ -788,8 +812,9 @@ export async function buildEngine(
 
   // web_fetch is always-on for every Stigmer run (issue #214 parity with the
   // Claude engine's WebFetch); its URL guard posture — strict on managed cloud runners,
-  // relaxed on user-owned machines — is derived from the runner mode.
-  const webFetchPosture = resolveGuardPosture(config.mode);
+  // relaxed on user-owned machines — is derived from the runner mode, and is
+  // strict everywhere for a conversation without a computer.
+  const webFetchPosture = resolveGuardPosture(config.mode, input.workspace.computer);
   // No tool stands in for reasoning: a graph reasons before it acts through
   // its thinking mode, which every Stigmer row supports (#1976).
   // The host app's own tools: the main agent's alone, never a sub-agent's (`shared/custom-tools.ts`).

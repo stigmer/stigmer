@@ -25,52 +25,39 @@
  *   and read back as `Uint8Array`, so binary (msgpack) payloads round-trip
  *   losslessly — this is why writes are read via a dedicated query rather than
  *   the reference saver's `CAST(value AS TEXT)` JSON aggregation.
+ * - The saver is {@link RowsCheckpointSaver} (`rows.ts`, the serializer) over
+ *   {@link SqliteCheckpointRows} (the statements). The rows half is also what
+ *   the open agent host runs for a locked host's relayed saver
+ *   (`relayed-rows.ts`), so both write the same rows into the same file.
  * - WAL journaling plus a busy timeout make the file safe to open from more than
  *   one process at once (the CLI daemon and the desktop runner can share a HOME).
  */
 
 import { DatabaseSync, type StatementSync, type SQLInputValue } from "node:sqlite";
-import type { RunnableConfig } from "@langchain/core/runnables";
+import type { SerializerProtocol } from "@langchain/langgraph-checkpoint";
+
 import {
-  BaseCheckpointSaver,
-  WRITES_IDX_MAP,
-  copyCheckpoint,
-  type ChannelVersions,
-  type Checkpoint,
-  type CheckpointListOptions,
-  type CheckpointMetadata,
-  type CheckpointPendingWrite,
-  type CheckpointTuple,
-  type PendingWrite,
-  type SerializerProtocol,
-} from "@langchain/langgraph-checkpoint";
+  RowsCheckpointSaver,
+  type CheckpointRow,
+  type CheckpointRows,
+  type CheckpointRowsQuery,
+  type StoredCheckpoint,
+  type WriteBatchKey,
+  type WriteRow,
+  type WriteRowInput,
+} from "./rows.js";
 
 /** Milliseconds SQLite waits on a locked database before erroring (WAL busy handler). */
 const DEFAULT_BUSY_TIMEOUT_MS = 5_000;
 
-interface CheckpointColumns {
-  thread_id: string;
-  checkpoint_ns: string;
-  checkpoint_id: string;
-  parent_checkpoint_id: string | null;
-  type: string | null;
-  checkpoint: Uint8Array;
-  metadata: Uint8Array;
-}
+const CHECKPOINT_COLUMNS = "thread_id, checkpoint_ns, checkpoint_id, parent_checkpoint_id, type, checkpoint, metadata";
 
-interface WriteColumns {
-  task_id: string;
-  channel: string;
-  type: string | null;
-  value: Uint8Array;
-}
-
-export class SqliteCheckpointSaver extends BaseCheckpointSaver {
+/** The checkpoint and write tables of one SQLite file. */
+export class SqliteCheckpointRows implements CheckpointRows {
   private readonly db: DatabaseSync;
   private isSetup = false;
 
-  constructor(dbPath: string, serde?: SerializerProtocol) {
-    super(serde);
+  constructor(dbPath: string) {
     this.db = new DatabaseSync(dbPath, { timeout: DEFAULT_BUSY_TIMEOUT_MS });
   }
 
@@ -113,184 +100,63 @@ export class SqliteCheckpointSaver extends BaseCheckpointSaver {
     this.isSetup = true;
   }
 
-  async getTuple(config: RunnableConfig): Promise<CheckpointTuple | undefined> {
+  async getRow(threadId: string | undefined, checkpointNs: string, checkpointId: string | undefined): Promise<StoredCheckpoint | undefined> {
     this.setup();
-
-    const threadId = config.configurable?.thread_id as string | undefined;
-    const checkpointNs = (config.configurable?.checkpoint_ns as string | undefined) ?? "";
-    const checkpointId = config.configurable?.checkpoint_id as string | undefined;
-
     const row = (checkpointId
       ? this.db
-          .prepare(
-            `SELECT thread_id, checkpoint_ns, checkpoint_id, parent_checkpoint_id, type, checkpoint, metadata
-             FROM checkpoints
-             WHERE thread_id = ? AND checkpoint_ns = ? AND checkpoint_id = ?`,
-          )
+          .prepare(`SELECT ${CHECKPOINT_COLUMNS} FROM checkpoints WHERE thread_id = ? AND checkpoint_ns = ? AND checkpoint_id = ?`)
           .get(threadId ?? null, checkpointNs, checkpointId)
       : this.db
-          .prepare(
-            `SELECT thread_id, checkpoint_ns, checkpoint_id, parent_checkpoint_id, type, checkpoint, metadata
-             FROM checkpoints
-             WHERE thread_id = ? AND checkpoint_ns = ?
-             ORDER BY checkpoint_id DESC LIMIT 1`,
-          )
-          .get(threadId ?? null, checkpointNs)) as unknown as CheckpointColumns | undefined;
-
-    if (row === undefined) return undefined;
-
-    return this.rowToTuple(row);
+          .prepare(`SELECT ${CHECKPOINT_COLUMNS} FROM checkpoints WHERE thread_id = ? AND checkpoint_ns = ? ORDER BY checkpoint_id DESC LIMIT 1`)
+          .get(threadId ?? null, checkpointNs)) as unknown as CheckpointRow | undefined;
+    return row === undefined ? undefined : { row, writes: this.writesOf(row) };
   }
 
-  async *list(
-    config: RunnableConfig,
-    options?: CheckpointListOptions,
-  ): AsyncGenerator<CheckpointTuple> {
+  async listRows(query: CheckpointRowsQuery): Promise<readonly StoredCheckpoint[]> {
     this.setup();
-
-    const threadId = config.configurable?.thread_id as string | undefined;
-    const checkpointNs = config.configurable?.checkpoint_ns as string | undefined;
-    const before = options?.before?.configurable?.checkpoint_id as string | undefined;
-    const limit = options?.limit;
-
-    // Supported filter subset mirrors HttpCheckpointSaver (thread_id /
-    // checkpoint_ns / before / limit). The runner's resume path reads via
-    // getState -> getTuple, so metadata filtering is not exercised here.
     const where: string[] = [];
     const args: SQLInputValue[] = [];
-    if (threadId !== undefined) {
+    if (query.threadId !== undefined) {
       where.push("thread_id = ?");
-      args.push(threadId);
+      args.push(query.threadId);
     }
-    if (checkpointNs !== undefined) {
+    if (query.checkpointNs !== undefined) {
       where.push("checkpoint_ns = ?");
-      args.push(checkpointNs);
+      args.push(query.checkpointNs);
     }
-    if (before !== undefined) {
+    if (query.before !== undefined) {
       where.push("checkpoint_id < ?");
-      args.push(before);
+      args.push(query.before);
     }
-
-    let sql =
-      `SELECT thread_id, checkpoint_ns, checkpoint_id, parent_checkpoint_id, type, checkpoint, metadata
-       FROM checkpoints`;
+    let sql = `SELECT ${CHECKPOINT_COLUMNS} FROM checkpoints`;
     if (where.length > 0) sql += ` WHERE ${where.join(" AND ")}`;
     sql += " ORDER BY checkpoint_id DESC";
-    if (limit !== undefined) sql += ` LIMIT ${parseInt(String(limit), 10)}`;
-
-    const rows = this.db.prepare(sql).all(...args) as unknown as CheckpointColumns[];
-    for (const row of rows) {
-      yield await this.rowToTuple(row);
-    }
+    if (query.limit !== undefined) sql += ` LIMIT ${parseInt(String(query.limit), 10)}`;
+    const rows = this.db.prepare(sql).all(...args) as unknown as CheckpointRow[];
+    return rows.map((row) => ({ row, writes: this.writesOf(row) }));
   }
 
-  async put(
-    config: RunnableConfig,
-    checkpoint: Checkpoint,
-    metadata: CheckpointMetadata,
-    _newVersions: ChannelVersions,
-  ): Promise<RunnableConfig> {
+  async putRow(row: CheckpointRow): Promise<void> {
     this.setup();
-
-    const threadId = config.configurable?.thread_id as string | undefined;
-    if (!threadId) {
-      throw new Error(`Missing "thread_id" field in passed "config.configurable".`);
-    }
-    const checkpointNs = (config.configurable?.checkpoint_ns as string | undefined) ?? "";
-    const parentCheckpointId = config.configurable?.checkpoint_id as string | undefined;
-
-    // Defensive copy before serialization, matching the reference saver.
-    const [[checkpointType, serializedCheckpoint], [metadataType, serializedMetadata]] =
-      await Promise.all([
-        this.serde.dumpsTyped(copyCheckpoint(checkpoint)),
-        this.serde.dumpsTyped(metadata),
-      ]);
-
-    if (checkpointType !== metadataType) {
-      throw new Error("Failed to serialize checkpoint and metadata to the same type.");
-    }
-
     this.db
       .prepare(
         `INSERT OR REPLACE INTO checkpoints
            (thread_id, checkpoint_ns, checkpoint_id, parent_checkpoint_id, type, checkpoint, metadata)
          VALUES (?, ?, ?, ?, ?, ?, ?)`,
       )
-      .run(
-        threadId,
-        checkpointNs,
-        checkpoint.id,
-        parentCheckpointId ?? null,
-        checkpointType,
-        serializedCheckpoint,
-        serializedMetadata,
-      );
-
-    return {
-      configurable: {
-        thread_id: threadId,
-        checkpoint_ns: checkpointNs,
-        checkpoint_id: checkpoint.id,
-      },
-    };
+      .run(row.thread_id, row.checkpoint_ns, row.checkpoint_id, row.parent_checkpoint_id, row.type, row.checkpoint, row.metadata);
   }
 
-  async putWrites(
-    config: RunnableConfig,
-    writes: PendingWrite[],
-    taskId: string,
-  ): Promise<void> {
+  async putWriteRows(key: WriteBatchKey, writes: readonly WriteRowInput[], replace: boolean): Promise<void> {
     this.setup();
-
-    const threadId = config.configurable?.thread_id as string | undefined;
-    if (!threadId) throw new Error("Missing thread_id field in config.configurable.");
-    const checkpointId = config.configurable?.checkpoint_id as string | undefined;
-    if (!checkpointId) throw new Error("Missing checkpoint_id field in config.configurable.");
-    const checkpointNs = (config.configurable?.checkpoint_ns as string | undefined) ?? "";
-
-    // Conflict resolution matches the reference saver and the
-    // langgraph-checkpoint contract:
-    // - All-special writes (ERROR / SCHEDULED / INTERRUPT / RESUME, each pinned
-    //   to a negative idx by WRITES_IDX_MAP) REPLACE, so e.g. INTERRUPT can be
-    //   overwritten by RESUME.
-    // - Otherwise IGNORE, so a regular write from one task never clobbers a
-    //   regular write another concurrent task already stored at the same
-    //   (task_id, idx).
-    const allSpecial = writes.every(([channel]) => channel in WRITES_IDX_MAP);
     const stmt: StatementSync = this.db.prepare(
-      `INSERT ${allSpecial ? "OR REPLACE" : "OR IGNORE"} INTO writes
+      `INSERT ${replace ? "OR REPLACE" : "OR IGNORE"} INTO writes
          (thread_id, checkpoint_ns, checkpoint_id, task_id, idx, channel, type, value)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
     );
-
-    const rows = await Promise.all(
-      writes.map(async ([channel, value], idx) => {
-        const [type, serialized] = await this.serde.dumpsTyped(value);
-        return {
-          // Special channels are stored at fixed negative indices so they never
-          // collide with regular per-step writes (whose idx is the ordinal).
-          idx: WRITES_IDX_MAP[channel] ?? idx,
-          channel,
-          type,
-          value: serialized,
-        };
-      }),
-    );
-
     this.db.exec("BEGIN");
     try {
-      for (const row of rows) {
-        stmt.run(
-          threadId,
-          checkpointNs,
-          checkpointId,
-          taskId,
-          row.idx,
-          row.channel,
-          row.type,
-          row.value,
-        );
-      }
+      for (const w of writes) stmt.run(key.threadId, key.checkpointNs, key.checkpointId, key.taskId, w.idx, w.channel, w.type, w.value);
       this.db.exec("COMMIT");
     } catch (err) {
       this.db.exec("ROLLBACK");
@@ -300,7 +166,6 @@ export class SqliteCheckpointSaver extends BaseCheckpointSaver {
 
   async deleteThread(threadId: string): Promise<void> {
     this.setup();
-
     this.db.exec("BEGIN");
     try {
       this.db.prepare("DELETE FROM checkpoints WHERE thread_id = ?").run(threadId);
@@ -321,64 +186,30 @@ export class SqliteCheckpointSaver extends BaseCheckpointSaver {
     }
   }
 
-  /** Deserialize a checkpoint row and hydrate its pending writes. */
-  private async rowToTuple(row: CheckpointColumns): Promise<CheckpointTuple> {
-    const type = row.type ?? "json";
-    const checkpoint = (await this.serde.loadsTyped(type, row.checkpoint)) as Checkpoint;
-    const metadata = (await this.serde.loadsTyped(type, row.metadata)) as CheckpointMetadata;
-
-    const pendingWrites = await this.loadPendingWrites(
-      row.thread_id,
-      row.checkpoint_ns,
-      row.checkpoint_id,
-    );
-
-    return {
-      config: {
-        configurable: {
-          thread_id: row.thread_id,
-          checkpoint_ns: row.checkpoint_ns,
-          checkpoint_id: row.checkpoint_id,
-        },
-      },
-      checkpoint,
-      metadata,
-      parentConfig: row.parent_checkpoint_id
-        ? {
-            configurable: {
-              thread_id: row.thread_id,
-              checkpoint_ns: row.checkpoint_ns,
-              checkpoint_id: row.parent_checkpoint_id,
-            },
-          }
-        : undefined,
-      pendingWrites,
-    };
-  }
-
-  private async loadPendingWrites(
-    threadId: string,
-    checkpointNs: string,
-    checkpointId: string,
-  ): Promise<CheckpointPendingWrite[]> {
-    const writeRows = this.db
+  private writesOf(row: CheckpointRow): WriteRow[] {
+    return this.db
       .prepare(
         `SELECT task_id, channel, type, value
          FROM writes
          WHERE thread_id = ? AND checkpoint_ns = ? AND checkpoint_id = ?
          ORDER BY task_id, idx`,
       )
-      .all(threadId, checkpointNs, checkpointId) as unknown as WriteColumns[];
+      .all(row.thread_id, row.checkpoint_ns, row.checkpoint_id) as unknown as WriteRow[];
+  }
+}
 
-    return Promise.all(
-      writeRows.map(
-        async (w) =>
-          [
-            w.task_id,
-            w.channel,
-            await this.serde.loadsTyped(w.type ?? "json", w.value),
-          ] as CheckpointPendingWrite,
-      ),
-    );
+/** The durable local saver: the serializer over one SQLite file's rows. */
+export class SqliteCheckpointSaver extends RowsCheckpointSaver {
+  private readonly file: SqliteCheckpointRows;
+
+  constructor(dbPath: string, serde?: SerializerProtocol) {
+    const file = new SqliteCheckpointRows(dbPath);
+    super(file, serde);
+    this.file = file;
+  }
+
+  /** Close the underlying database handle. Idempotent and non-throwing. */
+  close(): void {
+    this.file.close();
   }
 }

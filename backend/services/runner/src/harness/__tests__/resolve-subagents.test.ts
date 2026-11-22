@@ -243,7 +243,7 @@ async function run(
       plugins: blueprint.plugins,
       tools: (options.values ?? NO_RUN_VALUES).tools,
       platformValues: {},
-      transportPosture: resolveMcpTransportPosture(deps.config.mode),
+      transportPosture: resolveMcpTransportPosture(deps.config.mode, true),
       platformEndpoints: deps.config,
     }).resolvedServers,
   });
@@ -434,7 +434,7 @@ describe("resolveSubagents: what a subagent runs with", () => {
     const { result } = await run([saved("release-notes", { plugins: [ref("forged")] }, [plugin("forged", { digest: "0".repeat(64) })])]);
     expect(result.kind).toBe("settled");
     if (result.kind !== "settled") return;
-    expect(result.settlement).toMatchObject({ kind: "hooks-refused" });
+    expect(result.settlement).toMatchObject({ kind: "turn-refused" });
     expect((result.settlement as { message: string }).message).toContain("The hooks of plugin 'forged' could not be prepared");
   });
 

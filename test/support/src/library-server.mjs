@@ -1,7 +1,7 @@
 // The server process the harness boots when it needs the library itself:
 // the shipped process body (backend/services/stigmer-server/src/boot/run.ts)
-// with no extension unit, so the server holds any number of organizations.
-// Domain: test support (stack spawns).
+// with no organization limit, so the server holds any number of
+// organizations. Domain: test support (stack spawns).
 //
 // The shipped entry (dist/main.js) composes the open-source edition's unit,
 // which holds one organization. The suites that prove isolation between
@@ -9,6 +9,10 @@
 // of its own, need several, so they spawn this entry instead. It shares the
 // shipped entry's whole body, so the two cannot drift in how a process
 // boots; only the composed units differ.
+//
+// Its one unit declares the platform MCP lane (`servesPlatformMcp`), as the
+// shipped edition's unit does: the execution suites' runners reach memory,
+// channels and conversation there for a conversation without a computer.
 //
 // It reaches the server's own build by path, the way ts-build.ts reaches
 // dist/main.js: the repository's harness, not a package consumer, so the
@@ -30,7 +34,9 @@ const RUN_MODULE = join(
 
 const { runServer } = await import(pathToFileURL(RUN_MODULE).href);
 
-runServer({ extensions: [] }).catch((error) => {
+runServer({
+  extensions: [{ name: "conformance-platform-mcp", servesPlatformMcp: true }],
+}).catch((error) => {
   console.error(
     "boot failed:",
     error instanceof Error ? error.message : String(error),

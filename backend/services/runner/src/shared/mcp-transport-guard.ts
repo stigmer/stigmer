@@ -19,6 +19,15 @@
  * stigmer.mcp.stdio-cloud-block kill-switch). Managed cloud deployments
  * never set it.
  *
+ * A conversation without a computer (`shared/computer.ts`) forbids stdio
+ * on every runner, and the override does not reach it: a stdio server is a
+ * program on the runner's machine, which such a conversation has none of
+ * by its author's word, wherever it runs. The server refuses one at the
+ * agent's save, at each conversation write and at each turn's create
+ * (stigmer-server `domain/run/computer.ts`); this is the runner's own
+ * wall, because the runner is what would start the program. Its refusal
+ * has its own sentence, since the remedy is the agent's, not the runner's.
+ *
  * A rejection is thrown as {@link McpTransportError} and must FAIL the
  * execution loudly: the resolvers' per-server catch blocks swallow
  * resolution failures into console.warn and continue, which would turn a
@@ -30,7 +39,11 @@
  * mode-keyed guards.
  */
 
-export type McpTransportPosture = "stdio-allowed" | "stdio-forbidden";
+/**
+ * `stdio-forbidden` is a runner's refusal (a cloud runner, or the
+ * override); `no-computer` is the conversation's (it has no computer).
+ */
+export type McpTransportPosture = "stdio-allowed" | "stdio-forbidden" | "no-computer";
 
 /** Thrown for every guard rejection; message is safe to surface to the user. */
 export class McpTransportError extends Error {
@@ -41,15 +54,20 @@ export class McpTransportError extends Error {
 }
 
 /**
- * Derive the transport posture from runner mode plus the explicit override.
+ * Derive the transport posture from runner mode plus the explicit override,
+ * for a conversation with a computer; one without is `no-computer`, whatever
+ * the mode or the override.
  *
- * @param mode Config.mode — "cloud" means a managed runner on shared infrastructure.
- * @param env  Environment to read STIGMER_MCP_ALLOW_STDIO from.
+ * @param mode     Config.mode — "cloud" means a managed runner on shared infrastructure.
+ * @param computer Whether the conversation has a computer (`shared/computer.ts`).
+ * @param env      Environment to read STIGMER_MCP_ALLOW_STDIO from.
  */
 export function resolveMcpTransportPosture(
   mode: "local" | "cloud",
+  computer: boolean,
   env: NodeJS.ProcessEnv = process.env,
 ): McpTransportPosture {
+  if (!computer) return "no-computer";
   const override = env.STIGMER_MCP_ALLOW_STDIO;
   if (override === "true") return "stdio-allowed";
   if (override === "false") return "stdio-forbidden";
@@ -69,12 +87,18 @@ export function assertTransportAllowed(
   connectionType: "stdio" | "http" | "sse",
   posture: McpTransportPosture,
 ): void {
-  if (posture === "stdio-forbidden" && connectionType === "stdio") {
+  if (connectionType !== "stdio" || posture === "stdio-allowed") return;
+  if (posture === "no-computer") {
     throw new McpTransportError(
-      `MCP server '${slug}' uses the stdio transport, which runs only on local ` +
-      `runners — this cloud runner refuses to spawn it. Run the session on a ` +
-      `local runner (session execution_target: local), or replace '${slug}' ` +
-      `with a remote (HTTP) MCP server.`,
+      `MCP server '${slug}' uses the stdio transport: it is a program on this machine, which a ` +
+      `conversation without a computer can't start. Replace '${slug}' with a remote (HTTP) MCP ` +
+      `server, or give the agent a computer.`,
     );
   }
+  throw new McpTransportError(
+    `MCP server '${slug}' uses the stdio transport, which runs only on local ` +
+    `runners — this cloud runner refuses to spawn it. Run the session on a ` +
+    `local runner (session execution_target: local), or replace '${slug}' ` +
+    `with a remote (HTTP) MCP server.`,
+  );
 }

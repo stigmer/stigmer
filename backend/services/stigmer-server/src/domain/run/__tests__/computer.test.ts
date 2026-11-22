@@ -13,6 +13,13 @@
  *   - a conversation without one is refused, FAILED_PRECONDITION naming
  *     the agent, a repository, a folder, an Environment, the Claude
  *     harness and a plugin with hooks; uploads pass;
+ *   - an MCP server whose address is this machine or its private network
+ *     (a loopback name, or a loopback, private, link-local or unspecified
+ *     literal, IPv4 or IPv6, on http or https): the agent's own is refused
+ *     INVALID_ARGUMENT at its save, a plugin's FAILED_PRECONDITION at the
+ *     agent's save, a conversation's write and a turn; a public name or
+ *     address passes, and so does every address for an agent with a
+ *     computer;
  *   - a turn without one is refused a plugin carrying a local program, and
  *     a turn with one is not;
  *   - a tool list that names only the shell (a plugin agent's, a message's
@@ -38,6 +45,7 @@ import {
   CLAUDE_NEEDS_COMPUTER_MESSAGE,
   agentComputer,
   hasComputer,
+  machineReachOf,
   namesOnlyTheShell,
   refuseAgentWithoutComputer,
   refuseClaudeWithoutComputer,
@@ -62,7 +70,7 @@ function noComputer(fields: Omit<MessageInitShape<typeof AgentSpecSchema>, "$typ
 
 const HOOKS = { groups: [{ event: "PreToolUse", matcher: "*", handlers: [{ command: "lint.sh" }] }] };
 
-function plugin(name: string, carries: "hooks" | "stdio" | "http" | "shell-agent"): RunPlugin {
+function plugin(name: string, carries: "hooks" | "stdio" | "http" | "shell-agent", url = "https://remote.example/mcp"): RunPlugin {
   return {
     id: `plg_${name}`,
     name,
@@ -74,7 +82,7 @@ function plugin(name: string, carries: "hooks" | "stdio" | "http" | "shell-agent
       mcpServers: [
         carries === "stdio"
           ? { name: "git-local", transport: { case: "stdio", value: { command: "npx" } } }
-          : { name: "remote", transport: { case: "http", value: { url: "https://remote.example/mcp" } } },
+          : { name: "remote", transport: { case: "http", value: { url } } },
       ],
     }),
   };
@@ -179,6 +187,48 @@ describe("an agent without a computer", () => {
     refuseAgentWithoutComputer(noComputer(), [], [subagent("triage", Computer.NONE)]);
   });
 
+  it("is refused an MCP server of its own at this machine's address, on http and https", () => {
+    for (const [url, reach] of [
+      ["http://localhost:3000/mcp", "this machine (loopback)"],
+      ["https://localhost/mcp", "this machine (loopback)"],
+      ["http://tools.localhost:8080/mcp", "this machine (loopback)"],
+      ["http://LOCALHOST./mcp", "this machine (loopback)"],
+      ["http://127.0.0.1:7234/mcp", "this machine (loopback)"],
+      ["http://[::1]:3000/mcp", "this machine (loopback)"],
+      ["http://0.0.0.0:3000/mcp", "this machine (unspecified)"],
+      ["https://10.0.0.5/mcp", "this machine's private network (private (RFC 1918))"],
+      ["https://192.168.1.20/mcp", "this machine's private network (private (RFC 1918))"],
+      ["https://[fd00::1]/mcp", "this machine's private network (private (unique local))"],
+      ["http://[::ffff:127.0.0.1]/mcp", "this machine (loopback)"],
+      ["http://169.254.169.254/latest", "this machine's private network (link-local (cloud metadata))"],
+    ] as const) {
+      const error = refusal(() =>
+        refuseAgentWithoutComputer(noComputer({ mcpServers: [{ name: "ledger", url }] }), [], []),
+      );
+      expect([error.code, error.rawMessage], url).toEqual([
+        Code.InvalidArgument,
+        `this agent has no computer, so its MCP server 'ledger' can't be at ${url}, which reaches ${reach}; use an address on the internet, or give the agent a computer`,
+      ]);
+    }
+  });
+
+  it("keeps an MCP server of its own at a public name or address", () => {
+    for (const url of ["https://mcp.example.com/mcp", "https://203.0.113.7/mcp", "https://localhost.example.com/mcp"]) {
+      refuseAgentWithoutComputer(noComputer({ mcpServers: [{ name: "ledger", url }] }), [], []);
+    }
+    expect(machineReachOf("not a url")).toBeUndefined();
+  });
+
+  it("is refused a plugin whose MCP server is at this machine's address", () => {
+    const error = refusal(() =>
+      refuseAgentWithoutComputer(noComputer(), [plugin("ledger-tools", "http", "http://127.0.0.1:9000/mcp")], []),
+    );
+    expect([error.code, error.rawMessage]).toEqual([
+      Code.FailedPrecondition,
+      "this agent has no computer, so it can't use plugin 'ledger-tools', which has its MCP server 'remote' at http://127.0.0.1:9000/mcp, which reaches this machine (loopback); remove the plugin, or give the agent a computer",
+    ]);
+  });
+
   it("refuses nothing when the agent has a computer", () => {
     for (const computer of [Computer.REQUIRED, Computer.UNSPECIFIED]) {
       refuseAgentWithoutComputer(
@@ -188,8 +238,9 @@ describe("an agent without a computer", () => {
           tools: ["Bash"],
           hooks: [{ source: { case: "inline", value: HOOKS } }],
           environmentRef: { org: "acme", id: "env_1" },
+          mcpServers: [{ name: "local", url: "http://localhost:3000/mcp" }],
         }),
-        [plugin("code-style", "hooks")],
+        [plugin("code-style", "hooks"), plugin("ledger-tools", "http", "http://localhost:9000/mcp")],
         [subagent("repo-fixer", Computer.REQUIRED)],
       );
     }
@@ -307,6 +358,25 @@ describe("a turn", () => {
     expect(namesOnlyTheShell(["Bash", "mcp__ledger"])).toBe(false);
     expect(namesOnlyTheShell([])).toBe(false);
     expect(namesOnlyTheShell(undefined)).toBe(false);
+  });
+
+  it("without a computer is refused a plugin whose MCP server is at this machine's address", () => {
+    const error = refusal(() =>
+      refuseTurnWithoutComputer(conversation(Computer.NONE), "support-desk", [
+        plugin("ledger-tools", "http", "https://localhost/mcp"),
+      ]),
+    );
+    expect([error.code, error.rawMessage]).toEqual([
+      Code.FailedPrecondition,
+      "agent 'support-desk' has no computer, so this conversation can't use plugin 'ledger-tools', which has its MCP server 'remote' at https://localhost/mcp, which reaches this machine (loopback); remove the plugin from the agent or the conversation, or give the agent a computer",
+    ]);
+    const write = refusal(() =>
+      refuseConversationWithoutComputer(conversation(Computer.NONE), "support-desk", [
+        plugin("ledger-tools", "http", "http://10.1.2.3/mcp"),
+      ]),
+    );
+    expect(write.code).toBe(Code.FailedPrecondition);
+    expect(write.rawMessage).toContain("which reaches this machine's private network (private (RFC 1918))");
   });
 
   it("with a computer, or with no conversation stamp, is never refused", () => {

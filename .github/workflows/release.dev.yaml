@@ -577,7 +577,7 @@ jobs:
             echo "## @stigmer/server library (a composition's pin)"
             if [ "$SERVER_RESULT" = "success" ]; then
               echo '```json'
-              echo "\"@stigmer/server\": \"$NPM_VERSION\", \"@stigmer/apis\": \"$NPM_VERSION\", \"@stigmer/temporal-codecs\": \"$NPM_VERSION\", \"@stigmer/outbound\": \"$NPM_VERSION\", \"@stigmer/enterprise\": \"$NPM_VERSION\""
+              echo "\"@stigmer/server\": \"$NPM_VERSION\", \"@stigmer/apis\": \"$NPM_VERSION\", \"@stigmer/temporal-codecs\": \"$NPM_VERSION\", \"@stigmer/outbound\": \"$NPM_VERSION\", \"@stigmer/mcp-server\": \"$NPM_VERSION\", \"@stigmer/enterprise\": \"$NPM_VERSION\""
               echo '```'
               echo "Exact versions, all equal. Built from \`main\`, so a composition may merge on it."
             else

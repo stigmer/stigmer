@@ -120,6 +120,23 @@
  *                       call that reaches it sent but unread fails the
  *                       script, naming it: the message was not read where
  *                       the harness says it reads one.
+ *
+ * ── Without a computer ──────────────────────────────────────────────────────
+ * `{ withoutComputer: { ledger } }` makes the same engine the subject of a
+ * conversation without a computer: every turn carries a workspace with no
+ * computer (the conversation's files from the store, here empty stand-ins,
+ * and an outputs buffer) and the sqlite checkpointer, so its saved state
+ * crosses the loopback host as relayed rows into the session's file. Such a
+ * turn has no shell and no workspace on disk, so a gated `propose` (`write`
+ * or `shell` alike) becomes ONE call of the ledger's tool, an HTTP MCP
+ * server the subject names, which marks it destructive and so asks first
+ * (`shared/approval-policy.ts`, `annotation_destructive_tighten`);
+ * `executionCount(id)` is the number of calls the ledger received with
+ * `id`. The server is the runner's to name (`addressedByRunner: "known"`),
+ * as an eval try's stand-in is, so the strict reach rule a turn without a
+ * computer runs under never judges its loopback address. `read`, `open`
+ * and `compact` read a seeded file or run a shell, which such a turn has
+ * neither of, and are refused at `arrange` as test bugs.
  */
 
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
@@ -128,7 +145,7 @@ import { HumanMessage, isAIMessage, isHumanMessage, isToolMessage, type BaseMess
 import { countTokensApproximately } from "langchain";
 
 import type { Config } from "../../../config.js";
-import type { HarnessAdapter } from "../../../harness/types.js";
+import type { HarnessAdapter, TurnMcp } from "../../../harness/types.js";
 import type { ProposedAction } from "../../../__test-utils__/approval-contract/types.js";
 import {
   KIT_SUBAGENT_INSTRUCTIONS,
@@ -143,6 +160,11 @@ import {
 } from "../../../__test-utils__/harness-contract/types.js";
 import type { HermeticEnvironment } from "../../../__test-utils__/hermetic-activity.js";
 import { resolveWorkspacePath } from "../../../shared/file-change.js";
+import { NO_TURN_INPUTS } from "../../../shared/inputs-reader.js";
+import { mcpToolName } from "../../../shared/mcp-tool-names.js";
+import { newOutputsBuffer } from "../../../shared/outputs-buffer.js";
+import { ToolScope } from "../../../shared/tool-lists.js";
+import type { HttpMcpServer } from "../../../__test-utils__/http-mcp-server.js";
 import { loopbackHostedRow } from "../../../__test-utils__/loopback-host.js";
 import { KitOperations } from "../../../__test-utils__/harness-contract/kit-operations.js";
 import { createDeepAgentAdapter } from "../adapter.js";
@@ -188,18 +210,44 @@ export interface DeepAgentContractSubject extends HarnessContractSubject {
   workspaceDirOf(sessionId: string): string;
 }
 
+/** The ledger's server and tool, as the engine is offered it: a destructive tool, so a call asks first. */
+export const KIT_LEDGER_SERVER = "kit-ledger";
+export const KIT_LEDGER_TOOL = "record";
+
+/**
+ * The tool a subject without a computer's ledger serves (`withoutComputer`):
+ * it records the entry it is called with, and marks itself destructive.
+ */
+export const KIT_LEDGER_TOOLS = [
+  {
+    name: KIT_LEDGER_TOOL,
+    description: "Record an entry in the contract kit's ledger.",
+    inputSchema: { type: "object" as const, properties: { entry: { type: "string" } }, required: ["entry"] },
+    annotations: { destructiveHint: true },
+  },
+];
+
+export interface DeepAgentContractSubjectOptions {
+  /**
+   * Make every turn one of a conversation without a computer (the header's
+   * last section); `ledger` serves {@link KIT_LEDGER_TOOLS} and is the
+   * caller's to start before the first turn and stop after the last.
+   */
+  readonly withoutComputer?: { readonly ledger: HttpMcpServer };
+}
+
 /**
  * Build the subject over one hermetic environment (the temp `HOME` the sqlite
  * checkpoints land under, the temp workspace root). The environment is the
  * caller's to create before and dispose after; the model-client double is
  * bound for the module here, so a file holds one subject.
  */
-export function createDeepAgentContractSubject(env: HermeticEnvironment): DeepAgentContractSubject {
-  return new DeepAgentSubject(env);
+export function createDeepAgentContractSubject(env: HermeticEnvironment, options: DeepAgentContractSubjectOptions = {}): DeepAgentContractSubject {
+  return new DeepAgentSubject(env, options.withoutComputer?.ledger);
 }
 
 /** Where one proposal's executions are counted; recorded at `arrange`, read by `executionCount`. */
-type LedgerRef = { readonly kind: "write"; readonly file: string } | { readonly kind: "shell"; readonly file: string };
+type LedgerRef = { readonly kind: "write"; readonly file: string } | { readonly kind: "shell"; readonly file: string } | { readonly kind: "mcp"; readonly server: HttpMcpServer };
 
 /** The turn the kit arranged for an execution, and the view it was arranged from. */
 interface ArrangedTurn {
@@ -212,7 +260,7 @@ interface ArrangedTurn {
 }
 
 class DeepAgentSubject implements DeepAgentContractSubject {
-  readonly name = "stigmer";
+  readonly name: string;
   readonly harness = "stigmer" as const;
   readonly adapter: HarnessAdapter;
   readonly config: Config;
@@ -235,7 +283,12 @@ class DeepAgentSubject implements DeepAgentContractSubject {
   private mintCounter = 0;
   readonly longTurn: LongTurnControls;
 
-  constructor(private readonly env: HermeticEnvironment) {
+  constructor(
+    private readonly env: HermeticEnvironment,
+    /** The ledger of a subject without a computer; absent, every turn has one. */
+    private readonly ledger: HttpMcpServer | undefined,
+  ) {
+    this.name = ledger === undefined ? "stigmer" : "stigmer without a computer";
     this.config = hermeticDeepAgentConfig(env, "sqlite");
     this.operations = new KitOperations(join(env.workspaceRootDir, "kit-operations"), this.name);
     this.longTurn = {
@@ -279,7 +332,7 @@ class DeepAgentSubject implements DeepAgentContractSubject {
     // refused at play time it would surface as an engine failure and read as
     // the adapter's behaviour.
     for (const step of turn) this.refuseUnproducible(step);
-    mkdirSync(this.workspaceDirOf(view.sessionId), { recursive: true });
+    if (this.ledger === undefined) mkdirSync(this.workspaceDirOf(view.sessionId), { recursive: true });
     for (const step of turn) this.seedFor(step, view);
     this.arranged.set(view.executionId, { steps: turn, view, summariesAtArrange: this.summaries.get(view.executionId)?.length ?? 0, usageFolded: false });
     this.executionsBySession.set(view.sessionId, view.executionId);
@@ -290,7 +343,12 @@ class DeepAgentSubject implements DeepAgentContractSubject {
   inputOverrides(view: EngineView): SubjectInputOverrides {
     // No model is named: the adapter resolves the registry's featured Stigmer
     // model, which is the fixture's — the production "no model named" path.
-    return { workspaceDir: this.workspaceDirOf(view.sessionId), message: KIT_USER_MESSAGE };
+    if (this.ledger === undefined) return { workspaceDir: this.workspaceDirOf(view.sessionId), message: KIT_USER_MESSAGE };
+    return {
+      message: KIT_USER_MESSAGE,
+      workspace: { computer: false, files: { inputs: NO_TURN_INPUTS, outputs: newOutputsBuffer() } },
+      mcp: ledgerMcp(this.ledger, view),
+    };
   }
 
   whenHanging(): Promise<void> {
@@ -299,6 +357,7 @@ class DeepAgentSubject implements DeepAgentContractSubject {
 
   executionCount(toolCallId: string): number {
     const ledger = this.ledgers.get(toolCallId);
+    if (ledger?.kind === "mcp") return ledger.server.calls.filter((call) => call.tool === KIT_LEDGER_TOOL && call.args["entry"] === toolCallId).length;
     if (!ledger || !existsSync(ledger.file)) return 0;
     return readFileSync(ledger.file, "utf8")
       .split("\n")
@@ -355,6 +414,9 @@ class DeepAgentSubject implements DeepAgentContractSubject {
 
   /** The words this subject has no honest translation for (see the header); each is a kit-file bug, named. */
   private refuseUnproducible(step: ScenarioStep): void {
+    if (this.ledger !== undefined && (step.kind === "read" || step.kind === "open" || step.kind === "compact")) {
+      throw new Error(`${this.name}: ${step.kind} is not translated by this subject (it reads a seeded file or runs a shell, and a turn without a computer has neither); test bug`);
+    }
     switch (step.kind) {
       case "propose":
         if (step.action.kind !== "write" && step.action.kind !== "shell") {
@@ -409,6 +471,10 @@ class DeepAgentSubject implements DeepAgentContractSubject {
 
   /** Put on disk what a step's tool will find there: the write ledger under its mark, the read target. */
   private seedFor(step: ScenarioStep, view: EngineView): void {
+    if (this.ledger !== undefined) {
+      if (step.kind === "propose") this.ledgers.set(step.toolCallId, { kind: "mcp", server: this.ledger });
+      return;
+    }
     const workspaceDir = this.workspaceDirOf(view.sessionId);
     if (step.kind === "propose" && step.action.kind === "write") {
       const file = resolveWorkspacePath(step.action.resource, workspaceDir, true).absolutePath;
@@ -527,6 +593,8 @@ class DeepAgentSubject implements DeepAgentContractSubject {
   }
 
   private gatedCall(toolCallId: string, action: ProposedAction, view: EngineView): ScriptedToolCall {
+    // Without a computer, every gated proposal is the ledger's destructive tool (the header).
+    if (this.ledger !== undefined) return { id: toolCallId, name: mcpToolName(KIT_LEDGER_SERVER, KIT_LEDGER_TOOL), args: { entry: toolCallId } };
     switch (action.kind) {
       case "write":
         return {
@@ -555,6 +623,30 @@ class DeepAgentSubject implements DeepAgentContractSubject {
       }
     }
   }
+}
+
+/**
+ * The turn's MCP servers without a computer: the ledger alone, at its own
+ * address, which the runner names (the header). Nothing leased: its
+ * destructive mark asks first.
+ */
+function ledgerMcp(ledger: HttpMcpServer, view: EngineView): TurnMcp {
+  return {
+    servers: [
+      {
+        slug: KIT_LEDGER_SERVER,
+        connectionType: "http",
+        url: `${ledger.url}/mcp`,
+        home: { kind: "agent", agentId: `agt-${view.sessionId}`, subagent: null, server: KIT_LEDGER_SERVER },
+        addressedByRunner: "known",
+      },
+    ],
+    channelMessaging: [],
+    leases: { global: false, categories: new Set(), servers: new Set(), hooks: new Set() },
+    mcpDefault: { destructive: new Set(), unlisted: new Set<string>(), leasedServers: new Set() },
+    platformServerSlugs: new Set(),
+    toolScope: ToolScope.unrestricted(),
+  };
 }
 
 // ── Reading the conversation ────────────────────────────────────────────────

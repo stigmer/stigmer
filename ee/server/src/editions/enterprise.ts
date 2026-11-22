@@ -230,6 +230,10 @@ export async function composeEnterprise(
     edition: ServerEdition.enterprise,
     ...(maxOrgs === undefined ? {} : { orgLimit: maxOrgs }),
     ...(retentionDays === undefined ? {} : { accessHistoryRetentionDays: retentionDays }),
+    // The platform's MCP rosters on the unified port, as the keyless server
+    // serves them (the open-source unit), so a runner's conversation without
+    // a computer keeps its memory, channels and conversation tools.
+    servesPlatformMcp: true,
     drivers: {
       licenseStatus: newLicenseStatusProvider({ keyId: verdict.keyId, claims: verdict.claims }),
       platformTokenKeys: openSourcePlatformTokenKeyRing(options.keyLoader),

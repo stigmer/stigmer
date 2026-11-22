@@ -21,8 +21,10 @@
  * Never throws out of `runDeepAgentTurn`: the graph exhausting its recursion
  * limit is the `tool_call_limit` outcome (the platform's budget, not a
  * failure; the runtime writes TERMINATED with the cross-repo prefix); a
- * tool list that names nothing the turn has (`ToolListResolutionError`) or
- * a hook that cannot run as written (`HookSetupError`) is `failed` on the
+ * tool list that names nothing the turn has (`ToolListResolutionError`), a
+ * hook that cannot run as written (`HookSetupError`) or, for a conversation
+ * without a computer, an MCP server the reach rule refuses
+ * (`McpReachError`, `shared/mcp-manager.ts`) is `failed` on the
  * `actionable` surface with the error's own sentence, since the fix is the
  * agent's author's, not the runner's; any other exception — a provider error unwrapped from LangChain's middleware
  * wrapper, an MCP connect failure, an empty stream — is `failed` with
@@ -58,7 +60,7 @@
 import type { BaseCheckpointSaver } from "@langchain/langgraph-checkpoint";
 
 import type { TurnInput, TurnOutcome, TurnSink } from "../../harness/types.js";
-import type { McpConnectionResult } from "../../shared/mcp-manager.js";
+import { McpReachError, type McpConnectionResult } from "../../shared/mcp-manager.js";
 import { tryInferProvider } from "../../shared/llm-proxy.js";
 import { settleThrown } from "../../shared/stop-kind.js";
 import { registryIdOf } from "../../shared/model-registry.js";
@@ -186,8 +188,9 @@ function stopsBeforeTheEngine(sink: TurnSink): boolean {
  * `shared/tool-rounds.ts`) is the budget's own signal, not an error:
  * the work is checkpointed and the conversation continues on the next
  * message. A tool list that resolves to nothing refuses the turn with its
- * own sentence, naming the agent or sub-agent and its entries, and so does
- * a hook that cannot run as written (`hooks-setup.ts`). Anything else
+ * own sentence, naming the agent or sub-agent and its entries, and so do
+ * a hook that cannot run as written (`hooks-setup.ts`) and a server the
+ * reach rule refuses (`mcp-manager.ts`). Anything else
  * is described by `describeExecutionError` (a model error arrives
  * MiddlewareError-wrapped with raw provider prose and is unwrapped to its
  * stable platform code; a non-model error is named by its first layer under
@@ -201,7 +204,7 @@ function classifyThrown(err: unknown, input: TurnInput, config: DeepAgentAdapter
     console.log(`ExecuteDeepAgent reached the tool-call limit: execution=${input.executionId}`);
     return { kind: "tool_call_limit" };
   }
-  if (err instanceof ToolListResolutionError || err instanceof HookSetupError) {
+  if (err instanceof ToolListResolutionError || err instanceof HookSetupError || err instanceof McpReachError) {
     console.warn(`ExecuteDeepAgent refused the turn: execution=${input.executionId}, ${err.message}`);
     return { kind: "failed", surface: "actionable", message: err.message, cause: err };
   }

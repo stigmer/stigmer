@@ -48,7 +48,7 @@ const MAX_MAX_LENGTH = 100_000;
 const USER_AGENT = "Stigmer/1.0 (web_fetch; +https://stigmer.ai)";
 
 export interface WebFetchToolOptions {
-  /** URL guard posture — derive via resolveGuardPosture(config.mode). */
+  /** URL guard posture — derive via resolveGuardPosture(config.mode, computer). */
   readonly posture: GuardPosture;
 }
 

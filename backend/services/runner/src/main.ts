@@ -28,8 +28,12 @@ import { loadConfig } from "./config.js";
 import { operatorBounds } from "./operator-bounds.js";
 import { captureRunnerSecrets } from "./shared/runner-credential-store.js";
 import { initTracing, initMetrics, startRunnerTelemetry } from "./otel.js";
-import { createStigmerRunner } from "./runner.js";
-import { createStigmerRunnerManager } from "./runner-manager.js";
+// `runner.js` and `runner-manager.js` are loaded by the mode that needs them
+// (dynamic imports below), never statically: they reach Temporal's native
+// worker, and this entry is also the agent host's, which a runner may start
+// under Node's permission model, where loading a native addon is refused
+// (`agent-host/supervisor.ts`, `agentHostCommand`).
+// `agent-host/__tests__/import-graph.test.ts` pins it.
 import type { StigmerRunnerManager } from "./runner-manager.js";
 import { buildReadyMessage } from "./ipc-protocol.js";
 import { AGENT_HOST_MODE_ARG } from "./agent-host/protocol.js";
@@ -76,6 +80,7 @@ async function runManagerMode(config: import("./config.js").Config): Promise<voi
   let flushTelemetry: (() => Promise<void>) | null = null;
   try {
     flushTelemetry = await startRunnerTelemetry("stigmer-runner");
+    const { createStigmerRunnerManager } = await import("./runner-manager.js");
     manager = await createStigmerRunnerManager({
       temporalAddress: config.temporalAddress,
       temporalNamespace: config.temporalNamespace,
@@ -186,6 +191,7 @@ async function runStaticMode(config: import("./config.js").Config): Promise<void
   const metricsShutdown = await initMetrics("stigmer-runner");
 
   /* v8 ignore start -- @preserve: static mode's process boundary, booted by the CLI daemon as the execution conformance lanes run it; the options become a Config in mapOptionsToConfig, and __tests__/operator-bounds.test.ts reads the bounds spread below off this source */
+  const { createStigmerRunner } = await import("./runner.js");
   const runner = await createStigmerRunner({
     taskQueue: config.taskQueue,
     temporalAddress: config.temporalAddress,

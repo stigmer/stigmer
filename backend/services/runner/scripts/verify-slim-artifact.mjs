@@ -51,7 +51,9 @@
  *   5b. Agent host — the entry started as the runner starts its agent host
  *      (`main.js agent-host`, a pipe on fd 3) announces itself on the pipe and
  *      exits when the pipe closes (verify-agent-host-boot.mjs, run by the same
- *      Node). Runs on every platform: every runner starts one.
+ *      Node). Runs on every platform: every runner starts one. Then the locked
+ *      host (`--fenced`): the bundle under Node's permission model reports its
+ *      lock and boots the Stigmer harness, which no native addon may block.
  *   6. Static mode — boots, creates a Worker (native bridge + pre-built
  *      workflow bundle + sandbox worker thread), reaches RUNNING, and shuts
  *      down gracefully on SIGINT.
@@ -405,12 +407,16 @@ function verifyAttachEntry() {
 
 function verifyAgentHost() {
   const script = fileURLToPath(new URL("./verify-agent-host-boot.mjs", import.meta.url));
-  const result = spawnSync(nodeBinary, [script, "--node", nodeBinary, "--entry", join(runDir, entry)], {
-    encoding: "utf8",
-    timeout: BOOT_TIMEOUT_MS,
-  });
-  if (result.status !== 0) {
-    throw new Error(`the agent host failed its boot.\n${`${result.stdout}${result.stderr}`.slice(-2000)}`);
+  // The open host, then the locked one (the bundle under Node's permission
+  // model, booting the Stigmer harness: a native addon on its path fails it).
+  for (const form of [[], ["--fenced"]]) {
+    const result = spawnSync(nodeBinary, [script, "--node", nodeBinary, "--entry", join(runDir, entry), ...form], {
+      encoding: "utf8",
+      timeout: BOOT_TIMEOUT_MS,
+    });
+    if (result.status !== 0) {
+      throw new Error(`the ${form.length > 0 ? "locked " : ""}agent host failed its boot.\n${`${result.stdout}${result.stderr}`.slice(-2000)}`);
+    }
   }
 }
 

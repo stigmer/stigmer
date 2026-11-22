@@ -1,10 +1,12 @@
 /**
  * Pins the runtime's hook phases (`turn-context.ts`):
- *  - `refuseUnrunnableHooks`: a turn with hooks (its plugins' or the agent's
+ *  - `refuseUnservableTurn`: a turn with hooks (its plugins' or the agent's
  *    own block) on an engine whose `capabilities.runsHooks` is false is
  *    refused naming each source, before anything is fetched, a subagent's
  *    plugins' hooks and its own block among them; a turn without hooks, or
- *    a harness that runs them, passes;
+ *    a harness that runs them, passes. A conversation without a computer
+ *    is refused any hook and any subagent with a computer on every engine,
+ *    one sentence a cause in the server's words; one with neither passes;
  *  - `resolveHooks`: the turn's plugins that record hooks first, in the
  *    blueprint's merge order, each mounted from its verified archive, then
  *    the agent's own block, taken as written, each with the format it is
@@ -23,6 +25,7 @@ import { create } from "@bufbuild/protobuf";
 import { ConnectError, Code } from "@connectrpc/connect";
 import { RunStatusSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 import { AgentSpecSchema, HookSourceSchema, type HookSource } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/spec_pb";
+import { Computer } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
 import { PluginSchema, type Plugin } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/api_pb";
 import { PluginArtifactDownloadUrlSchema } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/io_pb";
 import { HookConfigSchema, HookFormat, HookGroupSchema, HookHandlerSchema } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/hooks_pb";
@@ -38,7 +41,7 @@ import { TimingRecorder } from "../../shared/cold-start-timing.js";
 import type { ResolvedMcpServer } from "../../shared/mcp-resolver.js";
 import type { ResolvedBlueprint } from "../../shared/blueprint-resolver.js";
 import { TranscriptBuilder } from "../transcript/builder.js";
-import { refuseUnrunnableHooks, resolveHooks, type ResolutionDeps } from "../turn-context.js";
+import { refuseUnservableTurn, resolveHooks, type ResolutionDeps } from "../turn-context.js";
 import { TurnRowsSchema } from "../../gen/turn/ai/stigmer/runner/turn/v1/rows_pb.js";
 
 const env = createHermeticEnvironment();
@@ -119,10 +122,10 @@ const server = (slug: string, home: ResolvedMcpServer["home"]): ResolvedMcpServe
   home,
 });
 
-describe("refuseUnrunnableHooks", () => {
+describe("refuseUnservableTurn", () => {
   it("refuses a turn's hooks on an engine that does not run them, naming each source", () => {
-    expect(refuseUnrunnableHooks(blueprintWith([plugin("safety"), plugin("quiet", { hooks: false })], [inline()]), { runsHooks: false })).toEqual({
-      kind: "hooks-refused",
+    expect(refuseUnservableTurn(blueprintWith([plugin("safety"), plugin("quiet", { hooks: false })], [inline()]), { runsHooks: false }, true)).toEqual({
+      kind: "turn-refused",
       message:
         "This conversation has hooks (the plugin 'safety-rails', the agent's own hooks block), and this harness does not run hooks yet. " +
         "Run it on the Stigmer harness, or remove the hooks.",
@@ -142,23 +145,81 @@ describe("refuseUnrunnableHooks", () => {
         },
       ],
     };
-    expect(refuseUnrunnableHooks(blueprint, { runsHooks: false })).toEqual({
-      kind: "hooks-refused",
+    expect(refuseUnservableTurn(blueprint, { runsHooks: false }, true)).toEqual({
+      kind: "turn-refused",
       message:
         "This conversation has hooks (the plugin 'guard-rails' of the subagent 'release-notes', the subagent 'release-notes''s own hooks block), " +
         "and this harness does not run hooks yet. Run it on the Stigmer harness, or remove the hooks.",
     });
-    expect(refuseUnrunnableHooks(blueprint, { runsHooks: true })).toBeUndefined();
+    expect(refuseUnservableTurn(blueprint, { runsHooks: true }, true)).toBeUndefined();
   });
 
   it("counts a plugin's hooks on a chat with the built-in assistant", () => {
-    expect(refuseUnrunnableHooks(blueprintWith([plugin("safety")], null), { runsHooks: false })).toMatchObject({ kind: "hooks-refused" });
+    expect(refuseUnservableTurn(blueprintWith([plugin("safety")], null), { runsHooks: false }, true)).toMatchObject({ kind: "turn-refused" });
   });
 
   it("passes a turn without hooks, the bare built-in assistant, and an engine that runs hooks", () => {
-    expect(refuseUnrunnableHooks(blueprintWith([plugin("quiet", { hooks: false })]), { runsHooks: false })).toBeUndefined();
-    expect(refuseUnrunnableHooks(blueprintWith([], null), { runsHooks: false })).toBeUndefined();
-    expect(refuseUnrunnableHooks(blueprintWith([plugin("safety")], [inline()]), { runsHooks: true })).toBeUndefined();
+    expect(refuseUnservableTurn(blueprintWith([plugin("quiet", { hooks: false })]), { runsHooks: false }, true)).toBeUndefined();
+    expect(refuseUnservableTurn(blueprintWith([], null), { runsHooks: false }, true)).toBeUndefined();
+    expect(refuseUnservableTurn(blueprintWith([plugin("safety")], [inline()]), { runsHooks: true }, true)).toBeUndefined();
+  });
+});
+
+describe("refuseUnservableTurn without a computer", () => {
+  const NO_HOOKS = { runsHooks: true };
+  const subagent = (name: string, options: { computer?: Computer; hooks?: HookSource[]; plugins?: Plugin[] } = {}): ResolvedBlueprint["subagents"][number] => ({
+    name,
+    agentId: `agt_${name}`,
+    versionHash: "c".repeat(64),
+    spec: create(AgentSpecSchema, { instructions: "You help.", computer: options.computer ?? Computer.NONE, hooks: options.hooks ?? [] }),
+    plugins: options.plugins ?? [],
+  });
+
+  it("refuses every hook and every subagent with a computer, on an engine that runs hooks, one sentence a cause", () => {
+    const blueprint: ResolvedBlueprint = {
+      ...blueprintWith([plugin("safety"), plugin("quiet", { hooks: false })], [inline()]),
+      subagents: [
+        subagent("researcher", { computer: Computer.REQUIRED }),
+        subagent("legacy", { computer: Computer.UNSPECIFIED }),
+        subagent("notes", { hooks: [inline()], plugins: [plugin("guard")] }),
+      ],
+    };
+    expect(refuseUnservableTurn(blueprint, NO_HOOKS, false)).toEqual({
+      kind: "turn-refused",
+      message: [
+        "This conversation's agent has no computer, so this conversation can't use plugin 'safety-rails', which runs hooks; " +
+          "remove the plugin from the agent or the conversation, or give the agent a computer.",
+        "This conversation's agent has no computer, so it can't run its own hooks; remove its hooks, or give the agent a computer.",
+        "This conversation's agent has no computer, so it can't list subagent 'researcher', which has one; remove it from subagents, " +
+          "save 'researcher' without a computer and list that version, or give the agent a computer.",
+        "This conversation's agent has no computer, so it can't list subagent 'legacy', which has one; remove it from subagents, " +
+          "save 'legacy' without a computer and list that version, or give the agent a computer.",
+        "This conversation's agent has no computer, so this conversation can't use plugin 'guard-rails' of subagent 'notes', which runs hooks; " +
+          "remove the plugin from the agent or the conversation, or give the agent a computer.",
+        "This conversation's agent has no computer, so it can't run the hooks of subagent 'notes'; remove them, or give the agent a computer.",
+      ].join(" "),
+    });
+  });
+
+  it("counts a plugin's hooks on a chat with the built-in assistant", () => {
+    expect(refuseUnservableTurn(blueprintWith([plugin("safety")], null), NO_HOOKS, false)).toMatchObject({ kind: "turn-refused" });
+  });
+
+  it("passes a turn with no hook and no subagent with a computer", () => {
+    const blueprint: ResolvedBlueprint = {
+      ...blueprintWith([plugin("quiet", { hooks: false })]),
+      subagents: [subagent("notes")],
+    };
+    expect(refuseUnservableTurn(blueprint, NO_HOOKS, false)).toBeUndefined();
+    expect(refuseUnservableTurn(blueprintWith([], null), { runsHooks: false }, false)).toBeUndefined();
+  });
+
+  it("refuses nothing of this for a conversation with a computer on an engine that runs hooks", () => {
+    const blueprint: ResolvedBlueprint = {
+      ...blueprintWith([plugin("safety")], [inline()]),
+      subagents: [subagent("researcher", { computer: Computer.REQUIRED })],
+    };
+    expect(refuseUnservableTurn(blueprint, NO_HOOKS, true)).toBeUndefined();
   });
 });
 
@@ -217,7 +278,7 @@ describe("resolveHooks", () => {
     const { r } = await run(blueprintWith([plugin("forged", { digest: "0".repeat(64) })]));
     expect(r.kind).toBe("settled");
     if (r.kind !== "settled") return;
-    expect(r.settlement).toMatchObject({ kind: "hooks-refused" });
+    expect(r.settlement).toMatchObject({ kind: "turn-refused" });
     const message = (r.settlement as { message: string }).message;
     expect(message).toContain("The hooks of plugin 'forged-rails' could not be prepared");
     expect(message).toContain("the fetched archive does not match the installed version's digest");

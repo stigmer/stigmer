@@ -33,7 +33,7 @@ afterAll(() => upstream.stop());
 async function proxied(): Promise<{ readonly proxy: AgentProxy; readonly close: () => Promise<void> }> {
   process.env.ANTHROPIC_BASE_URL = upstream.url;
   const proxy = await AgentProxy.start(testConfig({ proxyEndpoint: null }));
-  proxy.authorizeHost(HOST_TOKEN);
+  proxy.authorizeHost("open", HOST_TOKEN);
   const closeTurn = proxy.openTurn({ executionId: EXECUTION, threadId: "thread-ses-relay", turnKey: TURN_KEY });
   return {
     proxy,

@@ -90,6 +90,8 @@ describe("composeEnterprise: the verdict as units", () => {
     const [license, identity] = units;
     expect(license?.edition).toBe(ServerEdition.enterprise);
     expect(license?.orgLimit).toBe(3);
+    // The platform MCP rosters on the unified port, as the keyless server serves them.
+    expect(license?.servesPlatformMcp).toBe(true);
     expect(license?.drivers?.licenseStatus).toBeDefined();
     expect(license?.drivers?.grantScope).toBeDefined();
     expect(license?.drivers?.platformTokenKeys?.signer).toBeDefined();
