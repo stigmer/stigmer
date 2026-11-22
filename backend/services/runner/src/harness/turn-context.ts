@@ -72,6 +72,7 @@ import { scopedRunnerCredential } from "../client/token-claims.js";
 import type { NormalizedActivityInput } from "../shared/activity-input.js";
 import { APPROVAL_ANSWER_EVENT_TYPES, approvalAnswersOf, copyAnswersOntoRows, type ApprovalAsk } from "./approval-answers.js";
 import { RESUME_SEED_EVENT_TYPES, resumeSeedOf } from "./transcript/resume-seed.js";
+import { CUSTOM_TOOL_ANSWER_EVENT_TYPES, customToolAnswersOf, type CustomToolAnswer } from "./custom-tool-answers.js";
 import { isContinuationNote } from "./terminal-table.js";
 import type { ArtifactStorage } from "../shared/artifact-storage.js";
 import type { TimingRecorder } from "../shared/cold-start-timing.js";
@@ -158,8 +159,8 @@ import type {
   TurnSubagent,
   TurnWorkspace,
 } from "./types.js";
-import type { ApprovalAction } from "../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
-import type { RecalledMemoriesReport, TurnRows } from "../gen/turn/ai/stigmer/runner/turn/v1/rows_pb.js";
+import { ToolCallStatus, type ApprovalAction } from "../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
+import type { AgentMessage, RecalledMemoriesReport, TurnRows } from "../gen/turn/ai/stigmer/runner/turn/v1/rows_pb.js";
 
 // ---------------------------------------------------------------------------
 // What the phases take
@@ -260,6 +261,8 @@ export interface TurnReinvocation {
   readonly approvalDecisions: ReadonlyMap<string, ApprovalAction>;
   /** The reason a person gave with each deny that carries one, by tool-call id. */
   readonly approvalDenyMessages: ReadonlyMap<string, string>;
+  /** The host app's answers to the custom calls still waiting, by tool-call id (`custom-tool-answers.ts`). */
+  readonly customToolResults: ReadonlyMap<string, CustomToolAnswer>;
   /** What each of the run's asked calls was asked under, by tool use id (`approval-answers.ts`). */
   readonly approvalAsks: ReadonlyMap<string, ApprovalAsk>;
   /** The run's grants, by the tool use id each was given on: the leases phase 4b arms. */
@@ -368,13 +371,16 @@ export type WorkspaceLockOutcome =
  * turn's first write whatever the engine did, and
  * `stigmer.file_review.reconciled` at the turn's start, before any engine;
  * the rest follow one of these, or come just before one in the same write
- * (an MCP tool's `stigmer.mcp.tool_definition`).
+ * (an MCP tool's `stigmer.mcp.tool_definition`). A call of the host app's
+ * own tools is the engine's too (`agent.custom_tool_use`); its result is the
+ * host's (`user.custom_tool_result`, the server's), never the engine's.
  */
 export const ENGINE_EVENT_TYPES = [
   "agent.message",
   "agent.thinking",
   "agent.tool_use",
   "agent.mcp_tool_use",
+  "agent.custom_tool_use",
   "stigmer.harness.note",
 ] as const;
 
@@ -432,7 +438,7 @@ export function seedStatusOutputs(status: RunStatus, execution: Run): void {
  * ({@link stopIsExplained}).
  */
 export const REINVOCATION_EVENT_TYPES: readonly string[] = [
-  ...new Set<string>([...RESUME_SEED_EVENT_TYPES, ...APPROVAL_ANSWER_EVENT_TYPES, "stigmer.harness.note", "stigmer.run.status"]),
+  ...new Set<string>([...RESUME_SEED_EVENT_TYPES, ...APPROVAL_ANSWER_EVENT_TYPES, ...CUSTOM_TOOL_ANSWER_EVENT_TYPES, "stigmer.harness.note", "stigmer.run.status"]),
 ];
 
 /**
@@ -846,6 +852,7 @@ export async function reconcileReinvocation(
       runWroteEvents,
       approvalDecisions: new Map(),
       approvalDenyMessages: new Map(),
+      customToolResults: new Map(),
       approvalAsks: new Map(),
       grants: new Map(),
       answerText: undefined,
@@ -860,6 +867,7 @@ export async function reconcileReinvocation(
   deps.transcript.seed(seed.rows);
   const answers = approvalAnswersOf(runId, deps.rows, events);
   copyAnswersOntoRows(runId, deps.rows, answers);
+  const customToolResults = waitingCustomAnswers(deps.rows, customToolAnswersOf(runId, events).results);
   // A continuation is an invocation whose engine already wrote to the log,
   // which every reinvocation is.
   const continuation: TurnContinuation = {};
@@ -868,13 +876,34 @@ export async function reconcileReinvocation(
     runWroteEvents,
     approvalDecisions: answers.decisions,
     approvalDenyMessages: answers.denyMessages,
+    customToolResults,
     approvalAsks: answers.asks,
     grants: answers.grants,
     answerText: seed.answerText,
     recalledMemoriesReport: seed.recalledMemoriesReport,
     continuation,
-    lostRunner: answers.decisions.size === 0 && !stopIsExplained(events),
+    lostRunner: answers.decisions.size === 0 && customToolResults.size === 0 && !stopIsExplained(events),
   };
+}
+
+/**
+ * The host's answers to the custom calls the seed left waiting, by tool-call
+ * id: the custom calls' counterpart of the decision map, read for the same
+ * rows. An answer to a call the engine was already handed is no resume's.
+ */
+export function waitingCustomAnswers(
+  rows: { readonly messages: readonly AgentMessage[] },
+  results: ReadonlyMap<string, CustomToolAnswer>,
+): ReadonlyMap<string, CustomToolAnswer> {
+  const waiting = new Map<string, CustomToolAnswer>();
+  for (const message of rows.messages) {
+    for (const row of message.toolCalls) {
+      if (!row.customTool || row.status !== ToolCallStatus.TOOL_CALL_WAITING_APPROVAL) continue;
+      const answer = results.get(row.id);
+      if (answer !== undefined) waiting.set(row.id, answer);
+    }
+  }
+  return waiting;
 }
 
 /**
@@ -1926,6 +1955,7 @@ export async function resolveTurnContext(
       sessionId,
       approvalDecisions: reinvocation.approvalDecisions,
       approvalDenyMessages: reinvocation.approvalDenyMessages,
+      customToolResults: reinvocation.customToolResults,
       approvalAsks: reinvocation.approvalAsks,
       ...(reinvocation.continuation !== undefined ? { continuation: reinvocation.continuation } : {}),
       execution,

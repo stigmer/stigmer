@@ -64,6 +64,14 @@
  *     settles a row left waiting (`harness/approval-decisions.ts`).
  *  5. Settle (`settle.ts`).
  *
+ * The host app's own tools (`shared/custom-tools.ts`) ride the same path as
+ * an ask. The host serves them as one more server ({@link customToolServer}),
+ * each marked for the engine to list with its own tools rather than behind
+ * its tool search; the gate pauses a call of one until the host answers
+ * (`gate.ts`), the turn proposes its row marked as the host's, and the
+ * resumed engine re-runs the call, which the server answers with the
+ * host's text, once the gate allows it.
+ *
  * Stop: the runtime's stop interrupts the engine at once, and aborts it
  * after a grace if it does not end; the host's shell stops its command
  * group with the same signal. Yield: the boundary is held in the engine.
@@ -114,11 +122,13 @@ import { engineEnvironment } from "./engine-env.js";
 import { engineOptions, thinkingOf, userMessageOf } from "./engine-options.js";
 import { engineSessionIdOf, runMessageIdOf, sentMessageIdOf } from "./engine-session-id.js";
 import { FileTranscripts } from "./file-store.js";
-import { ClaudeGate, canUseToolOf, gateFactsOf, gateHooks, holdsCall, type Caller, type GateVerdict, type WaitingCall } from "./gate.js";
+import { ClaudeGate, NOT_ADMITTED_MESSAGE, canUseToolOf, gateFactsOf, gateHooks, holdsCall, type Caller, type GateVerdict, type WaitingCall } from "./gate.js";
 import { HookFeedback, turnHookEvaluators } from "./hooks.js";
 import { hostShellServer, HOST_SHELL_TOOL, isHostShell } from "./host-shell.js";
 import { HttpTranscripts } from "./http-store.js";
-import { startLoopbackMcp, type ServedCall, type ServedServer } from "./loopback-mcp.js";
+import { startLoopbackMcp, textResult, type ServedCall, type ServedServer } from "./loopback-mcp.js";
+import { CUSTOM_TOOL_SERVER, customToolOfEngineName, offeredCustomTools, type CustomToolOffer } from "../../shared/custom-tools.js";
+import type { CustomToolAnswer } from "../../harness/custom-tool-answers.js";
 import { connectBridge, type McpBridge } from "./mcp-bridge.js";
 import { composeSubagentPrompt, composeSystemAppend, composeTurnMessage, instructionRoots, skillsSection, workspaceInstructionReader } from "./prompt.js";
 import { PromptStream } from "./prompt-stream.js";
@@ -384,6 +394,7 @@ async function engineTurn(input: TurnInput, sink: TurnSink, config: ClaudeAdapte
   const facts = transcriptFactsOf(await backing.load(input.threadId, undefined));
   const waiting = waitingRowsOf(sink);
   const pending = pendingCallOf(input, facts, waiting);
+  const customTools = offeredCustomTools(input);
 
   let halted = false;
   const platformDir = getPlatformDir(input.sessionId);
@@ -401,6 +412,7 @@ async function engineTurn(input: TurnInput, sink: TurnSink, config: ClaudeAdapte
       pending,
       resumesLeft: deps.resumesLeft,
       observer: deps.observer,
+      customTools,
     }),
     () => halted,
   );
@@ -440,6 +452,7 @@ async function engineTurn(input: TurnInput, sink: TurnSink, config: ClaudeAdapte
     }));
   }
   served.push(...bridge.servers.values());
+  if (customTools.length > 0) served.push(customToolServer(customTools, gate, input.customToolResults));
   const mirrored = new MirroredCalls();
   const endpoint = served.length > 0 ? await startLoopbackMcp(served, (call) => admitHeld(gate, mirrored, call, input.executionId), { callTimeoutMs: config.openOperationMaxMs }) : undefined;
   try {
@@ -508,7 +521,12 @@ async function engineTurn(input: TurnInput, sink: TurnSink, config: ClaudeAdapte
       verdictOf: (id) => gate.verdictOf(id),
       options,
       abort,
-      translator: new ClaudeTranslator({ serverOf: bridge.serverOf, verdictOf: (id) => gate.verdictOf(id), feedbackOf: (id) => feedback.sectionOf(id) }),
+      translator: new ClaudeTranslator({
+        serverOf: bridge.serverOf,
+        verdictOf: (id) => gate.verdictOf(id),
+        feedbackOf: (id) => feedback.sectionOf(id),
+        customToolNameOf: (engineName) => customToolOfEngineName(customTools, engineName)?.name,
+      }),
       usage: new ClaudeUsage(getModelPricing(model.registryId), model.registryId),
       halt: () => {
         halted = true;
@@ -525,6 +543,32 @@ async function engineTurn(input: TurnInput, sink: TurnSink, config: ClaudeAdapte
   }
 }
 
+/** The `_meta` mark that has the engine list a server's tool with its own, rather than behind its tool search (measured on SDK 0.3.311). */
+const ALWAYS_LOAD_META = { "anthropic/alwaysLoad": true } as const;
+
+/**
+ * The host app's own tools as a server the engine reaches (the header): each
+ * listed with the engine's own tools, under its declared description and
+ * schema. A call runs only under the gate's allow, which it gives only once
+ * the host has answered (`gate.ts`), and running it hands the engine the
+ * host's answer as the call's result.
+ */
+export function customToolServer(
+  tools: readonly CustomToolOffer[],
+  gate: Pick<ClaudeGate, "verdictOf">,
+  answers: ReadonlyMap<string, CustomToolAnswer>,
+): ServedServer {
+  return {
+    name: CUSTOM_TOOL_SERVER,
+    tools: () => tools.map((tool) => ({ name: tool.name, description: tool.description, inputSchema: tool.inputSchema as { type: "object" }, _meta: { ...ALWAYS_LOAD_META } })),
+    call: async (call: ServedCall) => {
+      const answer = gate.verdictOf(call.toolUseId)?.kind === "allow" ? answers.get(call.toolUseId) : undefined;
+      if (answer === undefined) return textResult(NOT_ADMITTED_MESSAGE, true);
+      return textResult(answer.text, answer.isError);
+    },
+  };
+}
+
 /**
  * The WAITING row of the call the engine deferred, from the gate's pause
  * verdict (step 4 of the header): its provenance and asking hook, then the
@@ -539,6 +583,10 @@ export function proposeDeferred(
 ): void {
   const verdict = gate.verdictOf(callId);
   if (verdict?.kind !== "pause") throw new Error(`the engine deferred call ${callId}, which the gate did not hold for a person`);
+  if (verdict.customTool !== undefined) {
+    sink.transcript.apply({ kind: "approval_proposed", callId, name: verdict.customTool, mcpServerSlug: "", message: verdict.message, customTool: true });
+    return;
+  }
   const server = isHostShell(verdict.toolName) ? undefined : bridge.serverOf(verdict.toolName);
   const name = isHostShell(verdict.toolName) ? HOST_SHELL_TOOL.engineName : (server?.tool ?? verdict.toolName);
   const mcpServerSlug = server?.slug ?? "";

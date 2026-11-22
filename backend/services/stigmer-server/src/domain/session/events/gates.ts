@@ -6,11 +6,17 @@
  *
  *   agent.tool_use / agent.mcp_tool_use with evaluated_permission "ask"
  *       opens the gate named by its own id: the call waits for a person.
+ *   agent.custom_tool_use always opens the gate named by its own id: a
+ *       call of one of the host app's own tools waits for the host's
+ *       answer, every time.
  *   user.tool_confirmation, agent.tool_result, agent.mcp_tool_result
  *       close the gate of the tool use they name: the call was answered,
  *       or it ran (or was refused) and returned.
+ *   user.custom_tool_result closes the gate of the custom tool use it
+ *       names: the host answered.
  *
- * Every other event has no gate. A change to this rule bumps `revision`,
+ * Every other event has no gate. A change to this rule bumps `revision`
+ * (2: the host's own tools' calls and answers joined it),
  * and the store re-derives every stored event at the next open, the way
  * list keys are (store/list-index.ts); that is also how the asks a log
  * held before the columns existed gain their gates.
@@ -47,6 +53,10 @@ export function gatesOfEvent(event: SessionEvent): SessionEventGates {
       return { opens: "", closes: event.event.value.toolUseId };
     case "agentMcpToolResult":
       return { opens: "", closes: event.event.value.mcpToolUseId };
+    case "agentCustomToolUse":
+      return { opens: event.event.value.id, closes: "" };
+    case "userCustomToolResult":
+      return { opens: "", closes: event.event.value.customToolUseId };
     default:
       return NO_SESSION_EVENT_GATES;
   }
@@ -54,13 +64,15 @@ export function gatesOfEvent(event: SessionEvent): SessionEventGates {
 
 /** The declaration the composition root opens the store with. */
 export const SESSION_EVENT_GATES: SessionEventGateDeclaration = {
-  revision: 1,
+  revision: 2,
   types: [
     "agent.tool_use",
     "agent.mcp_tool_use",
     "user.tool_confirmation",
     "agent.tool_result",
     "agent.mcp_tool_result",
+    "agent.custom_tool_use",
+    "user.custom_tool_result",
   ],
   gatesOf(_type, data) {
     let event: SessionEvent;

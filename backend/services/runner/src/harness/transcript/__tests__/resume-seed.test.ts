@@ -138,6 +138,35 @@ describe("resumeSeedOf", () => {
   });
 });
 
+describe("resumeSeedOf, the host app's own tools", () => {
+  function customUse(callId: string): SessionEvent {
+    return event({ case: "agentCustomToolUse", value: { id: toolUseEventId(RUN, callId), name: "show_form", input: { service: callId }, sessionThreadId: "" } });
+  }
+  function hostAnswer(callId: string): SessionEvent {
+    return event({ case: "userCustomToolResult", value: { id: `sevt_ctr_${callId}`, customToolUseId: toolUseEventId(RUN, callId), content: [{ type: "text", text: "ok" }], isError: false } });
+  }
+
+  it("reads both types", () => {
+    expect(RESUME_SEED_EVENT_TYPES).toContain("agent.custom_tool_use");
+    expect(RESUME_SEED_EVENT_TYPES).toContain("user.custom_tool_result");
+  });
+
+  it("seeds a call waiting for the host, and one answered that the engine has not yet been handed, as the host's WAITING rows", () => {
+    const seed = resumeSeedOf(RUN, [message("Opening the forms."), customUse("call-a"), customUse("call-b"), hostAnswer("call-a")]);
+    const rows = seed.rows.messages.flatMap((m) => m.toolCalls);
+    expect(rows.map((row) => [row.id, row.name, row.status, row.customTool, row.requiresApproval, row.args])).toEqual([
+      ["call-a", "show_form", ToolCallStatus.TOOL_CALL_WAITING_APPROVAL, true, false, { service: "call-a" }],
+      ["call-b", "show_form", ToolCallStatus.TOOL_CALL_WAITING_APPROVAL, true, false, { service: "call-b" }],
+    ]);
+    expect(rows.every((row) => row.approvalMessage === "" && row.approvalPolicySource === ApprovalPolicySource.UNSPECIFIED)).toBe(true);
+  });
+
+  it("seeds no more a call whose answer the engine wrote past: it was delivered", () => {
+    const seed = resumeSeedOf(RUN, [customUse("call-a"), hostAnswer("call-a"), message("Registered."), use("call-next", { permission: "ask" }), asked("call-next")]);
+    expect(seed.rows.messages.flatMap((m) => m.toolCalls).map((row) => [row.id, row.customTool])).toEqual([["call-next", false]]);
+  });
+});
+
 describe("rowIdOf", () => {
   it("is the tool use id's call part, which derives the same tool use id again, a hashed one included", () => {
     expect(rowIdOf(RUN, toolUseEventId(RUN, "call_abc"))).toBe("call_abc");

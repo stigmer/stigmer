@@ -121,7 +121,7 @@ import {
 } from "../shared/worker-shutdown.js";
 import { TURN_CONTINUES_FAILURE_TYPE, type ContinuationCause } from "../harness/terminal-table.js";
 import { SessionEventEmitter } from "../harness/events/emitter.js";
-import { answerEventsFor } from "./approval-log.js";
+import { answerEventsFor, customToolResultEventFor } from "./approval-log.js";
 import { decideCapturedFileChanges, upsertFileChanges, type FileReviewVerdicts } from "./file-review-projection.js";
 import { mockStigmerClient } from "./mock-client.js";
 import { HERMETIC_UPLOAD_ORIGIN } from "./model-registry-fixture.js";
@@ -556,6 +556,21 @@ export class ExecutionRecord {
       );
     }
     return waiting.length;
+  }
+
+  /** This run's rows waiting for the host app's answer to its own tool. */
+  waitingCustomToolCalls(): ToolCall[] {
+    return this.waitingToolCalls().filter((tc) => tc.customTool);
+  }
+
+  /**
+   * What the server's answer core does when the host answers a call of its
+   * own tools (`answerCustomToolUse`): append the `user.custom_tool_result`
+   * to the session's log, naming the call's `agent.custom_tool_use`. Nothing
+   * is stamped on the row: the resumed turn reads the answer from the log.
+   */
+  answerCustomToolUse(callId: string, text: string, isError = false): void {
+    this.sessionEvents.push(customToolResultEventFor({ sessionId: this.session.metadata?.id ?? "", runId: this.executionId }, callId, text, isError));
   }
 
   /**

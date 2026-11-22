@@ -134,7 +134,7 @@ describe("streamAgentRun", () => {
 
     expect(ink.runInkSession).toHaveBeenCalledWith({ client, sessionId: "ses_1", org: "acme", mode: "plan", until: "exit", watchRunId: "run_1" });
     expect(headless.runHeadlessStream).not.toHaveBeenCalled();
-    expect(epilogue.runEpilogue).toHaveBeenCalledWith(client, "ses_1", "run_1", { phase: "", error: "", turn: undefined });
+    expect(epilogue.runEpilogue).toHaveBeenCalledWith(client, "ses_1", "run_1", { phase: "", error: "", turn: undefined, waitingOnHost: [] });
     expect(result).toBe(FINAL);
   });
 
@@ -159,11 +159,11 @@ describe("streamAgentRun", () => {
       },
     } as unknown as Stigmer;
     await streamAgentRun(deps({ client: listed }));
-    expect(epilogue.runEpilogue).toHaveBeenCalledWith(listed, "ses_1", "run_2", { phase: "", error: "", turn: undefined });
+    expect(epilogue.runEpilogue).toHaveBeenCalledWith(listed, "ses_1", "run_2", { phase: "", error: "", turn: undefined, waitingOnHost: [] });
     // A list that cannot be read, or holds nothing, keeps the run the command started.
     const empty = { ...client, run: { listBySession: async () => ({ entries: [], nextPageToken: "" }) } } as unknown as Stigmer;
     await streamAgentRun(deps({ client: empty }));
-    expect(epilogue.runEpilogue).toHaveBeenLastCalledWith(empty, "ses_1", "run_1", { phase: "", error: "", turn: undefined });
+    expect(epilogue.runEpilogue).toHaveBeenLastCalledWith(empty, "ses_1", "run_1", { phase: "", error: "", turn: undefined, waitingOnHost: [] });
   });
 
   it("opens Ink in agent mode for any mode but plan", async () => {

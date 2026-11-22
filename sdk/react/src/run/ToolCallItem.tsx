@@ -704,11 +704,14 @@ type ItemStatus = "running" | "waiting" | "failed" | "completed" | "interrupted"
  * The row's status from the tool use's state. A denied call never ran (its
  * badge says Denied), so it takes the slash, as a call its turn stopped
  * before it returned does (interrupted, issue #207): not a spinner (nothing
- * runs), not a failure (the tool never errored).
+ * runs), not a failure (the tool never errored). A call of the host app's
+ * own tools waiting for the app's answer waits like an approval, with no
+ * approval to give.
  */
 const ITEM_STATUS: Record<ToolUse["state"], ItemStatus> = {
   running: "running",
   waiting: "waiting",
+  waiting_on_host: "waiting",
   failed: "failed",
   completed: "completed",
   denied: "denied",

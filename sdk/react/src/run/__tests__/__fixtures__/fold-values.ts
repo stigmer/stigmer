@@ -75,6 +75,7 @@ export function toolUse(init: ToolUseInit): ToolUse {
     mcpServerName: init.mcpServerName ?? "",
     input: init.input ?? {},
     evaluatedPermission: init.ask ? "ask" : "",
+    custom: false,
     state,
     ask: init.ask
       ? {

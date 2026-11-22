@@ -33,14 +33,17 @@ export const TURN_ENDED_PHASES: ReadonlySet<TurnPhase> = new Set<TurnPhase>([
 
 /**
  * Where a tool use stands:
- *   running ..... called, no result yet, its turn still works
- *   waiting ..... asks a person, no answer yet
- *   completed ... returned
- *   failed ...... returned an error
- *   denied ...... a person (or a rule) refused it
- *   stopped ..... its turn ended before it returned (nothing more will come)
+ *   running ......... called, no result yet, its turn still works
+ *   waiting ......... asks a person, no answer yet
+ *   waiting_on_host . one of the host app's own tools (`agent.custom_tool_use`),
+ *                     no answer from the host yet; never a person's approval,
+ *                     so it is never `waiting` and never one of a turn's asks
+ *   completed ....... returned (a custom tool: the host answered)
+ *   failed .......... returned an error (a custom tool: the host answered `is_error`)
+ *   denied .......... a person (or a rule) refused it
+ *   stopped ......... its turn ended before it returned (nothing more will come)
  */
-export type ToolUseState = "running" | "waiting" | "completed" | "failed" | "denied" | "stopped";
+export type ToolUseState = "running" | "waiting" | "waiting_on_host" | "completed" | "failed" | "denied" | "stopped";
 
 /** Why a tool use waits for a person: `stigmer.permission.asked`. */
 export interface ToolAsk {
@@ -77,7 +80,7 @@ export interface PermissionGrant {
   readonly processedAt: string;
 }
 
-/** A tool's result: `agent.tool_result` or `agent.mcp_tool_result`. */
+/** A tool's result: `agent.tool_result`, `agent.mcp_tool_result`, or the host's `user.custom_tool_result`. */
 export interface ToolResult {
   readonly id: string;
   /** The result's text blocks, joined. An offloaded output's head. */
@@ -149,8 +152,16 @@ export interface ToolUse {
   /** The thread that made the call; "" for the primary thread. */
   readonly threadId: string;
   readonly name: string;
-  /** The MCP server the tool belongs to; "" for a built-in tool. */
+  /** The MCP server the tool belongs to; "" for a built-in tool and a custom tool. */
   readonly mcpServerName: string;
+  /**
+   * Whether the call is to one of the host app's own tools (an
+   * `agent.custom_tool_use`, the session's `custom_tools`): the host
+   * answers it with a `user.custom_tool_result`, never a person with a
+   * confirmation. Kept once it is answered, so the call is still the
+   * host's in history.
+   */
+  readonly custom: boolean;
   readonly input: JsonObject;
   /** allow, ask or deny; "" when none was recorded. */
   readonly evaluatedPermission: string;
@@ -365,8 +376,14 @@ export interface Turn {
   readonly status: TurnStatus | undefined;
   /** Whether the turn has ended: its status says so, or (with no status) a later turn began or the session went idle after the turn began. */
   readonly ended: boolean;
-  /** Every tool use of the turn (every thread) that waits for a person, in log order. */
+  /** Every tool use of the turn (every thread) that waits for a person's approval, in log order: each is answered with a confirmation. */
   readonly asks: ReadonlyArray<ToolUse>;
+  /**
+   * Every call of the turn to one of the host app's own tools that waits
+   * for the host's answer (`waiting_on_host`), in log order: each is
+   * answered with a `user.custom_tool_result`, never a confirmation.
+   */
+  readonly customToolUses: ReadonlyArray<ToolUse>;
   readonly todos: ReadonlyArray<Todo>;
   readonly structuredOutput: JsonObject | undefined;
   readonly memory: MemoryRecall | undefined;

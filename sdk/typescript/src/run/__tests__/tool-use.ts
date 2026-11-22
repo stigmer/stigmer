@@ -42,6 +42,7 @@ export function toolUseOf(init: ToolRowInit): ToolUse {
     evaluatedPermission: "",
     state: failed ? "failed" : returned ? "completed" : "running",
     ask: undefined,
+    custom: false,
     confirmation: undefined,
     grant: undefined,
     result: returned ? { id: `run_1.${init.id ?? "call_1"}.r`, text, isError: failed, processedAt: "" } : undefined,

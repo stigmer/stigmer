@@ -130,6 +130,8 @@ export interface ExecutionRecordOptions {
    * which has one.
    */
   readonly computer?: Computer;
+  /** The host app's own tools the session declares (`SessionSpec.custom_tools`). */
+  readonly customTools?: ReadonlyArray<{ readonly name: string; readonly description: string; readonly inputSchema: JsonObject }>;
   /** The agent's own MCP servers (`AgentSpec.mcp_servers`), reached over HTTP. */
   readonly mcpServers?: ReadonlyArray<{ readonly name: string; readonly url: string; readonly headers?: Record<string, string> }>;
   /**
@@ -180,6 +182,7 @@ export function executionRecordFixture(options: ExecutionRecordOptions): Executi
         : create(ApiResourceReferenceSchema, { kind: ApiResourceKind.agent, org: ids.org, slug: ids.agentName }),
       resources: options.resources ?? [],
       fileReview: options.fileReview ?? false,
+      customTools: (options.customTools ?? []).map((tool) => ({ name: tool.name, description: tool.description, inputSchema: tool.inputSchema })),
     }),
     status: {
       agentId: builtIn ? "" : ids.agentId,

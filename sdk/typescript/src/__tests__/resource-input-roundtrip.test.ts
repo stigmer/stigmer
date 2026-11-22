@@ -792,6 +792,13 @@ describe("toSessionInput", () => {
         includeMyVault: true,
         fileReview: true,
         environmentRef: { org: "acme", slug: "data-science", kind: ApiResourceKind.environment },
+        customTools: [
+          {
+            name: "show_registration_form",
+            description: "Open the service registration form beside the chat.",
+            inputSchema: { type: "object", properties: { service: { type: "string" } }, required: ["service"] },
+          },
+        ],
       },
     });
 

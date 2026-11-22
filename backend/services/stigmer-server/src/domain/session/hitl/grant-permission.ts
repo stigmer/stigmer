@@ -47,6 +47,7 @@ export async function grantPermission(
   for (const step of answerSteps<GrantPermissionDesc>(deps, (ctx) => ({
     sessionId: ctx.input.sessionId,
     toolUseId: ctx.input.toolUseId,
+    kind: "confirmation",
     result: "allow",
     denyMessage: "",
     grant: true,

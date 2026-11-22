@@ -1,7 +1,10 @@
 /**
  * The one core every answer to a waiting tool use goes through:
- * SessionCommandController.confirmToolUse and grantPermission. Each method
- * authorizes its own way, then appends these steps to its chain:
+ * SessionCommandController.confirmToolUse and grantPermission, a person's
+ * approval, and answerCustomToolUse (and the Managed Agents lane's
+ * user.custom_tool_result), the host app's answer to a call of one of its
+ * own tools. Each method authorizes its own way, then appends these steps
+ * to its chain:
  *
  *   LoadAskedRun ... the run is the text before the first `.` of the tool
  *                    use id (run ids hold none), and must be one of the
@@ -9,23 +12,32 @@
  *                    (or agent.mcp_tool_use) event with that id in the
  *                    session's log, written with evaluated_permission
  *                    `ask`, at the root or in a sub-agent's thread (its
- *                    session_thread_id). Anything else is NOT_FOUND.
+ *                    session_thread_id), or, for a host's answer, the
+ *                    run's agent.custom_tool_use with that id, which always
+ *                    waits. Anything else is NOT_FOUND, an approval's call
+ *                    named to a host's answer and a host's call named to
+ *                    an approval included: each waits for its own kind of
+ *                    answer.
  *   AnswerReplay ... an answer already recorded for the tool use (its
- *                    user.tool_confirmation, by its derived id) ends the
- *                    chain: the same answer is success with the stored
- *                    events, another is FAILED_PRECONDITION (an answer is
- *                    final). A replay never reaches the gate slot, the
- *                    write or the signal.
+ *                    user.tool_confirmation, or user.custom_tool_result,
+ *                    by its derived id) ends the chain: the same answer
+ *                    (for a host's, the same text and is_error) is success
+ *                    with the stored events, another is FAILED_PRECONDITION
+ *                    (an answer is final). A replay never reaches the gate
+ *                    slot, the write or the signal.
  *   ValidateAnswer . the run waits for approval or is in progress (a fast
  *                    answer can land between the runner's asks and its
  *                    waiting write), and the ask's gate is still open in
  *                    the log: neither answered nor closed by its result.
  *   the gate slot .. `agent-execution-submit-approval:gate`, run once per
- *                    fresh answer whichever method came in. Its steps read
- *                    the answer with `approvalAnswerOf(ctx)`
- *                    (APPROVAL_ANSWER_KEY).
+ *                    fresh approval whichever method came in. Its steps
+ *                    read the answer with `approvalAnswerOf(ctx)`
+ *                    (APPROVAL_ANSWER_KEY). A host's answer is no approval
+ *                    (it allows nothing to run on Stigmer's side: it is the
+ *                    call's result), so the slot never sees one.
  *   RecordAnswer ... one run write (updateRunAppendingEvents): the
- *                    user.tool_confirmation (and, for a grant, the
+ *                    user.tool_confirmation or user.custom_tool_result
+ *                    (and, for a grant, the
  *                    stigmer.permission.grant and a confirmation for every
  *                    other open ask of the run in the class), and whatever
  *                    the session's status becomes. Under the session's
@@ -34,8 +46,9 @@
  *                    answer racing a stop is refused; a concurrent
  *                    identical answer that landed first is answered as the
  *                    replay.
- *   SignalWorkflow . when the run has no open ask left (filereview/gate.ts,
- *                    counted under the write's lock), the turn's workflow
+ *   SignalWorkflow . when the run has no open ask left, a host's call
+ *                    counted as one (filereview/gate.ts, counted under the
+ *                    write's lock), the turn's workflow
  *                    is told to resume. A workflow that no longer runs
  *                    fails the run, if it still waits
  *                    (run/workflow-gone.ts).
@@ -56,12 +69,19 @@
  * after which an ask the read did not see is left waiting for its own
  * answer.
  *
- * The confirmation's id is `sevt_tc_` and the first 40 hex digits of the
- * sha256 of the tool use id, the grant's `sevt_pg_`, so the log refuses a
- * second of either. Each is written in the tool use's own thread.
+ * A host's answer carries text blocks only, at most MAX_CUSTOM_RESULT_CHARS
+ * in all; the wire takes any content block, so an image or a document
+ * later changes no message. A grant never answers a host's call: the call
+ * has no class.
  *
- * Proven by __tests__/methods.test.ts, __tests__/log-only-asks.test.ts and
- * the run-approval conformance suite.
+ * The confirmation's id is `sevt_tc_` and the first 40 hex digits of the
+ * sha256 of the tool use id, the grant's `sevt_pg_`, a host's answer's
+ * `sevt_ctr_`, so the log refuses a second of any. Each is written in the
+ * tool use's own thread.
+ *
+ * Proven by __tests__/methods.test.ts, __tests__/log-only-asks.test.ts,
+ * __tests__/custom-tool-answers.test.ts and the run-approval and
+ * custom-tools conformance suites.
  */
 import { createHash } from "node:crypto";
 
@@ -79,6 +99,7 @@ import {
   type SessionEvent,
   type StigmerPermissionAskedEvent,
 } from "@stigmer/apis/ai/stigmer/agentic/session/v1/event_pb";
+import type { ContentBlock } from "@stigmer/apis/ai/stigmer/agentic/session/v1/event_content_pb";
 import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { enumToJson } from "@bufbuild/protobuf";
 
@@ -129,8 +150,12 @@ export interface AnswerDeps {
 /** allow (the call runs) or deny (it does not). */
 export type AnswerResult = "allow" | "deny";
 
-/** What a method asks the core to record. */
-export interface AnswerRequest {
+/** What a method asks the core to record: a person's approval, or the host app's answer to its own tool. */
+export type AnswerRequest = ConfirmationRequest | CustomToolResultRequest;
+
+/** A person allows or denies a call that asked (confirmToolUse, grantPermission). */
+export interface ConfirmationRequest {
+  readonly kind: "confirmation";
   readonly sessionId: string;
   readonly toolUseId: string;
   readonly result: AnswerResult;
@@ -139,6 +164,21 @@ export interface AnswerRequest {
   /** A grant: allow, and every call of the class for the rest of the turn. */
   readonly grant: boolean;
 }
+
+/** The host app answers a call of one of its own tools (answerCustomToolUse, the lane's user.custom_tool_result). */
+export interface CustomToolResultRequest {
+  readonly kind: "custom_tool_result";
+  readonly sessionId: string;
+  /** The agent.custom_tool_use answered. */
+  readonly toolUseId: string;
+  /** What the agent reads as the tool's result: text blocks (module header). */
+  readonly content: ReadonlyArray<ContentBlock>;
+  /** The tool failed; the agent reads the content as the error. */
+  readonly isError: boolean;
+}
+
+/** The most text a host's answer may carry, summed over its blocks. */
+export const MAX_CUSTOM_RESULT_CHARS = 100_000;
 
 /** The answer a gate step reads (`approvalAnswerOf`). */
 export interface ApprovalAnswer {
@@ -159,7 +199,11 @@ export interface ApprovalAnswer {
 export interface AnswerOutcome {
   /** The run after the answer. */
   readonly run: Run;
-  /** The confirmations: the named call's first, then those a grant wrote. */
+  /**
+   * The answers recorded: the named call's first (its
+   * user.tool_confirmation, or a host's user.custom_tool_result), then the
+   * confirmations a grant wrote.
+   */
   readonly confirmations: ReadonlyArray<SessionEvent>;
   /** The grant; undefined when none was given or the call has no class. */
   readonly grant: SessionEvent | undefined;
@@ -209,8 +253,16 @@ export function permissionGrantEventId(toolUseId: string): string {
   return `${GRANT_ID_PREFIX}${digestOf(toolUseId)}`;
 }
 
-/** The types a tool use that can ask is written as. */
-const TOOL_USE_TYPES = ["agent.tool_use", "agent.mcp_tool_use"];
+/** The id prefix of a user.custom_tool_result the server writes. */
+const CUSTOM_RESULT_ID_PREFIX = `${SESSION_EVENT_ID_PREFIX}_ctr_`;
+
+/** The user.custom_tool_result id that answers a custom tool use. */
+export function customToolResultEventId(toolUseId: string): string {
+  return `${CUSTOM_RESULT_ID_PREFIX}${digestOf(toolUseId)}`;
+}
+
+/** The types a tool use that can wait is written as: a call that can ask, and a call of one of the host app's own tools. */
+const TOOL_USE_TYPES = ["agent.tool_use", "agent.mcp_tool_use", "agent.custom_tool_use"];
 
 /** The type that says why a tool use waits. */
 const PERMISSION_ASKED_TYPE = "stigmer.permission.asked";
@@ -227,6 +279,8 @@ const GRANT_ASK_READS = 3;
 /** An ask as the session's log states it (module header). */
 export interface LoggedAsk {
   readonly toolUseId: string;
+  /** What answers it: a person's confirmation, or the host app's result (a call of one of its own tools). */
+  readonly kind: "confirmation" | "custom_tool_result";
   /** "" for the root thread; the sub-agent's thread otherwise (the tool use's session_thread_id). */
   readonly threadId: string;
   /** The class a grant on it would lease; undefined when it has none, or the log holds no asked event for it. */
@@ -264,7 +318,9 @@ async function askedEventsOf(
 
 /**
  * The asks among `toolUseIds` the run wrote in the session's log: tool use
- * events of the run, by id, that asked, each with its asked event's class.
+ * events of the run, by id, that asked, each with its asked event's class,
+ * and the run's calls of the host app's own tools, which always wait and
+ * have no class.
  */
 export async function readAsks(
   store: Store,
@@ -286,6 +342,11 @@ export async function readAsks(
     if (record.runId !== runId) {
       continue;
     }
+    if (event.event.case === "agentCustomToolUse") {
+      const custom = event.event.value;
+      asks.set(custom.id, { toolUseId: custom.id, kind: "custom_tool_result", threadId: custom.sessionThreadId, lease: undefined });
+      continue;
+    }
     const use =
       event.event.case === "agentToolUse"
         ? { ...event.event.value, mcpServer: "" }
@@ -298,6 +359,7 @@ export async function readAsks(
     const why = asked.get(use.id);
     asks.set(use.id, {
       toolUseId: use.id,
+      kind: "confirmation",
       threadId: use.sessionThreadId,
       lease:
         why === undefined
@@ -371,6 +433,40 @@ function confirmationEvent(
   });
 }
 
+function customToolResultEvent(runId: string, ask: LoggedAsk, request: CustomToolResultRequest): SessionEvent {
+  return create(SessionEventSchema, {
+    runId,
+    threadId: ask.threadId,
+    event: {
+      case: "userCustomToolResult",
+      value: {
+        id: customToolResultEventId(ask.toolUseId),
+        customToolUseId: ask.toolUseId,
+        content: request.content.map((block) => ({ type: "text", text: block.text })),
+        isError: request.isError,
+        sessionThreadId: ask.threadId,
+      },
+    },
+  });
+}
+
+/**
+ * Why a host's answer cannot be recorded (module header): a block other
+ * than text, or more text than MAX_CUSTOM_RESULT_CHARS; undefined when it
+ * can.
+ */
+export function customToolResultProblem(content: ReadonlyArray<ContentBlock>): string | undefined {
+  const other = content.find((block) => block.type !== "text");
+  if (other !== undefined) {
+    return `a custom tool's answer holds text blocks only; ${other.type === "" ? "a block with no type" : `a block of type '${other.type}'`} cannot be sent yet`;
+  }
+  const chars = content.reduce((sum, block) => sum + block.text.length, 0);
+  if (chars > MAX_CUSTOM_RESULT_CHARS) {
+    return `a custom tool's answer holds at most ${MAX_CUSTOM_RESULT_CHARS} characters of text; this one holds ${chars}`;
+  }
+  return undefined;
+}
+
 function grantEvent(runId: string, ask: LoggedAsk, lease: LeaseScope): SessionEvent {
   return create(SessionEventSchema, {
     runId,
@@ -430,6 +526,9 @@ async function recordedAnswer(
   request: AnswerRequest,
   ask: LoggedAsk,
 ): Promise<AnswerOutcome | undefined> {
+  if (request.kind === "custom_tool_result") {
+    return recordedCustomResult(deps, run, request);
+  }
   const runId = run.metadata?.id ?? "";
   const confirmationId = toolConfirmationEventId(request.toolUseId);
   const grantId = permissionGrantEventId(request.toolUseId);
@@ -477,6 +576,33 @@ async function recordedAnswer(
   };
 }
 
+/** The host's answer already recorded for a custom tool use, when it is this one (recordedAnswer). */
+async function recordedCustomResult(
+  deps: AnswerDeps,
+  run: Run,
+  request: CustomToolResultRequest,
+): Promise<AnswerOutcome | undefined> {
+  const records = await deps.store.sessionEvents.list(request.sessionId, {
+    order: "asc",
+    eventIds: [customToolResultEventId(request.toolUseId)],
+    types: ["user.custom_tool_result"],
+    limit: 1,
+  });
+  const recorded = records.map(eventOf).find((event) => event.runId === (run.metadata?.id ?? ""));
+  if (recorded === undefined || recorded.event.case !== "userCustomToolResult") {
+    return undefined;
+  }
+  const stored = recorded.event.value;
+  const same =
+    stored.isError === request.isError &&
+    stored.content.length === request.content.length &&
+    stored.content.every((block, index) => block.text === request.content[index]!.text);
+  if (!same) {
+    throw answeredOtherwise(request.toolUseId);
+  }
+  return { run, confirmations: [recorded], grant: undefined };
+}
+
 /** The steps every answer chain ends with (module header). */
 export function answerSteps<Desc extends DescMessage>(
   deps: AnswerDeps,
@@ -498,7 +624,7 @@ export function answerSteps<Desc extends DescMessage>(
         ctx.set(REQUEST_KEY, request);
         const runId = runIdOfToolUse(request.toolUseId);
         const missing = (): Error =>
-          notFoundError("tool use", request.toolUseId);
+          notFoundError(request.kind === "custom_tool_result" ? "custom tool use" : "tool use", request.toolUseId);
         if (runId === "") {
           throw missing();
         }
@@ -520,7 +646,9 @@ export function answerSteps<Desc extends DescMessage>(
         } catch (error) {
           throw internalError(error, "failed to read the tool use's ask");
         }
-        if (ask === undefined) {
+        // Each call waits for its own kind of answer: a person's approval
+        // never answers a host's call, nor a host's result a person's ask.
+        if (ask === undefined || ask.kind !== request.kind) {
           throw missing();
         }
         ctx.set(RUN_KEY, run);
@@ -562,6 +690,9 @@ export function answerSteps<Desc extends DescMessage>(
         if (!open) {
           throw failedPreconditionError(`tool use ${request.toolUseId} no longer waits`);
         }
+        if (request.kind === "custom_tool_result") {
+          return;
+        }
         const answer: ApprovalAnswer = {
           run,
           toolUseId: request.toolUseId,
@@ -572,13 +703,14 @@ export function answerSteps<Desc extends DescMessage>(
         ctx.set(APPROVAL_ANSWER_KEY, answer);
       },
     },
-    // The approval gate slot, once per fresh answer: a replay skips every
-    // step after AnswerReplay, so the slot's steps never see one.
+    // The approval gate slot, once per fresh approval: a replay skips every
+    // step after AnswerReplay, so the slot's steps never see one, and a
+    // host's answer is no approval (module header).
     ...stepsForSlot<Desc>(deps.gateSteps, "agent-execution-submit-approval:gate").map(
       (step): PipelineStep<Desc> => ({
         name: step.name,
         async execute(ctx) {
-          if (!replayed(ctx)) {
+          if (!replayed(ctx) && requestIn(ctx).kind === "confirmation") {
             await step.execute(ctx);
           }
         },
@@ -652,7 +784,7 @@ async function recordAnswer(
   const runId = loaded.metadata?.id ?? "";
   for (let read = 1; ; read++) {
     const others =
-      request.grant && ask.lease !== undefined
+      request.kind === "confirmation" && request.grant && ask.lease !== undefined
         ? await readAsks(
             deps.store,
             request.sessionId,
@@ -699,8 +831,13 @@ async function writeAnswer(
     ) {
       throw new AskClosedError(request.toolUseId);
     }
-    confirmations = [confirmationEvent(runId, ask, request.result, request.denyMessage)];
     grant = undefined;
+    if (request.kind === "custom_tool_result") {
+      confirmations = [customToolResultEvent(runId, ask, request)];
+      openAsks = openAsksOf(session, runId, confirmations).size;
+      return confirmations;
+    }
+    confirmations = [confirmationEvent(runId, ask, request.result, request.denyMessage)];
     const lease = request.grant ? ask.lease : undefined;
     if (lease !== undefined) {
       if (!final && [...open].some((id) => id !== request.toolUseId && !others.has(id))) {
@@ -721,7 +858,7 @@ async function writeAnswer(
     runId,
     org: run.metadata?.org ?? "",
     toolUseId: request.toolUseId,
-    result: request.result,
+    result: request.kind === "confirmation" ? request.result : request.isError ? "custom_tool_error" : "custom_tool_result",
     grant: grant !== undefined,
     answered: confirmations.length,
     decidedBy,

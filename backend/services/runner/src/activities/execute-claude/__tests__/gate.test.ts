@@ -58,8 +58,12 @@ import type { HookProcessRunner, HookRunResult } from "../../../shared/hooks/run
 import { ELISION_MARKER } from "../../../shared/status-offload.js";
 import type { ToolApprovalCategory } from "../../../shared/tool-kind.js";
 import { turnInputFixture } from "../../../__test-utils__/turn-input-fixture.js";
+import { CUSTOM_TOOL_WAITING_MESSAGE, customToolEngineName } from "../../../shared/custom-tools.js";
+import { customToolInputProblem } from "@stigmer/tool-vocabulary";
 import {
   ASK_ALONE_MESSAGE,
+  CUSTOM_ASK_ALONE_MESSAGE,
+  SUBAGENT_CUSTOM_TOOL_MESSAGE,
   ClaudeGate,
   spellingsOf,
   HALTED_MESSAGE,
@@ -180,6 +184,8 @@ function facts(over: Partial<GateFacts> = {}): GateFacts {
     unproposedCallId: undefined,
     resumesLeft: 2,
     observer: undefined,
+    customTools: [],
+    customToolResults: new Map(),
     ...over,
   };
 }
@@ -226,6 +232,48 @@ function hookSays(permissionDecision: string, extra: Record<string, unknown> = {
 }
 
 const withRootHooks = (evaluator: HookEvaluator): TurnHookEvaluators => ({ root: evaluator, subagents: new Map() });
+
+describe("the host app's own tools", () => {
+  const FORM = { name: "show_form", description: "Open the form.", inputSchema: { type: "object", properties: { service: { type: "string" } }, required: ["service"] } };
+  const ENGINE_NAME = customToolEngineName(FORM.name);
+  const custom = (over: Partial<GateFacts> = {}): Partial<GateFacts> => ({ customTools: [FORM], ...over });
+
+  it("pauses a call whose input matches, as the host's, under any lease and outside the agent's reach", async () => {
+    const verdict = await decide(new ClaudeGate(facts(custom({ leases: leases({ global: true }) }))), ENGINE_NAME, { service: "payments" }, "toolu_c");
+    expect(verdict).toEqual({ kind: "pause", customTool: "show_form", message: CUSTOM_TOOL_WAITING_MESSAGE, source: undefined, caller: ROOT_CALLER, toolName: ENGINE_NAME, args: { service: "payments" }, hook: undefined });
+    expect(holdsCall(verdict)).toBe(true);
+  });
+
+  it("allows the call once the host has answered it", async () => {
+    const gate = new ClaudeGate(facts(custom({ customToolResults: new Map([["toolu_c", { text: "ok", isError: false }]]) })));
+    expect(await decide(gate, ENGINE_NAME, { service: "payments" }, "toolu_c")).toMatchObject({ kind: "allow", toolName: ENGINE_NAME, caller: ROOT_CALLER });
+  });
+
+  it("refuses input that does not match the schema with the shared sentence, before anything waits", async () => {
+    const verdict = await decide(new ClaudeGate(facts(custom())), ENGINE_NAME, { repo: "x" }, "toolu_c");
+    expect(verdict).toMatchObject({ kind: "refuse", message: customToolInputProblem(FORM, { repo: "x" }), byPerson: false });
+  });
+
+  it("refuses a helper's call, and a call this run left pending without proposing it", async () => {
+    expect(await decide(startedGate(custom()), ENGINE_NAME, { service: "x" }, "toolu_h", "agent_runner")).toMatchObject({ kind: "refuse", message: SUBAGENT_CUSTOM_TOOL_MESSAGE });
+    expect(await decide(new ClaudeGate(facts(custom({ unproposedCallId: "toolu_u" }))), ENGINE_NAME, { service: "x" }, "toolu_u")).toMatchObject({ kind: "refuse", message: CUSTOM_ASK_ALONE_MESSAGE });
+  });
+
+  it("refuses a second pause past the invocation's one deferral in the host's words, at either mechanism", async () => {
+    const gate = new ClaudeGate(facts(custom()));
+    const preToolUse = gateHooks(gate).PreToolUse![0]!.hooks[0]!;
+    const signal = new AbortController().signal;
+    const ask = (id: string) =>
+      preToolUse({ hook_event_name: "PreToolUse", tool_name: ENGINE_NAME, tool_input: { service: id }, tool_use_id: id, session_id: "s", transcript_path: "", cwd: WORKSPACE } as HookInput, id, { signal });
+    expect(await ask("toolu_1")).toMatchObject({ hookSpecificOutput: { permissionDecision: "defer" } });
+    expect(await ask("toolu_2")).toMatchObject({ hookSpecificOutput: { permissionDecision: "deny", permissionDecisionReason: CUSTOM_ASK_ALONE_MESSAGE } });
+    expect(await canUseToolOf(gate)(ENGINE_NAME, { service: "toolu_1" }, { signal, toolUseID: "toolu_1", requestId: "r1" })).toEqual({ behavior: "deny", message: CUSTOM_ASK_ALONE_MESSAGE });
+  });
+
+  it("takes a name it was not given for the closed world's, so an unattended turn's call is refused as unoffered", async () => {
+    expect(await decide(new ClaudeGate(facts()), ENGINE_NAME, { service: "x" })).toMatchObject({ kind: "refuse", message: notOfferedMessage(ENGINE_NAME) });
+  });
+});
 
 describe("the closed world: a tool the turn never offered", () => {
   it("is refused before any policy, even when the whole run is trusted", async () => {
@@ -721,6 +769,7 @@ describe("the gate's facts", () => {
       pending: { staleCallId: "toolu_s", unproposedCallId: undefined },
       resumesLeft: 1,
       observer: undefined,
+      customTools: [],
     });
     expect(read).toMatchObject({
       root: ROOT_REACH,

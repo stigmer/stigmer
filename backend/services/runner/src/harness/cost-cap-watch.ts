@@ -25,10 +25,11 @@ import { UsageAccumulator } from "./usage-accumulator.js";
  * run already spent, so neither a deploy nor a recovered stall resets the
  * cap. A run resuming after an approval starts a fresh count, as
  * `max_cost_usd`'s contract states (`invocation.proto`); an approval resume
- * is told by the decisions it carries.
+ * is told by the decisions it carries, and a resume on the host app's
+ * answers to its own tools is one too.
  */
-export function continuesTheRunsCount(input: Pick<TurnInput, "continuation" | "approvalDecisions">): boolean {
-  return input.continuation !== undefined && input.approvalDecisions.size === 0;
+export function continuesTheRunsCount(input: Pick<TurnInput, "continuation" | "approvalDecisions" | "customToolResults">): boolean {
+  return input.continuation !== undefined && input.approvalDecisions.size === 0 && input.customToolResults.size === 0;
 }
 
 /**
@@ -37,7 +38,7 @@ export function continuesTheRunsCount(input: Pick<TurnInput, "continuation" | "a
  * The one construction the runtime and the agent host share, so the host's
  * early stop and the runtime's terminal read the same count.
  */
-export function costCapWatchFor(input: Pick<TurnInput, "continuation" | "approvalDecisions" | "execution" | "model">): CostCapWatch {
+export function costCapWatchFor(input: Pick<TurnInput, "continuation" | "approvalDecisions" | "customToolResults" | "execution" | "model">): CostCapWatch {
   const watch = new CostCapWatch(input.execution.status?.runConfig?.maxCostUsd ?? 0, input.model.serviceTier, input.model.thinkingMode);
   const summary = input.execution.status?.streamingUsage;
   if (summary !== undefined && continuesTheRunsCount(input)) watch.accumulator.seed(summary);

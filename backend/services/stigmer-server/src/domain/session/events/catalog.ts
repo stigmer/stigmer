@@ -12,7 +12,8 @@
  * file-review decision (`stigmer.file_review.decided`,
  * ../../run/filereview/decided.ts), every answer to a waiting tool use
  * (`user.tool_confirmation`, `stigmer.permission.grant`,
- * ../hitl/answer.ts), the session's stop (`user.interrupt`,
+ * ../hitl/answer.ts), the host app's answer to a call of one of its own
+ * tools (`user.custom_tool_result`, ../hitl/answer.ts), the session's stop (`user.interrupt`,
  * ../hitl/interrupt.ts) and a person's stop of one background command
  * (`stigmer.background_command.stop_requested`,
  * ../hitl/stop-background-command.ts); a runner writes what the agent did, its threads,
@@ -53,6 +54,7 @@ export const RUNNER_EVENT_TYPES: ReadonlySet<string> = new Set([
   "agent.tool_result",
   "agent.mcp_tool_use",
   "agent.mcp_tool_result",
+  "agent.custom_tool_use",
   "agent.thread_message_sent",
   "agent.thread_message_received",
   "agent.thread_context_compacted",

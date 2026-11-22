@@ -791,7 +791,12 @@ export class TranscriptBuilder {
       // (Claude's, whose row opens PENDING before its gate decides), so any
       // outcome the stream wrote is not the outcome.
       existing.status = ToolCallStatus.TOOL_CALL_WAITING_APPROVAL;
-      existing.requiresApproval = true;
+      existing.requiresApproval = event.customTool !== true;
+      if (event.customTool === true) {
+        existing.customTool = true;
+        existing.name = event.name;
+        existing.mcpServerSlug = "";
+      }
       existing.approvalMessage = event.message;
       if (!existing.approvalRequestedAt) existing.approvalRequestedAt = now;
       existing.completedAt = "";
@@ -818,7 +823,8 @@ export class TranscriptBuilder {
       id: event.callId,
       name: event.name,
       status: ToolCallStatus.TOOL_CALL_WAITING_APPROVAL,
-      requiresApproval: true,
+      requiresApproval: event.customTool !== true,
+      customTool: event.customTool === true,
       approvalMessage: event.message,
       approvalRequestedAt: now,
       startedAt: now,

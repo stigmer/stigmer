@@ -107,6 +107,8 @@ import {
   ROUTING_GLOBAL,
   newConfigFromEnv,
 } from "../../run/temporal/config.js";
+import { CustomToolSchema, type CustomTool } from "@stigmer/apis/ai/stigmer/agentic/session/v1/spec_pb";
+import { CUSTOM_TOOLS_FIXED_MESSAGE } from "../custom-tools.js";
 import {
   newFilterByAgentStep,
   newValidateExecutionTargetImmutabilityStep,
@@ -779,6 +781,62 @@ const TARGET_LOCAL_TO_CLOUD_REFUSAL =
   "(EXECUTION_TARGET_LOCAL → EXECUTION_TARGET_CLOUD; unset resolves to the " +
   "deployment default, local) — workspace state may not be portable " +
   "between local and cloud environments";
+
+describe("session create and update — the host app's own tools (custom_tools)", () => {
+  const FORM = create(CustomToolSchema, {
+    name: "show_registration_form",
+    description: "Open the service registration form beside the chat.",
+    inputSchema: { type: "object", properties: { service: { type: "string" } }, required: ["service"] },
+  });
+
+  it("stores well-formed custom tools, and refuses one no engine could offer with the rule it breaks", async () => {
+    const session = await createSession({ customTools: [FORM] });
+    expect(session.spec?.customTools.map((tool) => [tool.name, tool.inputSchema])).toEqual([[FORM.name, FORM.inputSchema]]);
+
+    const refusals: Array<[CustomTool, string]> = [
+      [{ ...FORM, name: "Bash" }, "The name of custom tool 'Bash' is a built-in tool's; choose another."],
+      [{ ...FORM, name: "mcp__forms__show" }, "The name of custom tool 'mcp__forms__show' may not start with mcp__, which names an MCP server's tools."],
+      [create(CustomToolSchema, { ...FORM, inputSchema: { type: "string" } }), 'The input_schema of custom tool \'show_registration_form\' must describe an object ({"type": "object", ...}).'],
+    ];
+    for (const [tool, message] of refusals) {
+      const error = await grpcError(() => createSession({ customTools: [tool] }));
+      expect(error.code, message).toBe(Code.InvalidArgument);
+      expect(error.rawMessage).toBe(message);
+    }
+    const twice = await grpcError(() => createSession({ customTools: [FORM, FORM] }));
+    expect(twice.rawMessage).toBe("Two custom tools are named 'show_registration_form'; each name may appear once.");
+  });
+
+  it("an update may change them until the conversation has run, then refuses a change and keeps an unchanged list", async () => {
+    const session = await createSession({ customTools: [FORM] });
+    const renamed = { ...FORM, name: "show_form" };
+    const before = await command.update({ resource: updateInput(session, { customTools: [renamed] }), updateMask: { paths: ["spec.custom_tools"] } });
+    expect(before.spec?.customTools.map((tool) => tool.name)).toEqual(["show_form"]);
+
+    await seedExecution(session.metadata!.id, RunPhase.RUN_COMPLETED);
+    const unchanged = await command.update({ resource: updateInput(session, { subject: "still", customTools: [renamed] }), updateMask: { paths: ["*"] } });
+    expect(unchanged.spec?.customTools.map((tool) => tool.name)).toEqual(["show_form"]);
+    const kept = await command.update({ resource: updateInput(session, { subject: "masked out" }), updateMask: { paths: ["spec.subject"] } });
+    expect(kept.spec?.customTools.map((tool) => tool.name)).toEqual(["show_form"]);
+
+    for (const customTools of [[FORM], [], [{ ...renamed, description: "Another description." }]]) {
+      const error = await grpcError(() =>
+        command.update({ resource: updateInput(session, { customTools }), updateMask: { paths: ["spec.custom_tools"] } }),
+      );
+      expect(error.code).toBe(Code.FailedPrecondition);
+      expect(error.rawMessage).toBe(CUSTOM_TOOLS_FIXED_MESSAGE);
+    }
+  });
+
+  it("an update's tools pass the same check as a create's", async () => {
+    const session = await createSession({});
+    const error = await grpcError(() =>
+      command.update({ resource: updateInput(session, { customTools: [{ ...FORM, description: " " }] }), updateMask: { paths: ["spec.custom_tools"] } }),
+    );
+    expect(error.code).toBe(Code.InvalidArgument);
+    expect(error.rawMessage).toBe("The description of custom tool 'show_registration_form' is empty; the agent reads it to know when to call the tool.");
+  });
+});
 
 describe("session update — execution-target immutability (oss#397, stigmer/stigmer#2598)", () => {
   it("passes an unset→unset round-trip on the local-default deployment (both resolve LOCAL)", async () => {

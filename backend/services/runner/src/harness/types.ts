@@ -100,6 +100,7 @@ import type { RunValues } from "../shared/run-values.js";
 import type { CasTouchedReader } from "../shared/filereview/cas-touched.js";
 import type { HarnessCapabilities } from "./capabilities.js";
 import type { ApprovalAsk } from "./approval-answers.js";
+import type { CustomToolAnswer } from "./custom-tool-answers.js";
 import type { TranscriptBuilder } from "./transcript/builder.js";
 import type { ApprovalAction } from "../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
 import type { TurnRows } from "../gen/turn/ai/stigmer/runner/turn/v1/rows_pb.js";
@@ -436,6 +437,15 @@ export interface TurnInput extends NormalizedActivityInput {
    * (`shared/hooks/messages.ts` `personDecisionSentence`).
    */
   readonly approvalDenyMessages: ReadonlyMap<string, string>;
+  /**
+   * The host app's answers to this execution's custom calls still waiting,
+   * keyed by tool-call id: read by the runtime from the session's log on
+   * every reinvocation (`custom-tool-answers.ts`), never stored. Each is the
+   * call's result as the model reads it, never a verdict: an adapter hands
+   * it to its engine as that call's result and reads no `ApprovalAction`
+   * for a custom call (`shared/custom-tools.ts`).
+   */
+  readonly customToolResults: ReadonlyMap<string, CustomToolAnswer>;
   /**
    * What each of the run's asked calls was asked under, by tool use id
    * (`events/ids.ts` `toolUseEventId` of the run and the row): the rule that

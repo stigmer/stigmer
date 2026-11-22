@@ -24,6 +24,7 @@ function call(name: string, input: JsonObject, text = "ok", isError = false): To
     evaluatedPermission: "",
     state: isError ? "failed" : "completed",
     ask: undefined,
+    custom: false,
     confirmation: undefined,
     grant: undefined,
     result: { id: `run_1.tc-${name}.r`, text, isError, processedAt: "2026-07-20T11:00:01.000Z" },

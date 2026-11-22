@@ -17,8 +17,16 @@ Taken from the fold, which is the reference:
 - **Waiting.** The session is idle with stop reason `requires_action`, and the
   idle names one of the turn's tool uses that asks for permission
   (`evaluated_permission` `ask`) and has neither a confirmation (allow or deny)
-  nor a result. A tool use counts on any of the turn's threads, a sub-agent's
-  included, and an MCP tool use counts as a tool use.
+  nor a result, or one of the turn's custom tool uses (`agent.custom_tool_use`,
+  a call of one of the host app's own tools) that has no
+  `user.custom_tool_result` naming it. A tool use counts on any of the turn's
+  threads, a sub-agent's included, and an MCP tool use counts as a tool use.
+- **Asks and custom tool uses.** When the turn waits, `asks` lists the tool
+  uses that wait for an approval (each answered with a confirmation) and
+  `customToolUses` the custom tool uses that wait for the host app (each
+  answered with a `user.custom_tool_result`), each in log order, with its id,
+  name and input. A custom tool use is never an ask, so a reader that answers
+  asks with an approval never answers it. Both are empty once the turn ended.
 - **Answer.** The text of the turn's last stored message on its primary thread
   (an event with no `thread_id`): a sub-agent's message and a live preview are
   never the answer. Its text blocks are joined with nothing between them.
@@ -55,6 +63,7 @@ One case per file:
     "stopCause": "end_turn",
     "error": "",
     "asks": [{ "id": "t4", "name": "Bash" }],
+    "customToolUses": [{ "id": "c5", "name": "show_form", "input": { "service": "payments" } }],
     "lastSeq": "5"
   }
 }

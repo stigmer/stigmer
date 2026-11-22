@@ -244,7 +244,7 @@ export async function runInTerminal(
   }
   const place = { run: started.run, runId: started.runId, sessionId: started.sessionId };
   if (latest === undefined) {
-    return { ...place, phase: "pending", answer: "", structuredOutput: undefined, stopCause: "", error: "", asks: [], turn: undefined, exitCode: exitCodeOf({ phase: "pending" }) };
+    return { ...place, phase: "pending", answer: "", structuredOutput: undefined, stopCause: "", error: "", asks: [], customToolUses: [], turn: undefined, exitCode: exitCodeOf({ phase: "pending" }) };
   }
   const { lastSeq: _lastSeq, ...outcome } = turnOutcomeOf(latest, place, 0n);
   return { ...outcome, exitCode: exitCodeOf(outcome) };

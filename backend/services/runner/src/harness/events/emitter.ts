@@ -29,6 +29,10 @@
  *     opens its row already saying so, and Claude's settle stamps it
  *     before the row's use is written;
  *   - a tool result, once its row settles, with the same boundary rule;
+ *   - a call of the host app's own tools (a row marked `custom_tool`), as
+ *     an `agent.custom_tool_use` once it waits, and never a result: the
+ *     host's `user.custom_tool_result` is its result, written by the
+ *     server, so a second would contradict the log;
  *   - a hidden row (the collapsed shape) writes nothing.
  * A result whose output the chokepoint offloaded carries the output's
  * head, and `stigmer.tool_result.full_output` after it says where the
@@ -746,6 +750,11 @@ export class SessionEventEmitter {
     const input = (row.args ?? {}) as JsonObject;
     const permission = permissionOf(row);
     const sessionThreadId = thread.threadId;
+    if (row.customTool) {
+      // A call of the host app's own tools: the host answers it, so it carries no permission and no ask.
+      this.push(thread.threadId, id, { case: "agentCustomToolUse", value: { id, input, name: row.name, sessionThreadId } });
+      return true;
+    }
     if (row.mcpServerSlug !== "") {
       if (!this.known(id)) this.writeToolDefinition(thread.threadId, row, id);
       this.push(thread.threadId, id, {
@@ -803,6 +812,8 @@ export class SessionEventEmitter {
   /** The row's result (after a sub-agent's thread end), or false when it has not settled beyond the boundary's reach. */
   private writeToolResult(thread: Thread, row: ToolCall, subAgents: ReadonlyMap<string, SubAgentRun>, final: boolean): boolean {
     if (isToolCallRowHidden(row)) return true;
+    // The host's `user.custom_tool_result` is a custom call's result, written by the server.
+    if (row.customTool) return true;
     const useId = toolUseEventId(this.deps.runId, row.id);
     const resultId = toolResultEventId(useId);
     if (this.known(resultId)) return true;

@@ -2,9 +2,10 @@
 
 A turn is a run: :meth:`StigmerClient.send_and_wait` creates it
 (``runs.create``, as every turn starts) and follows the session's event log
-(``streamEvents``) until the turn ends or waits for a person's answer, then
-returns how it stands. :meth:`StigmerClient.wait_for_turn` resumes that wait
-after the person answered. They are the Python form of the TypeScript
+(``streamEvents``) until the turn ends or waits for an answer (a person's
+approval of one of its asks, or the host app's answer to one of its custom
+tool uses), then returns how it stands. :meth:`StigmerClient.wait_for_turn`
+resumes that wait after the answer. They are the Python form of the TypeScript
 client's ``sendAndWait`` and ``waitForTurn``
 (sdk/typescript/src/session-events.ts), with the same rules and outcome.
 ``send_and_wait`` takes keyword arguments rather than the generated
@@ -21,7 +22,8 @@ which is the reference:
   completed, failed, cancelled or terminated;
 - it waits when the session is idle with stop reason ``requires_action``
   naming one of its tool uses that asks for permission and has neither a
-  confirmation nor a result;
+  confirmation nor a result, or one of its custom tool uses (a call of one
+  of the host app's own tools) that has no result;
 - its answer is the text of its last stored message on its primary thread,
   the text blocks joined with nothing between them.
 
@@ -46,19 +48,22 @@ any other.
 from __future__ import annotations
 
 import time
-from dataclasses import dataclass
-from typing import Iterable
+from dataclasses import dataclass, field
+from typing import Any, Iterable
 
 import grpc
 
 from ai.stigmer.agentic.run.v1 import command_pb2_grpc as run_command_pb2_grpc
+from google.protobuf import json_format
+
 from ai.stigmer.agentic.session.v1 import event_pb2, io_pb2, query_pb2_grpc
 
 from ._gen._errors import ErrorCode, StigmerError, wrap_error
 from ._gen._run import RunConfigInput, RunInput, SessionSpecInput
 
 TURN_PHASE_WAITING = "waiting"
-"""The phase of a turn that waits for a person's answer to its asks."""
+"""The phase of a turn that waits for an answer: a person's to its asks, or
+the host app's to its custom tool uses."""
 
 _ENDED_PHASES = frozenset({"completed", "failed", "cancelled", "terminated"})
 
@@ -94,6 +99,24 @@ class TurnAsk:
 
 
 @dataclass(frozen=True)
+class TurnCustomToolUse:
+    """A call of one of the host app's own tools that waits for its answer.
+
+    Answer it with the session's ``answer_custom_tool_use``, which takes its
+    ``id``; an approval never answers it.
+    """
+
+    id: str
+    """The custom tool use's event id."""
+
+    name: str
+    """The tool's name, as the session declares it."""
+
+    input: dict[str, Any] = field(hash=False)
+    """The call's input, which matched the tool's input schema."""
+
+
+@dataclass(frozen=True)
 class TurnOutcome:
     """How a waited-for turn stands when the wait returns."""
 
@@ -118,12 +141,17 @@ class TurnOutcome:
     """What went wrong, when the turn failed or was stopped with a reason."""
 
     asks: tuple[TurnAsk, ...]
-    """The tool uses that wait for an answer, when :attr:`phase` is
+    """The tool uses that wait for a person's approval, when :attr:`phase` is
     ``"waiting"``; empty once the turn ended."""
 
     last_seq: int
     """The log's place when the wait returned: pass it to ``wait_for_turn``
-    to resume after answering the asks."""
+    to resume after answering the asks and custom tool uses."""
+
+    custom_tool_uses: tuple[TurnCustomToolUse, ...] = ()
+    """The calls of the host app's own tools (the session's ``custom_tools``)
+    that wait for its answer, when :attr:`phase` is ``"waiting"``; empty once
+    the turn ended. They are never asks: an approval does not answer one."""
 
 
 class _TurnReader:
@@ -135,7 +163,9 @@ class _TurnReader:
         self.last_seq = 0
         self._status: event_pb2.StigmerRunStatusEvent | None = None
         self._answer = ""
-        self._tool_uses: list[tuple[str, str, bool]] = []
+        # Each tool use: its id, name, whether it asks, and the input of a
+        # custom tool use (None for any other call).
+        self._tool_uses: list[tuple[str, str, bool, dict[str, Any] | None]] = []
         self._answered: set[str] = set()
         self._idle = False
         self._stop_reason = ""
@@ -176,7 +206,12 @@ class _TurnReader:
                 self._status = body
         elif kind in ("agent_tool_use", "agent_mcp_tool_use"):
             if ours:
-                self._tool_uses.append((body.id, body.name, body.evaluated_permission == "ask"))
+                self._tool_uses.append((body.id, body.name, body.evaluated_permission == "ask", None))
+        elif kind == "agent_custom_tool_use":
+            if ours:
+                self._tool_uses.append((body.id, body.name, False, json_format.MessageToDict(body.input)))
+        elif kind == "user_custom_tool_result":
+            self._answered.add(body.custom_tool_use_id)
         elif kind in ("user_tool_confirmation", "agent_tool_result"):
             self._answered.add(body.tool_use_id)
         elif kind == "agent_mcp_tool_result":
@@ -189,14 +224,22 @@ class _TurnReader:
     def _open_asks(self) -> tuple[TurnAsk, ...]:
         return tuple(
             TurnAsk(id=use_id, name=name)
-            for use_id, name, asks in self._tool_uses
+            for use_id, name, asks, _ in self._tool_uses
             if asks and use_id not in self._answered
+        )
+
+    def _open_custom_tool_uses(self) -> tuple[TurnCustomToolUse, ...]:
+        return tuple(
+            TurnCustomToolUse(id=use_id, name=name, input=custom_input)
+            for use_id, name, _, custom_input in self._tool_uses
+            if custom_input is not None and use_id not in self._answered
         )
 
     def _waiting(self) -> bool:
         if not self._idle or self._stop_reason != "requires_action":
             return False
-        return any(ask.id in self._waiting_on for ask in self._open_asks())
+        open_ids = {ask.id for ask in self._open_asks()} | {call.id for call in self._open_custom_tool_uses()}
+        return any(event_id in open_ids for event_id in self._waiting_on)
 
     def outcome(self, session_id: str) -> TurnOutcome:
         """How the turn stands now."""
@@ -213,6 +256,7 @@ class _TurnReader:
             error=status.error if status is not None else "",
             asks=self._open_asks() if waiting else (),
             last_seq=self.last_seq,
+            custom_tool_uses=self._open_custom_tool_uses() if waiting else (),
         )
 
 

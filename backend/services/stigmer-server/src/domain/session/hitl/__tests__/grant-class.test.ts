@@ -30,6 +30,7 @@ function asksOf(asks: readonly PendingAsk[]): Map<string, LoggedAsk> {
       ask.id,
       {
         toolUseId: ask.id,
+        kind: "confirmation" as const,
         threadId: "",
         lease:
           ask.asked === false

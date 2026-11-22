@@ -44,6 +44,19 @@ function hashed(prefix: string, toolUseId: string): string {
  * The events the server appends when a person answers `row` of run `runId`
  * with `action` (and, for a deny, `denyMessage`), in order.
  */
+/** The host's answer to a call of its own tools as the server appends it (`answerCustomToolUse`): text, and whether the tool failed. */
+export function customToolResultEventFor(args: { readonly sessionId: string; readonly runId: string }, callId: string, text: string, isError: boolean): SessionEvent {
+  const customToolUseId = toolUseEventId(args.runId, callId);
+  return create(SessionEventSchema, {
+    sessionId: args.sessionId,
+    runId: args.runId,
+    event: {
+      case: "userCustomToolResult",
+      value: { id: hashed("sevt_ctr_", customToolUseId), customToolUseId, content: [{ type: "text", text }], isError },
+    },
+  });
+}
+
 export function answerEventsFor(
   args: { readonly sessionId: string; readonly runId: string },
   row: ToolCall,

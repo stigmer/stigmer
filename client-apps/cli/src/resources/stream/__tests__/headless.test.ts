@@ -6,14 +6,16 @@
 // answer, only when the session idles waiting on them; a refusal because the call no longer waits is settled, any other
 // failure ends the drive with a message naming how to re-attach; a dropped
 // stream is classified; an abort exits cleanly; the follow is aborted on
-// every way out. A finished session's events replay through the renderer.
+// every way out. A call of one of the host app's own tools is never
+// answered: once an idle names one, the drive answers the asks it names and
+// ends, naming the calls the turn waits on the app for. A finished session's events replay through the renderer.
 
 import { Code, ConnectError } from "@connectrpc/connect";
 import type { SessionEvent } from "@stigmer/apis/ai/stigmer/agentic/session/v1/event_pb";
 import type { StreamSessionEventsResponse } from "@stigmer/apis/ai/stigmer/agentic/session/v1/io_pb";
 import { eventTypeOf, type SessionFold, type ToolUse } from "@stigmer/client";
 import { describe, expect, it } from "vitest";
-import { asked, frameOf, idle, phase, said, use, user } from "../../__test-utils__/session-events.js";
+import { asked, customUse, frameOf, idle, phase, said, use, user } from "../../__test-utils__/session-events.js";
 import { type ApproveDefault, type AskAnswer, DENY_REASON } from "../answer.js";
 import { type HeadlessRenderer, type HeadlessStreamDeps, renderReplay, runHeadlessStream } from "../headless.js";
 
@@ -163,6 +165,34 @@ describe("runHeadlessStream", () => {
     expect(answers).toEqual([`${R}.c1`, `${R}.c2`]);
   });
 
+  it("never answers a call of the host app's own tool: it answers the asks the idle names, then ends waiting on the app", async () => {
+    const answers: string[] = [];
+    const seen: { signal?: AbortSignal } = {};
+    const result = await runHeadlessStream(
+      deps({
+        follow: held(
+          [
+            user(R, "register"),
+            phase(R, "running"),
+            use(R, "c1", "shell", { permission: "ask" }),
+            asked(R, "c1"),
+            customUse(R, "c2", "show_registration_form", { service: "payments" }),
+            idle("requires_action", [`${R}.c1`, `${R}.c2`]),
+          ],
+          seen,
+        ),
+        answer: async (id) => void answers.push(id),
+      }),
+    );
+    expect(answers).toEqual([`${R}.c1`]);
+    expect([result.phase, result.error, result.waitingOnHost.map((call) => [call.id, call.name])]).toEqual([
+      "waiting",
+      "",
+      [[`${R}.c2`, "show_registration_form"]],
+    ]);
+    expect(seen.signal?.aborted, "the follow is closed").toBe(true);
+  });
+
   it("answers nothing before the session idles waiting on the ask", async () => {
     const answers: string[] = [];
     await runHeadlessStream(
@@ -239,7 +269,7 @@ describe("runHeadlessStream", () => {
         },
       }),
     );
-    expect(result).toEqual({ phase: "", error: "", turn: undefined });
+    expect(result).toEqual({ phase: "", error: "", turn: undefined, waitingOnHost: [] });
   });
 
   it("classifies a dropped stream with a resume hint", async () => {
@@ -257,7 +287,7 @@ describe("runHeadlessStream", () => {
 
   it("returns empty when the follow ends before the turn does", async () => {
     const result = await runHeadlessStream(deps({ follow: source([user(R, "hi"), phase(R, "running")]) }));
-    expect(result).toEqual({ phase: "", error: "", turn: undefined });
+    expect(result).toEqual({ phase: "", error: "", turn: undefined, waitingOnHost: [] });
   });
 
   it("skips a frame that changes nothing", async () => {
@@ -282,7 +312,7 @@ describe("runHeadlessStream", () => {
     await new Promise((resolve) => setTimeout(resolve, 10));
     expect(seen.signal?.aborted).toBe(false);
     controller.abort();
-    expect(await running).toEqual({ phase: "", error: "", turn: undefined });
+    expect(await running).toEqual({ phase: "", error: "", turn: undefined, waitingOnHost: [] });
     expect(seen.signal?.aborted).toBe(true);
   });
 });

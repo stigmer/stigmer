@@ -35,6 +35,10 @@
  *      hides and refuses what the agent's tool lists exclude; AHEAD of the
  *      gate, so a listed-out call never reaches an approval card, and
  *      independent of it, so the lists bind under the global bypass too)
+ *   5a. Custom tools (conditional: only on the root graph of a turn that
+ *      offers the host app's own tools — a call of one pauses for the
+ *      host's answer, `custom-tools.ts`; ahead of the gate, which never
+ *      sees one, and installed under the global bypass too)
  *   6. Approval gate (conditional: absent under the global bypass)
  *   7. Cost advisory (conditional: only when maxCostUsd > 0 — advises at
  *      ~80% of the cap that the turn runtime enforces)
@@ -79,6 +83,7 @@ import { createBackgroundCommandsMiddleware } from "./background-commands.js";
 import { createToolTruncationMiddleware } from "./tool-truncation.js";
 import { createFolderInstructionsMiddleware } from "./folder-instructions.js";
 import { createApprovalGateMiddleware } from "./approval-gate.js";
+import { createCustomToolGateMiddleware } from "./custom-tools.js";
 import { createToolScopeMiddleware } from "./tool-scope.js";
 import { createCostAdvisoryMiddleware, type CostAdvisoryMiddleware } from "./cost-advisory.js";
 import { createErrorHintsMiddleware } from "./error-hints.js";
@@ -126,6 +131,10 @@ export function buildMiddlewareStack(
 
   if (config.toolScope?.scope.restricted) {
     stack.push(createToolScopeMiddleware(config.toolScope));
+  }
+
+  if (config.customTools && config.customTools.tools.length > 0) {
+    stack.push(createCustomToolGateMiddleware(config.customTools));
   }
 
   if (config.approvalGate) {

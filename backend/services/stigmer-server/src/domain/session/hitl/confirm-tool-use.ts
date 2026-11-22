@@ -47,6 +47,7 @@ export async function confirmToolUse(
   for (const step of answerSteps<ConfirmToolUseDesc>(deps, (ctx) => ({
     sessionId: ctx.input.sessionId,
     toolUseId: ctx.input.toolUseId,
+    kind: "confirmation",
     // ValidateProto admits allow and deny only.
     result: ctx.input.result === "deny" ? "deny" : "allow",
     denyMessage: ctx.input.denyMessage,

@@ -9,7 +9,8 @@
 // console reads), a subagent's start and
 // end with its tool uses indented beneath (its task call's line, once the
 // call returns, carries its span: "✓ task (1m 4s)"), the platform's notes, a context
-// compaction, the turn's errors, how each ask was answered, and one line
+// compaction, the turn's errors, how each ask was answered, a call of one of
+// the host app's own tools waiting for that app ("… Waiting for the app"), and one line
 // each time the turn starts waiting for a sandbox with room ("… Waiting
 // for a sandbox", from the turn's liveness, which the stream asks for). No ANSI, no
 // frames. Each fold is compared with the last by reference, so a turn no event
@@ -159,6 +160,8 @@ function toolLine(tool: ToolUse): string {
       return `⠋ ${label}`;
     case "waiting":
       return `⚠ Approval needed: ${label}`;
+    case "waiting_on_host":
+      return `… Waiting for the app: ${label}`;
     case "completed":
       return `✓ ${label}`;
     case "failed": {

@@ -37,6 +37,35 @@ function makeGraphState(
 }
 
 describe("resolveResumeInput", () => {
+  it("resumes a call of the host app's own tools on the host's answer alone, with no verdict", () => {
+    const state: GraphStateSnapshot = {
+      values: {},
+      next: [],
+      tasks: [
+        { id: "task-c", interrupts: [{ id: "intr-c", value: { tool_call_id: "call-c", tool_name: "show_form", custom_tool: true } }] },
+        { id: "task-d", interrupts: [{ id: "intr-d", value: { tool_call_id: "call-d", tool_name: "show_form", custom_tool: true } }] },
+      ],
+    };
+    const answers = new Map([["call-c", { text: "done", isError: false }]]);
+
+    const result = resolveResumeInput(new Map(), state, new Map(), answers);
+
+    expect(result.isResumeFromApproval).toBe(true);
+    if (!result.isResumeFromApproval) return;
+    expect(result.graphInput.resume, "the unanswered call stays pending").toEqual({ "intr-c": { action: "answer" } });
+  });
+
+  it("never resumes a custom call on an approval decision for its id", () => {
+    const state: GraphStateSnapshot = {
+      values: {},
+      next: [],
+      tasks: [{ id: "task-c", interrupts: [{ id: "intr-c", value: { tool_call_id: "call-c", tool_name: "show_form", custom_tool: true } }] }],
+    };
+    const decisions = makeDecisions([{ id: "call-c", status: ToolCallStatus.TOOL_CALL_WAITING_APPROVAL, approvalAction: ApprovalAction.APPROVE }]);
+
+    expect(resolveResumeInput(decisions, state).isResumeFromApproval).toBe(false);
+  });
+
   it("reports not-a-resume when no interrupts exist (the caller sends the turn's user message)", () => {
     const decisions = makeDecisions([]);
     const state: GraphStateSnapshot = { values: {}, tasks: [], next: [] };
@@ -203,7 +232,18 @@ describe("detectPendingInterrupts", () => {
     };
 
     expect(detectPendingInterrupts(state)).toEqual([
-      { toolCallId: "call-1", toolName: "shell", mcpServerSlug: "", message: "Run it?", policySource: "builtin_category", policyHook: undefined, args: undefined },
+      { toolCallId: "call-1", toolName: "shell", mcpServerSlug: "", message: "Run it?", policySource: "builtin_category", policyHook: undefined, args: undefined, customTool: false },
+    ]);
+  });
+
+  it("marks a call of the host app's own tools as the host's", () => {
+    const state: GraphStateSnapshot = {
+      values: {},
+      next: [],
+      tasks: [{ id: "task-1", interrupts: [{ value: { tool_call_id: "call-c", tool_name: "show_form", mcp_server_slug: "", message: "Waiting for the app's answer.", custom_tool: true } }] }],
+    };
+    expect(detectPendingInterrupts(state)).toEqual([
+      { toolCallId: "call-c", toolName: "show_form", mcpServerSlug: "", message: "Waiting for the app's answer.", policySource: undefined, policyHook: undefined, args: undefined, customTool: true },
     ]);
   });
 

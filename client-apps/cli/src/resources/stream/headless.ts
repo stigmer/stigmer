@@ -14,6 +14,12 @@
 // ended) is settled, not failed; any other refusal ends the stream with an
 // error naming how to re-attach.
 //
+// A call of one of the host app's own tools is never answered here: only
+// that app answers it (answerCustomToolUse). When the idle names one, the
+// drive answers the asks it names too, then ends, its result naming the calls
+// the turn waits on the app for (`waitingOnHost`), rather than following a
+// turn that cannot move until the app answers.
+//
 // The follow never outlives the drive: it runs under a signal of the driver's
 // own, joined to the caller's, aborted on every way out, so the open stream
 // does not hold the process after the turn has ended.
@@ -56,6 +62,8 @@ export interface HeadlessResult {
   readonly error: string;
   /** The followed turn, folded, when the stream reached it. */
   readonly turn: Turn | undefined;
+  /** The calls of the host app's own tools the turn waits on when the drive ended; empty otherwise. */
+  readonly waitingOnHost: readonly ToolUse[];
 }
 
 /** Dependencies for {@link runHeadlessStream}. */
@@ -73,7 +81,7 @@ export interface HeadlessStreamDeps {
   readonly signal: AbortSignal;
 }
 
-const STOPPED: HeadlessResult = { phase: "", error: "", turn: undefined };
+const STOPPED: HeadlessResult = { phase: "", error: "", turn: undefined, waitingOnHost: [] };
 
 /**
  * Drive the stream until the followed turn ends and return how it ended.
@@ -94,17 +102,20 @@ export async function runHeadlessStream(deps: HeadlessStreamDeps): Promise<Headl
       deps.renderer.fold(fold);
       const turn = turnOf(fold, deps.runId);
       if (turn === undefined) continue;
-      if (turn.ended) return { phase: turn.status?.phase ?? "", error: turn.status?.error ?? "", turn };
+      if (turn.ended) return { phase: turn.status?.phase ?? "", error: turn.status?.error ?? "", turn, waitingOnHost: [] };
       if (fold.status !== handledIdle && waitsOnAsks(fold.status)) {
         handledIdle = fold.status;
         const failure = await answerAsks(turn, fold.status, answered, deps, signal);
         if (failure !== undefined) return failure;
+        const status = fold.status;
+        const waitingOnHost = turn.customToolUses.filter((call) => status.waitingOn.includes(call.id));
+        if (waitingOnHost.length > 0) return { phase: "waiting", error: "", turn, waitingOnHost };
       }
     }
     return STOPPED;
   } catch (err) {
     if (deps.signal.aborted) return STOPPED;
-    return { phase: "", error: classifyStreamError(err, deps.sessionId), turn: undefined };
+    return { phase: "", error: classifyStreamError(err, deps.sessionId), turn: undefined, waitingOnHost: [] };
   } finally {
     own.abort();
   }
@@ -143,7 +154,7 @@ async function answerAsks(
       if (isSettledAnswerError(err)) continue;
       let message = `Failed to answer the ${ask.name} call: ${err instanceof Error ? err.message : String(err)}`;
       if (deps.sessionId !== "") message += `. Re-attach to retry: stigmer resume ${deps.sessionId}`;
-      return { phase: "", error: message, turn };
+      return { phase: "", error: message, turn, waitingOnHost: [] };
     }
   }
   return undefined;

@@ -181,6 +181,7 @@ Rows read `| \`Message.field\` | class |`.
 
 | Field | Class |
 |---|---|
+| `ai.stigmer.agentic.session.v1.AnswerCustomToolUseInput.session_id` | stamped id |
 | `ai.stigmer.agentic.session.v1.AppendSessionEventsInput.run_id` | stamped id |
 | `ai.stigmer.agentic.session.v1.Attention.run_id` | stamped id |
 | `ai.stigmer.agentic.session.v1.Attention.session_id` | stamped id |

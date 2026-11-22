@@ -203,13 +203,15 @@ describe("the caller headers a lane call carries", () => {
 });
 
 describe("a send's whole-list check", () => {
-  it("reads the three served events, joining a message's text blocks", () => {
+  it("reads the four served events, joining a message's text blocks", () => {
     expect(
       parseSendBody({
         events: [
           { type: "user.message", content: [{ type: "text", text: "a" }, { type: "text", text: "b" }] },
           { type: "user.tool_confirmation", tool_use_id: "tu_1", result: "deny", deny_message: "no" },
           { type: "user.tool_confirmation", tool_use_id: "tu_2", result: "allow", deny_message: null },
+          { type: "user.custom_tool_result", custom_tool_use_id: "cu_1", content: [{ type: "text", text: "registered" }], is_error: null },
+          { type: "user.custom_tool_result", custom_tool_use_id: "cu_2", is_error: true, session_thread_id: null },
           { type: "user.interrupt", session_thread_id: null },
         ],
       }),
@@ -217,8 +219,36 @@ describe("a send's whole-list check", () => {
       { type: "user.message", text: "a\n\nb", files: [] },
       { type: "user.tool_confirmation", toolUseId: "tu_1", result: "deny", denyMessage: "no" },
       { type: "user.tool_confirmation", toolUseId: "tu_2", result: "allow", denyMessage: "" },
+      { type: "user.custom_tool_result", customToolUseId: "cu_1", texts: ["registered"], isError: false },
+      { type: "user.custom_tool_result", customToolUseId: "cu_2", texts: [], isError: true },
       { type: "user.interrupt" },
     ]);
+  });
+
+  it("refuses a custom tool result Stigmer cannot carry yet, or one that names no call or a thread", () => {
+    const cases: Array<[unknown, string]> = [
+      [{ type: "user.custom_tool_result", content: [] }, "a user.custom_tool_result needs its custom_tool_use_id"],
+      [
+        { type: "user.custom_tool_result", custom_tool_use_id: "cu", content: [{ type: "image", source: { type: "file", file_id: "f" } }] },
+        "Stigmer accepts text blocks in a user.custom_tool_result, not 'image'",
+      ],
+      [
+        { type: "user.custom_tool_result", custom_tool_use_id: "cu", content: [{ type: "search_result" }] },
+        "Stigmer accepts text blocks in a user.custom_tool_result, not 'search_result'",
+      ],
+      [{ type: "user.custom_tool_result", custom_tool_use_id: "cu", content: [{ type: "text" }] }, "a text block needs its text"],
+      [{ type: "user.custom_tool_result", custom_tool_use_id: "cu", content: "done" }, "a user.custom_tool_result's content must be a list of blocks"],
+      [{ type: "user.custom_tool_result", custom_tool_use_id: "cu", is_error: "yes" }, "is_error must be a boolean"],
+      [
+        { type: "user.custom_tool_result", custom_tool_use_id: "cu", session_thread_id: "sthr_1" },
+        "only the main agent calls custom tools; session_thread_id must be absent",
+      ],
+    ];
+    for (const [event, message] of cases) {
+      const refused = parseSendBody({ events: [{ type: "user.interrupt" }, event] });
+      expect(isLaneError(refused), message).toBe(true);
+      expect(isLaneError(refused) ? refused.message : "", message).toContain(`events[1]: ${message}`);
+    }
   });
 
   it("reads image and document blocks naming a File by id, in order, with the message's text", () => {
@@ -254,7 +284,7 @@ describe("a send's whole-list check", () => {
       [{ events: ["x"] }, "events[0]: each event must be an object with a type"],
       [
         { events: [{ type: "user.interrupt" }, { type: "user.tool_result", tool_use_id: "tu" }] },
-        "events[1]: Stigmer does not serve 'user.tool_result' events; this API accepts user.message, user.tool_confirmation and user.interrupt",
+        "events[1]: Stigmer does not serve 'user.tool_result' events; this API accepts user.message, user.tool_confirmation, user.custom_tool_result and user.interrupt",
       ],
       [{ events: [{ type: "system.message" }] }, "events[0]: Stigmer does not serve 'system.message' events"],
       [

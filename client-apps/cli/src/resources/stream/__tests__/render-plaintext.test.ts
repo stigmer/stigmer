@@ -17,6 +17,8 @@ import {
   asked,
   background,
   confirmed,
+  customResult,
+  customUse,
   ev,
   failure,
   note,
@@ -72,6 +74,12 @@ describe("PlaintextRenderer", () => {
     expect(status()).toContain("  ⠋ Run the tests\n  ✓ Run the tests\n");
     expect(status()).toContain("  ⠋ fetch\n  ✗ fetch: connection refused\n");
     expect(status()).toContain("  ✗ read\n");
+  });
+
+  it("writes a call of the host app's own tool as waiting for the app, never as an approval, then its answer", () => {
+    const { status } = stream([user(R, "go"), customUse(R, "c1", "show_registration_form"), customResult(R, "c1", "registered")]);
+    expect(status()).toContain("  … Waiting for the app: show_registration_form\n  ✓ show_registration_form\n");
+    expect(status()).not.toContain("Approval needed");
   });
 
   it("writes a waiting call, a denied one and one its ended turn cut short", () => {

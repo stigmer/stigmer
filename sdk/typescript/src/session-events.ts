@@ -18,8 +18,10 @@
  *     off for the rest of the follow.
  *   - {@link sendAndWait} starts a turn (`run.create`, as every turn
  *     starts) and follows the session until that turn's
- *     `stigmer.run.status` says it ended, or it waits for a person's answer
- *     (the session idles with `requires_action` naming its tool uses). It
+ *     `stigmer.run.status` says it ended, or it waits for an answer (the
+ *     session idles with `requires_action` naming its tool uses): a
+ *     person's approval of an ask, or the host app's answer to a call of
+ *     one of its own tools (the session's `custom_tools`). It
  *     returns the turn's answer, structured output and how it ended;
  *     {@link waitForTurn} resumes the wait after the caller answered. Its two
  *     halves are exported for a caller that follows the turn its own way (a
@@ -267,8 +269,9 @@ export interface TurnOutcome {
   readonly sessionId: string;
   /**
    * The turn's phase: one that ends it (completed, failed, cancelled,
-   * terminated), or `waiting` when it waits for a person's answer (see
-   * {@link asks}). The wait returns on nothing else.
+   * terminated), or `waiting` when it waits for an answer (see
+   * {@link asks} and {@link customToolUses}). The wait returns on nothing
+   * else.
    */
   readonly phase: TurnPhase;
   /** The text of the turn's last message on its primary thread; "" when it wrote none. */
@@ -280,8 +283,14 @@ export interface TurnOutcome {
   readonly stopDetail?: TurnStopDetail;
   /** What went wrong, when it failed or was stopped with a reason. */
   readonly error: string;
-  /** The tool uses that wait for an answer, when `phase` is waiting. */
+  /** The tool uses that wait for a person's approval, when `phase` is waiting: answer each with `confirmToolUse`. */
   readonly asks: ReadonlyArray<ToolUse>;
+  /**
+   * The calls of the host app's own tools that wait for its answer, when
+   * `phase` is waiting: answer each with `answerCustomToolUse`, never with
+   * an approval.
+   */
+  readonly customToolUses: ReadonlyArray<ToolUse>;
   /** The whole turn, folded. */
   readonly turn: Turn;
   /** The log's place when the wait returned: pass it to {@link waitForTurn} to resume. */
@@ -299,8 +308,9 @@ export interface WaitOptions {
 /**
  * Waits for one turn of a session: until its status says it ended, or it
  * waits for an answer. Answer each of {@link TurnOutcome.asks} (the
- * session's `confirmToolUse` or `grantPermission`), then call it again
- * with the outcome's `lastSeq`.
+ * session's `confirmToolUse` or `grantPermission`) and each of
+ * {@link TurnOutcome.customToolUses} (`answerCustomToolUse`), then call it
+ * again with the outcome's `lastSeq`.
  */
 export async function waitForTurn(
   client: SessionEventsClient,
@@ -360,8 +370,9 @@ export interface TurnPlace {
 /**
  * The outcome of a folded turn: its answer, output and how it stands. Its
  * phase is the status's once the turn ended, `waiting` when `waiting` says
- * the session waits on its asks, and otherwise the phase it reports now
- * (`pending` before its first status); its asks are empty once it ended.
+ * the session waits on its asks or custom tool uses, and otherwise the
+ * phase it reports now (`pending` before its first status); its asks and
+ * custom tool uses are empty once it ended.
  */
 export function turnOutcomeOf(turn: Turn, place: TurnPlace, lastSeq: bigint, waiting = false): TurnOutcome {
   const ended = turn.status !== undefined && turn.ended;
@@ -374,6 +385,7 @@ export function turnOutcomeOf(turn: Turn, place: TurnPlace, lastSeq: bigint, wai
     ...(ended && turn.status?.stopDetail !== undefined ? { stopDetail: turn.status.stopDetail } : {}),
     error: turn.status?.error ?? "",
     asks: ended ? [] : turn.asks,
+    customToolUses: ended ? [] : turn.customToolUses,
     turn,
     lastSeq,
   };
@@ -421,7 +433,7 @@ async function waitIn(
       const waiting =
         fold.status.state === "idle" &&
         fold.status.stopReason === "requires_action" &&
-        turn.asks.some((ask) => fold.status.waitingOn.includes(ask.id));
+        [...turn.asks, ...turn.customToolUses].some((call) => fold.status.waitingOn.includes(call.id));
       if (ended || waiting) {
         return turnOutcomeOf(turn, { run, runId, sessionId }, fold.lastSeq, waiting);
       }

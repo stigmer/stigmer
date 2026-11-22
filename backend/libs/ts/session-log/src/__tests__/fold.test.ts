@@ -16,7 +16,8 @@
  * life: running, its output streamed after the result, its ending and who
  * stopped it, a person's stop request, the agent's stop call linked to the
  * command it stopped, and a command its ended turn never ended read as
- * stopped by the turn.
+ * stopped by the turn. A call to one of the host app's own tools waits on
+ * the host (never as an ask), and the host's answer is its result.
  */
 import { create, type MessageInitShape } from "@bufbuild/protobuf";
 import { describe, expect, it } from "vitest";
@@ -258,6 +259,78 @@ describe("tool uses", () => {
   it("an answer naming a message, not a tool use, changes nothing", () => {
     const fold = foldSession([user(R, "go"), said(R, 0, "hi"), ev(R, { case: "userToolConfirmation", value: { id: "c", toolUseId: `${R}.root.m0`, result: "allow" } })]);
     expect(fold.turns[0]!.items.map((item) => item.kind)).toEqual(["message"]);
+  });
+});
+
+function customUse(runId: string, call: string, name: string, input: Record<string, unknown> = { service: "payments" }): SessionEvent {
+  return ev(runId, { case: "agentCustomToolUse", value: { id: `${runId}.${call}`, name, input: input as never, processedAt: "tu" } });
+}
+function customResult(runId: string, call: string, output: string, isError = false): SessionEvent {
+  return ev(runId, { case: "userCustomToolResult", value: { id: `sevt_ctr_${call}`, customToolUseId: `${runId}.${call}`, content: text(output), isError, processedAt: "tr" } });
+}
+
+describe("the host app's own tools", () => {
+  it("a custom call waits on the host, never as an ask, and the host's answer is its result", () => {
+    const log = new SessionLog();
+    log.apply([
+      user(R, "register payments"),
+      phase(R, "running"),
+      customUse(R, "c1", "show_registration_form"),
+      use(R, "c2", "shell", { permission: "ask" }),
+      phase(R, "waiting"),
+      ev(R, { case: "sessionStatusIdle", value: { id: "idle", stopReason: { type: "requires_action", eventIds: [`${R}.c1`, `${R}.c2`] } } }),
+    ]);
+    let turn = log.snapshot().turns[0]!;
+    expect(turn.ended).toBe(false);
+    const [form] = toolsOf(turn.items);
+    expect([form!.name, form!.custom, form!.state, form!.mcpServerName, form!.evaluatedPermission, form!.input]).toEqual([
+      "show_registration_form",
+      true,
+      "waiting_on_host",
+      "",
+      "",
+      { service: "payments" },
+    ]);
+    expect(turn.customToolUses.map((call) => call.id)).toEqual([`${R}.c1`]);
+    expect(turn.asks.map((ask) => ask.id), "an approval and a host's call wait side by side, each in its own list").toEqual([`${R}.c2`]);
+
+    log.apply([customResult(R, "c1", "registered as svc_payments")]);
+    turn = log.snapshot().turns[0]!;
+    const answered = toolsOf(turn.items)[0]!;
+    expect([answered.custom, answered.state, answered.result?.text, answered.result?.isError]).toEqual([true, "completed", "registered as svc_payments", false]);
+    expect(turn.customToolUses).toEqual([]);
+    expect(turn.asks.map((ask) => ask.id)).toEqual([`${R}.c2`]);
+  });
+
+  it("an is_error answer fails the call; a turn that ends first stops it; a confirmation never answers it", () => {
+    const failed = foldSession([user(R, "go"), customUse(R, "c1", "pick_date"), customResult(R, "c1", "the person cancelled", true)]);
+    const tool = toolsOf(failed.turns[0]!.items)[0]!;
+    expect([tool.state, tool.result?.text, tool.result?.isError]).toEqual(["failed", "the person cancelled", true]);
+
+    const stopped = foldSession([user(R, "go"), customUse(R, "c1", "pick_date"), phase(R, "cancelled", { stopCause: "user" })]);
+    expect(toolsOf(stopped.turns[0]!.items)[0]!.state).toBe("stopped");
+    expect(stopped.turns[0]!.customToolUses).toEqual([]);
+
+    const confirmed = foldSession([user(R, "go"), customUse(R, "c1", "pick_date"), ev(R, { case: "userToolConfirmation", value: { id: "conf", toolUseId: `${R}.c1`, result: "allow" } })]);
+    expect(toolsOf(confirmed.turns[0]!.items)[0]!.state).toBe("waiting_on_host");
+  });
+
+  it("a result that comes before its call is held; an idle naming the call keeps its turn open", () => {
+    const held = foldSession([user(R, "go"), customResult(R, "c1", "ok"), customUse(R, "c1", "pick_date")]);
+    expect(toolsOf(held.turns[0]!.items)[0]!.state).toBe("completed");
+    const idle = (ids: string[]) => ev(R, { case: "sessionStatusIdle", value: { id: `idle.${seq}`, stopReason: { type: "requires_action", eventIds: ids } } });
+    expect(foldSession([user(R, "a"), customUse(R, "c1", "pick_date"), idle([`${R}.c1`])]).turns[0]!.ended).toBe(false);
+    expect(foldSession([user(R, "a"), customUse(R, "c1", "pick_date"), idle(["other"])]).turns[0]!.ended).toBe(true);
+  });
+
+  it("a call named like a to-do tool never changes the to-do list", () => {
+    const fold = foldSession([user(R, "go"), customUse(R, "c1", "TodoWrite", { todos: [{ id: "1", content: "x", status: "pending" }] }), customResult(R, "c1", "ok")]);
+    expect(fold.turns[0]!.todos).toEqual([]);
+  });
+
+  it("every other call reads as no custom call", () => {
+    const fold = foldSession([user(R, "go"), use(R, "c1", "read"), use(R, "c2", "list_issues", { mcp: "github" })]);
+    expect(toolsOf(fold.turns[0]!.items).map((tool) => tool.custom)).toEqual([false, false]);
   });
 });
 

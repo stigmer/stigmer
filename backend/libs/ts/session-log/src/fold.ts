@@ -41,6 +41,14 @@
  * whose result the log already holds. A liveness for a run the log has
  * not shown is dropped, never a turn of its own.
  *
+ * The host app's own tools. An `agent.custom_tool_use` is a tool use like
+ * any other in its thread's items, marked `custom`, and the host's
+ * `user.custom_tool_result` is its result. Until that answer it reads
+ * `waiting_on_host`, never `waiting`: it is no person's approval, so it
+ * joins the turn's `customToolUses`, never its `asks`, and nothing that
+ * answers an ask with a confirmation reaches it. A session idle with
+ * `requires_action` names it as it names an ask.
+ *
  * Background commands. A tool use that started a command in the
  * background returns at once; the command's own life is
  * `stigmer.background_command.status` (running, then ended), keyed to the
@@ -160,6 +168,7 @@ interface MutTool extends Node {
   readonly threadId: string;
   readonly name: string;
   readonly mcpServerName: string;
+  readonly custom: boolean;
   readonly input: JsonObject;
   readonly evaluatedPermission: string;
   readonly processedAt: string;
@@ -237,6 +246,12 @@ interface MutTurn extends Node {
   readonly sets: MutSet[];
   liveness?: TurnLiveness;
   cache?: Cached<Turn>;
+}
+
+/** What a turn's calls wait on, collected while its items are snapped: a person's approval, or the host app's answer. */
+interface Waits {
+  readonly asks: ToolUse[];
+  readonly customToolUses: ToolUse[];
 }
 
 /** What a later event names before the log has shown it. */
@@ -447,16 +462,22 @@ export class SessionLog {
         this.addText(event, "compacted", "");
         break;
       case "agentToolUse":
-        this.addTool(event, e.value.name, "", e.value.input ?? {}, e.value.evaluatedPermission);
+        this.addTool(event, e.value.name, "", e.value.input ?? {}, e.value.evaluatedPermission, false);
         break;
       case "agentMcpToolUse":
-        this.addTool(event, e.value.name, e.value.mcpServerName, e.value.input ?? {}, e.value.evaluatedPermission);
+        this.addTool(event, e.value.name, e.value.mcpServerName, e.value.input ?? {}, e.value.evaluatedPermission, false);
         break;
       case "agentToolResult":
         this.addResult(e.value.toolUseId, { id, text: textOf(e.value.content), isError: e.value.isError, processedAt: at });
         break;
       case "agentMcpToolResult":
         this.addResult(e.value.mcpToolUseId, { id, text: textOf(e.value.content), isError: e.value.isError, processedAt: at });
+        break;
+      case "agentCustomToolUse":
+        this.addTool(event, e.value.name, "", e.value.input ?? {}, "", true);
+        break;
+      case "userCustomToolResult":
+        this.addResult(e.value.customToolUseId, { id, text: textOf(e.value.content), isError: e.value.isError, processedAt: at });
         break;
       case "stigmerPermissionAsked": {
         const ask: ToolAsk = {
@@ -793,7 +814,7 @@ export class SessionLog {
     this.release();
   }
 
-  private addTool(event: SessionEvent, name: string, mcpServerName: string, input: JsonObject, permission: string): void {
+  private addTool(event: SessionEvent, name: string, mcpServerName: string, input: JsonObject, permission: string, custom: boolean): void {
     const value = event.event.value!;
     const owner = this.ownerOf(event.runId, event.threadId);
     const tool: MutTool = {
@@ -804,6 +825,7 @@ export class SessionLog {
       threadId: event.threadId,
       name,
       mcpServerName,
+      custom,
       input,
       evaluatedPermission: permission,
       processedAt: value.processedAt,
@@ -826,6 +848,7 @@ export class SessionLog {
         turn !== undefined &&
         tool.threadId === "" &&
         tool.mcpServerName === "" &&
+        !tool.custom &&
         !result.isError &&
         isTodoTool(tool.name)
       ) {
@@ -930,8 +953,8 @@ export class SessionLog {
     if (turn.cache?.key === key) {
       return turn.cache.value;
     }
-    const asks: ToolUse[] = [];
-    const items = turn.items.map((item) => this.snapItem(item, ended, asks));
+    const waits: Waits = { asks: [], customToolUses: [] };
+    const items = turn.items.map((item) => this.snapItem(item, ended, waits));
     const lastMessage = [...items].reverse().find((item): item is MessageItem => item.kind === "message" && !item.live);
     const value: Turn = {
       runId: turn.runId,
@@ -939,7 +962,8 @@ export class SessionLog {
       items: sameList(turn.cache?.value.items, items),
       status: turn.status,
       ended,
-      asks: sameList(turn.cache?.value.asks, asks),
+      asks: sameList(turn.cache?.value.asks, waits.asks),
+      customToolUses: sameList(turn.cache?.value.customToolUses, waits.customToolUses),
       todos: [...turn.todos.values()],
       structuredOutput: turn.structuredOutput,
       memory: turn.memory,
@@ -964,7 +988,7 @@ export class SessionLog {
     return operations.length === liveness.operations.length ? liveness : { ...liveness, operations };
   }
 
-  private snapItem(item: MutItem, ended: boolean, asks: ToolUse[]): TurnItem {
+  private snapItem(item: MutItem, ended: boolean, waits: Waits): TurnItem {
     if (item.kind !== "tool_use") {
       if (item.cache?.key === `${item.rev}`) {
         return item.cache.value;
@@ -975,8 +999,8 @@ export class SessionLog {
     }
     const turn = item.owner.kind === "thread" ? item.owner.turn : item.owner;
     const sub = turn.threads.get(item.id);
-    const threadAsks: ToolUse[] = [];
-    const snappedThread = sub === undefined ? undefined : this.snapThread(sub, ended, threadAsks);
+    const threadWaits: Waits = { asks: [], customToolUses: [] };
+    const snappedThread = sub === undefined ? undefined : this.snapThread(sub, ended, threadWaits);
     const key = `${item.rev}|${ended}|${sub?.rev ?? -1}`;
     let value: ToolUse;
     if (item.cache?.key === key) {
@@ -989,6 +1013,7 @@ export class SessionLog {
         threadId: item.threadId,
         name: item.name,
         mcpServerName: item.mcpServerName,
+        custom: item.custom,
         input: item.input,
         evaluatedPermission: item.evaluatedPermission,
         state: toolStateOf(item, ended),
@@ -1006,9 +1031,12 @@ export class SessionLog {
       item.cache = { key, value };
     }
     if (value.state === "waiting") {
-      asks.push(value);
+      waits.asks.push(value);
+    } else if (value.state === "waiting_on_host") {
+      waits.customToolUses.push(value);
     }
-    asks.push(...threadAsks);
+    waits.asks.push(...threadWaits.asks);
+    waits.customToolUses.push(...threadWaits.customToolUses);
     return value;
   }
 
@@ -1021,8 +1049,8 @@ export class SessionLog {
     return { toolUseId: item.stoppedBackground, input: command?.kind === "tool_use" ? command.input : {} };
   }
 
-  private snapThread(thread: MutThread, ended: boolean, asks: ToolUse[]): Thread {
-    const items = thread.items.map((item) => this.snapItem(item, ended, asks));
+  private snapThread(thread: MutThread, ended: boolean, waits: Waits): Thread {
+    const items = thread.items.map((item) => this.snapItem(item, ended, waits));
     const key = `${thread.rev}|${ended}`;
     if (thread.cache?.key === key) {
       return thread.cache.value;
@@ -1142,6 +1170,9 @@ function toolStateOf(tool: MutTool, ended: boolean): ToolUseState {
   }
   if (ended) {
     return "stopped";
+  }
+  if (tool.custom) {
+    return "waiting_on_host";
   }
   if (tool.evaluatedPermission === "ask" && tool.confirmation === undefined) {
     return "waiting";

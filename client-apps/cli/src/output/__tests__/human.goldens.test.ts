@@ -195,7 +195,7 @@ describe("the run's exit summary", () => {
     try {
       const run = finalRun(name);
       const turn = scenarios[name].fold.turns[0];
-      await runEpilogue(epilogueClient(run, tokens, calls), scenarios[name].session!.metadata!.id, run.metadata!.id, { phase: turn?.status?.phase ?? "", error: "", turn });
+      await runEpilogue(epilogueClient(run, tokens, calls), scenarios[name].session!.metadata!.id, run.metadata!.id, { phase: turn?.status?.phase ?? "", error: "", turn, waitingOnHost: [] });
     } finally {
       spy.mockRestore();
     }
