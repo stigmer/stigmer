@@ -25,7 +25,7 @@ import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 
 import { ArchiveFileNotFoundError, type ArchiveFileInfo, type TurnArchiveFiles } from "../../../shared/archive-reader.js";
 import { ArchiveRoutedPlatform, PlatformContentBackend } from "../platform-route.js";
-import { NON_PLAIN_MIME_TYPES } from "../store-content-backend.js";
+import { NON_PLAIN_MIME_TYPES, StoreContentBackend } from "../store-content-backend.js";
 
 const ROUTE = "/.stigmer/";
 const SKILL = "skills/notes";
@@ -189,6 +189,30 @@ describe("the store route refuses every change", () => {
     expect((await fromStore.write(path, "x")).error).toContain(sentence);
     expect((await fromStore.edit(path, "a", "b")).error).toContain(sentence);
     expect((await fromStore.delete!(path)).error).toContain(sentence);
+  });
+
+  it("answers a missing file's raw read as an error, as deepagents' own read does, where its raw read would throw", async () => {
+    expect((await fromStore.readRaw(agentPath(`${SKILL}/refs/missing.md`))).error).toBe(
+      "Error reading file '/skills/notes/refs/missing.md': ENOENT: no such file or directory",
+    );
+  });
+
+  it("refuses an upload and downloads a listed file's bytes, a missing one as not found", async () => {
+    const backend = new StoreContentBackend("skills", readerOver(files));
+    expect(backend.uploadFiles([["/notes/x.md", new Uint8Array([1])]])).toEqual([{ path: "/notes/x.md", error: "permission_denied" }]);
+    const [found, missing] = await backend.downloadFiles(["/notes/refs/deeper/note.md", "/notes/nothing.md"]);
+    expect(new TextDecoder().decode(found!.content!)).toBe("a needle here\nand none here\n");
+    expect(missing).toEqual({ path: "/notes/nothing.md", content: null, error: "file_not_found" });
+  });
+
+  it("answers a listed file the reader no longer holds as not found, and grep passes over a file it cannot read", async () => {
+    const vanishing: TurnArchiveFiles = { ...readerOver(files), read: async (path) => Promise.reject(new ArchiveFileNotFoundError(path)) };
+    const backend = new StoreContentBackend("skills", vanishing);
+    expect((await backend.read("/notes/SKILL.md")).error).toBe("Error reading file '/skills/notes/SKILL.md': ENOENT: no such file or directory");
+    const failing = new StoreContentBackend("skills", readerOver(files, `${SKILL}/refs/deeper/note.md`));
+    const matches = (await failing.grep("needle", "/notes/refs")).matches ?? [];
+    expect(matches.some((match) => match.path === "/notes/refs/deeper/note.md")).toBe(false);
+    expect(matches.length).toBeGreaterThan(0);
   });
 
   it("answers a reader's failure as a read error, never a crash", async () => {

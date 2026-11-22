@@ -230,6 +230,14 @@ describe("plugin files", () => {
     expect((await codeOf(pluginQuery.readFile({ pluginId: id, digest, path: "evals/basic/prompt.md" }))).code).toBe(Code.NotFound);
   });
 
+  it("reads an earlier version of a plugin from its own history", async () => {
+    const name = unique("kit-v");
+    const first = await plugins.push({ org: ORG, artifact: archiveOf(claudePlugin({ name, version: "1.0.0", files: { "notes.md": "first" } })) });
+    await plugins.push({ org: ORG, artifact: archiveOf(claudePlugin({ name, version: "2.0.0", files: { "notes.md": "second" } })) });
+    const read = await pluginQuery.readFile({ pluginId: first.metadata!.id, digest: first.status!.digest, path: "notes.md" });
+    expect(text(read.content)).toBe("first");
+  });
+
   it("refuses a digest that is not the plugin's own", async () => {
     const a = await plugins.push({ org: ORG, artifact: archiveOf(claudePlugin({ name: unique("a") })) });
     const b = await plugins.push({ org: ORG, artifact: archiveOf(claudePlugin({ name: unique("b") })) });

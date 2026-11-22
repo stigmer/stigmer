@@ -73,6 +73,13 @@ export class ArchiveFileNotFoundError extends Error {
   }
 }
 
+/** The reader of a turn with no skills or plugins: it lists nothing and holds no file. */
+export const NO_TURN_ARCHIVES: TurnArchiveFiles = {
+  folders: [],
+  list: async () => [],
+  read: async (path) => Promise.reject(new ArchiveFileNotFoundError(path)),
+};
+
 /** One skill or plugin a turn reads, at the version it resolved. */
 export type ArchiveSource =
   | {

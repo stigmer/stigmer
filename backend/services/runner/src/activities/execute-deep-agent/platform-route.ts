@@ -201,18 +201,17 @@ export class PlatformContentBackend extends FilesystemBackend {
 
   override async ls(path: string): Promise<LsResult> {
     const result = await super.ls(path);
-    return result.files === undefined ? result : { ...result, files: result.files.filter((file) => !this.storeServes(file.path)) };
+    return { ...result, files: (result.files ?? []).filter((file) => !this.storeServes(file.path)) };
   }
 
   override async grep(pattern: string, path?: string | null, glob?: string | null, maxCount?: number | null): Promise<GrepResult> {
     const result = await super.grep(pattern, path ?? "/", glob ?? null, null);
-    if (result.matches === undefined) return result;
-    return applyGrepMaxCount({ result: { ...result, matches: result.matches.filter((match) => !this.storeServes(match.path)) }, maxCount });
+    return applyGrepMaxCount({ result: { ...result, matches: (result.matches ?? []).filter((match) => !this.storeServes(match.path)) }, maxCount });
   }
 
   override async glob(pattern: string, path = "/"): Promise<GlobResult> {
     const result = await super.glob(pattern, path);
-    return result.files === undefined ? result : { ...result, files: result.files.filter((file) => !this.storeServes(file.path)) };
+    return { ...result, files: (result.files ?? []).filter((file) => !this.storeServes(file.path)) };
   }
 
   /** Whether a path inside the platform folder is one the store serves this turn. */

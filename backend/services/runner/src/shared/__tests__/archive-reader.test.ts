@@ -14,6 +14,7 @@ import { SkillFileListSchema } from "@stigmer/apis/ai/stigmer/agentic/skill/v1/i
 
 import {
   ArchiveFileNotFoundError,
+  NO_TURN_ARCHIVES,
   archiveReadLine,
   newArchiveCache,
   newTurnArchives,
@@ -53,7 +54,7 @@ function storeClient(files: Record<string, Record<string, string>>, serve: (key:
   return { client, calls };
 }
 
-const notes = (id: string, skillMd: string): ArchiveSource => ({ kind: "skill", dir: "skills/notes", id, version: "v1", hasArchive: true, skillMd });
+const notes = (id: string, skillMd: string): Extract<ArchiveSource, { kind: "skill" }> => ({ kind: "skill", dir: "skills/notes", id, version: "v1", hasArchive: true, skillMd });
 const kit: ArchiveSource = { kind: "plugin", dir: `plugins/${"d".repeat(64)}`, id: "plg_kit", digest: "d".repeat(64) };
 
 describe("newTurnArchives", () => {
@@ -71,6 +72,7 @@ describe("newTurnArchives", () => {
     ]);
     expect(text(await archives.read("skills/notes/SKILL.md"))).toBe("# Notes");
     expect(text(await archives.read("skills/notes/refs/a.md"))).toBe("A");
+    expect(text(await archives.read(`plugins/${"d".repeat(64)}/skills/review/SKILL.md`)), "a plugin's skill file, read like any other").toBe("review");
   });
 
   it("answers only for the turn's own sources, whatever the server holds", async () => {
@@ -122,6 +124,12 @@ describe("newTurnArchives", () => {
       await newTurnArchives(client, "org_a", [{ ...notes("skl_a", "# A"), version: "" }], cache).list();
     }
     expect(calls).toEqual(["list skill skl_a@", "list skill skl_a@"]);
+  });
+
+  it("has an empty reader for a turn with no skills or plugins: nothing listed, every file not found", async () => {
+    expect(NO_TURN_ARCHIVES.folders).toEqual([]);
+    expect(await NO_TURN_ARCHIVES.list()).toEqual([]);
+    await expect(NO_TURN_ARCHIVES.read("skills/notes/SKILL.md")).rejects.toBeInstanceOf(ArchiveFileNotFoundError);
   });
 
   it("logs one line of what the turn read", () => {

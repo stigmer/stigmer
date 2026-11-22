@@ -3,12 +3,14 @@
  * (`../archive-tree.ts`): runner-owned under `/runner/mounts/<session>`
  * only where the runner separates (root, Linux, the runner layer), the
  * archive cache used only while it verifies, and nothing kept of an
- * archive carrying an eval suite. The runner-owned tree itself (root
- * writes, the agent refused) is proved in a container
- * (`../../__tests__/skill-mount-readonly.container.test.ts`).
+ * archive carrying an eval suite. The runner-owned tree's logic runs here
+ * as this machine's own user standing in for root (its link, its completion
+ * mark, the re-unpack after a wake, the refusal of a folder someone else
+ * could write); root's writes and the agent's refusals are proved in a
+ * container (`../../__tests__/skill-mount-readonly.container.test.ts`).
  */
 import { createHash } from "node:crypto";
-import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync, mkdirSync } from "node:fs";
+import { chmodSync, existsSync, lstatSync, mkdirSync, mkdtempSync, readFileSync, readlinkSync, rmSync, statSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -16,7 +18,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
   AgentOwnedTree,
+  RunnerOwnedTree,
   cachedArchive,
+  holdSessionTrees,
+  releaseSessionTrees,
   cachedArchivePath,
   keepArchive,
   placeArchiveTree,
@@ -99,5 +104,90 @@ describe("placeArchiveTree where the runner does not separate", () => {
     } finally {
       rmSync(dir, { recursive: true, force: true });
     }
+  });
+});
+
+describe("the runner-owned tree, its owner standing in for root", () => {
+  let base: string;
+  let mounts: string;
+  let platform: string;
+  const owner = process.getuid?.() ?? 0;
+  const enc = (text: string) => new TextEncoder().encode(text);
+  const entries = [
+    { path: "SKILL.md", content: enc("# Pushed") },
+    { path: "scripts/run.sh", content: enc("echo ok") },
+  ];
+  const treeAt = (key = "skill-k") => new RunnerOwnedTree(join(platform, "skills", "notes"), mounts, join(mounts, "ses-1"), key, entries, "skill artifact", owner);
+
+  beforeEach(() => {
+    base = mkdtempSync(join(tmpdir(), "runner-tree-"));
+    mounts = join(base, "mounts");
+    platform = join(base, "platform");
+    mkdirSync(join(platform, "skills"), { recursive: true });
+  });
+  afterEach(() => rmSync(base, { recursive: true, force: true }));
+
+  it("unpacks the tree under the session's folder, completion mark beside it, and links the platform folder to it", async () => {
+    const tree = treeAt();
+    await tree.verify();
+    const treeDir = join(mounts, "ses-1", "skill-k");
+    expect(lstatSync(tree.root).isSymbolicLink()).toBe(true);
+    expect(readlinkSync(tree.root)).toBe(treeDir);
+    expect(readFileSync(join(tree.root, "SKILL.md"), "utf8")).toBe("# Pushed");
+    expect(statSync(join(treeDir, "scripts", "run.sh")).mode & 0o111).not.toBe(0);
+    expect(existsSync(`${treeDir}.complete`)).toBe(true);
+  });
+
+  it("puts back a link a command replaced, and unpacks again when the folder is gone (a wake), the mark first", async () => {
+    const tree = treeAt();
+    await tree.verify();
+    rmSync(tree.root);
+    mkdirSync(tree.root);
+    writeFileSync(join(tree.root, "SKILL.md"), "forged");
+    await tree.verify();
+    expect(readFileSync(join(tree.root, "SKILL.md"), "utf8")).toBe("# Pushed");
+
+    rmSync(mounts, { recursive: true, force: true });
+    await tree.verify();
+    expect(readFileSync(join(tree.root, "SKILL.md"), "utf8")).toBe("# Pushed");
+
+    rmSync(join(mounts, "ses-1", "skill-k.complete"));
+    writeFileSync(join(mounts, "ses-1", "skill-k", "planted.md"), "a half-written tree");
+    await tree.verify();
+    expect(existsSync(join(mounts, "ses-1", "skill-k", "planted.md")), "a tree without its mark is unpacked afresh").toBe(false);
+  });
+
+  it("refuses to write in a folder others may write, or one that is a link", async () => {
+    mkdirSync(join(mounts, "ses-1"), { recursive: true });
+    chmodSync(join(mounts, "ses-1"), 0o777);
+    await expect(treeAt().verify()).rejects.toThrow(/closed to others; the runner writes no skill there/);
+
+    rmSync(join(mounts, "ses-1"), { recursive: true });
+    mkdirSync(join(base, "elsewhere"));
+    symlinkSync(join(base, "elsewhere"), join(mounts, "ses-1"));
+    await expect(treeAt().verify()).rejects.toThrow(/closed to others/);
+  });
+
+  it("holds the session's folder to the trees a turn mounted, and removes it with the session", async () => {
+    const facts = { platform: "linux" as const, uid: 0, env: { STIGMER_RUNNER_LAYER: "1", STIGMER_RUNNER_MOUNTS_DIR: mounts } };
+    await treeAt("skill-kept").verify();
+    await treeAt("skill-dropped").verify();
+    await holdSessionTrees("ses-1", ["skill-kept"], facts);
+    expect(existsSync(join(mounts, "ses-1", "skill-kept"))).toBe(true);
+    expect(existsSync(join(mounts, "ses-1", "skill-kept.complete"))).toBe(true);
+    expect(existsSync(join(mounts, "ses-1", "skill-dropped"))).toBe(false);
+    await holdSessionTrees("ses-missing", [], facts);
+
+    await releaseSessionTrees("ses-1", facts);
+    expect(existsSync(join(mounts, "ses-1"))).toBe(false);
+  });
+
+  it("logs, never throws, when a session's trees cannot be removed", async () => {
+    writeFileSync(join(base, "a-file"), "not a folder");
+    const errors = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    const facts = { platform: "linux" as const, uid: 0, env: { STIGMER_RUNNER_LAYER: "1", STIGMER_RUNNER_MOUNTS_DIR: join(base, "a-file") } };
+    await expect(releaseSessionTrees("ses-1", facts)).resolves.toBeUndefined();
+    expect(errors.mock.calls.flat().join(" ")).toContain("removing the skill trees of session ses-1 failed");
+    errors.mockRestore();
   });
 });

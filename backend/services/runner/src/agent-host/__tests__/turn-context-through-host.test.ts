@@ -16,7 +16,7 @@ import { loopbackHostedRow } from "../../__test-utils__/loopback-host.js";
 import { turnInputFixture } from "../../__test-utils__/turn-input-fixture.js";
 import { NO_TURN_INPUT } from "../../harness/turn-input.js";
 import { currentRunCredential, withRunCredential } from "../../shared/run-credential-store.js";
-import type { TurnArchiveFiles } from "../../shared/archive-reader.js";
+import { ArchiveFileNotFoundError, type TurnArchiveFiles } from "../../shared/archive-reader.js";
 
 describe("the agent host's calls to the runtime", () => {
   it("run in the turn's context, with the run credential the activity entered", async () => {
@@ -106,5 +106,38 @@ describe("the agent host's calls to the runtime", () => {
       { turn: "org-a", credential: "credential-of-org-a", text: "org-a" },
       { turn: "org-b", credential: "credential-of-org-b", text: "org-b" },
     ]);
+  });
+
+  it("answer a file the turn does not hold as not found, across the host, whether the turn has no skills or the file is not one of them", async () => {
+    const answers: string[] = [];
+    const row = loopbackHostedRow({
+      harness: "stigmer",
+      adapter: {
+        name: "missing-probe",
+        capabilities: DEEP_AGENT_CAPABILITIES,
+        boot: async () => {},
+        shutdown: async () => {},
+        releaseSession: async () => {},
+        runTurn: async (input) => {
+          if (input.executionId === "warm-up") return { kind: "completed" };
+          const read = input.skills.archives?.read ?? (() => Promise.reject(new Error("no reader")));
+          await read("skills/notes/nothing.md").then(
+            () => answers.push("served"),
+            (err: unknown) => answers.push(err instanceof ArchiveFileNotFoundError ? `not found: ${err.path}` : String(err)),
+          );
+          return { kind: "completed" };
+        },
+      },
+    });
+    await row.adapter.boot(testConfig());
+    await row.adapter.runTurn(turnInputFixture({ executionId: "warm-up" }), new RecordingTurnSink());
+    const holding: TurnArchiveFiles = {
+      folders: ["skills"],
+      list: async () => [],
+      read: async (path) => Promise.reject(new ArchiveFileNotFoundError(path)),
+    };
+    await row.adapter.runTurn(turnInputFixture({ executionId: "holds-none", skills: { root: [], bySubAgent: new Map(), archives: holding } }), new RecordingTurnSink());
+
+    expect(answers).toEqual(["not found: skills/notes/nothing.md"]);
   });
 });

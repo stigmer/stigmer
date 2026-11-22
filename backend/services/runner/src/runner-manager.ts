@@ -509,14 +509,8 @@ async function buildStigmerRunnerManager(
         );
       }
       // The session's read-only skill and plugin trees are the runner's own
-      // (shared/archive-tree.ts): removed with its rights. Logged, never thrown.
-      try {
-        await releaseSessionTrees(sessionId);
-      } catch (err) {
-        console.error(
-          `[runner-manager] Removing the skill trees of session ${sessionId} failed (continuing): ${err instanceof Error ? err.message : String(err)}`,
-        );
-      }
+      // (shared/archive-tree.ts): removed with its rights, logged on failure.
+      await releaseSessionTrees(sessionId);
     },
 
     activeSessions(): string[] {

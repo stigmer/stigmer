@@ -161,11 +161,11 @@ export async function placeArchiveTree(args: {
   readonly entries: readonly ZipFileEntry[];
   readonly label: string;
 }): Promise<ArchiveTree> {
-  const sessionDir = sessionTreesDir(args.sessionId);
+  const root = runnerMountsRoot();
   const tree: ArchiveTree =
-    sessionDir === undefined
+    root === undefined
       ? new AgentOwnedTree(args.linkPath, args.entries, args.label, args.key)
-      : new RunnerOwnedTree(args.linkPath, sessionDir, args.key, args.entries, args.label);
+      : new RunnerOwnedTree(args.linkPath, root, join(root, args.sessionId), args.key, args.entries, args.label);
   await tree.verify();
   return tree;
 }
@@ -173,17 +173,21 @@ export async function placeArchiveTree(args: {
 /**
  * A separating runner's tree (the header): unpacked by the runner as root
  * under `/runner/mounts/<session>/<key>/`, reached through a link the host
- * makes. Exported for its own tests.
+ * makes. `owner` is the uid every folder it writes in must belong to: root
+ * in a runner; the test's own user in its unit tests, which cannot run as
+ * root (the container test proves root's). Exported for its own tests.
  */
 export class RunnerOwnedTree implements ArchiveTree {
   private inFlight: Promise<void> | undefined;
 
   constructor(
     readonly root: string,
+    private readonly mountsRoot: string,
     private readonly sessionDir: string,
     readonly key: string,
     private readonly entries: readonly ZipFileEntry[],
     private readonly label: string,
+    private readonly owner: number = 0,
   ) {}
 
   /** The folder the files are in. */
@@ -199,7 +203,7 @@ export class RunnerOwnedTree implements ArchiveTree {
   }
 
   private async check(): Promise<void> {
-    await ensureRunnerOwnedDir(this.sessionDir);
+    await ensureRunnerOwnedDir(this.sessionDir, this.mountsRoot, this.owner);
     if (!(await this.unpacked())) await this.unpack();
     await this.link();
   }
@@ -208,7 +212,7 @@ export class RunnerOwnedTree implements ArchiveTree {
   private async unpacked(): Promise<boolean> {
     try {
       const [mark, dir] = await Promise.all([fs.lstat(this.markPath()), fs.lstat(this.treeDir)]);
-      return mark.isFile() && dir.isDirectory() && dir.uid === 0 && (dir.mode & 0o022) === 0;
+      return mark.isFile() && dir.isDirectory() && dir.uid === this.owner && (dir.mode & 0o022) === 0;
     } catch {
       return false;
     }
@@ -248,17 +252,17 @@ export class RunnerOwnedTree implements ArchiveTree {
 /**
  * Make `dir` and hold it, and every ancestor up to the mounts root's parent,
  * to what a runner-owned tree needs: real folders (never a link), owned by
- * root, closed to writes by anyone else. A folder that is not refuses: the
- * runner would otherwise write where someone else could rename or plant.
+ * `owner` (root), closed to writes by anyone else. A folder that is not
+ * refuses: the runner would otherwise write where someone else could rename
+ * or plant.
  */
-async function ensureRunnerOwnedDir(dir: string): Promise<void> {
+async function ensureRunnerOwnedDir(dir: string, mountsRoot: string, owner: number): Promise<void> {
   await fs.mkdir(dir, { recursive: true, mode: 0o755 });
-  const root = runnerMountsRoot();
-  const stop = root === undefined ? dir : dirname(root);
+  const stop = dirname(mountsRoot);
   for (let current = dir; ; current = dirname(current)) {
     const stat = await fs.lstat(current);
-    if (stat.isSymbolicLink() || !stat.isDirectory() || stat.uid !== 0 || (stat.mode & 0o022) !== 0) {
-      throw new Error(`${current} is not a root-owned folder closed to others; the runner writes no skill there`);
+    if (stat.isSymbolicLink() || !stat.isDirectory() || stat.uid !== owner || (stat.mode & 0o022) !== 0) {
+      throw new Error(`${current} is not a folder of the runner's own, closed to others; the runner writes no skill there`);
     }
     if (current === stop || dirname(current) === current) return;
   }
@@ -268,8 +272,8 @@ async function ensureRunnerOwnedDir(dir: string): Promise<void> {
  * Drop every runner-owned tree of the session that `keep` does not name,
  * with the runner's own rights. Nothing where the runner does not separate.
  */
-export async function holdSessionTrees(sessionId: string, keep: readonly string[]): Promise<void> {
-  const dir = sessionTreesDir(sessionId);
+export async function holdSessionTrees(sessionId: string, keep: readonly string[], facts?: ProcessFacts): Promise<void> {
+  const dir = sessionTreesDir(sessionId, facts);
   if (dir === undefined) return;
   let names: string[];
   try {
@@ -283,10 +287,13 @@ export async function holdSessionTrees(sessionId: string, keep: readonly string[
   }
 }
 
-/** Remove the session's runner-owned trees: it has left this runner. */
-export async function releaseSessionTrees(sessionId: string): Promise<void> {
-  const dir = sessionTreesDir(sessionId);
-  if (dir !== undefined) await fs.rm(dir, { recursive: true, force: true });
+/** Remove the session's runner-owned trees: it has left this runner. Logged, never thrown: the session is already gone. */
+export async function releaseSessionTrees(sessionId: string, facts?: ProcessFacts): Promise<void> {
+  const dir = sessionTreesDir(sessionId, facts);
+  if (dir === undefined) return;
+  await fs.rm(dir, { recursive: true, force: true }).catch((err: unknown) => {
+    console.error(`[archive-tree] removing the skill trees of session ${sessionId} failed (continuing): ${err instanceof Error ? err.message : String(err)}`);
+  });
 }
 
 /** What the guard records of one file on disk, to tell cheaply whether it moved. */
