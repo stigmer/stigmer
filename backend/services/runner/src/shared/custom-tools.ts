@@ -45,7 +45,7 @@
 
 import type { Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 import type { Session } from "@stigmer/apis/ai/stigmer/agentic/session/v1/api_pb";
-import { customToolsProblem } from "@stigmer/tool-vocabulary";
+import { customToolsProblem } from "@stigmer/tool-vocabulary/custom-tools";
 
 import { isUnattendedApprovalMode } from "./approval-policy.js";
 import { mcpToolName } from "./mcp-tool-names.js";

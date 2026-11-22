@@ -170,7 +170,7 @@ import { asJson, sameJson } from "../../shared/json-value.js";
 import { ELISION_MARKER } from "../../shared/status-offload.js";
 import { toolApprovalCategory, type ToolApprovalCategory } from "../../shared/tool-kind.js";
 import { readsPlatformContent } from "../../shared/workspace/stigmer-link.js";
-import { customToolInputProblem } from "@stigmer/tool-vocabulary";
+import { customToolInputProblem } from "@stigmer/tool-vocabulary/custom-tools";
 
 import type { CustomToolAnswer } from "../../harness/custom-tool-answers.js";
 import { CUSTOM_TOOL_WAITING_MESSAGE, customToolOfEngineName, type CustomToolOffer } from "../../shared/custom-tools.js";

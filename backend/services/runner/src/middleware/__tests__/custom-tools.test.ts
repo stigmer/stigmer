@@ -10,7 +10,7 @@
 
 import { describe, expect, it, vi } from "vitest";
 import { ToolMessage } from "@langchain/core/messages";
-import { customToolInputProblem } from "@stigmer/tool-vocabulary";
+import { customToolInputProblem } from "@stigmer/tool-vocabulary/custom-tools";
 
 vi.mock("@langchain/langgraph", async (original) => ({
   ...(await original<typeof import("@langchain/langgraph")>()),

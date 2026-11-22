@@ -59,7 +59,7 @@ import { ELISION_MARKER } from "../../../shared/status-offload.js";
 import type { ToolApprovalCategory } from "../../../shared/tool-kind.js";
 import { turnInputFixture } from "../../../__test-utils__/turn-input-fixture.js";
 import { CUSTOM_TOOL_WAITING_MESSAGE, customToolEngineName } from "../../../shared/custom-tools.js";
-import { customToolInputProblem } from "@stigmer/tool-vocabulary";
+import { customToolInputProblem } from "@stigmer/tool-vocabulary/custom-tools";
 import {
   ASK_ALONE_MESSAGE,
   CUSTOM_ASK_ALONE_MESSAGE,

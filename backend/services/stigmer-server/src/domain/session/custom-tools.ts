@@ -27,7 +27,7 @@ import { SessionSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/api_p
 import type { Session } from "@stigmer/apis/ai/stigmer/agentic/session/v1/api_pb";
 import { CustomToolSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/spec_pb";
 import type { CustomTool } from "@stigmer/apis/ai/stigmer/agentic/session/v1/spec_pb";
-import { customToolsProblem } from "@stigmer/tool-vocabulary";
+import { customToolsProblem } from "@stigmer/tool-vocabulary/custom-tools";
 
 import { failedPreconditionError, invalidArgumentError } from "../../pipeline/errors.js";
 import type { PipelineStep } from "../../pipeline/pipeline.js";

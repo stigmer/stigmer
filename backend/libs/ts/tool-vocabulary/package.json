@@ -1,7 +1,7 @@
 {
   "name": "@stigmer/tool-vocabulary",
   "version": "0.0.0-dev",
-  "description": "Claude Code's tool names as Stigmer reads them, shared by the runner and the control plane: the built-in names a tool list may carry, the tables of which Claude tools each engine tool covers (Stigmer, Claude), the reverse reading a grader uses to name a recorded engine call in Claude's words, the MCP server names both sides agree on (the platform's own servers, the name grammar, the login variable), and the check a host app's own tools pass (custom_tools)",
+  "description": "Claude Code's tool names as Stigmer reads them, shared by the runner and the control plane: the built-in names a tool list may carry, the tables of which Claude tools each engine tool covers (Stigmer, Claude), the reverse reading a grader uses to name a recorded engine call in Claude's words, the MCP server names both sides agree on (the platform's own servers, the name grammar, the login variable), and, at ./custom-tools, the check a host app's own tools pass (custom_tools)",
   "license": "Apache-2.0",
   "type": "module",
   "sideEffects": false,
@@ -10,6 +10,11 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
       "default": "./dist/index.js"
+    },
+    "./custom-tools": {
+      "types": "./dist/custom-tools.d.ts",
+      "import": "./dist/custom-tools.js",
+      "default": "./dist/custom-tools.js"
     }
   },
   "scripts": {
@@ -39,6 +44,11 @@
         "types": "./dist/index.d.ts",
         "import": "./dist/index.js",
         "default": "./dist/index.js"
+      },
+      "./custom-tools": {
+        "types": "./dist/custom-tools.d.ts",
+        "import": "./dist/custom-tools.js",
+        "default": "./dist/custom-tools.js"
       }
     }
   },

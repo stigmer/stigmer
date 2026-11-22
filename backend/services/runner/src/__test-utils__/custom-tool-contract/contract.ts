@@ -35,7 +35,7 @@
 
 import type { JsonObject } from "@bufbuild/protobuf";
 import { describe, expect, it } from "vitest";
-import { customToolInputProblem } from "@stigmer/tool-vocabulary";
+import { customToolInputProblem } from "@stigmer/tool-vocabulary/custom-tools";
 
 import type { ExecutionRecord } from "../hermetic-activity.js";
 

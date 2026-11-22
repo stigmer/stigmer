@@ -35,7 +35,7 @@
 
 import { ToolMessage } from "@langchain/core/messages";
 import { interrupt } from "@langchain/langgraph";
-import { customToolInputProblem } from "@stigmer/tool-vocabulary";
+import { customToolInputProblem } from "@stigmer/tool-vocabulary/custom-tools";
 
 import { CUSTOM_TOOL_WAITING_MESSAGE, type CustomToolOffer } from "../shared/custom-tools.js";
 import { writeToolRefused } from "./tool-scope.js";
