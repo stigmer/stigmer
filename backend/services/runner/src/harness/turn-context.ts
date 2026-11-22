@@ -90,9 +90,11 @@ import type { MockEndpoint } from "../shared/eval-case/mock-endpoint.js";
 import { formatTryStop } from "@stigmer/eval-runtime";
 import { deriveCaptureMode, deriveCaptureSubstrate, type UndoOutcome } from "../shared/filereview/capture.js";
 import {
+  acquireDirectoryLock,
   acquireWorkspaceLock,
   WorkspaceLockCancelledError,
   WorkspaceLockTimeoutError,
+  type AcquireWorkspaceLockOptions,
   type ReleaseWorkspaceLock,
 } from "../shared/workspace/workspace-lock.js";
 import {
@@ -659,12 +661,32 @@ export async function acquireWorkspaceTurnLock(
   deps: ResolutionDeps,
   primaryDir: string,
 ): Promise<WorkspaceLockOutcome> {
+  return acquireTurnLock(deps, primaryDir ? (options) => acquireWorkspaceLock(primaryDir, options) : undefined);
+}
+
+/**
+ * The turn lock of a conversation without a computer: no tree to guard, but
+ * the same serialization of its turns, so an invocation resumed while the
+ * one it replaces still settles waits for it (and then reads its run again,
+ * {@link runFinishedWhileWaiting}) instead of running the engine beside it
+ * on the conversation's one saved thread. Keyed by the conversation; the
+ * lock's file is the runner's own (`shared/workspace/workspace-lock.ts`),
+ * never the agent's.
+ */
+export async function acquireConversationTurnLock(deps: ResolutionDeps, sessionId: string): Promise<WorkspaceLockOutcome> {
+  return acquireTurnLock(deps, (options) => acquireDirectoryLock(`stigmer-conversation:${sessionId}`, options));
+}
+
+async function acquireTurnLock(
+  deps: ResolutionDeps,
+  acquire: ((options: AcquireWorkspaceLockOptions) => Promise<ReleaseWorkspaceLock>) | undefined,
+): Promise<WorkspaceLockOutcome> {
   deps.enterPhase("acquire_workspace_lock");
   let release: ReleaseWorkspaceLock | undefined;
   let waited = false;
-  if (primaryDir) {
+  if (acquire !== undefined) {
     try {
-      release = await acquireWorkspaceLock(primaryDir, {
+      release = await acquire({
         onWaiting: () => {
           waited = true;
           return deps.reportProgress("Waiting for workspace — in use by another session");
@@ -2114,6 +2136,11 @@ export async function resolveTurnContext(
 
     await prepareOutputsPhase(deps, { sessionId, primaryDir: workspace.primaryDir });
   } else {
+    const lock = await acquireConversationTurnLock(deps, sessionId);
+    if (lock.kind === "settled") return { kind: "settled", settlement: lock.settlement };
+    frame.releaseWorkspaceLock = lock.release;
+    const finished = await runFinishedWhileWaiting(deps, lock.waited);
+    if (finished !== undefined) return { kind: "settled", settlement: finished };
     const evalCase = await prepareEvalCaseWithoutComputerPhase(deps, { spec, values });
     if (evalCase.kind === "settled") return { kind: "settled", settlement: evalCase.settlement };
     if (evalCase.prepared !== undefined) {

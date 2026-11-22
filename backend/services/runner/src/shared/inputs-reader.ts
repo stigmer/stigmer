@@ -51,6 +51,13 @@ export const DEFAULT_INPUT_CACHE_BYTES = 64 * 1024 * 1024;
 /** The variable that sizes the cache, in bytes. */
 export const INPUT_CACHE_BYTES_ENV = "STIGMER_RUNNER_INPUT_CACHE_BYTES";
 
+/**
+ * The answers a link refused for its age, asked for again once: a bucket's
+ * signed link answers 401, 403 or 410; the local artifact lane answers an
+ * expired link 404.
+ */
+const REFETCHED_STATUSES: ReadonlySet<number> = new Set([401, 403, 404, 410]);
+
 /** The longest one input's fetch may take. */
 export const INPUT_FETCH_TIMEOUT_MS = 2 * 60 * 1000;
 
@@ -155,7 +162,7 @@ export function newTurnInputs(args: {
 
   async function fetchFile(entry: FileMount, path: string): Promise<Uint8Array> {
     let response = await fetchLink(entry.url, { signal: AbortSignal.timeout(INPUT_FETCH_TIMEOUT_MS) });
-    if (response.status === 403 || response.status === 401 || response.status === 410) {
+    if (REFETCHED_STATUSES.has(response.status)) {
       // The link expired under a long turn: ask the server for fresh ones once.
       const fresh = filesOf(await args.refetch(), references);
       byPath = fresh;

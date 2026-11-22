@@ -26,9 +26,9 @@ describe("the outputs buffer", () => {
     expect(await buffer.delete("report.md")).toBe(false);
   });
 
-  it("refuses a path that leaves the folder", async () => {
+  it("refuses a path that leaves the folder or that the server would refuse", async () => {
     const buffer = newOutputsBuffer();
-    for (const path of ["../escape.md", "/", "", "a/"]) {
+    for (const path of ["../escape.md", "/", "", "a/", "a\\b.md", "bell\u0007.md", `${"n".repeat(256)}.md`, `${"d/".repeat(600)}x.md`]) {
       await expect(buffer.write(path, bytes(1)), path).rejects.toBeInstanceOf(OutputPathError);
     }
   });

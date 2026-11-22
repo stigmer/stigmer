@@ -68,9 +68,12 @@ describe("the turn's inputs reader", () => {
     expect(fetch.urls).toEqual([]);
   });
 
-  it("asks for fresh links once when the store refuses an expired one", async () => {
+  it.each([
+    { store: "a bucket's signed link", refused: 403 },
+    { store: "the local artifact lane", refused: 404 },
+  ])("asks for fresh links once when $store refuses an expired one ($refused)", async ({ refused }) => {
     const fresh: RunFileSets = { entries: [mount("file_a", "brief.txt", 5, "https://store.example/file_a?sig=new")], outputs: [] };
-    const fetch = served({ file_a: "hello" }, (url) => (url.includes("sig=secret") ? 403 : 200));
+    const fetch = served({ file_a: "hello" }, (url) => (url.includes("sig=secret") ? refused : 200));
     const refetch = vi.fn(async () => fresh);
     const reader = newTurnInputs({ org: "org_1", sets: SETS, refetch, fetch, cache: newInputCache(1024) });
     expect(Buffer.from(await reader.read("uploads/brief.txt")).toString()).toBe("hello");

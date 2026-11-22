@@ -44,6 +44,8 @@ import { createHermeticEnvironment } from "../../../__test-utils__/hermetic-acti
 import { RecordingTurnSink } from "../../../__test-utils__/harness-contract/recording-sink.js";
 import { FIXTURE_CLAUDE_MODEL, stubRegistryFetch } from "../../../__test-utils__/model-registry-fixture.js";
 import { turnInputFixture, type ComputerTurnInputFixtureOverrides } from "../../../__test-utils__/turn-input-fixture.js";
+import { NO_TURN_INPUTS } from "../../../shared/inputs-reader.js";
+import { newOutputsBuffer } from "../../../shared/outputs-buffer.js";
 import { HttpMcpServer } from "../../../__test-utils__/http-mcp-server.js";
 import { runMessageIdOf, sentMessageIdOf } from "../engine-session-id.js";
 import { ApprovalAction, ApprovalPolicySource, ToolCallStatus } from "../../../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
@@ -178,6 +180,16 @@ function turn(turnInput: ComputerTurnInput, sink: RecordingTurnSink, sdk: Claude
 }
 
 const NEVER: Script = async function* () {};
+
+describe("runClaudeTurn without a computer", () => {
+  it("refuses the turn in one sentence, as the server would, before any engine work", async () => {
+    const { sdk } = scriptedSdk(NEVER);
+    const noComputer = { ...input(), workspace: { computer: false, files: { inputs: NO_TURN_INPUTS, outputs: newOutputsBuffer() } } } as TurnInput;
+    const outcome = await runWithExecutionContext(noComputer.executionId, () => runClaudeTurn(noComputer, new RecordingTurnSink(), CONFIG, sdk), "turn-key");
+    expect(outcome).toMatchObject({ kind: "failed", surface: "actionable" });
+    expect(outcome.kind === "failed" ? outcome.message : "").toBe("The Claude engine needs a computer, and this conversation has none");
+  });
+});
 
 describe("runClaudeTurn", () => {
   let registry: ReturnType<typeof stubRegistryFetch>;

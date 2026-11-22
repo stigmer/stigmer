@@ -147,6 +147,29 @@ describe("the file layer without a computer", () => {
     expect(later.get("b")).toContain("xxxx");
   });
 
+  it("holds all of a conversation's notes to their budget in UTF-8 bytes, a note in another script included", async () => {
+    const layer = computerlessFileBackend({ inputs: inputs(), outputs: newOutputsBuffer() }, undefined);
+    // 87,000 characters of three UTF-8 bytes each: 261,000 bytes, under a
+    // note's bound; four fit the budget, a fifth does not. Counted in
+    // UTF-16 units, the fifth would pass at about 435,000.
+    const wide = "字".repeat(87_000);
+    const graph = await graphOver(layer, [1, 2, 3, 4, 5].map((n) => [call(`w${n}`, "write_file", { file_path: `/note-${n}.md`, content: wide })]));
+    const answers: string[] = [];
+    for (let n = 1; n <= 5; n += 1) answers.push((await turn(graph)).get(`w${n}`) ?? "");
+    expect(answers.slice(0, 4).every((answer) => !answer.includes("Error")), answers.slice(0, 4).join(" | ")).toBe(true);
+    expect(answers[4]).toMatch(/over the 1048576-byte budget/);
+  });
+
+  it("holds an edit to a note's bound", async () => {
+    const layer = computerlessFileBackend({ inputs: inputs(), outputs: newOutputsBuffer() }, undefined);
+    const graph = await graphOver(layer, [
+      [call("w", "write_file", { file_path: "/grow.md", content: "seed\n" })],
+      [call("e", "edit_file", { file_path: "/grow.md", old_string: "seed", new_string: "y".repeat(MAX_NOTE_BYTES) })],
+    ]);
+    await turn(graph);
+    expect((await turn(graph)).get("e")).toMatch(/up to 262144 bytes each/);
+  });
+
   it("refuses a note past its bound with a sentence", async () => {
     const layer = computerlessFileBackend({ inputs: inputs(), outputs: newOutputsBuffer() }, undefined);
     const graph = await graphOver(layer, [[call("big", "write_file", { file_path: "/big.md", content: "y".repeat(MAX_NOTE_BYTES + 1) })]]);

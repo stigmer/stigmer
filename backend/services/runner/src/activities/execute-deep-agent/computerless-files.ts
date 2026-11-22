@@ -16,7 +16,8 @@
  *    `delete` tool is not offered (`deepagents-profiles.ts`), so a note
  *    frees its share by being edited down.
  *  - `/.stigmer/skills/`, `/.stigmer/plugins/`: the turn's skills and
- *    plugins from the store (`store-content-backend.ts`, M2's reader).
+ *    plugins from the store (`store-content-backend.ts` over the turn's
+ *    skill reader, `shared/archive-reader.ts`).
  *  - `/.stigmer/uploads/`, `/.stigmer/inputs/`: the conversation's Files
  *    and an eval try's reference folders, read from the store when opened
  *    (`shared/inputs-reader.ts`); read-only.
@@ -206,9 +207,13 @@ export class NotesBackend implements BackendProtocolV2 {
         `keep it shorter, or save a deliverable for the person in ${OUTPUTS_ROUTE_PREFIX.slice(1)}`
       );
     }
+    // Every note measured as the one being written is, in UTF-8 bytes:
+    // the listing's sizes count UTF-16 units, which undercount most
+    // scripts other than Latin's.
     let others = 0;
     for (const file of (await this.glob("**", "/")).files ?? []) {
-      if (file.path !== filePath && !file.is_dir) others += file.size ?? 0;
+      if (file.path === filePath || file.is_dir) continue;
+      others += bytesOf((await this.textOf(file.path)) ?? "");
     }
     if (others + size > MAX_NOTES_BYTES) {
       return (

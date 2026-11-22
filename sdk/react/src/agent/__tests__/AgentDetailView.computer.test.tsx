@@ -74,7 +74,7 @@ describe("AgentDetailView computer", () => {
       expect(list !== null, Computer[computer]).toBe(shown);
       if (list !== null) {
         expect(list.textContent).toBe(message.replace("'pdf-tools'", "pdf-tools"));
-        expect(within(list).getByText("pdf-tools").className).toContain("font-mono");
+        expect(within(list).getByText("pdf-tools").className).toContain("stg:font-mono");
       }
       cleanup();
     }

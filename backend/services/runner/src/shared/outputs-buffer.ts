@@ -72,11 +72,24 @@ export interface OutputsBuffer extends TurnOutputFiles {
   snapshot(): ReadonlyMap<string, Uint8Array>;
 }
 
-/** An output path in its one form, or {@link OutputPathError}. */
+/** The server's bounds on an output path (`domain/file/outputs.ts` `outputPathProblem`), held at the write so the agent hears a refusal then, not a dropped File at the turn's end. */
+const MAX_OUTPUT_PATH_BYTES = 1024;
+const MAX_FILENAME_CHARS = 255;
+const REFUSED_PATH_CHARACTER = /[\\\u0000-\u001f\u007f]/;
+
+/** An output path in its one form, or {@link OutputPathError}: relative, inside the folder, and one the server takes. */
 export function outputPathOf(path: string): string {
-  const trimmed = path.startsWith("/") ? path.slice(1) : path;
+  const trimmed = path.replace(/^\/+/, "");
   const normalized = posix.normalize(trimmed);
-  if (trimmed === "" || normalized === "." || normalized.startsWith("../") || normalized === ".." || normalized.endsWith("/")) {
+  const segments = normalized.split("/");
+  if (
+    trimmed === "" ||
+    normalized.startsWith("/") ||
+    segments.some((segment) => segment === "" || segment === "." || segment === "..") ||
+    REFUSED_PATH_CHARACTER.test(normalized) ||
+    Buffer.byteLength(normalized, "utf8") > MAX_OUTPUT_PATH_BYTES ||
+    [...(segments[segments.length - 1] ?? "")].length > MAX_FILENAME_CHARS
+  ) {
     throw new OutputPathError(path);
   }
   return normalized;
