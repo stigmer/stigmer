@@ -15,8 +15,10 @@
  *     `not run: <feature>` and no cells, never run degraded; so is a case
  *     with a scaffold script when the eval skips scaffolds (`not run:
  *     scaffold skipped`, Claude Code's `--no-scaffold`), and one with a
- *     scaffold script in an eval run of an agent without a computer (`not
- *     run: needs a computer`): a scaffold is a shell script that builds the
+ *     scaffold script, or a grader that reads the try's files, in an eval
+ *     run of an agent without a computer (`not run: needs a computer`; the
+ *     files are a workspace's, which such an agent has none of): a scaffold
+ *     is a shell script that builds the
  *     try's starting folder, and such an agent's conversations have neither
  *     a shell nor a folder. Its reference folders need neither, so a case
  *     without a scaffold runs;
@@ -53,6 +55,7 @@ import type { ModelCatalogProvider } from "../../modelcatalog/model-catalog-prov
 import { harnessName } from "../../modelcatalog/pin-validation.js";
 import { HARNESSES } from "../session/harness.js";
 import { compileGlob } from "./glob.js";
+import { readsFiles } from "./graders/verdict.js";
 import { subjectOf } from "./subject.js";
 
 /** Tries per arm when neither the spec nor the case names a count. */
@@ -223,7 +226,7 @@ function walkMatrix(
       cases.push({ evalCase, notRunReason: SCAFFOLD_SKIPPED_REASON, targets: [] });
       continue;
     }
-    if (agentTarget?.computer === false && evalCase.context.scaffoldScript !== undefined) {
+    if (agentTarget?.computer === false && (evalCase.context.scaffoldScript !== undefined || readsFiles(evalCase.graders))) {
       cases.push({ evalCase, notRunReason: NEEDS_A_COMPUTER_REASON, targets: [] });
       continue;
     }

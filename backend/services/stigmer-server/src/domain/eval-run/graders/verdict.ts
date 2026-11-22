@@ -164,6 +164,22 @@ export function focusText(
  * returns them as its turn left them (`RunSpec.eval_case.read_files`),
  * and the trace reads each one.
  */
+/**
+ * Whether any of a case's graders reads the try's files: a `file_exists`
+ * check, or a regex or judge whose focus is a file or the created paths.
+ * Those are read from the run's file record and the files the runner
+ * returns from the workspace, which an agent without a computer does not
+ * have, so such a case does not run for it (`matrix.ts`).
+ */
+export function readsFiles(graders: ReadonlyArray<EvalGrader>): boolean {
+  return graders.some((grader) => {
+    const check = grader.check;
+    if (check.type === "file_exists") return true;
+    const focus = check.type === "regex" ? check.target : check.type === "llm" ? check.focus : undefined;
+    return focus?.kind === "file" || focus?.kind === "files";
+  });
+}
+
 export function wantedFilesOf(graders: ReadonlyArray<EvalGrader>): string[] {
   const paths: string[] = [];
   for (const grader of graders) {
