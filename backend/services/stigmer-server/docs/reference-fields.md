@@ -116,9 +116,11 @@ Rows read `| \`Message.field\` | class |`.
 
 | Field | Class |
 |---|---|
+| `ai.stigmer.agentic.plugin.v1.ListPluginFilesInput.plugin_id` | stamped id |
 | `ai.stigmer.agentic.plugin.v1.ListPluginToolsInput.plugin_id` | stamped id |
 | `ai.stigmer.agentic.plugin.v1.ListPluginVersionsInput.slug` | request reference |
 | `ai.stigmer.agentic.plugin.v1.PluginAgent.skills` | not a resource: the plugin's own skills, parts of its package, by name |
+| `ai.stigmer.agentic.plugin.v1.ReadPluginFileInput.plugin_id` | stamped id |
 
 ## `ai.stigmer.agentic.routine.v1`
 
@@ -213,8 +215,10 @@ Rows read `| \`Message.field\` | class |`.
 
 | Field | Class |
 |---|---|
+| `ai.stigmer.agentic.skill.v1.ListSkillFilesInput.skill_id` | stamped id |
 | `ai.stigmer.agentic.skill.v1.ListSkillVersionsInput.slug` | request reference |
 | `ai.stigmer.agentic.skill.v1.PushSkillFromFileRequest.file_id` | stamped id |
+| `ai.stigmer.agentic.skill.v1.ReadSkillFileInput.skill_id` | stamped id |
 
 ## `ai.stigmer.agentic.vault.v1`
 
