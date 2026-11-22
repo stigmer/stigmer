@@ -54,7 +54,7 @@ export function newTurnOffloads(storage: ArtifactStorage, executionId: string, s
       }
       const sha = createHash("sha256").update(bytes).digest("hex");
       const key = `artifacts/${executionId}/offloads/${sessionId}/${sha}`;
-      await storage.upload(key, Buffer.from(bytes), "text/plain; charset=utf-8");
+      await storage.upload(key, Buffer.from(bytes), "text/plain");
       return key;
     },
     async read(key) {
