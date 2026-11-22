@@ -55,7 +55,7 @@ describe("the turn's inputs reader", () => {
 
   it("refuses a File whose bytes do not match its recorded size, naming no link", async () => {
     const reader = newTurnInputs({ org: "org_1", sets: SETS, refetch: async () => SETS, fetch: served({ file_a: "hello world" }), cache: newInputCache(1024) });
-    const err = await reader.read("uploads/brief.txt").catch((e: unknown) => e as Error);
+    const err = (await reader.read("uploads/brief.txt").then(() => undefined, (e: unknown) => e)) as Error;
     expect(err.message).toMatch(/arrived as 11 bytes/);
     expect(err.message).not.toContain("sig=secret");
   });

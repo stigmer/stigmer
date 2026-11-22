@@ -108,7 +108,7 @@ describe("the file layer without a computer", () => {
 
     const second = await turn(graph);
     expect(second.get("r2"), "the note written in turn 1 reads back in turn 2").toContain("remember the deadline");
-    const state = await graph.getState({ configurable: { thread_id: "thread-ses_1" } });
+    const state = (await graph.getState({ configurable: { thread_id: "thread-ses_1" } })) as { values: unknown };
     expect(Object.keys((state.values as { files: Record<string, unknown> }).files)).toEqual(["/notes.md"]);
   });
 
@@ -138,7 +138,7 @@ describe("the file layer without a computer", () => {
     ]);
     await turn(graph);
     expect([...store.stored.values()].map((bytes) => bytes.length)).toEqual([50_000]);
-    const state = await graph.getState({ configurable: { thread_id: "thread-ses_1" } });
+    const state = (await graph.getState({ configurable: { thread_id: "thread-ses_1" } })) as { values: unknown };
     const files = (state.values as { files: Record<string, { content: unknown }> }).files;
     expect(Object.keys(files)).toEqual([`${OFFLOAD_KEYS_ROOT}large_tool_results/call_1.txt`]);
     expect(JSON.stringify(files)).not.toContain("xxxxxxxxxx");

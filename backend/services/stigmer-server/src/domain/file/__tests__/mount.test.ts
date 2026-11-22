@@ -38,6 +38,7 @@ import type { MountRunFilesInput, RunFileMounts } from "@stigmer/apis/ai/stigmer
 import { RunSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 import { RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 import { SessionSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/api_pb";
+import { Computer } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
 import { SessionResourceSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/resource_pb";
 import type { SessionResource } from "@stigmer/apis/ai/stigmer/agentic/session/v1/resource_pb";
 import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
@@ -159,7 +160,7 @@ async function seedOutput(
   );
 }
 
-async function seedSession(files: Array<[string, string]>, extra: SessionResource[] = []): Promise<void> {
+async function seedSession(files: Array<[string, string]>, extra: SessionResource[] = [], computer = Computer.NONE): Promise<void> {
   await fx.store.saveResource(
     ApiResourceKind.session,
     SESSION,
@@ -174,6 +175,7 @@ async function seedSession(files: Array<[string, string]>, extra: SessionResourc
           ),
         ],
       },
+      status: { computer },
     }),
   );
 }
@@ -238,6 +240,15 @@ describe("RunFileController.mount", () => {
       ["file_01chart", "charts/q3.md", "q3.md", "text/markdown", 5n],
     ]);
     expect(await (await fetch(mounts.outputs[0]!.url)).text()).toBe("second draft");
+  });
+
+  it("lists no outputs for a conversation with a computer, which finds them in its folder", async () => {
+    await seedOutput("file_01report", "report.md", "a draft", 1_000);
+    await seedSession([], [], Computer.REQUIRED);
+    await seedRun("run_01c", SESSION);
+
+    const mounts = await mount("run_01c", auth.mintRunCredential("run_01c"));
+    expect(mounts.outputs).toEqual([]);
   });
 
   it("never lists another conversation's outputs", async () => {

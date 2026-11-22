@@ -20,7 +20,8 @@
  * Beside them, the conversation's outputs: the Files its agent saved in
  * its outputs folder (outputs.ts), which are not among its resources. A
  * conversation without a computer keeps no folder on disk, so a later turn
- * finds what an earlier one saved only here. They are read through the
+ * finds what an earlier one saved only here; one with a computer finds them
+ * in its folder, and gets none here. They are read through the
  * File list index's session key, every page of it (a conversation holds at
  * most a few hundred Files), the query itself held to the run's
  * organization and conversation (the index is exact, store/list-index.ts);
@@ -59,6 +60,7 @@ import { ResourceNotFoundError } from "../../store/interface.js";
 import type { Store } from "../../store/interface.js";
 import { isTerminalExecutionPhase } from "../run/phases.js";
 import type { ListIndexRow } from "../../store/list-index.js";
+import { hasComputer } from "../run/computer.js";
 import type { FileBlobs } from "./blobs.js";
 import { fileListIndex } from "./list-index.js";
 
@@ -98,9 +100,9 @@ export async function mountRunFiles(
     return create(RunFileMountsSchema);
   }
   const org = run.metadata?.org ?? "";
-  let resources;
+  let session;
   try {
-    resources = (await deps.store.getResource(ApiResourceKind.session, sessionId, SessionSchema)).spec?.resources ?? [];
+    session = await deps.store.getResource(ApiResourceKind.session, sessionId, SessionSchema);
   } catch (error) {
     if (error instanceof ResourceNotFoundError) {
       throw failedPreconditionError(`run '${input.runId}' names a conversation that is gone`);
@@ -109,7 +111,7 @@ export async function mountRunFiles(
   }
 
   const entries: FileMount[] = [];
-  for (const entry of resources) {
+  for (const entry of session.spec?.resources ?? []) {
     if (entry.resource.case !== "file") {
       continue;
     }
@@ -141,7 +143,11 @@ export async function mountRunFiles(
       }),
     );
   }
-  return create(RunFileMountsSchema, { entries, outputs: await outputMounts(deps, org, sessionId) });
+  // Only a conversation without a computer reads its earlier outputs here;
+  // one with a computer finds them in its outputs folder, and is spared the
+  // listing.
+  const outputs = hasComputer(session.status?.computer) ? [] : await outputMounts(deps, org, sessionId);
+  return create(RunFileMountsSchema, { entries, outputs });
 }
 
 /**

@@ -110,6 +110,7 @@ import { synthesizeMemoryAttachment } from "../shared/memory-attachment.js";
 import { injectSynthesizedAttachment } from "../shared/synthesized-attachment.js";
 import { buildMcpApprovalDefault, deriveActiveLeases, NOTHING_LISTED, type LeaseGrant } from "../shared/approval-policy.js";
 import { ToolScope } from "../shared/tool-lists.js";
+import { SHELL_TOOL } from "@stigmer/tool-vocabulary";
 import {
   fetchRunFileMounts,
   mountFiles,
@@ -785,6 +786,14 @@ export async function prepareEvalCasePhase(
       archive,
     },
   };
+}
+
+/** The owner a turn without a computer names when it takes the shell out of a scope. */
+export const NO_COMPUTER_SCOPE_OWNER = "A conversation without a computer";
+
+/** `scope` with the shell out of it: a conversation without a computer runs no commands. */
+export function withoutShell(scope: ToolScope): ToolScope {
+  return scope.narrow(NO_COMPUTER_SCOPE_OWNER, { tools: [], disallowedTools: [SHELL_TOOL] });
 }
 
 /** The eval phase's answer for an agent without a computer: as {@link EvalCaseOutcome}, with the reference files the turn's reader serves and no workspace. */
@@ -2132,8 +2141,13 @@ export async function resolveTurnContext(
     values,
     grants: reinvocation.grants,
   });
-  const mcp =
+  const mcpWithMocks =
     prepared === undefined ? resolvedMcp : await startEvalMocks(deps, { spec, archive: prepared.archive, mcp: resolvedMcp, frame });
+  // Without a computer the shell is out of every graph's reach, so a call
+  // the model makes anyway is refused as out of scope, ahead of the
+  // approval gate, instead of asking a person to approve a tool the turn
+  // does not have.
+  const mcp = computer ? mcpWithMocks : { ...mcpWithMocks, toolScope: withoutShell(mcpWithMocks.toolScope) };
   const mounted = await mountSkills(deps, {
     blueprint,
     sessionId,
@@ -2154,6 +2168,9 @@ export async function resolveTurnContext(
     mainServers: mcp.servers,
   });
   if (subagentResolution.kind === "settled") return subagentResolution;
+  const subagents = computer
+    ? subagentResolution.subagents
+    : subagentResolution.subagents.map((subagent) => ({ ...subagent, toolScope: withoutShell(subagent.toolScope) }));
   // Without a computer nothing was mounted, and nothing is held: the
   // platform folder of a conversation that once had one is left as it is.
   if (computer) await holdPlatformToTurnPhase(deps, sessionId, [mounted.mounts, hookResolution.mounts, subagentResolution.mounts]);
@@ -2214,7 +2231,7 @@ export async function resolveTurnContext(
         ...(treesDir !== undefined && { treesDir }),
       },
       hooks: hookResolution.hooks,
-      subagents: subagentResolution.subagents,
+      subagents,
       files,
       model: resolveModelPreferences(execution.status?.runConfig),
       structuredOutputSchema: structuredOutputSchemaOf(spec),
