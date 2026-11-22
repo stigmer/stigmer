@@ -50,6 +50,8 @@ export interface ToolUseInit {
   readonly background?: Partial<BackgroundCommandView>;
   readonly stoppedBackground?: StoppedBackgroundCommand;
   readonly thread?: Thread;
+  /** A call of the app's own tools (`agent.custom_tool_use`); with no result it waits on the app (`waiting_on_host`). */
+  readonly custom?: boolean;
 }
 
 /** A folded tool use from the fields a test cares about. */
@@ -58,7 +60,9 @@ export function toolUse(init: ToolUseInit): ToolUse {
   const returned = init.result !== undefined || init.isError === true;
   const state: ToolUseState =
     init.state ??
-    (init.confirmation === "deny"
+    (init.custom === true && !returned
+      ? "waiting_on_host"
+      : init.confirmation === "deny"
       ? "denied"
       : init.isError
         ? "failed"
@@ -75,7 +79,7 @@ export function toolUse(init: ToolUseInit): ToolUse {
     mcpServerName: init.mcpServerName ?? "",
     input: init.input ?? {},
     evaluatedPermission: init.ask ? "ask" : "",
-    custom: false,
+    custom: init.custom === true,
     state,
     ask: init.ask
       ? {

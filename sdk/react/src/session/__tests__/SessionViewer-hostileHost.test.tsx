@@ -1,7 +1,7 @@
 /**
  * Stop survives a hostile host. With every part a host can hand the viewer
  * throwing (each thread slot, a tool card, message actions, a tool
- * presenter's overrides), an owner's working turn still draws its thread and
+ * presenter's overrides, the app's own tools' callback), an owner's working turn still draws its thread and
  * still offers Stop, and Stop sends the session's interrupt. The thread and
  * the composer are real; the session's data is the scenario catalogue's
  * working turn.
@@ -149,7 +149,7 @@ describe("SessionViewer under a host whose every part throws", () => {
   it("still draws the working turn and offers Stop, which sends the interrupt", () => {
     render(
       <ToolCardsContext.Provider value={{ mcp__billing__create_invoice: () => broke("tool card") }}>
-        <SessionViewer sessionId="ses_1" org="demo" threadSlots={THROWING_SLOTS} messageActions={() => broke("messageActions")} />
+        <SessionViewer sessionId="ses_1" org="demo" threadSlots={THROWING_SLOTS} messageActions={() => broke("messageActions")} onCustomToolUse={() => broke("onCustomToolUse")} />
       </ToolCardsContext.Provider>,
     );
 

@@ -64,6 +64,7 @@ export const SCENARIO_NAMES = [
   "streaming",
   "tools",
   "approval",
+  "waiting-on-app",
   "file-review",
   "subagent-running",
   "subagent-finished",
@@ -240,6 +241,8 @@ const RUN_PHASES: Readonly<Record<TurnPhase, RunPhase>> = {
 };
 
 const ASK_MESSAGE = "Rename the rounding helper and update its callers.";
+/** The waiting-on-app turn's message: what the agent fills the app's own form from. */
+const APP_TOOL_MESSAGE = "Connect our payments production AWS account, 482100937716 in us-east-1. Use the deploy role, no keys.";
 /** The thinking turn's settled thought: long enough that the thread shows only its start until opened. */
 const THOUGHT =
   "A cent off on many invoices sounds like rounding each line before the total. If lineTotal rounds and invoiceTotal adds the rounded lines, three lines of 0.335 give 1.02 where the exact total rounds to 1.01. Read invoice.ts before changing anything.";
@@ -527,6 +530,16 @@ function build(name: ScenarioName): Scenario {
         ...askEvents("write_file", { path: "src/billing/rounding.ts" }, '{"path":"src/billing/rounding.ts"}'),
         samples.runStatusEvent("waiting"),
       ]);
+    case "waiting-on-app":
+      return loaded(name, "a call of the app's own tool waits for the app's answer", [
+        ...samples.turnEvents({ message: APP_TOOL_MESSAGE, phase: "running", reply: "I'll fill in the registration form for you to check." }),
+        samples.customToolUseEvent(
+          "register_cloud_account",
+          { account_name: "payments-prod", provider: "aws", account_id: "482100937716", region: "us-east-1", auth_method: "role" },
+          { processedAt: sampleInstant(3_000) },
+        ),
+        samples.runStatusEvent("waiting", { processedAt: sampleInstant(3_000) }),
+      ]);
     case "file-review": {
       // The turn read the invoice, edited it and wrote the helper over 42s;
       // its review set lands before it ends.
@@ -609,6 +622,7 @@ export const scenarios: Readonly<Record<ScenarioName, Scenario>> = {
   streaming: build("streaming"),
   tools: build("tools"),
   approval: build("approval"),
+  "waiting-on-app": build("waiting-on-app"),
   "file-review": build("file-review"),
   "subagent-running": build("subagent-running"),
   "subagent-finished": build("subagent-finished"),

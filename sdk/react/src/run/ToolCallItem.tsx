@@ -221,6 +221,9 @@ export const ToolCallItem = memo(function ToolCallItem({
   // not the step in hand.
   const foregroundLive = isRunning && !backgroundRunning && category === "shell" && toolUse.liveOutput !== "";
   const failedEdit = failed && category === "edit";
+  // A call of the app's own tools that waits on the app opens to what the
+  // agent asked, so whoever looks sees what the app is to answer.
+  const waitsOnApp = !isSubagent && toolUse.custom && toolUse.state === "waiting_on_host";
   const hasBody =
     (isSubagent && helperShowsWork(thread)) ||
     approval != null ||
@@ -229,11 +232,12 @@ export const ToolCallItem = memo(function ToolCallItem({
     backgroundRunning ||
     failedEdit ||
     cardCall !== undefined ||
+    waitsOnApp ||
     (toolUse.result !== undefined && hasResultBody(result));
   // A Stop that failed opens the row again if it was closed, since the
   // reason sits in its body.
   const stopFailed = useBackgroundStop(toolUse)?.error != null;
-  const autoOpen = (isRunning && !backgroundRunning && hasBody) || approval != null || tailFailed || stopFailed || cardCall !== undefined || helperShowsCard;
+  const autoOpen = (isRunning && !backgroundRunning && hasBody) || approval != null || waitsOnApp || tailFailed || stopFailed || cardCall !== undefined || helperShowsCard;
   const [expanded, handleToggle] = useAutoDisclosure(autoOpen, {
     initialOpen: defaultExpanded || autoOpen,
   });
