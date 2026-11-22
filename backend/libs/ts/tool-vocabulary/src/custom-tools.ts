@@ -121,12 +121,30 @@ function schemaProblem(schema: unknown): string | undefined {
   if (schema.type !== "object") return 'must describe an object ({"type": "object", ...})';
   const ref = unresolvedRef(schema, schema);
   if (ref !== undefined) return `cannot be read as a JSON Schema: its $ref ${JSON.stringify(ref)} names nothing in the schema (a custom tool's schema is self-contained)`;
-  try {
-    new Validator(schema as Schema, "2020-12", false).validate({});
-  } catch (err) {
-    return `cannot be read as a JSON Schema: ${err instanceof Error ? err.message : String(err)}`;
-  }
+  const pattern = badPattern(schema);
+  if (pattern !== undefined) return `cannot be read as a JSON Schema: its pattern ${JSON.stringify(pattern)} is not a regular expression`;
   return undefined;
+}
+
+/**
+ * The first `pattern` (or `patternProperties` key) in `node` the validator
+ * could not compile, as it compiles them (`new RegExp(p, "u")`); undefined
+ * when every one compiles. A schema is otherwise read only when a call
+ * reaches the keyword, so a bad one would refuse every call instead of the
+ * declaration.
+ */
+function badPattern(node: unknown): string | undefined {
+  if (Array.isArray(node)) return node.map(badPattern).find((found) => found !== undefined);
+  if (!isObject(node)) return undefined;
+  const patterns = [...(typeof node.pattern === "string" ? [node.pattern] : []), ...(isObject(node.patternProperties) ? Object.keys(node.patternProperties) : [])];
+  for (const pattern of patterns) {
+    try {
+      new RegExp(pattern, "u");
+    } catch {
+      return pattern;
+    }
+  }
+  return Object.values(node).map(badPattern).find((found) => found !== undefined);
 }
 
 /**
@@ -139,7 +157,7 @@ export function customToolInputProblem(tool: Pick<CustomToolDeclaration, "name" 
   try {
     result = new Validator(tool.inputSchema as Schema, "2020-12", false).validate(input);
   } catch (err) {
-    return `The input could not be checked against ${tool.name}'s input schema (${err instanceof Error ? err.message : String(err)}); the call did not run.`;
+    return `The input could not be checked against ${tool.name}'s input schema (${String(err)}); the call did not run.`;
   }
   if (result.valid) return undefined;
   const listed = mismatchesOf(result.errors);

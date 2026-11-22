@@ -60,6 +60,8 @@ describe("toolCallInfoOf", () => {
     expect(toolCallInfoOf(invoice({ result: "no such customer", isError: true }), "s").state).toBe("failed");
     expect(toolCallInfoOf(invoice({ ask: {}, confirmation: "deny" }), "s").state).toBe("denied");
     expect(toolCallInfoOf(invoice({ state: "stopped" }), "s").state).toBe("stopped");
+    // A call of the host app's own tools waits for the app, never for an approval.
+    expect(toolCallInfoOf(invoice({ state: "waiting_on_host" }), "s").state).toBe("waiting-on-host");
   });
 
   it("hands the card its call, a redacted input, the result's truncation, the session and the run", () => {

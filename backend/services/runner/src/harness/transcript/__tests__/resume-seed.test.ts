@@ -161,6 +161,11 @@ describe("resumeSeedOf, the host app's own tools", () => {
     expect(rows.every((row) => row.approvalMessage === "" && row.approvalPolicySource === ApprovalPolicySource.UNSPECIFIED)).toBe(true);
   });
 
+  it("reads a call the log holds twice (a resent event) once", () => {
+    const seed = resumeSeedOf(RUN, [customUse("call-a"), customUse("call-a")]);
+    expect(seed.rows.messages.flatMap((m) => m.toolCalls).map((row) => row.id)).toEqual(["call-a"]);
+  });
+
   it("seeds no more a call whose answer the engine wrote past: it was delivered", () => {
     const seed = resumeSeedOf(RUN, [customUse("call-a"), hostAnswer("call-a"), message("Registered."), use("call-next", { permission: "ask" }), asked("call-next")]);
     expect(seed.rows.messages.flatMap((m) => m.toolCalls).map((row) => [row.id, row.customTool])).toEqual([["call-next", false]]);

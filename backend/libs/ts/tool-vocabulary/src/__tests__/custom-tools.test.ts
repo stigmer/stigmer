@@ -56,6 +56,20 @@ describe("customToolsProblem", () => {
     );
     expect(customToolsProblem([tool({ inputSchema: { type: "object", properties: { a: { $ref: "https://example.com/s.json" } } } })])).toMatch(/its \$ref "https:\/\/example\.com\/s\.json" names nothing/);
     expect(customToolsProblem([tool({ inputSchema: { type: "object", $defs: { port: { type: "integer" } }, properties: { a: { $ref: "#/$defs/port" } } } })])).toBeUndefined();
+    // A ref to the root, into an array, and through an escaped key resolves; one through a value that is no object, inside an array, or not a string does not.
+    expect(customToolsProblem([tool({ inputSchema: { type: "object", properties: { self: { $ref: "#" }, first: { $ref: "#/allOf/0" }, slash: { $ref: "#/$defs/a~1b~0c" } }, allOf: [{ type: "object" }], $defs: { "a/b~c": { type: "string" } } } })])).toBeUndefined();
+    expect(customToolsProblem([tool({ inputSchema: { type: "object", properties: { a: { $ref: "#/type/x" } } } })])).toMatch(/its \$ref "#\/type\/x" names nothing/);
+    expect(customToolsProblem([tool({ inputSchema: { type: "object", anyOf: [{ type: "object" }, { $ref: "#/nowhere" }] } })])).toMatch(/its \$ref "#\/nowhere" names nothing/);
+    expect(customToolsProblem([tool({ inputSchema: { type: "object", properties: { a: { $ref: 7 } } } })])).toMatch(/its \$ref "7" names nothing/);
+  });
+
+  it("refuses a pattern the validator could not compile, in a property or as a property name, wherever it sits", () => {
+    expect(customToolsProblem([tool({ inputSchema: { type: "object", properties: { a: { type: "string", pattern: "(" } } } })])).toBe(
+      "The input_schema of custom tool 'show_registration_form' cannot be read as a JSON Schema: its pattern \"(\" is not a regular expression.",
+    );
+    expect(customToolsProblem([tool({ inputSchema: { type: "object", patternProperties: { "[": {} } } })])).toMatch(/its pattern "\[" is not a regular expression/);
+    expect(customToolsProblem([tool({ inputSchema: { type: "object", anyOf: [{ properties: { a: { pattern: "*" } } }] } })])).toMatch(/its pattern "\*" is not a regular expression/);
+    expect(customToolsProblem([tool({ inputSchema: { type: "object", properties: { a: { type: "string", pattern: "^[a-z]+$" } }, patternProperties: { "^x-": {} } } })])).toBeUndefined();
   });
 
   it("refuses more tools or more schema bytes than a conversation may hold", () => {
@@ -82,5 +96,15 @@ describe("customToolInputProblem", () => {
       "The input does not match show_registration_form's input schema (the input: Instance does not have required property \"service\".; /port: 0 is less than 1.; /extra: not a property this tool takes); the call did not run. Call it again with input that matches.",
     );
     expect(customToolInputProblem(FORM, "not an object")).toMatch(/^The input does not match show_registration_form's input schema \(the input: Instance type "string" is invalid\. Expected "object"\./);
+  });
+
+  it("falls back to the validator's own words when every error is one that only wraps another", () => {
+    const closed: CustomToolDeclaration = { ...FORM, inputSchema: { type: "object", properties: { legacy: false } } };
+    expect(customToolInputProblem(closed, { legacy: 1 })).toMatch(/^The input does not match show_registration_form's input schema \(.+\); the call did not run\./);
+  });
+
+  it("says the input could not be checked when the schema itself cannot be read", () => {
+    const broken: CustomToolDeclaration = { ...FORM, inputSchema: { type: "object", properties: { a: { type: "string", pattern: "(" } } } };
+    expect(customToolInputProblem(broken, { a: "x" })).toMatch(/^The input could not be checked against show_registration_form's input schema \(.+\); the call did not run\.$/);
   });
 });
