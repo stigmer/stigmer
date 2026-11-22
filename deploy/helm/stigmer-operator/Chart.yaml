@@ -25,8 +25,8 @@ apiVersion: v2
 name: stigmer-operator
 description: The Stigmer operator runs Stigmer, the open-source backend for the agents in your product, on Kubernetes from one Stigmer resource, with its database, Temporal, sign-in, backups and per-session sandboxes run for you.
 type: application
-version: 0.3.0
-appVersion: "0.3.0"
+version: 0.3.1
+appVersion: "0.3.1"
 kubeVersion: ">=1.30.0-0"
 home: https://stigmer.ai
 sources:
