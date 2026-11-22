@@ -723,13 +723,24 @@ if it matches more than one (below).
 `STIGMER_SANDBOX_SUBSTRATE_CPU_MILLICORES` of CPU (2000, two cores, by default)
 and `STIGMER_SANDBOX_SUBSTRATE_MEMORY_MIB` of memory (2048 by default), and
 Substrate places it only on a worker with that much left: a worker offers its
-own pod's CPU and memory limits, so it holds its CPU divided by the CPU setting,
-or its memory divided by the memory setting plus a small runtime overhead,
-whichever is fewer. A worker of 6 CPU holds 3 awake Sessions at the defaults and
-6 at 1000. Under gVisor each setting is also the sandbox's ceiling, so a smaller
-CPU value fits more Sessions on a worker and slows each busy turn, and the
-runner's own start, to that share of a core. Substrate requires both limits, so
-the CPU setting can't be 0. On one machine (2026-11-19, a local cluster with
+own pod's CPU and memory limits, read once when it starts, so it holds its CPU
+divided by the CPU setting, or its memory less a small reserve divided by the
+memory setting, whichever is fewer. A gVisor worker keeps 64 MiB for itself; a
+microVM worker also counts each sandbox's runtime overhead. A worker of 6 CPU
+and 24 GiB holds 3 awake Sessions at the defaults and 6 at 1000. A worker can
+offer more CPU than its node has, so that its Sessions share the node's cores:
+set its pod's CPU limit higher than its CPU request. Kubernetes places the
+worker by the request and Substrate places Sessions by the limit. Don't leave
+the limit unset: the worker then offers the node's allocatable CPU, not an
+unbounded amount. For example, a worker on an 8-core node that requests 6 cores
+and limits 24, with 24 GiB, holds 23 awake Sessions at 1000 and 1024, memory
+deciding. A lone Session on it runs as fast as on its own core; Sessions that
+start at the same moment share the node's cores, and on one such node
+(2026-11-21) 23 starting together were ready about 19 s in, against about 3.4 s
+for one alone. Under gVisor each setting is also the sandbox's ceiling, so a
+smaller CPU value fits more Sessions on a worker and slows each busy turn, and
+the runner's own start, to that share of a core. Substrate requires both limits,
+so the CPU setting can't be 0. On one machine (2026-11-19, a local cluster with
 room to spare), 1000 against 2000 left a lone Session's start unchanged at about
 5 s, made five Sessions starting at once take about 1.9 s longer at the median
 (6.5 s against 4.6 s), and doubled the time of work spread across two processes
