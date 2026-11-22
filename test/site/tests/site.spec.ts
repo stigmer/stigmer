@@ -29,6 +29,7 @@ const PAGES = [
   { path: "/docs/cli/commands/agent", why: "a page generated from the CLI's own help, not written by hand" },
   { path: "/blog", why: "the blog's index of posts" },
   { path: "/blog/infrastructure-as-yaml", why: "a blog post, the blog's own layout" },
+  { path: "/releases", why: "the releases, drawn from release notes: long inline code, and upgrade notes folded under a summary" },
 ] as const;
 
 type PagePath = (typeof PAGES)[number]["path"];
@@ -38,7 +39,7 @@ const PROJECTS = ["narrow", "wide"] as const;
 
 type Project = (typeof PROJECTS)[number];
 
-/** The small grey labels (`text-subtle`): the home and blog pages' footer, and across the home page. */
+/** The small grey labels (`text-subtle`): the home, blog and releases pages' footer, and across the home page. */
 const SUBTLE_LABELS: KnownViolation = { rule: "color-contrast", issue: "stigmer#2574" };
 /** The home page's "How it fits" picture: its unlit boxes' detail lines. */
 const PICTURE_DETAILS: KnownViolation = { rule: "color-contrast", issue: "stigmer#3386" };
@@ -60,6 +61,8 @@ const KNOWN_VIOLATIONS: Readonly<Partial<Record<`${PagePath} ${Project}`, readon
   "/blog wide": [SUBTLE_LABELS],
   "/blog/infrastructure-as-yaml narrow": [SUBTLE_LABELS],
   "/blog/infrastructure-as-yaml wide": [SUBTLE_LABELS],
+  "/releases narrow": [SUBTLE_LABELS],
+  "/releases wide": [SUBTLE_LABELS],
 };
 
 test.describe("every sampled page of the built site passes the accessibility audit", () => {

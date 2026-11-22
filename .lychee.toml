@@ -14,7 +14,12 @@ exclude = [
   "https://ai\\.azure\\.com/",
   "https://docs\\.aws\\.amazon\\.com/cognito/",
   "https://api\\.stigmer\\.ai",
-  "http://localhost"
+  "http://localhost",
+  # 2026-11-22: the Releases page, which docs/guides/self-hosting/operations.mdx
+  # links from the change that adds it (#3425), so the address answers 404
+  # until that change is deployed. This one address only; it comes out once
+  # the page is live (#3426).
+  "^https://stigmer\\.ai/releases$"
 ]
 
 exclude_path = ["docs/_archive"]

@@ -178,6 +178,7 @@ export const NAV_RESOURCES: NavGroup = {
   items: [
     { label: "Compare with Managed Agents", href: "/compare/claude-managed-agents" },
     { label: "Blog", href: "/blog" },
+    { label: "Releases", href: "/releases" },
     { label: "Why we built Stigmer", href: "/about" },
     { label: "Download", href: "/download" },
   ],
@@ -201,6 +202,7 @@ export const FOOTER_LINKS = {
     { label: "Pricing", href: "/pricing" },
     { label: "Documentation", href: "/docs" },
     { label: "Download", href: "/download" },
+    { label: "Releases", href: "/releases" },
     { label: "Why we built Stigmer", href: "/about" },
     { label: "Status", href: "https://status.stigmer.ai", external: true },
   ],

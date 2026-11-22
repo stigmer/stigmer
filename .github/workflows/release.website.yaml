@@ -7,10 +7,17 @@
 # through a service binding, and answers www and each pull request's review
 # site itself.
 #
-# The build holds no key. The Cloudflare job installs only the pinned wrangler
+# The build holds no secret. The Cloudflare job installs only the pinned wrangler
 # in site/deploy and deploys the artifact with a key that reaches
 # `stigmer-website` alone, from the GitHub environment `website`, which only
 # main may use.
+#
+# Besides a push to main that touches what the site is built from, a
+# published release starts it: release.cli.yaml dispatches this workflow on
+# main once the GitHub release is out, so stigmer.ai/releases, which reads
+# GitHub's releases at build time, lists the new release. A release's notes
+# edited by hand afterwards reach the page the same way:
+# `gh workflow run release.website.yaml --ref main`.
 #
 # Pull requests get their own review sites (preview.website.yaml builds,
 # publish.website-preview.yaml uploads).
