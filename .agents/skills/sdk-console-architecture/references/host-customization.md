@@ -507,10 +507,14 @@ per-viewer mechanism is forwarded explicitly.
 
 ## `threadSlots` and `registerToolPresenter`
 
-- **`threadSlots`** stays as it is and covers the ten open row kinds. Its slot
-  types are exported only from the root entry today, so an `AgentChat` host who
-  imports from the light chat entry cannot name the types `threadSlots` takes
-  (Integration ergonomics); they are to be exported from that entry too.
+- **`threadSlots`** stays as it is and covers the ten open row kinds. The light
+  chat entry (`sdk/react/src/chat.ts`) exports every slot's props type and every
+  slot's built-in, the root's same values, so an `AgentChat` host on that entry
+  names the types `threadSlots` takes and hands any case back to ours (C5, and
+  one rule for every slot). A slot that hands back loads that built-in with the
+  host's page, before the chat draws; the chat alone loads it with the
+  conversation. Built-ins that load with the conversation are
+  stigmer/stigmer#3438.
 - **`registerToolPresenter`** is kept, unchanged, until a host asks for wording
   per kind: no provider copy, no deprecation. It is a published export
   (`sdk/react/src/headless.ts`) with no caller in this repository outside its
