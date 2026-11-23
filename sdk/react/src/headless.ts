@@ -445,6 +445,7 @@ export {
   useFileDownload,
   useFileContent,
   useSessionFiles,
+  sessionFilesRefreshKey,
   createFileListFn,
   listLibraryFilesPage,
   describeFileType,

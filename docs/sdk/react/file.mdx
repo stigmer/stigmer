@@ -447,6 +447,24 @@ function listLibraryFilesPage(client: FileListClient, org: string, page?: { page
 ```
 
 
+### sessionFilesRefreshKey
+
+The `refreshKey` [`useSessionFiles`](#usesessionfiles) re-reads on: each run's id with
+whether it has ended, so the key moves when a turn starts (the Files sent
+with its message join the conversation) and when it ends (its outputs
+register), and at no other time.
+
+```tsx
+import type { Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
+// ---cut---
+function sessionFilesRefreshKey(runs: readonly Run[]): string
+```
+
+```tsx
+const files = useSessionFiles(org, sessionId, sessionFilesRefreshKey(conversation.runs));
+```
+
+
 ### UseFileCountOptions
 
 Options for [`useFileCount`](#usefilecount).

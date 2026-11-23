@@ -133,6 +133,9 @@ vi.mock("../useSessionAccess", () => ({
 
 vi.mock("@stigmer/react-core", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@stigmer/react-core")>()),
+  // The conversation's Files read nothing here: the core's hook reads the
+  // client from its own context, which this suite does not provide.
+  useSessionFiles: () => ({ files: [], isLoading: false, error: null, refetch: () => {} }),
   useStigmer: () => ({
     run: {
       getArtifactContent: vi.fn(),

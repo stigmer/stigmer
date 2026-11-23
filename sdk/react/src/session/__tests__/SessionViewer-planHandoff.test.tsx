@@ -17,12 +17,13 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, cleanup, act, fireEvent, waitFor } from "@testing-library/react";
-import { useImperativeHandle, type ReactElement, type Ref } from "react";
+import { useImperativeHandle, type ReactElement, type ReactNode, type Ref } from "react";
 import { create } from "@bufbuild/protobuf";
 import { RunSchema, type Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 import { FileSchema, type File as StigmerFile } from "@stigmer/apis/ai/stigmer/agentic/file/v1/api_pb";
 import { InteractionMode, RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
-import type { Turn } from "@stigmer/client";
+import type { Stigmer, Turn } from "@stigmer/client";
+import { StigmerContext } from "@stigmer/react-core";
 import { samples } from "@stigmer/react-core/test";
 import type { SessionComposerHandle } from "../../composer";
 import type { SessionPlan } from "../../library/detect-plan-file";
@@ -205,6 +206,11 @@ vi.mock("../useSessionPageFlow", () => ({
 }));
 
 import { SessionViewer } from "../SessionViewer";
+
+/** The client the core's own hooks read from their context: the conversation's Files among them. */
+function WithClient({ children }: { children: ReactNode }): ReactElement {
+  return <StigmerContext.Provider value={client as unknown as Stigmer}>{children}</StigmerContext.Provider>;
+}
 import { SessionInspector } from "../inspector/SessionInspector";
 
 function lastThread(): CapturedProps {
@@ -261,7 +267,7 @@ describe("SessionViewer — a plan being written", () => {
       metadata: { id: "run_live" },
       spec: { interactionMode: InteractionMode.PLAN },
     });
-    render(<SessionViewer sessionId="ses_1" org="acme" inspector={<SessionInspector />} />);
+    render(<SessionViewer sessionId="ses_1" org="acme" inspector={<SessionInspector />} />, { wrapper: WithClient });
     fireEvent.click(screen.getByRole("button", { name: "Show panel" }));
 
     const docs = surfaceProps.at(-1)?.virtualDocuments as
@@ -274,7 +280,7 @@ describe("SessionViewer — a plan being written", () => {
 
 describe("SessionViewer — an old plan on load", () => {
   it("leaves the panel closed when the session's plan arrives with the first Files read", async () => {
-    render(<SessionViewer sessionId="ses_1" org="acme" inspector={<SessionInspector />} />);
+    render(<SessionViewer sessionId="ses_1" org="acme" inspector={<SessionInspector />} />, { wrapper: WithClient });
     await plansLoaded();
     // Let the panel's effects settle before reading its state.
     await act(async () => {});
@@ -285,7 +291,7 @@ describe("SessionViewer — an old plan on load", () => {
 
 describe("SessionViewer — Open plan picks the plan tab's plan", () => {
   it("opens an earlier turn's plan read-only and the latest plan editable", async () => {
-    render(<SessionViewer sessionId="ses_1" org="acme" inspector={<SessionInspector />} />);
+    render(<SessionViewer sessionId="ses_1" org="acme" inspector={<SessionInspector />} />, { wrapper: WithClient });
     await plansLoaded();
     fireEvent.click(screen.getByRole("button", { name: "Show panel" }));
 
@@ -300,7 +306,7 @@ describe("SessionViewer — Open plan picks the plan tab's plan", () => {
   });
 
   it("falls back to the latest plan for a turn that published none", async () => {
-    render(<SessionViewer sessionId="ses_1" org="acme" inspector={<SessionInspector />} />);
+    render(<SessionViewer sessionId="ses_1" org="acme" inspector={<SessionInspector />} />, { wrapper: WithClient });
     await plansLoaded();
     fireEvent.click(screen.getByRole("button", { name: "Show panel" }));
 
@@ -312,7 +318,7 @@ describe("SessionViewer — Open plan picks the plan tab's plan", () => {
 
 describe("SessionViewer — Open plan with no inspector", () => {
   it("shows the turn's plan File, else the latest, read-only in the File preview, and closes it", async () => {
-    render(<SessionViewer sessionId="ses_1" org="acme" />);
+    render(<SessionViewer sessionId="ses_1" org="acme" />, { wrapper: WithClient });
     await plansLoaded();
 
     act(() => (lastThread().onOpenPlan as (runId: string) => void)("run_early"));
@@ -328,7 +334,7 @@ describe("SessionViewer — Open plan with no inspector", () => {
 
 describe("SessionViewer — Build from plan hands the build turn the plan", () => {
   it("names the unedited plan File on the build turn, with no read and no upload", async () => {
-    render(<SessionViewer sessionId="ses_1" org="acme" inspector={<SessionInspector />} />);
+    render(<SessionViewer sessionId="ses_1" org="acme" inspector={<SessionInspector />} />, { wrapper: WithClient });
     await plansLoaded();
 
     act(() => (lastThread().onBuildFromPlan as () => void)());
@@ -345,7 +351,7 @@ describe("SessionViewer — Build from plan hands the build turn the plan", () =
 
   it("uploads an edited plan as one File of the conversation and names it", async () => {
     client.file.uploadFile.mockResolvedValue({ metadata: { id: "file_edited" }, status: { sessionId: "ses_1" } });
-    render(<SessionViewer sessionId="ses_1" org="acme" inspector={<SessionInspector />} />);
+    render(<SessionViewer sessionId="ses_1" org="acme" inspector={<SessionInspector />} />, { wrapper: WithClient });
     await plansLoaded();
     fireEvent.click(screen.getByRole("button", { name: "Show panel" }));
     act(() => planTabEditor().draft!.setDraft("# Plan\n\n1. Do it, edited\n"));
@@ -373,7 +379,7 @@ describe("SessionViewer — Build from plan hands the build turn the plan", () =
 
   it("builds without the plan and says so when the upload answers no File", async () => {
     client.file.uploadFile.mockResolvedValue({ metadata: undefined, status: undefined });
-    render(<SessionViewer sessionId="ses_1" org="acme" inspector={<SessionInspector />} />);
+    render(<SessionViewer sessionId="ses_1" org="acme" inspector={<SessionInspector />} />, { wrapper: WithClient });
     await plansLoaded();
     fireEvent.click(screen.getByRole("button", { name: "Show panel" }));
     act(() => planTabEditor().draft!.setDraft("# Plan, edited\n"));

@@ -3,7 +3,7 @@ export { useFile, useFileDownloadUrl, useFileDownload } from "./useFile.js";
 export type { UseFileReturn, UseFileDownloadUrlReturn, UseFileDownloadReturn } from "./useFile.js";
 export { useFileContent } from "./useFileContent.js";
 export type { UseFileContentReturn } from "./useFileContent.js";
-export { useSessionFiles } from "@stigmer/react-core";
+export { sessionFilesRefreshKey, useSessionFiles } from "@stigmer/react-core";
 export type { UseSessionFilesReturn } from "@stigmer/react-core";
 export { createFileListFn, listLibraryFilesPage } from "./fileListFn.js";
 export type { FileListClient, FilePage } from "./fileListFn.js";
