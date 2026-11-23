@@ -137,9 +137,13 @@ describe("buildReport", () => {
       "No run reported waiting for a sandbox during the burst.",
       "Spent about $0.0007, by the runs' own estimates.",
     ]);
-    const shared = buildReport({ ...FRAME, requested: 1, computer: "none" }, [STARTED], []);
-    expect(summaryLines(shared)).toContain("Every agent had no computer, so no run asked for a sandbox.");
-    expect(summaryLines(shared)).not.toContain("No run reported waiting for a sandbox during the burst.");
+    // A server with no shared runners places a run without a computer in a
+    // sandbox, so the wait lines are the report's whatever the agent had.
+    const sharedQuiet = buildReport({ ...FRAME, requested: 1, computer: "none" }, [STARTED], []);
+    expect(summaryLines(sharedQuiet)).toContain("No run reported waiting for a sandbox during the burst.");
+    const sharedWaited = buildReport({ ...FRAME, computer: "none" }, [STARTED, WAITED], []);
+    expect(sharedWaited.anyWaitReported).toBe(true);
+    expect(summaryLines(sharedWaited).some((line) => line.startsWith("Waited for a sandbox, 1 run:"))).toBe(true);
     const one = buildReport({ ...FRAME, requested: 1 }, [REFUSED], []);
     expect(summaryLines(one)[0]).toBe("1 agent: 0 started, 1 refused.");
     expect(one.toStartMs).toEqual({ median: null, p90: null, longest: null, unclear: 0 });

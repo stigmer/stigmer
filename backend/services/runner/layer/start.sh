@@ -31,18 +31,22 @@
 #              PATH (without them a repository workspace, the agent user or
 #              an agent's hooks break).
 #   warned   - rg (the Stigmer harness's grep falls back to a substring
-#              search): one feature degrades, so the runner starts.
+#              search): one feature degrades, so the runner starts. Not
+#              asked of a computer-less runner that is not root (below).
 #
 # A runner that serves only conversations without a computer
-# (STIGMER_RUNNER_SERVES=computerless, src/runner-serves.ts) is asked for the
-# glibc loader and /proc alone. It never starts an agent's side: each turn
-# runs in a locked host, a copy of the runner's own entry under Node's
-# permission model, spawned as the runner's own user (src/agent-host/fence.ts),
-# with no shell, repository or hook. So root, which exists here only so a
-# runner can drop to stigmer-agent, and the agent's tools are not asked of
-# it, and it starts as whatever user its deployment names. Any other value
-# of the setting, unset included, is checked as a runner with a computer;
-# the runner itself refuses a value it does not know.
+# (STIGMER_RUNNER_SERVES=computerless, src/runner-serves.ts) and runs as a
+# user other than root is asked for the glibc loader and /proc alone. Its
+# turns run in locked hosts, copies of the runner's own entry under Node's
+# permission model (src/agent-host/fence.ts), with no shell, repository or
+# hook, and a runner that is not root starts them as its own user: it never
+# drops to stigmer-agent (src/shared/agent-identity.ts separates only as
+# root). So neither root nor the agent's tools are asked of it, and it
+# starts as whatever user its deployment names. As root it still separates,
+# whatever it serves, so it is checked as every root runner is; so is a
+# runner whose user this script cannot read. Any other value of the
+# setting, unset included, is checked as a runner with a computer; the
+# runner itself refuses a value it does not know.
 #
 # glibc's version is not checked: that needs a fork, and below 2.28 the
 # loader refuses the Node itself with a message that names the version it
@@ -126,8 +130,15 @@ else
   add_problem "no /proc (cannot read /proc/self/status)"
 fi
 
+# Known to be a computer-less runner that is not root: the one shape that
+# never starts the agent user.
+unprivileged=""
+if [ -n "$computerless" ] && [ -n "$uid" ] && [ "$uid" != "0" ]; then
+  unprivileged=1
+fi
+
 missing=""
-if [ -z "$computerless" ]; then
+if [ -z "$unprivileged" ]; then
   for tool in bash git setpriv cat sed grep head cut awk tr base64 dirname; do
     if ! command -v "$tool" >/dev/null 2>&1; then
       missing="${missing:+$missing, }$tool"
@@ -139,8 +150,8 @@ if [ -n "$missing" ]; then
 fi
 
 if [ -n "$problems" ]; then
-  if [ -n "$computerless" ]; then
-    needs="The base image of a runner without a computer needs glibc 2.28 or newer and /proc"
+  if [ -n "$unprivileged" ]; then
+    needs="The base image of a runner without a computer that is not root needs glibc 2.28 or newer and /proc"
   else
     needs="The base image needs glibc 2.28 or newer, root, bash, git and standard text tools"
   fi
@@ -162,7 +173,9 @@ if [ -n "$server_release" ]; then
   fi
 fi
 
-if ! command -v rg >/dev/null 2>&1; then
+# A computer-less runner that is not root runs no harness that searches a
+# disk, so rg means nothing to it.
+if [ -z "$unprivileged" ] && ! command -v rg >/dev/null 2>&1; then
   printf 'stigmer runner: warning: rg is not on PATH, so the Stigmer harness'"'"'s grep falls back to a substring search (%s)\n' "$GUIDE" >&2
 fi
 

@@ -54,7 +54,7 @@ export function registerLoadTest(program: Command): void {
     .command("load-test")
     .description("start many agents at once and report how many started, how long each waited, and which were refused")
     .option("--agents <n>", "how many agents to start at the same moment (required)")
-    .option("--computer <none|required>", "whether the agent has a computer: required asks each turn for a sandbox, none sends it to a shared runner (default required)")
+    .option("--computer <none|required>", "whether the agent has a computer: required asks each turn for a sandbox, none sends it to a shared runner where the server has them (default required)")
     .option("--model <id>", "the model each run uses; the agent's default when unset")
     .option("--message <text>", `what each agent is asked (default "${DEFAULT_MESSAGE}")`)
     .option("--max-usd <total>", `the whole burst's budget in US dollars, split evenly across the runs (default ${DEFAULT_MAX_USD})`)

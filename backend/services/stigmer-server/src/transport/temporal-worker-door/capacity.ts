@@ -18,7 +18,10 @@
  * so a per-queue limit there would cap the whole pool at a few polls, and
  * the key is the platform's own, never a person's. Those polls are bounded
  * by `HELD_POLLS_IN_ALL` alone, so a runaway pool still cannot exhaust
- * Temporal's room for the namespace.
+ * Temporal's room for the namespace. That limit is shared with every
+ * sandbox: a pool large enough to hold all of it (about 500 runners at two
+ * polls each, per server process) would leave sandboxes' polls refused
+ * until runners' polls lapse, so a deployment sizes its pool well below.
  *
  * A held Node request costs a pending promise, not a thread, so no
  * executor is needed here.

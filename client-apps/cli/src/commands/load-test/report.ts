@@ -213,9 +213,7 @@ export function summaryLines(report: LoadTestReport): string[] {
   if (toStart.unclear > 0) {
     lines.push(`To start was unclear for ${plural(toStart.unclear, "run")}: a stamp was too coarse to time it.`);
   }
-  if (report.computer === "none") {
-    lines.push("Every agent had no computer, so no run asked for a sandbox.");
-  } else if (report.anyWaitReported) {
+  if (report.anyWaitReported) {
     const waited = report.waitedForRoomMs;
     lines.push(`Waited for a sandbox, ${plural(waited.runs, "run")}: ${figuresText(waited)} (at least).`);
   } else {
