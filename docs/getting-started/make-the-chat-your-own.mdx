@@ -237,6 +237,13 @@ the Agent, keyed by its name as the Agent sees it, `mcp__<server>__<tool>`:
 const TOOL_CARDS: ToolCards = { mcp__billing__create_invoice: InvoiceCard };
 ```
 
+A card is drawn from the moment the call starts, not only once it has a result,
+so it draws each state the call can be in. `call.state` is `"running"` while the
+tool works, `"completed"` or `"failed"` once it returned, with `call.result`,
+and `"denied"` or `"stopped"` when it never will. Read `call.result` only when
+it is there. The [reference](/docs/sdk/react/run#toolcallstate) lists every
+state.
+
 </Step>
 <Step>
 

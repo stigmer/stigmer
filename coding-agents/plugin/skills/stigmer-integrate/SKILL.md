@@ -170,8 +170,9 @@ https://stigmer.ai/docs/sdk/streaming.
 2. **Their card or their button on our parts**: a card for one of their
    tools goes in `toolCards` on `StigmerProvider`, keyed by the tool's name
    as the agent sees it (`mcp__<server>__<tool>` for a connected server's
-   tool, the declared name for one of the app's own); it draws the call's
-   input, state and result inside our row. An action on a message
+   tool, the declared name for one of the app's own). It is drawn from the
+   call's start, inside our row, so it draws every state (`call.state`:
+   running, completed, failed, stopped), never only a result. An action on a message
    (`messageActions` on `AgentChat`) is a function from the message's info,
    `isFinalAnswer` included, to their actions, drawn beside Copy.
 3. **Tools their app answers**: the agent calls the app's own tools,
