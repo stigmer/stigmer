@@ -19,9 +19,9 @@ import { RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 import { SessionSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/api_pb";
 import { SessionEventSchema, type SessionEvent } from "@stigmer/apis/ai/stigmer/agentic/session/v1/event_pb";
 import type { Stigmer } from "@stigmer/client";
-import { samples } from "../../src/test/samples";
-import { sessionEventStream, type SessionEventStream } from "../../src/session/__tests__/session-event-stream";
-import { Chat } from "./Chat";
+import { samples } from "../../../src/test/samples";
+import { sessionEventStream, type SessionEventStream } from "../../../src/session/__tests__/session-event-stream";
+import { Chat } from "../Chat";
 
 const RUN = "run_1";
 const SESSION = "session-1";

@@ -1,7 +1,8 @@
 /**
  * toFileDiffEntry projects a file change into the row a file list draws:
  * the change type in the list's words, and line counts from the change's
- * inline content, or the capture's own counts when a side is offloaded.
+ * inline content, or the capture's own counts when a side is offloaded or
+ * binary.
  */
 import { describe, it, expect } from "vitest";
 import { create } from "@bufbuild/protobuf";
@@ -64,5 +65,20 @@ describe("toFileDiffEntry", () => {
     );
     expect(entry.additions).toBe(10);
     expect(entry.deletions).toBe(4);
+  });
+
+  it("falls back to capture-time counts when a side is binary", () => {
+    const entry = toFileDiffEntry(
+      display({
+        path: "assets/logo.png",
+        before: create(FileContentSchema, { isBinary: true, body: { case: "inline", value: "" } }),
+        after: inlineSide("new"),
+        linesAdded: 5,
+        linesRemoved: 2,
+      }),
+    );
+    expect(entry.additions).toBe(5);
+    expect(entry.deletions).toBe(2);
+    expect(entry.changeType).toBe("modified");
   });
 });

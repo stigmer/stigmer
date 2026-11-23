@@ -461,7 +461,11 @@ function sessionFilesRefreshKey(runs: readonly Run[]): string
 ```
 
 ```tsx
-const files = useSessionFiles(org, sessionId, sessionFilesRefreshKey(conversation.runs));
+function FileCount({ org, sessionId }: { org: string; sessionId: string }) {
+  const conversation = useSessionConversation(sessionId, org);
+  const { files } = useSessionFiles(org, sessionId, sessionFilesRefreshKey(conversation.runs));
+  return <p>{files.length} files</p>;
+}
 ```
 
 

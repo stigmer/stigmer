@@ -6,7 +6,7 @@
 // calls of the app's own tools. The guide "Build a chat from the hooks"
 // (docs/sdk/react-core/build-a-chat.mdx) quotes it in runs, the visual
 // suite draws it (its `from-hooks` scenes), and its own tests render it
-// (`Chat.test.tsx`), so the guide's code is the code that draws on the page.
+// (`__tests__/Chat.test.tsx`), so the guide's code is the code that draws on the page.
 // The package's typecheck compiles it.
 import { useState, type FormEvent, type ReactElement } from "react";
 import type { File as StigmerFile } from "@stigmer/apis/ai/stigmer/agentic/file/v1/api_pb";

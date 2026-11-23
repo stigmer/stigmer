@@ -1321,7 +1321,11 @@ with its message join the conversation) and when it ends (its outputs
 register), and at no other time.
 
 ```tsx
-const files = useSessionFiles(org, sessionId, sessionFilesRefreshKey(conversation.runs));
+function FileCount({ org, sessionId }: { org: string; sessionId: string }) {
+  const conversation = useSessionConversation(sessionId, org);
+  const { files } = useSessionFiles(org, sessionId, sessionFilesRefreshKey(conversation.runs));
+  return <p>{files.length} files</p>;
+}
 ```
 
 

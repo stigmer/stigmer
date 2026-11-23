@@ -18,7 +18,7 @@ export default defineConfig({
       experimentalAstAwareRemapping: true,
     },
     // The guide's program (examples/chat) is tested beside it.
-    include: ["src/**/*.test.{ts,tsx}", "examples/**/*.test.tsx"],
+    include: ["src/**/*.test.{ts,tsx}", "examples/**/__tests__/*.test.tsx"],
     environment: "happy-dom",
     // Never let happy-dom follow a navigation over the real network
     // (issue #334, as in the React kit's suite).

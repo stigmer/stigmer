@@ -126,8 +126,12 @@ export function useSessionFiles(
  * @param runs - The conversation's runs (`useSessionConversation().runs`).
  *
  * @example
- * ```ts
- * const files = useSessionFiles(org, sessionId, sessionFilesRefreshKey(conversation.runs));
+ * ```tsx
+ * function FileCount({ org, sessionId }: { org: string; sessionId: string }) {
+ *   const conversation = useSessionConversation(sessionId, org);
+ *   const { files } = useSessionFiles(org, sessionId, sessionFilesRefreshKey(conversation.runs));
+ *   return <p>{files.length} files</p>;
+ * }
  * ```
  */
 export function sessionFilesRefreshKey(runs: readonly Run[]): string {
