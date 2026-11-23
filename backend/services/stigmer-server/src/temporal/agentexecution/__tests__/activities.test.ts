@@ -657,6 +657,7 @@ describe("EnsureSessionSandbox activity", () => {
         DEFAULT_EXECUTION_TARGET_CLOUD,
         true,
       ),
+      heartbeat: () => undefined,
     })[ENSURE_SESSION_SANDBOX_ACTIVITY_NAME] as Ensure;
     expect(await ensure({ execution_id: "run_nc", caller_class: "user" })).toBe("skipped");
     expect(facts).toEqual([]);
