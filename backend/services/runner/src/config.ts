@@ -79,6 +79,7 @@ import { DEFAULT_LIVENESS_INTERVAL_MS } from "./harness/liveness-pump.js";
 export { DEFAULT_SHELL_TIMEOUT_MAX_SECONDS } from "./shared/shell/limits.js";
 import { DEFAULT_SHELL_TIMEOUT_MAX_SECONDS } from "./shared/shell/limits.js";
 import { getRunnerSecret } from "./shared/runner-credential-store.js";
+import { parseRunnerServes, parseTurnMemoryMb, type RunnerServes } from "./runner-serves.js";
 import { loadTemporalConnectionConfig } from "@stigmer/temporal-codecs";
 import type { TemporalConnectionConfig } from "@stigmer/temporal-codecs";
 
@@ -235,6 +236,19 @@ export interface Config {
    * stigmer-client.ts).
    */
   readonly stigmerRunnerTokenRef?: Readonly<TokenRef>;
+  /**
+   * Which conversations this runner serves (STIGMER_RUNNER_SERVES):
+   * `all`, or `computerless` for a runner shared by many organizations that
+   * serves only conversations without a computer. `runner-serves.ts` says
+   * what the second changes. Static mode only; the manager serves `all`.
+   */
+  readonly serves: RunnerServes;
+  /**
+   * The heap each turn's locked host may grow to, in megabytes
+   * (STIGMER_TURN_MEMORY_MB, the `turnMemoryMb` option): one host per turn
+   * slot, one turn per host (`agent-host/host-pool.ts`).
+   */
+  readonly turnMemoryMb: number;
 }
 
 export function loadConfig(): Config {
@@ -320,6 +334,10 @@ export function loadConfig(): Config {
     ? parseInt(process.env.STIGMER_DRAIN_GRACE_MS, 10)
     : DEFAULT_DRAIN_GRACE_MS;
 
+  // Both stop the boot on a value they do not know (runner-serves.ts).
+  const serves = parseRunnerServes(process.env.STIGMER_RUNNER_SERVES);
+  const turnMemoryMb = parseTurnMemoryMb(process.env.STIGMER_TURN_MEMORY_MB);
+
   return {
     taskQueue,
     temporalAddress,
@@ -345,6 +363,8 @@ export function loadConfig(): Config {
     shellBackgroundEnabled,
     workspaceLockTimeoutMs,
     drainGraceMs,
+    serves,
+    turnMemoryMb,
   };
 }
 

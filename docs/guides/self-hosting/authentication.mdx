@@ -248,7 +248,10 @@ Nothing to do: the operator minted the runner's key into the Secret
 `stigmer-runner-key`, and the server stored it at start. Its log says "the
 shared runner's key is stored; the runner signs in with it" on the first start,
 and "the shared runner's key is in place" after that. An install whose Sessions
-each run in a sandbox has no shared runner and no key.
+each run in a sandbox has no runner key: its one runner for Agents without a
+computer signs in with the shared-runner key the operator keeps in
+`stigmer-shared-runner-key`, which opens the server's Temporal connection and
+nothing else ([Runners](/docs/guides/self-hosting/runners)).
 
 </Tab>
 </Tabs>

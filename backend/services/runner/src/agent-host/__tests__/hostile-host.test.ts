@@ -36,7 +36,7 @@ import { turnInputFixture } from "../../__test-utils__/turn-input-fixture.js";
 import type { HarnessAdapter } from "../../harness/types.js";
 import { Peer, loopbackChannels } from "../channel.js";
 import { encodeMessage } from "../codec.js";
-import { confineCasSnapshot, createRemoteAdapter, isTurnArtifactKey } from "../remote-adapter.js";
+import { confineCasSnapshot, createRemoteAdapter, isTurnArtifactKey, type LiveTurnOpening } from "../remote-adapter.js";
 import { AgentHostSupervisor } from "../supervisor.js";
 import {
   AGENT_HOST_PROTOCOL_VERSION,
@@ -58,7 +58,7 @@ type Attack = (peer: HostilePeer, turnId: string, args: HostCalls["runTurn"]["ar
 
 /** What the runner opened at its proxy for each turn, and which keys it closed. */
 interface ProxyTurns {
-  readonly opened: { readonly executionId: string; readonly threadId: string; readonly turnKey: string }[];
+  readonly opened: LiveTurnOpening[];
   readonly closed: string[];
 }
 
@@ -201,7 +201,9 @@ describe("a host that does not follow the rules", () => {
 
     await adapter.runTurn(input, new RecordingTurnSink({ executionId: input.executionId }));
 
-    expect(turns.opened).toEqual([{ executionId: input.executionId, threadId: input.threadId, turnKey: handed }]);
+    expect(turns.opened, "in the open host's slot, with no credential where the activity entered none").toEqual([
+      { executionId: input.executionId, threadId: input.threadId, turnKey: handed, slot: "open" },
+    ]);
     expect(handed, "a fresh key, long enough to guess at nothing").toMatch(/^[A-Za-z0-9_-]{43}$/);
     expect(closedDuringTurn, "open while the turn runs").toEqual([]);
     expect(turns.closed).toEqual([handed]);

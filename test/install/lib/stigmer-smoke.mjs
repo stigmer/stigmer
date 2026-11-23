@@ -387,8 +387,13 @@ export async function runAgentToReply(baseUrl, timeoutMs, { expectText, log = ()
   return { ...agent, ...run };
 }
 
-/** A tool-less agent in the smoke's organization, the fixture the agent line runs. Resolves `{ orgId, agentId, agentSlug }`. */
-export async function createSmokeAgent(baseUrl, { log = () => {}, org } = {}) {
+/**
+ * A tool-less agent in the smoke's organization, the fixture the agent line
+ * runs. Resolves `{ orgId, agentId, agentSlug }`. It names no computer, so
+ * it starts without one; a smoke whose turns run commands in a sandbox
+ * passes `computer: "COMPUTER_REQUIRED"`.
+ */
+export async function createSmokeAgent(baseUrl, { log = () => {}, org, computer } = {}) {
   const suffix = uniqueSuffix();
   const orgId = await smokeOrganization(baseUrl, `smoke-agent-org-${suffix}`, { org });
 
@@ -399,6 +404,7 @@ export async function createSmokeAgent(baseUrl, { log = () => {}, org } = {}) {
     spec: {
       description: "self-host smoke fixture",
       instructions: "Answer the message in one short sentence.",
+      ...(computer !== undefined ? { computer } : {}),
     },
   });
   const agentId = agent.metadata?.id;

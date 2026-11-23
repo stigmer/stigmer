@@ -32,10 +32,12 @@ provider, and Stigmer Enterprise are declared on the same resource;
 `config/samples/` has one of each.
 
 With a bucket declared, `spec.sandboxes.driver: agentSandbox` runs each session
-in a sandbox of its own instead of the shared runner: the operator installs
-agent-sandbox if the cluster has none, makes a sandbox namespace beside the
-install, and fences the sandboxes so they reach the server, the bucket and the
-public internet but not the database, Temporal or other private addresses.
+whose agent has a computer in a sandbox of its own instead of the shared runner,
+and keeps one shared runner, its own Deployment, for agents without a computer
+(`internal/render/computerless.go`): the operator installs agent-sandbox if the
+cluster has none, makes a sandbox namespace beside the install, and fences the
+sandboxes so they reach the server, the bucket and the public internet but not
+the database, Temporal or other private addresses.
 `spec.sandboxes.driver: substrate` runs each session as an Agent Substrate actor
 instead, a gVisor sandbox that sleeps to the bucket and wakes on any worker: the
 operator installs Substrate if the cluster has none (it needs Kubernetes'

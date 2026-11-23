@@ -521,6 +521,23 @@ java.lang.String defaultValue) {
     return result == null ? ai.stigmer.agentic.session.v1.Computer.UNRECOGNIZED : result;
   }
 
+  public static final int SHARED_RUNNER_FIELD_NUMBER = 11;
+  private boolean sharedRunner_ = false;
+  /**
+   * <pre>
+   * Whether this conversation's turns run on a runner the server shares
+   * across conversations, rather than in a sandbox of its own. Only a
+   * conversation without a computer can.
+   * </pre>
+   *
+   * <code>bool shared_runner = 11 [json_name = "sharedRunner"];</code>
+   * @return The sharedRunner.
+   */
+  @java.lang.Override
+  public boolean getSharedRunner() {
+    return sharedRunner_;
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -561,6 +578,9 @@ java.lang.String defaultValue) {
     }
     if (computer_ != ai.stigmer.agentic.session.v1.Computer.COMPUTER_UNSPECIFIED.getNumber()) {
       output.writeEnum(10, computer_);
+    }
+    if (sharedRunner_ != false) {
+      output.writeBool(11, sharedRunner_);
     }
     if (((bitField0_ & 0x00000001) != 0)) {
       output.writeMessage(99, getAudit());
@@ -608,6 +628,10 @@ java.lang.String defaultValue) {
       size += com.google.protobuf.CodedOutputStream
         .computeEnumSize(10, computer_);
     }
+    if (sharedRunner_ != false) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeBoolSize(11, sharedRunner_);
+    }
     if (((bitField0_ & 0x00000001) != 0)) {
       size += com.google.protobuf.CodedOutputStream
         .computeMessageSize(99, getAudit());
@@ -649,6 +673,8 @@ java.lang.String defaultValue) {
     }
     if (environmentSource_ != other.environmentSource_) return false;
     if (computer_ != other.computer_) return false;
+    if (getSharedRunner()
+        != other.getSharedRunner()) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -684,6 +710,9 @@ java.lang.String defaultValue) {
     hash = (53 * hash) + environmentSource_;
     hash = (37 * hash) + COMPUTER_FIELD_NUMBER;
     hash = (53 * hash) + computer_;
+    hash = (37 * hash) + SHARED_RUNNER_FIELD_NUMBER;
+    hash = (53 * hash) + com.google.protobuf.Internal.hashBoolean(
+        getSharedRunner());
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -865,6 +894,7 @@ java.lang.String defaultValue) {
       }
       environmentSource_ = 0;
       computer_ = 0;
+      sharedRunner_ = false;
       return this;
     }
 
@@ -933,6 +963,9 @@ java.lang.String defaultValue) {
       if (((from_bitField0_ & 0x00000100) != 0)) {
         result.computer_ = computer_;
       }
+      if (((from_bitField0_ & 0x00000200) != 0)) {
+        result.sharedRunner_ = sharedRunner_;
+      }
       result.bitField0_ |= to_bitField0_;
     }
 
@@ -982,6 +1015,9 @@ java.lang.String defaultValue) {
       }
       if (other.computer_ != 0) {
         setComputerValue(other.getComputerValue());
+      }
+      if (other.getSharedRunner() != false) {
+        setSharedRunner(other.getSharedRunner());
       }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
@@ -1055,6 +1091,11 @@ java.lang.String defaultValue) {
               bitField0_ |= 0x00000100;
               break;
             } // case 80
+            case 88: {
+              sharedRunner_ = input.readBool();
+              bitField0_ |= 0x00000200;
+              break;
+            } // case 88
             case 794: {
               input.readMessage(
                   internalGetAuditFieldBuilder().getBuilder(),
@@ -2149,6 +2190,56 @@ java.lang.String defaultValue) {
     public Builder clearComputer() {
       bitField0_ = (bitField0_ & ~0x00000100);
       computer_ = 0;
+      onChanged();
+      return this;
+    }
+
+    private boolean sharedRunner_ ;
+    /**
+     * <pre>
+     * Whether this conversation's turns run on a runner the server shares
+     * across conversations, rather than in a sandbox of its own. Only a
+     * conversation without a computer can.
+     * </pre>
+     *
+     * <code>bool shared_runner = 11 [json_name = "sharedRunner"];</code>
+     * @return The sharedRunner.
+     */
+    @java.lang.Override
+    public boolean getSharedRunner() {
+      return sharedRunner_;
+    }
+    /**
+     * <pre>
+     * Whether this conversation's turns run on a runner the server shares
+     * across conversations, rather than in a sandbox of its own. Only a
+     * conversation without a computer can.
+     * </pre>
+     *
+     * <code>bool shared_runner = 11 [json_name = "sharedRunner"];</code>
+     * @param value The sharedRunner to set.
+     * @return This builder for chaining.
+     */
+    public Builder setSharedRunner(boolean value) {
+
+      sharedRunner_ = value;
+      bitField0_ |= 0x00000200;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Whether this conversation's turns run on a runner the server shares
+     * across conversations, rather than in a sandbox of its own. Only a
+     * conversation without a computer can.
+     * </pre>
+     *
+     * <code>bool shared_runner = 11 [json_name = "sharedRunner"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearSharedRunner() {
+      bitField0_ = (bitField0_ & ~0x00000200);
+      sharedRunner_ = false;
       onChanged();
       return this;
     }

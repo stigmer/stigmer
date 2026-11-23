@@ -224,8 +224,8 @@ describe("the default lane is byte-identical", () => {
     expect(provider.isEnabled("sandbox")).toBe(false);
   });
 
-  it("carries the default's run-credential capability unchanged — the dispatch mints through it", () => {
-    const token = provider.mintRunCredential!("run_dispatch");
+  it("carries the default's run-credential capability unchanged — the dispatch mints through it", async () => {
+    const token = await provider.mintRunCredential!("run_dispatch");
     expect(provider.verify(TOKEN_TYPE_EXECUTION_SCOPED, token)).toBe(
       "run_dispatch",
     );

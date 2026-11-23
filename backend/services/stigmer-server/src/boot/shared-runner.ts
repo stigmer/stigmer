@@ -25,6 +25,14 @@
  * what is shared. Open source's own edition holds one organization. The
  * hosted edition is its own deployment's: its production composes a
  * sandbox driver, and its development stacks share a runner on purpose.
+ *
+ * A server with an isolating driver may still run shared runners beside it
+ * (STIGMER_SHARED_RUNNER_KEY, domain/run/placement.ts). They serve only
+ * conversations without a computer, whose turns run in the runner's locked
+ * agent host: no shell, no disk of the runner's, no reach to its machine,
+ * each server call under the turn's own credential, and Temporal only
+ * through the server for the shared queue alone. That is not the sharing
+ * this module refuses, so it answers `not-shared` for such a server too.
  */
 import { ServerEdition } from "@stigmer/apis/ai/stigmer/platform/v1/server_info_pb";
 

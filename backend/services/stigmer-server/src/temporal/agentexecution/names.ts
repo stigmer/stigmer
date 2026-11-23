@@ -96,3 +96,19 @@ export const START_QUEUED_TURN_ACTIVITY_NAME = "StartQueuedTurn";
  * asks again while it has none. Byte-pinned.
  */
 export const ENSURE_SESSION_SANDBOX_ACTIVITY_NAME = "EnsureSessionSandbox";
+
+/**
+ * The ask for a place on a shared runner, run by the workflow before each
+ * runner invocation of a turn a shared runner serves
+ * (domain/run/placement.ts): it answers whether the organization has room
+ * (shared-turn.ts), and the workflow waits while it has none. Byte-pinned.
+ */
+export const ADMIT_SHARED_TURN_ACTIVITY_NAME = "AdmitSharedTurn";
+
+/**
+ * The release of a shared turn's place, run when the turn parks on a
+ * person's answer or a pause, and when it ends however it ends
+ * (shared-turn.ts). Byte-pinned.
+ */
+export const RELEASE_SHARED_TURN_ACTIVITY_NAME = "ReleaseSharedTurn";
+

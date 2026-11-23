@@ -28,6 +28,7 @@ import type {
   Agent,
   AgentSchema,
 } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb";
+import type { AgentSpec } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/spec_pb";
 import { HookFormat } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/hooks_pb";
 import type { HookConfig, HookHandler } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/hooks_pb";
 import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
@@ -45,9 +46,11 @@ import { EXISTING_RESOURCE_KEY } from "../../pipeline/steps/load-existing.js";
 import type { Store } from "../../store/interface.js";
 import { releaseNamesOfDeleted } from "../../pipeline/steps/names.js";
 import { referenceDisplayNames } from "../../pipeline/steps/references.js";
-import { refuseAgentWithoutComputer } from "../run/computer.js";
+import { refuseAgentWithoutComputer, whyAgentNeedsComputer } from "../run/computer.js";
 import { loadRunPlugins, runPluginReferences } from "../run/run-plugins.js";
 import { runSubagents } from "../run/run-subagents.js";
+import type { RunSubagent } from "../run/run-subagents.js";
+import type { RunPlugin } from "../vault/resolve.js";
 type AgentDesc = typeof AgentSchema;
 
 // ---------------------------------------------------------------------------
@@ -150,46 +153,74 @@ export function newValidateMcpServersStep(): PipelineStep<AgentDesc> {
 // ---------------------------------------------------------------------------
 // ResolveAgentComputer — fills spec.computer where the write leaves it
 // unset, so what is hashed is what the agent runs with. On create, unset
-// becomes NEW_AGENT_COMPUTER. On update (apply's update arm included, which
-// masks every path), unset keeps the stored value, as a conversation's
-// update that names no engine keeps the stored one: a YAML file written
-// before the setting, or an SDK that leaves it out, never changes it. An
-// agent saved before the setting stays unset, so its version hash is the
-// one it had.
+// becomes COMPUTER_REQUIRED when the agent names anything that needs a
+// computer (whyAgentNeedsComputer, domain/run/computer.ts: the Claude
+// harness, the shell, its own hooks, an Environment, an MCP server on this
+// machine, a plugin or subagent that needs one) and COMPUTER_NONE when it
+// names nothing that does: a new agent starts without a computer unless it
+// needs one. The list is the one RefuseWhatNeedsAComputer refuses by, so
+// the default never gives an agent a setting its own save would refuse.
+// Its plugins and subagents are read here once, as that step reads them,
+// and kept on the request for it. An explicit value is never changed.
+//
+// On update (apply's update arm included, which masks every path), unset
+// keeps the stored value, as a conversation's update that names no engine
+// keeps the stored one: a YAML file written before the setting, or an SDK
+// that leaves it out, never changes it, and an agent that gains something
+// needing a computer is refused rather than given one. An agent saved
+// before the setting stays unset, so its version hash is the one it had.
 //
 // Pipeline position: directly before RefuseWhatNeedsAComputer, after
-// PinSubagents, and before the version hash.
+// PinSubagents, whose pins it reads, and before the version hash.
 // ---------------------------------------------------------------------------
 
-/**
- * What a new agent that names no computer gets: one, for now. The Claude
- * harness always has one whatever this says; COMPUTER_NONE on it is
- * refused (domain/run/computer.ts).
- */
-export const NEW_AGENT_COMPUTER = Computer.REQUIRED;
+/** What ResolveAgentComputer read for the new agent, kept for RefuseWhatNeedsAComputer. */
+interface ComputerReads {
+  readonly plugins: readonly RunPlugin[];
+  readonly subagents: readonly RunSubagent[];
+}
 
-export function newResolveAgentComputerStep(): PipelineStep<AgentDesc> {
+/** The request-context key ResolveAgentComputer keeps its ComputerReads under. */
+const COMPUTER_READS_KEY = "agentComputerReads";
+
+/** The agent's plugins, at the version a turn reads them, and its subagents at their pins. */
+async function readWhatNeedsAComputer(store: Store, spec: AgentSpec, org: string): Promise<ComputerReads> {
+  const subagents = await runSubagents(store, spec, org);
+  const plugins = await loadRunPlugins(store, runPluginReferences(spec, undefined, org), org);
+  return { plugins, subagents };
+}
+
+export function newResolveAgentComputerStep(store: Store): PipelineStep<AgentDesc> {
   return {
     name: "ResolveAgentComputer",
-    execute(ctx: RequestContext<AgentDesc>): void {
+    async execute(ctx: RequestContext<AgentDesc>): Promise<void> {
       const spec = ctx.newState.spec;
       if (spec === undefined || spec.computer !== Computer.UNSPECIFIED) {
         return;
       }
       const stored = ctx.get(EXISTING_RESOURCE_KEY) as Agent | undefined;
-      spec.computer = stored === undefined ? NEW_AGENT_COMPUTER : (stored.spec?.computer ?? Computer.UNSPECIFIED);
+      if (stored !== undefined) {
+        spec.computer = stored.spec?.computer ?? Computer.UNSPECIFIED;
+        return;
+      }
+      const reads = await readWhatNeedsAComputer(store, spec, ctx.newState.metadata?.org ?? "");
+      ctx.set(COMPUTER_READS_KEY, reads);
+      spec.computer =
+        whyAgentNeedsComputer(spec, reads.plugins, reads.subagents) === undefined ? Computer.NONE : Computer.REQUIRED;
     },
   };
 }
 
 // ---------------------------------------------------------------------------
 // RefuseWhatNeedsAComputer — an agent without a computer may not name
-// anything that needs one (domain/run/computer.ts): the Claude harness, a
-// Bash tool, its own hooks, an Environment, a plugin with hooks or a local
-// MCP server, or a subagent whose pinned version has a computer. The
-// plugins are read at the version a turn reads them (run-plugins.ts), the
+// anything that needs one (whyAgentNeedsComputer, domain/run/computer.ts):
+// the Claude harness, a Bash tool, its own hooks, an Environment, an MCP
+// server of its own on this machine, a plugin with hooks or a local MCP
+// server, or a subagent whose pinned version has a computer. The plugins
+// are read at the version a turn reads them (run-plugins.ts), the
 // subagents at their pins (run-subagents.ts), so saving and a turn judge
-// the same things. An agent with a computer reads nothing here.
+// the same things; a create whose computer ResolveAgentComputer filled
+// reuses what it read. An agent with a computer reads nothing here.
 //
 // Pipeline position: after ResolveAgentComputer and PinSubagents, whose
 // pins it reads, and before the version hash.
@@ -203,10 +234,10 @@ export function newRefuseWhatNeedsAComputerStep(store: Store): PipelineStep<Agen
       if (spec === undefined || spec.computer !== Computer.NONE) {
         return;
       }
-      const org = ctx.newState.metadata?.org ?? "";
-      const subagents = await runSubagents(store, spec, org);
-      const plugins = await loadRunPlugins(store, runPluginReferences(spec, undefined, org), org);
-      refuseAgentWithoutComputer(spec, plugins, subagents);
+      const reads =
+        (ctx.get(COMPUTER_READS_KEY) as ComputerReads | undefined) ??
+        (await readWhatNeedsAComputer(store, spec, ctx.newState.metadata?.org ?? ""));
+      refuseAgentWithoutComputer(spec, reads.plugins, reads.subagents);
     },
   };
 }

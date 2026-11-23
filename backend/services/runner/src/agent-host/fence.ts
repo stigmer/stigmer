@@ -11,7 +11,10 @@
  * What the lock grants, and nothing else: reading the install root
  * ({@link fenceReadRoot}), the folder that holds the entry and every package
  * the host loads at run time. No write, no child process, no worker thread,
- * no native addon, no WASI. A turn's reach is held by the runner's own checks
+ * no native addon, no WASI. And a memory cap: V8's old space is held to the
+ * runner's turn memory (`--max-old-space-size`, `runner-serves.ts`), so a
+ * turn that grows past it ends its own host, which serves that turn alone
+ * (`host-pool.ts`), and no other. A turn's reach is held by the runner's own checks
  * (`tools/url-guard.ts`, `shared/mcp-manager.ts`), not by Node: Node 22 has
  * no network permission, and a Node that has one (25 and later, where the
  * model refuses every socket unless granted) is given `--allow-net`, since
@@ -19,8 +22,8 @@
  * model) is a socket.
  *
  * The host proves its lock in its hello ({@link currentFence}): whether the
- * permission model is on, the flags it was started with, and Node's own
- * answers for the scopes Node documents. The runner accepts the hello only
+ * permission model is on, the flags it was started with, Node's own
+ * answers for the scopes Node documents, and V8's own heap limit. The runner accepts the hello only
  * when the lock is the one it built ({@link judgeFence}). `process.permission
  * .has` answers false for a scope Node does not know (an addon or WASI grant
  * cannot be asked for that way), so the flags themselves are the proof of
@@ -35,6 +38,7 @@
 import { existsSync, realpathSync } from "node:fs";
 import { homedir } from "node:os";
 import { dirname, join, parse, sep } from "node:path";
+import { getHeapStatistics } from "node:v8";
 
 /** The lock as the host reports it in its hello (`protocol.ts` `HelloEnvelope`). */
 export interface HostFenceReport {
@@ -47,7 +51,21 @@ export interface HostFenceReport {
   readonly fsWrite: boolean;
   readonly childProcess: boolean;
   readonly worker: boolean;
+  /** V8's own heap limit in megabytes (`v8.getHeapStatistics().heap_size_limit`): the old space the cap allows, and the young generation beside it. */
+  readonly heapLimitMb?: number;
 }
+
+/** The flag that caps V8's old space at `mb` megabytes. */
+export function heapCapFlag(mb: number): string {
+  return `--max-old-space-size=${mb}`;
+}
+
+/**
+ * How far above the old-space cap V8's own heap limit may read: the young
+ * generation's semispaces, which V8 adds to the cap (48 MB on 64-bit Node 22
+ * and later), with room to spare.
+ */
+const YOUNG_GENERATION_ALLOWANCE_MB = 64;
 
 /** The runner cannot run a turn without a computer locked; the message says why, in a sentence. */
 export class FenceRefusedError extends Error {
@@ -144,7 +162,7 @@ export const NO_LANGSMITH_PROFILE = ".stigmer-locked-host-no-langsmith-profile.j
 
 /** How the locked host is started: its Node flags, and what its environment needs beside the open host's. */
 export interface FencedHostLaunch {
-  /** The permission flag in the spelling this Node takes, one read grant of the install root, and the network where Node locks it. */
+  /** The permission flag in the spelling this Node takes, one read grant of the install root, the network where Node locks it, and the heap cap when one is asked for. */
   readonly execArgv: readonly string[];
   readonly env: Readonly<Record<string, string>>;
 }
@@ -157,6 +175,7 @@ export function fencedHostLaunch(
   entry: string,
   allowed: ReadonlySet<string> = process.allowedNodeEnvironmentFlags,
   readRoot: (entry: string) => string = fenceReadRoot,
+  heapMb?: number,
 ): FencedHostLaunch {
   if (entry.endsWith(".ts")) {
     throw new FenceRefusedError(
@@ -167,7 +186,8 @@ export function fencedHostLaunch(
   if (flag === null) throw new FenceRefusedError(`this Node (${process.version}) has no permission model`);
   const root = readRoot(entry);
   const net = allowed.has("--allow-net") ? ["--allow-net"] : [];
-  return { execArgv: [flag, `--allow-fs-read=${root}`, ...net], env: { LANGSMITH_CONFIG_FILE: join(root, NO_LANGSMITH_PROFILE) } };
+  const heap = heapMb === undefined ? [] : [heapCapFlag(heapMb)];
+  return { execArgv: [flag, `--allow-fs-read=${root}`, ...net, ...heap], env: { LANGSMITH_CONFIG_FILE: join(root, NO_LANGSMITH_PROFILE) } };
 }
 
 /** The environment names the locked host never starts with: Node's own options (nothing re-grants), and LangChain's tracer, which would try a worker thread ({@link fencedHostLaunch} sets the one LangSmith name it needs). */
@@ -190,6 +210,7 @@ export function currentFence(
   permission: PermissionApi | undefined = (process as { permission?: PermissionApi }).permission,
   execArgv: readonly string[] = process.execArgv,
   home: string = homedir(),
+  heapLimitBytes: number = getHeapStatistics().heap_size_limit,
 ): HostFenceReport {
   // Without the model every scope is open.
   const has = (scope: string, reference?: string): boolean => (permission === undefined ? true : permission.has(scope, reference));
@@ -200,6 +221,7 @@ export function currentFence(
     fsWrite: has("fs.write"),
     childProcess: has("child"),
     worker: has("worker"),
+    heapLimitMb: Math.round(heapLimitBytes / (1024 * 1024)),
   };
 }
 
@@ -222,5 +244,17 @@ export function judgeFence(report: unknown, expectedExecArgv: readonly string[])
   if (argv === undefined || argv.length !== expectedExecArgv.length || argv.some((flag, i) => flag !== expectedExecArgv[i])) {
     return `the agent program started with ${JSON.stringify(argv ?? null)}, not the lock the runner built (${JSON.stringify(expectedExecArgv)})`;
   }
+  // The flag is the runner's ask; V8's own limit is the proof it took.
+  const capMb = heapCapOf(expectedExecArgv);
+  if (capMb !== undefined && !(typeof r.heapLimitMb === "number" && r.heapLimitMb <= capMb + YOUNG_GENERATION_ALLOWANCE_MB)) {
+    return `the locked agent program's heap is not held to its memory cap of ${capMb} MB (V8 reports ${JSON.stringify(r.heapLimitMb ?? null)} MB)`;
+  }
   return null;
+}
+
+/** The old-space cap, in megabytes, a lock's flags ask for; undefined for none. */
+function heapCapOf(execArgv: readonly string[]): number | undefined {
+  const prefix = heapCapFlag(0).slice(0, -1);
+  const flag = execArgv.find((f) => f.startsWith(prefix));
+  return flag === undefined ? undefined : Number(flag.slice(prefix.length));
 }

@@ -397,6 +397,34 @@ describe("a sandbox driver's background work", () => {
   });
 });
 
+describe("shared runners under global routing", () => {
+  it("refuses to compose: the key would open every conversation's queue", async () => {
+    vi.stubEnv("STIGMER_ACTIVITY_ROUTING", "global");
+    try {
+      await expect(compose({ STIGMER_SHARED_RUNNER_KEY: "k".repeat(40) }, silentLogger, [])).rejects.toThrow(
+        /STIGMER_SHARED_RUNNER_KEY requires per-session routing/,
+      );
+    } finally {
+      vi.unstubAllEnvs();
+    }
+  });
+});
+
+describe("shared runners without a payload key", () => {
+  it("refuses to compose, naming both settings", async () => {
+    vi.stubEnv("STIGMER_ACTIVITY_ROUTING", "session");
+    vi.stubEnv("STIGMER_PAYLOAD_ENCRYPTION_KEY", "");
+    vi.stubEnv("STIGMER_PAYLOAD_ENCRYPTION_KEY_ID", "");
+    try {
+      await expect(compose({ STIGMER_SHARED_RUNNER_KEY: "k".repeat(40) }, silentLogger, [])).rejects.toThrow(
+        /STIGMER_SHARED_RUNNER_KEY is set and STIGMER_PAYLOAD_ENCRYPTION_KEY is not/,
+      );
+    } finally {
+      vi.unstubAllEnvs();
+    }
+  });
+});
+
 describe("a sandbox provisioner without per-session routing", () => {
   it("refuses to compose, naming the setting that reaches it", async () => {
     vi.stubEnv("STIGMER_ACTIVITY_ROUTING", "global");

@@ -25,6 +25,7 @@ import {
   DEFAULT_MODEL_REGISTRY_UPSTREAM,
   defaultSandboxRunnerImage,
   loadConfig,
+  MIN_SHARED_RUNNER_KEY_LENGTH,
 } from "../config.js";
 
 describe("STIGMER_SANDBOX_WAIT_SECONDS", () => {
@@ -39,6 +40,27 @@ describe("STIGMER_SANDBOX_WAIT_SECONDS", () => {
     for (const value of ["-1", "15m", "1.5", "ten"]) {
       expect(() => loadConfig({ STIGMER_SANDBOX_WAIT_SECONDS: value }), value).toThrow(/STIGMER_SANDBOX_WAIT_SECONDS is ".*"; it takes a whole number of seconds/);
     }
+  });
+});
+
+describe("STIGMER_SHARED_RUNNER_KEY", () => {
+  it("is off unset or empty, and carries a long enough key", () => {
+    expect(loadConfig({}).sharedRunnerKey).toBe("");
+    expect(loadConfig({ STIGMER_SHARED_RUNNER_KEY: "  " }).sharedRunnerKey).toBe("");
+    const key = "a".repeat(MIN_SHARED_RUNNER_KEY_LENGTH);
+    expect(loadConfig({ STIGMER_SHARED_RUNNER_KEY: key }).sharedRunnerKey).toBe(key);
+  });
+
+  it("fails the boot on a short key, naming the setting and never echoing the value", () => {
+    const short = "s3cr3t-but-short";
+    let message = "";
+    try {
+      loadConfig({ STIGMER_SHARED_RUNNER_KEY: short });
+    } catch (error) {
+      message = error instanceof Error ? error.message : String(error);
+    }
+    expect(message).toMatch(/STIGMER_SHARED_RUNNER_KEY is 16 characters long; a shared-runner key must be at least 32/);
+    expect(message).not.toContain(short);
   });
 });
 

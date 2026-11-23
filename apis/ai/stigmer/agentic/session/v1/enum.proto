@@ -74,11 +74,13 @@ enum Harness {
 // The reading rule is "computer != COMPUTER_NONE". The server's one home for
 // it is domain/run/computer.ts (hasComputer); the runner and the console kit
 // each make that single comparison against this comment. An agent's create
-// fills an unset value (COMPUTER_REQUIRED on the Claude harness, else the
-// new-agent default); an update that leaves it unset keeps the stored value,
-// so a version saved before the setting keeps its hash.
+// fills an unset value: COMPUTER_REQUIRED when the agent names anything that
+// needs a computer (the Claude harness among them), else COMPUTER_NONE; an
+// update that leaves it unset keeps the stored value, so a version saved
+// before the setting keeps its hash.
 enum Computer {
-  // Unset: has a computer. A new agent's create fills it in.
+  // Unset: has a computer. A new agent's create fills it in: none, unless
+  // the agent names something that needs one.
   COMPUTER_UNSPECIFIED = 0;
 
   // No computer: no shell, repositories, folders, Environment, hooks or

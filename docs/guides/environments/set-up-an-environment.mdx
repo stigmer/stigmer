@@ -94,10 +94,17 @@ it, unless the conversation or its routine names another.
 In the Agent's manifest, the same default is a reference:
 
 ```yaml validate-as="Agent.spec"
+computer: COMPUTER_REQUIRED
 environment_ref:
   kind: environment
   slug: data-science
 ```
+
+An Environment is where the Agent's computer runs, so the Agent needs one. A new
+Agent that names an Environment gets a computer by itself; an Agent saved
+without one keeps that setting, and naming an Environment there is refused until
+`computer: COMPUTER_REQUIRED`, or the switch in the Agent's **Computer**
+section, turns it on.
 
 To give every conversation in your Organization a default instead, open
 **Settings → Preferences** and choose it under **Default environment**. An

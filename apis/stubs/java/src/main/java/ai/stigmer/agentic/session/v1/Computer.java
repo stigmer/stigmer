@@ -23,7 +23,8 @@ public enum Computer
     implements com.google.protobuf.ProtocolMessageEnum {
   /**
    * <pre>
-   * Unset: has a computer. A new agent's create fills it in.
+   * Unset: has a computer. A new agent's create fills it in: none, unless
+   * the agent names something that needs one.
    * </pre>
    *
    * <code>COMPUTER_UNSPECIFIED = 0;</code>
@@ -63,7 +64,8 @@ public enum Computer
   }
   /**
    * <pre>
-   * Unset: has a computer. A new agent's create fills it in.
+   * Unset: has a computer. A new agent's create fills it in: none, unless
+   * the agent names something that needs one.
    * </pre>
    *
    * <code>COMPUTER_UNSPECIFIED = 0;</code>

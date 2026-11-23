@@ -4,14 +4,22 @@
  * gRPC client and the full interceptor chain.
  *
  * The agent's save (steps.ts ResolveAgentComputer, RefuseWhatNeedsAComputer):
- *   - a create that names none gets COMPUTER_REQUIRED, the Claude harness
- *     included; COMPUTER_NONE on the Claude harness is refused;
+ *   - a create that names none gets COMPUTER_NONE when it names nothing
+ *     that needs a computer, and COMPUTER_REQUIRED for each reason one
+ *     does (the Claude harness, the shell in its tools, its own hooks, an
+ *     Environment, an MCP server of its own on this machine, a plugin with
+ *     hooks, a local program or an agent whose only tool is the shell, a
+ *     subagent with a computer); every one of those reasons is the refusal
+ *     the same agent gets when it names COMPUTER_NONE, so the default and
+ *     the save never disagree; an explicit value is never changed;
+ *     COMPUTER_NONE on the Claude harness is refused;
  *   - an agent without one is refused a Bash tool, its own hooks, a plugin
  *     with hooks, a local MCP server or an agent whose only tool is the
  *     shell, and a subagent that has a computer,
  *     on create and on update; a subagent without one is listed;
  *   - an update and an apply that leave the field unset keep the stored
- *     COMPUTER_NONE; an agent saved before the setting stays unset when
+ *     value, COMPUTER_NONE and COMPUTER_REQUIRED alike, whatever the
+ *     update names; an agent saved before the setting stays unset when
  *     re-applied unchanged, keeping its version hash.
  * A conversation on it (session/resolve-session-computer.ts):
  *   - records the pinned version's computer on status.computer, and the
@@ -38,6 +46,7 @@ import { AgentSchema } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb";
 import type { Agent } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb";
 import { AgentCommandController } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/command_pb";
 import { AgentSpecSchema } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/spec_pb";
+import { EnvironmentSchema } from "@stigmer/apis/ai/stigmer/agentic/environment/v1/api_pb";
 import { PluginSchema } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/api_pb";
 import { RunSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 import { RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
@@ -93,6 +102,16 @@ beforeAll(async () => {
   await seedPlugin("github-tools", "stdio");
   await seedPlugin("docs", "http");
   await seedPlugin("git-helper", "shell-agent");
+  await namingSaves(server.store).saveResource(
+    ApiResourceKind.environment,
+    "env_node_22",
+    EnvironmentSchema,
+    create(EnvironmentSchema, {
+      apiVersion: API_VERSION,
+      kind: "Environment",
+      metadata: { id: "env_node_22", name: "node-22", slug: "node-22", org: ORG_ID, visibility: ApiResourceVisibility.visibility_org },
+    }),
+  );
 });
 
 afterAll(async () => {
@@ -169,11 +188,95 @@ async function refusal(run: () => Promise<unknown>): Promise<ConnectError> {
 
 const pluginRef = (slug: string) => ({ kind: ApiResourceKind.plugin, slug });
 
+const HOOKS = { groups: [{ event: "PreToolUse", matcher: "*", handlers: [{ command: "lint.sh" }] }] };
+
+/**
+ * Each reason a new agent needs a computer, as the agent naming it, with
+ * the code its save refuses that agent without one. The words are the
+ * unit table's (run/__tests__/computer.test.ts); here the save is held to
+ * read the same list for its default as for its refusal.
+ */
+const NEEDS_A_COMPUTER: readonly {
+  readonly reason: string;
+  readonly spec: () => Promise<MessageInitShape<typeof AgentSpecSchema>>;
+  readonly code: Code;
+}[] = [
+  { reason: "the Claude harness", spec: async () => ({ harness: Harness.CLAUDE }), code: Code.InvalidArgument },
+  { reason: "the shell in its tools", spec: async () => ({ tools: ["Read", "Bash"] }), code: Code.InvalidArgument },
+  {
+    reason: "its own hooks",
+    spec: async () => ({ hooks: [{ source: { case: "inline", value: HOOKS } }] }),
+    code: Code.InvalidArgument,
+  },
+  {
+    reason: "an Environment",
+    spec: async () => ({ environmentRef: { kind: ApiResourceKind.environment, slug: "node-22" } }),
+    code: Code.InvalidArgument,
+  },
+  {
+    reason: "an MCP server of its own on this machine",
+    spec: async () => ({ mcpServers: [{ name: "ledger", url: "http://localhost:3000/mcp" }] }),
+    code: Code.InvalidArgument,
+  },
+  { reason: "a plugin with hooks", spec: async () => ({ plugins: [pluginRef("code-style")] }), code: Code.FailedPrecondition },
+  { reason: "a plugin with a local program", spec: async () => ({ plugins: [pluginRef("github-tools")] }), code: Code.FailedPrecondition },
+  {
+    reason: "a plugin whose agent's only tool is the shell",
+    spec: async () => ({ plugins: [pluginRef("git-helper")] }),
+    code: Code.FailedPrecondition,
+  },
+  {
+    reason: "a subagent with a computer",
+    spec: async () => {
+      const fixer = await createAgent({ computer: Computer.REQUIRED }, uniqueName("repo-fixer"));
+      return { subagents: [{ kind: ApiResourceKind.agent, slug: fixer.metadata!.slug }] };
+    },
+    code: Code.FailedPrecondition,
+  },
+];
+
 describe("an agent's computer on save", () => {
-  it("gives a new agent that names none a computer, on either harness", async () => {
-    expect((await createAgent({})).spec?.computer).toBe(Computer.REQUIRED);
-    expect((await createAgent({ harness: Harness.CLAUDE })).spec?.computer).toBe(Computer.REQUIRED);
-    expect((await createAgent({ computer: Computer.NONE })).spec?.computer).toBe(Computer.NONE);
+  it("starts a new agent that names nothing needing a computer without one", async () => {
+    expect((await createAgent({})).spec?.computer).toBe(Computer.NONE);
+    const triage = await createAgent({}, uniqueName("triage"));
+    const named = await createAgent({
+      tools: ["Read", "WebFetch"],
+      disallowedTools: ["Bash"],
+      mcpServers: [{ name: "docs", url: "https://mcp.example.com/mcp" }],
+      plugins: [pluginRef("docs")],
+      subagents: [{ kind: ApiResourceKind.agent, slug: triage.metadata!.slug }],
+    });
+    expect(named.spec?.computer).toBe(Computer.NONE);
+  });
+
+  for (const { reason, spec, code } of NEEDS_A_COMPUTER) {
+    it(`gives a new agent naming ${reason} a computer, and refuses it without one`, async () => {
+      const fields = await spec();
+      expect((await createAgent(fields)).spec?.computer).toBe(Computer.REQUIRED);
+      const error = await refusal(() => createAgent({ ...fields, computer: Computer.NONE }));
+      expect(error.code).toBe(code);
+      expect(error.rawMessage).toMatch(/^this agent has no computer, so |^the Claude engine always runs with a computer/);
+    });
+  }
+
+  it("never changes a computer the create names", async () => {
+    expect((await createAgent({ computer: Computer.REQUIRED })).spec?.computer).toBe(Computer.REQUIRED);
+    expect((await createAgent({ computer: Computer.NONE, plugins: [pluginRef("docs")] })).spec?.computer).toBe(Computer.NONE);
+  });
+
+  it("keeps a stored computer through an update that leaves it unset, whatever the update names", async () => {
+    const agent = await createAgent({ computer: Computer.REQUIRED });
+    const updated = await agents.update(
+      updateOf(agent, { instructions: "You answer billing tickets." }, ["spec.instructions", "spec.computer"]),
+    );
+    expect(updated.spec?.computer).toBe(Computer.REQUIRED);
+    const applied = await agents.apply(agentInput(agent.metadata!.name, { instructions: "You answer billing tickets." }));
+    expect(applied.spec?.computer).toBe(Computer.REQUIRED);
+
+    // A computerless agent that gains the shell is refused, never given a computer.
+    const plain = await createAgent({});
+    const error = await refusal(() => agents.update(updateOf(plain, { tools: ["Bash"] }, ["spec.tools"])));
+    expect(error.code).toBe(Code.InvalidArgument);
   });
 
   it("refuses no computer on the Claude harness", async () => {
@@ -188,7 +291,7 @@ describe("an agent's computer on save", () => {
     const hooks = await refusal(() =>
       createAgent({
         computer: Computer.NONE,
-        hooks: [{ source: { case: "inline", value: { groups: [{ event: "PreToolUse", matcher: "*", handlers: [{ command: "lint.sh" }] }] } } }],
+        hooks: [{ source: { case: "inline", value: HOOKS } }],
       }),
     );
     expect(hooks.code).toBe(Code.InvalidArgument);
@@ -217,7 +320,7 @@ describe("an agent's computer on save", () => {
   });
 
   it("refuses a subagent with a computer and lists one without", async () => {
-    const fixer = await createAgent({}, uniqueName("repo-fixer"));
+    const fixer = await createAgent({ computer: Computer.REQUIRED }, uniqueName("repo-fixer"));
     const error = await refusal(() =>
       createAgent({ computer: Computer.NONE, subagents: [{ kind: ApiResourceKind.agent, slug: fixer.metadata!.slug }] }),
     );
@@ -310,7 +413,9 @@ describe("a conversation on an agent without a computer", () => {
   it("records the agent's computer; the built-in assistant records none, which has one", async () => {
     const agent = await createAgent({ computer: Computer.NONE });
     expect((await createSession({ agentRef: agentRefOf(agent) })).status?.computer).toBe(Computer.NONE);
-    expect((await createSession({ agentRef: agentRefOf(await createAgent({})) })).status?.computer).toBe(Computer.REQUIRED);
+    expect((await createSession({ agentRef: agentRefOf(await createAgent({ computer: Computer.REQUIRED })) })).status?.computer).toBe(
+      Computer.REQUIRED,
+    );
     expect((await createSession({})).status?.computer).toBe(Computer.UNSPECIFIED);
   });
 

@@ -84,6 +84,8 @@ metadata:
   name: release-checker
 spec:
   description: Checks that a release is safe to ship.
+  # It runs the project's checks, so its conversations need a computer.
+  computer: COMPUTER_REQUIRED
   instructions: |
     You check a release before it ships. Run the project's checks with the
     shell, then say in one line whether the release is safe to ship and why.

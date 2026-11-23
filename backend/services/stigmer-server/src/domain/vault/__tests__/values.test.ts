@@ -221,7 +221,7 @@ function grouped(values: ExecutionValues): Record<string, Record<string, string>
 describe("the gate", () => {
   it("answers a run credential bound to the live run with the run's values, grouped by declarer", async () => {
     await seedRun("run_live");
-    const values = await fetch("run_live", credentials.mintRunCredential!("run_live"));
+    const values = await fetch("run_live", await credentials.mintRunCredential!("run_live"));
     expect(grouped(values)).toEqual({
       agent: { AGENT_KEY: "agent-secret" },
       "plg_tools/linear": { LINEAR_KEY: "linear-secret" },
@@ -235,7 +235,7 @@ describe("the gate", () => {
     ["a credential for another run", () => credentials.mintRunCredential!("run_other")],
   ])("refuses %s with PermissionDenied, never a redacted answer", async (_label, tokenOf) => {
     await seedRun("run_live");
-    const failure = await refusal(fetch("run_live", tokenOf()));
+    const failure = await refusal(fetch("run_live", await tokenOf()));
     expect(failure.code).toBe(Code.PermissionDenied);
     expect(failure.rawMessage).toBe(NOT_BOUND);
   });
@@ -243,12 +243,12 @@ describe("the gate", () => {
   it("refuses a run credential whose run ended past the grace, and admits one inside it", async () => {
     const longAgo = new Date(Date.now() - RUN_CREDENTIAL_GRACE_AFTER_TERMINAL_MS - 60_000).toISOString();
     await seedRun("run_over", { phase: RunPhase.RUN_COMPLETED, completedAt: longAgo });
-    const failure = await refusal(fetch("run_over", credentials.mintRunCredential!("run_over")));
+    const failure = await refusal(fetch("run_over", await credentials.mintRunCredential!("run_over")));
     expect(failure.code).toBe(Code.PermissionDenied);
 
     const justNow = new Date(Date.now() - 1_000).toISOString();
     await seedRun("run_just_over", { phase: RunPhase.RUN_COMPLETED, completedAt: justNow });
-    const values = await fetch("run_just_over", credentials.mintRunCredential!("run_just_over"));
+    const values = await fetch("run_just_over", await credentials.mintRunCredential!("run_just_over"));
     expect(grouped(values).agent).toEqual({ AGENT_KEY: "agent-secret" });
   });
 
@@ -257,7 +257,7 @@ describe("the gate", () => {
     await seedPlugin();
     const connectId = newConnectExecutionId(PLUGIN_ID);
     await seedAttempt(connectId);
-    const failure = await refusal(fetch(connectId, credentials.mintRunCredential!(connectId)));
+    const failure = await refusal(fetch(connectId, await credentials.mintRunCredential!(connectId)));
     expect(failure.code).toBe(Code.PermissionDenied);
   });
 
@@ -475,7 +475,7 @@ describe("the open-source gate's own faults", () => {
       },
     });
     const failure = await refusal(
-      fetch("run_live", credentials.mintRunCredential!("run_live"), deps({ store: faulting })),
+      fetch("run_live", await credentials.mintRunCredential!("run_live"), deps({ store: faulting })),
     );
     expect(failure.code).toBe(Code.Internal);
     expect(failure.rawMessage).not.toContain("disk gone");
@@ -514,7 +514,7 @@ describe("the registered service", () => {
     const client = createClient(VaultValueController, transport);
     const values = await client.fetchValues(
       { executionId: "run_live" },
-      { headers: { authorization: `Bearer ${credentials.mintRunCredential!("run_live")}` } },
+      { headers: { authorization: `Bearer ${await credentials.mintRunCredential!("run_live")}` } },
     );
     expect(Object.keys(values.agent)).toEqual(["AGENT_KEY"]);
     const invalid = await refusal(client.fetchValues({ executionId: "" }));

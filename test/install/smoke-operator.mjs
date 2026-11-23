@@ -95,7 +95,9 @@
  *   pool's first worker and then for the server's sandbox image (the
  *   runner component reads PreparingSandboxImage before Ready, or the
  *   server's log says the template was published before the operator first
- *   asked), and the install is Ready with no shared runner. Two sessions run as two actors.
+ *   asked), and the install is Ready with no runner in the server's pod
+ *   (its one runner for Agents without a computer is a Deployment of its
+ *   own). Two sessions run as two actors.
  *   From inside one, by a probe the agent runs, the server, the bucket and
  *   the model answer, and the model under a name that is not a lane, the
  *   database and Temporal do not; the same probe from the server's pod
@@ -739,7 +741,9 @@ async function runAgentSandbox(fake, modelBaseUrl) {
   try {
     const { baseUrl } = forward;
     await waitForServing(baseUrl, SERVER_HEALTHY_TIMEOUT_MS);
-    const agent = await createSmokeAgent(baseUrl, { log });
+    // Its turns run commands in their sandboxes, so the agent has a computer:
+    // one without would run on the install's runner for agents without one.
+    const agent = await createSmokeAgent(baseUrl, { log, computer: "COMPUTER_REQUIRED" });
     const marker = `slept-and-woke-${randomUUID().slice(0, 8)}`;
     first = await runInSession(baseUrl, fake, { orgId: agent.orgId, agent, command: `echo ${marker} > /workspace/sleep-wake.txt`, reply: "Saved." });
     log(`session one: run ${first.runId} COMPLETED, its file written in its sandbox`);
@@ -908,14 +912,18 @@ async function runSubstrate(fake, modelBaseUrl) {
   stigmer.apply({
     owner: { email: "owner@example.com" },
     image: { registry },
-    runner: { llm: { secretName: MODEL_SECRET } },
+    // The runner for agents without a computer, beside the driver, asks as
+    // little as the others below.
+    runner: { llm: { secretName: MODEL_SECRET }, resources: { requests: { cpu: "50m", memory: "512Mi" } } },
     objectStore: objectStore.spec(),
     // The server's own fence too: it reaches Substrate through it, and the
     // model's host by the range named here. Every request below is smaller
     // than its default: a CI runner has four cores, Agent Substrate's
     // control plane asks for most of them, and a pod that cannot be
     // scheduled leaves the install waiting (measured: 3910m of 4000m asked
-    // for with the defaults, the Temporal worker and the server unplaced).
+    // for with the defaults, the Temporal worker and the server unplaced;
+    // the runner for agents without a computer was the next pod left
+    // unplaced).
     server: { egress: { fenced: true, allowCIDRs: [`${modelIP}/32`] }, resources: { requests: { cpu: "100m", memory: "1Gi" } } },
     database: { postgresql: { bundled: { resources: { requests: { cpu: "50m", memory: "256Mi" } } } } },
     temporal: { bundled: { resources: { requests: { cpu: "25m", memory: "256Mi" } } } },
@@ -970,7 +978,9 @@ async function runSubstrate(fake, modelBaseUrl) {
   try {
     const { baseUrl } = forward;
     await waitForServing(baseUrl, SERVER_HEALTHY_TIMEOUT_MS);
-    const agent = await createSmokeAgent(baseUrl, { log });
+    // Its turns run commands in their sandboxes, so the agent has a computer:
+    // one without would run on the install's runner for agents without one.
+    const agent = await createSmokeAgent(baseUrl, { log, computer: "COMPUTER_REQUIRED" });
     const marker = `slept-and-woke-${randomUUID().slice(0, 8)}`;
     first = await runInSession(baseUrl, fake, { orgId: agent.orgId, agent, command: `echo ${marker} > /workspace/sleep-wake.txt`, reply: "Saved." });
     log(`session one: run ${first.runId} COMPLETED, its file written in its actor`);

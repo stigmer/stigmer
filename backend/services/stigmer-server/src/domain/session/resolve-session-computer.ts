@@ -19,6 +19,13 @@
  * every plugin a turn loads is judged again at the turn's create
  * (plan-run-values-step.ts).
  *
+ * With the computer it stamps whether a runner the server shares serves
+ * the conversation (status.shared_runner, domain/run/placement.ts
+ * `sharedRunnerFor`), by the same rule: worked out until the conversation
+ * has run, then kept for its whole life, so switching shared runners on or
+ * off never moves a conversation away from the runner holding its saved
+ * state.
+ *
  * resolveSessionComputer is exported for the routine's admission, which
  * asks the conversation a fire would make the same questions in memory
  * (domain/routine/admit-run.ts).
@@ -34,7 +41,7 @@ import { create } from "@bufbuild/protobuf";
 
 import { AgentSchema } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb";
 import type { Session, SessionSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/api_pb";
-import { Computer } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
+import { Computer, ExecutionTarget } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
 import { SessionStatusSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/status_pb";
 import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
@@ -46,6 +53,7 @@ import { ResourceNotFoundError } from "../../store/interface.js";
 import type { Store } from "../../store/interface.js";
 import { readRunAgentSpec } from "../agent/run-defaults.js";
 import { agentComputer, hasComputer, refuseConversationWithoutComputer } from "../run/computer.js";
+import { sharedRunnerFor, type PlacementConfig } from "../run/placement.js";
 import { loadRunPlugins, runPluginReferences } from "../run/run-plugins.js";
 import { sessionHasRun } from "./has-run.js";
 
@@ -94,14 +102,25 @@ async function agentNameOf(store: Store, agentId: string): Promise<string> {
   }
 }
 
-/** Stamps `session`'s computer from its pinned agent version, then refuses what it may not add. */
-export async function resolveSessionComputer(store: Store, session: Session): Promise<void> {
+/**
+ * Stamps `session`'s computer from its pinned agent version and, given the
+ * server's placement config, whether a shared runner serves it; then
+ * refuses what it may not add.
+ */
+export async function resolveSessionComputer(store: Store, session: Session, placement?: PlacementConfig): Promise<void> {
   const status = (session.status ??= create(SessionStatusSchema));
   status.computer = await sessionComputer(store, session);
+  if (placement !== undefined) {
+    status.sharedRunner = sharedRunnerFor({
+      config: placement,
+      target: session.spec?.executionTarget ?? ExecutionTarget.UNSPECIFIED,
+      computer: status.computer,
+    });
+  }
   await refuseSessionWithoutComputer(store, session);
 }
 
-export function newResolveSessionComputerStep(store: Store): PipelineStep<SessionDesc> {
+export function newResolveSessionComputerStep(store: Store, placement: PlacementConfig): PipelineStep<SessionDesc> {
   return {
     name: "ResolveSessionComputer",
     async execute(ctx: RequestContext<SessionDesc>): Promise<void> {
@@ -110,10 +129,11 @@ export function newResolveSessionComputerStep(store: Store): PipelineStep<Sessio
       if (stored !== undefined && (await sessionHasRun(store, ctx, stored))) {
         const status = (session.status ??= create(SessionStatusSchema));
         status.computer = stored.status?.computer ?? Computer.UNSPECIFIED;
+        status.sharedRunner = stored.status?.sharedRunner ?? false;
         await refuseSessionWithoutComputer(store, session);
         return;
       }
-      await resolveSessionComputer(store, session);
+      await resolveSessionComputer(store, session, placement);
     },
   };
 }

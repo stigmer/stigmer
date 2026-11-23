@@ -361,7 +361,7 @@ async function createSession(
     .addStep(
       newResolveSessionAgentStep(deps.store, deps.logger, deps.authorizer),
     )
-    .addStep(newResolveSessionComputerStep(deps.store))
+    .addStep(newResolveSessionComputerStep(deps.store, deps.temporalConfig))
     .addStep(newResolveSessionEnvironmentStep(deps.store, deps.environmentPolicy))
     .addStep(newRefuseUnofferedHarnessStep(sessionHarnesses))
     .addStep(newAuthorizeRunTargetStep(deps.authorizer, sessionRunTarget))
@@ -472,7 +472,7 @@ async function update(
       .addStep(
         newResolveSessionAgentStep(deps.store, deps.logger, deps.authorizer),
       )
-      .addStep(newResolveSessionComputerStep(deps.store))
+      .addStep(newResolveSessionComputerStep(deps.store, deps.temporalConfig))
       .addStep(newResolveSessionEnvironmentStep(deps.store, deps.environmentPolicy))
       .addStep(newAuthorizeRunTargetStep(deps.authorizer, sessionRunTarget))
       .addStep(newResolveSessionResourcesStep(instances))

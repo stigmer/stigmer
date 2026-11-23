@@ -2,6 +2,7 @@ import { Buffer } from "node:buffer";
 import { crc32 } from "node:zlib";
 import { create } from "@bufbuild/protobuf";
 import type { Stigmer } from "@stigmer/client";
+import { Computer } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
 
 const DEFAULT_ORG = "default";
 
@@ -94,10 +95,15 @@ export async function createTestAgent(
   const name = opts?.name ?? `e2e-agent-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
   const org = opts?.org ?? DEFAULT_ORG;
 
+  // With a computer, as every console journey on it expects: its
+  // conversations run commands, attach files and folders, and its page sets
+  // an Environment, which an agent that names nothing needing a computer
+  // would start without.
   const agent = await client.agent.create({
     name,
     org,
     instructions: opts?.instructions ?? "You are a helpful test assistant. Keep responses under 20 words.",
+    computer: Computer.REQUIRED,
   });
 
   const id = agent.metadata!.id;

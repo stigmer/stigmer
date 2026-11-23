@@ -6,6 +6,10 @@
  * connect lane's key for the same token type (domain/plugin/tools/engine.ts)
  * — and omit the key when the answer is "".
  *
+ * The dispatch names the turn it mints for (its session, organization and
+ * placement, runner-credential-provider.ts `RunCredentialTurn`), and the
+ * capability may answer with a promise; a rejection is a throw.
+ *
  * Three answers, one rule each:
  *
  *   - the capability is absent: "" — this edition's runner is
@@ -31,7 +35,7 @@
  * long as the run lives.
  */
 import type { Logger } from "../boot/logger.js";
-import type { RunnerCredentialProvider } from "./runner-credential-provider.js";
+import type { RunCredentialTurn, RunnerCredentialProvider } from "./runner-credential-provider.js";
 
 /** The dispatch's view of the seam: the one capability it reads. */
 export type RunCredentialMint = Pick<
@@ -39,17 +43,18 @@ export type RunCredentialMint = Pick<
   "mintRunCredential"
 >;
 
-export function runCredentialForDispatch(
+export async function runCredentialForDispatch(
   credentials: RunCredentialMint,
   executionId: string,
+  turn: RunCredentialTurn,
   logger: Logger,
-): string {
+): Promise<string> {
   const mintRunCredential = credentials.mintRunCredential?.bind(credentials);
   if (mintRunCredential === undefined) {
     return "";
   }
   try {
-    return mintRunCredential(executionId);
+    return await mintRunCredential(executionId, turn);
   } catch (error) {
     logger.warn(
       "Failed to mint the run credential — dispatching without it; the runner will fall back to the platform exchange",

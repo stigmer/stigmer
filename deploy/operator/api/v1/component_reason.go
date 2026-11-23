@@ -71,8 +71,8 @@ const (
 	// ReasonPerSessionRunnersOnly: a licensed install runs agents in
 	// per-session sandboxes, not on a shared runner.
 	ReasonPerSessionRunnersOnly ComponentReason = "PerSessionRunnersOnly"
-	// ReasonPerSessionSandboxes: agents run in per-session sandboxes, so no
-	// shared runner is rendered.
+	// ReasonPerSessionSandboxes: agents with a computer run in per-session
+	// sandboxes, and agents without one on one shared runner beside them.
 	ReasonPerSessionSandboxes ComponentReason = "PerSessionSandboxes"
 	// ReasonWaitingForWorkers: the sandbox pool has no ready worker yet.
 	ReasonWaitingForWorkers ComponentReason = "WaitingForWorkers"
@@ -169,7 +169,7 @@ var ReasonMessages = map[ComponentReason]string{
 	ReasonGatewayNotAccepted:     "the Gateway's controller refused the front door's routes",
 	ReasonRealmConverging:        "setting up the sign-in's realm, clients and owner",
 	ReasonPerSessionRunnersOnly:  "a licensed server runs agents in per-session sandboxes, not on a shared runner",
-	ReasonPerSessionSandboxes:    "agents run in per-session sandboxes, so there is no shared runner",
+	ReasonPerSessionSandboxes:    "agents with a computer run in per-session sandboxes, and agents without one on one shared runner",
 	ReasonWaitingForWorkers:      "waiting for the sandbox pool's first worker",
 	ReasonPreparingSandboxImage:  "the server is preparing the image every new sandbox starts from",
 	ReasonPrerequisiteMissing:    "a cluster-level piece it needs is not installed: install it",

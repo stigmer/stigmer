@@ -69,6 +69,7 @@
  * distinction is contract: a refusal fails the RPC, a degrade rides the
  * presence-based response the runner already handles.
  */
+import type { TurnPlacement } from "../domain/run/placement.js";
 import type { CallerIdentity } from "../extensions/identity.js";
 import { SANDBOX_TOKEN_TTL_SECONDS } from "../sandbox/lane.js";
 import {
@@ -181,6 +182,14 @@ export type MemoryCaptureDecision =
       readonly provedSessionId: string;
     };
 
+/** The turn a dispatch mints a run credential for (RunnerCredentialProvider.mintRunCredential). */
+export interface RunCredentialTurn {
+  readonly sessionId: string;
+  readonly org: string;
+  /** Which runner serves the turn (domain/run/placement.ts): a person's own, a server sandbox, or a shared runner. */
+  readonly runner: TurnPlacement;
+}
+
 /**
  * Mints and verifies runner credentials per lane. Implementations must be
  * stateless-safe for concurrent use (they gate every values fetch and
@@ -258,8 +267,15 @@ export interface RunnerCredentialProvider {
    * cannot mint — keyless); a thrown error is a real fault, which the
    * dispatch reader (dispatch-credential.ts) logs and degrades to the
    * same "" rather than failing the run's start.
+   *
+   * The dispatch also says which turn it mints for (`turn`): its session,
+   * its organization and which runner serves it (domain/run/placement.ts).
+   * An implementation may mint only for some placements (an edition whose
+   * sandboxes are credentialed at provision mints only for turns a shared
+   * runner serves) and may answer with a promise. Other callers (an
+   * exchange arm, a test) pass the execution id alone.
    */
-  mintRunCredential?(executionId: string): string;
+  mintRunCredential?(executionId: string, turn?: RunCredentialTurn): string | Promise<string>;
 
   /**
    * The trust decision for VaultValueController.fetchValues: whether the

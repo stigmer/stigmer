@@ -19,6 +19,7 @@
  */
 
 import { HumanMessage, AIMessage, SystemMessage, type BaseMessage } from "@langchain/core/messages";
+import { credentialForTurn } from "../run-credential-store.js";
 import type { Config } from "../../config.js";
 import { buildChatModel } from "../model-client.js";
 import { computeTurnCost, ensureLoaded as ensurePricingLoaded, getModelPricing } from "../model-pricing.js";
@@ -66,7 +67,7 @@ export function chatAgentMockModel(args: {
     const { model } = await buildChatModel({
       modelName,
       proxyEndpoint: args.config.proxyEndpoint ?? undefined,
-      stigmerToken: args.config.stigmerTokenRef.current ?? undefined,
+      stigmerToken: credentialForTurn(args.config.stigmerTokenRef),
       headerScope: { executionId: args.executionId },
       temperature: null,
       maxTokens: MAX_ANSWER_TOKENS,

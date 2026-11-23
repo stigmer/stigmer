@@ -28,6 +28,7 @@ const SET = {
   STIGMER_SHELL_TIMEOUT_MAX_SECONDS: "900",
   STIGMER_SHELL_BACKGROUND_ENABLED: "false",
   WORKSPACE_LOCK_TIMEOUT_MS: "60000",
+  STIGMER_TURN_MEMORY_MB: "768",
 };
 
 const EXPECTED = {
@@ -37,6 +38,7 @@ const EXPECTED = {
   shellTimeoutMaxSeconds: 900,
   shellBackgroundEnabled: false,
   workspaceLockTimeoutMs: 60_000,
+  turnMemoryMb: 768,
 };
 
 const refs = (): [TokenRef, TokenRef] => [{ current: null }, { current: null }];

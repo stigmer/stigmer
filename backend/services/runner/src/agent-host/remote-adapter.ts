@@ -22,13 +22,22 @@
  *    host (`shared/checkpointer/relayed-rows.ts`).
  *
  * Which host runs the turn is chosen here, per turn: a turn without a
- * computer runs in the locked host where the harness has one
- * (`hosting.ts`, `fence.ts`), every other turn in the open host. A turn the
- * locked host can never serve on this runner (no lock to be had) settles
- * `failed` on the actionable surface before it starts, with the reason: the
- * runner refuses rather than run it unlocked. Its saved state is stored by
- * the open host, on the session's file, and the file is closed once the
- * turn settles.
+ * computer runs in a locked host where the harness has them, one lent to it
+ * alone for the turn (`host-pool.ts`, `fence.ts`), every other turn in the
+ * open host. A turn the locked host can never serve on this runner (no lock
+ * to be had) settles `failed` on the actionable surface before it starts,
+ * with the reason: the runner refuses rather than run it unlocked. A runner
+ * that serves only conversations without a computer refuses a turn with one
+ * here too, after the runtime's own refusal (`runner-serves.ts`), so no route
+ * reaches the open host with a turn. A turn whose locked host died of its
+ * heap cap settles `failed` on the actionable surface with the person's
+ * sentence naming the cap. Its saved state is stored by the open host, on
+ * the session's file, and the file is closed once the turn settles.
+ *
+ * The turn is opened at the local proxy under its key, in the slot of the
+ * host it runs on, with the run credential the activity entered: the host's
+ * model, checkpoint and engine-session calls go out under that turn's own
+ * credential, and only from that host (`agent-proxy/server.ts`).
  *
  * The turn's lifetime is one pending `runTurn` call. The runtime's stop is
  * forwarded as a notice; the call is answered when the adapter settles,
@@ -74,19 +83,34 @@ import {
 import { fromWireError, type WireError, type WireOutcome } from "./protocol.js";
 import { FenceRefusedError } from "./fence.js";
 import { threadsOfCheckpointOp, type CheckpointRowsOp } from "../shared/checkpointer/relayed-rows.js";
-import type { AgentHostSupervisor, RemoteTurnEndpoint } from "./supervisor.js";
+import { currentRunCredential } from "../shared/run-credential-store.js";
+import { DEFAULT_TURN_MEMORY_MB, outOfMemorySentence, refusalForServes } from "../runner-serves.js";
+import { HostHeapExhaustedError, type AgentHostSupervisor, type HostLease, type RemoteTurnEndpoint, type TurnHosts } from "./supervisor.js";
 import { TurnRowsSchema, type ToolCall, type TurnRows } from "../gen/turn/ai/stigmer/runner/turn/v1/rows_pb.js";
+
+/** A turn as the remote adapter opens it at the local proxy. */
+export interface LiveTurnOpening {
+  readonly executionId: string;
+  readonly threadId: string;
+  readonly turnKey: string;
+  /** The slot of the host the turn runs on; the open host's when absent. */
+  readonly slot?: string;
+  /** The run credential the turn's activity entered; absent when its dispatch carried none. */
+  readonly credential?: string;
+}
 
 /** What the host may open live turns at: the local proxy's turn registry (`agent-proxy/server.ts`). */
 export interface LiveTurnRegistry {
   /** The turn is live at the proxy until the returned close runs. */
-  openTurn(turn: { readonly executionId: string; readonly threadId: string; readonly turnKey: string }): () => void;
+  openTurn(turn: LiveTurnOpening): () => void;
 }
 
-/** The hosts a harness's turns run in: the open one always, the locked one for turns without a computer where the harness has one. */
+/** The hosts a harness's turns run in: the open one always, the locked ones for turns without a computer where the harness has them. */
 export interface AgentHosts {
   readonly open: AgentHostSupervisor;
-  readonly fenced?: AgentHostSupervisor;
+  readonly fenced?: TurnHosts;
+  /** The runner serves only conversations without a computer (`runner-serves.ts`). */
+  readonly computerless?: boolean;
 }
 
 /**
@@ -124,14 +148,32 @@ async function runRemoteTurn(
   input: TurnInput,
   sink: TurnSink,
 ): Promise<TurnOutcome> {
-  const host = !input.workspace.computer && hosts.fenced !== undefined ? hosts.fenced : hosts.open;
+  const refusal = hosts.computerless ? refusalForServes("computerless", input.workspace.computer) : undefined;
+  if (refusal !== undefined) return { kind: "failed", surface: "actionable", message: refusal };
+  const side = !input.workspace.computer && hosts.fenced !== undefined ? hosts.fenced : hosts.open;
+  let lease: HostLease;
+  try {
+    lease = await side.acquire();
+  } catch (err) {
+    if (err instanceof FenceRefusedError) return lockRefused(err);
+    throw err;
+  }
+  const host = lease.host;
   const turnId = randomUUID();
   const turn = new RemoteTurn(turnId, input, sink, host, hosts.open);
   const detach = host.attachTurn(turnId, turn.endpoint);
-  // The turn's own key at the proxy: one host serves every turn with one
-  // token, so this is what keeps a turn's calls to its own execution.
+  // The turn's own key at the proxy: the open host serves every turn with
+  // one token, so this is what keeps a turn's calls to its own execution;
+  // its credential is what they reach the platform with.
   const turnKey = randomBytes(32).toString("base64url");
-  const closeTurn = turns.openTurn({ executionId: input.executionId, threadId: input.threadId, turnKey });
+  const credential = currentRunCredential();
+  const closeTurn = turns.openTurn({
+    executionId: input.executionId,
+    threadId: input.threadId,
+    turnKey,
+    slot: host.slot,
+    ...(credential === undefined ? {} : { credential }),
+  });
   let stopListener: (() => void) | undefined;
   let yieldListener: (() => void) | undefined;
   let inputListener: (() => void) | undefined;
@@ -168,17 +210,14 @@ async function runRemoteTurn(
   } catch (err) {
     if (turn.settled) throw err;
     turn.settle(undefined);
-    if (err instanceof FenceRefusedError) {
-      return {
-        kind: "failed",
-        surface: "actionable",
-        message: `This runner can't lock the agent program for a conversation without a computer (${err.message}), and it won't run one unlocked.`,
-        cause: err,
-      };
-    }
+    if (err instanceof FenceRefusedError) return lockRefused(err);
     // A turn the runtime had stopped, or asked to yield, ends as the runtime
     // asked whatever became of the host: its evidence decides the arm.
     if (sink.stopSignal.aborted || sink.yieldSignal.aborted) return { kind: "interrupted" };
+    if (err instanceof HostHeapExhaustedError) {
+      console.error(`[agent-host] turn ran out of the agent host's memory: execution=${input.executionId}, ${err.message}`);
+      return { kind: "failed", surface: "actionable", message: outOfMemorySentence(host.heapMb ?? DEFAULT_TURN_MEMORY_MB), cause: err };
+    }
     const message = err instanceof Error ? err.message : String(err);
     console.error(`[agent-host] turn lost with the agent host: execution=${input.executionId}, ${message}`);
     return { kind: "failed", surface: "internal", message: `The agent process stopped before the turn finished: ${message}`, cause: err };
@@ -189,8 +228,19 @@ async function runRemoteTurn(
     backgroundStopListener?.();
     closeTurn();
     detach();
+    lease.release();
     if (turn.checkpointRowsUsed) await closeCheckpointRows(hosts.open, input.sessionId);
   }
+}
+
+/** A turn without a computer that no locked host can run on this runner: refused, never run unlocked. */
+function lockRefused(err: FenceRefusedError): TurnOutcome {
+  return {
+    kind: "failed",
+    surface: "actionable",
+    message: `This runner can't lock the agent program for a conversation without a computer (${err.message}), and it won't run one unlocked.`,
+    cause: err,
+  };
 }
 
 /** The relayed turn has settled: the open host closes the session's checkpoint file. A host that is gone holds none open. */

@@ -51,7 +51,7 @@ public final class StatusProto extends com.google.protobuf.GeneratedFile {
       "i/stigmer/commons/apiresource/field_opti" +
       "ons.proto\032\'ai/stigmer/commons/apiresourc" +
       "e/io.proto\032+ai/stigmer/commons/apiresour" +
-      "ce/status.proto\"\207\005\n\rSessionStatus\022F\n\005aud" +
+      "ce/status.proto\"\254\005\n\rSessionStatus\022F\n\005aud" +
       "it\030c \001(\01320.ai.stigmer.commons.apiresourc" +
       "e.ApiResourceAuditR\005audit\022\031\n\010agent_id\030\001 " +
       "\001(\tR\007agentId\022,\n\022agent_version_hash\030\002 \001(\t" +
@@ -65,14 +65,14 @@ public final class StatusProto extends com.google.protobuf.GeneratedFile {
       "ronment_source\030\t \001(\01620.ai.stigmer.agenti" +
       "c.session.v1.EnvironmentSourceR\021environm" +
       "entSource\022C\n\010computer\030\n \001(\0162\'.ai.stigmer" +
-      ".agentic.session.v1.ComputerR\010computer\032A" +
-      "\n\023VaultAttachersEntry\022\020\n\003key\030\001 \001(\tR\003key\022" +
-      "\024\n\005value\030\002 \001(\tR\005value:\0028\001B\246\001B\013StatusProt" +
-      "oP\001\242\002\004ASAS\252\002\035Ai.Stigmer.Agentic.Session." +
-      "V1\312\002\035Ai\\Stigmer\\Agentic\\Session\\V1\342\002)Ai\\" +
-      "Stigmer\\Agentic\\Session\\V1\\GPBMetadata\352\002" +
-      "!Ai::Stigmer::Agentic::Session::V1b\006prot" +
-      "o3"
+      ".agentic.session.v1.ComputerR\010computer\022#" +
+      "\n\rshared_runner\030\013 \001(\010R\014sharedRunner\032A\n\023V" +
+      "aultAttachersEntry\022\020\n\003key\030\001 \001(\tR\003key\022\024\n\005" +
+      "value\030\002 \001(\tR\005value:\0028\001B\246\001B\013StatusProtoP\001" +
+      "\242\002\004ASAS\252\002\035Ai.Stigmer.Agentic.Session.V1\312" +
+      "\002\035Ai\\Stigmer\\Agentic\\Session\\V1\342\002)Ai\\Sti" +
+      "gmer\\Agentic\\Session\\V1\\GPBMetadata\352\002!Ai" +
+      "::Stigmer::Agentic::Session::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -87,7 +87,7 @@ public final class StatusProto extends com.google.protobuf.GeneratedFile {
     internal_static_ai_stigmer_agentic_session_v1_SessionStatus_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_session_v1_SessionStatus_descriptor,
-        new java.lang.String[] { "Audit", "AgentId", "AgentVersionHash", "VaultAttachers", "State", "RoutineId", "Environment", "EnvironmentSource", "Computer", });
+        new java.lang.String[] { "Audit", "AgentId", "AgentVersionHash", "VaultAttachers", "State", "RoutineId", "Environment", "EnvironmentSource", "Computer", "SharedRunner", });
     internal_static_ai_stigmer_agentic_session_v1_SessionStatus_VaultAttachersEntry_descriptor =
       internal_static_ai_stigmer_agentic_session_v1_SessionStatus_descriptor.getNestedType(0);
     internal_static_ai_stigmer_agentic_session_v1_SessionStatus_VaultAttachersEntry_fieldAccessorTable = new

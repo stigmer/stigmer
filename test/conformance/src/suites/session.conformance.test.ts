@@ -119,7 +119,9 @@ async function createAgent(
       ...(opts.tag !== undefined ? { version: { tag: opts.tag } } : {}),
       ...(opts.visibility !== undefined ? { visibility: opts.visibility } : {}),
     },
-    spec: makeAgentSpec({ instructions: said(opts.label ?? "v1") }),
+    // With a computer: the suite's conversations attach repositories and
+    // folders and run on the Claude engine, which an agent without one refuses.
+    spec: makeAgentSpec({ instructions: said(opts.label ?? "v1"), computer: Computer.REQUIRED }),
   });
   fixtures.defer(() => clients.agentCommand.delete({ value: agent.metadata!.id }).catch(() => undefined));
   return agent;
@@ -1049,7 +1051,7 @@ describe("Session conformance — on an agent without a computer", () => {
     const bare = await createSession(org, uniqueName("bare"), agentRefOf(await bareAgent(org)));
     expect(bare.status?.computer).toBe(Computer.NONE);
     const plain = await createSession(org, uniqueName("plain"), await provisionAgentRef(org));
-    expect(plain.status?.computer, "a new agent gets a computer").toBe(Computer.REQUIRED);
+    expect(plain.status?.computer, "an agent with a computer records one").toBe(Computer.REQUIRED);
     const assistant = await createSession(org, uniqueName("assistant"), undefined);
     expect(assistant.status?.computer, "none recorded reads as having one").toBe(Computer.UNSPECIFIED);
   });
