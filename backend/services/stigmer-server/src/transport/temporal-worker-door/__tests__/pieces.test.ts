@@ -89,19 +89,35 @@ describe("frame helpers", () => {
 describe("held polls", () => {
   it("count per sandbox and in all, and free a slot once", () => {
     const held = newHeldPolls(2, 3);
-    const a1 = held.hold("a");
-    const a2 = held.hold("a");
-    expect(held.hold("a")).toEqual({ refused: "per-sandbox" });
-    const b1 = held.hold("b");
-    expect(held.hold("c")).toEqual({ refused: "in-all" });
+    const a1 = held.hold("a", "per-sandbox");
+    const a2 = held.hold("a", "per-sandbox");
+    expect(held.hold("a", "per-sandbox")).toEqual({ refused: "per-sandbox" });
+    const b1 = held.hold("b", "per-sandbox");
+    expect(held.hold("c", "per-sandbox")).toEqual({ refused: "in-all" });
     if (!("release" in a1) || !("release" in a2) || !("release" in b1)) throw new Error("expected slots");
     a1.release();
     a1.release();
-    expect("release" in held.hold("c")).toBe(true);
-    expect(held.hold("d")).toEqual({ refused: "in-all" });
+    expect("release" in held.hold("c", "per-sandbox")).toBe(true);
+    expect(held.hold("d", "per-sandbox")).toEqual({ refused: "in-all" });
     a2.release();
     b1.release();
-    expect("release" in held.hold("a")).toBe(true);
+    expect("release" in held.hold("a", "per-sandbox")).toBe(true);
+  });
+
+  it("hold an admission with no per-queue limit to the limit in all alone, and a sandbox's to its own", () => {
+    const held = newHeldPolls(4, 10);
+    // Three shared runners, two polls each, on the one runner queue.
+    const shared = Array.from({ length: 6 }, () => held.hold("stigmer_runner", "in-all-only"));
+    expect(shared.every((slot) => "release" in slot)).toBe(true);
+    for (let i = 0; i < 4; i += 1) {
+      expect("release" in held.hold("session:s", "per-sandbox")).toBe(true);
+    }
+    expect(held.hold("session:s", "per-sandbox")).toEqual({ refused: "per-sandbox" });
+    expect(held.hold("stigmer_runner", "in-all-only")).toEqual({ refused: "in-all" });
+    const first = shared[0]!;
+    if (!("release" in first)) throw new Error("expected a slot");
+    first.release();
+    expect("release" in held.hold("stigmer_runner", "in-all-only")).toBe(true);
   });
 });
 

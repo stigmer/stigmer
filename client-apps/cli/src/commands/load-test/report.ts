@@ -95,6 +95,7 @@ export interface LoadTestReport {
   readonly requested: number;
   readonly budgetUsd: number;
   readonly shareUsd: number;
+  readonly computer: BurstComputer;
   readonly counts: {
     readonly started: number;
     readonly refused: number;
@@ -112,7 +113,10 @@ export interface LoadTestReport {
   readonly leftBehind: readonly string[];
 }
 
-/** The burst's frame: where it ran and what it was allowed to spend. */
+/** Whether the burst's agent had a computer (`--computer`). */
+export type BurstComputer = "none" | "required";
+
+/** The burst's frame: where it ran, what it was allowed to spend, and whether its agent had a computer. */
 export interface BurstFrame {
   readonly server: string;
   readonly org: string;
@@ -120,6 +124,7 @@ export interface BurstFrame {
   readonly requested: number;
   readonly budgetUsd: number;
   readonly shareUsd: number;
+  readonly computer: BurstComputer;
 }
 
 const NO_SANDBOX_ROOM = "no_sandbox_room";

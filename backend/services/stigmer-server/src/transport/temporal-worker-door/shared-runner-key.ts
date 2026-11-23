@@ -4,7 +4,9 @@
  * (domain/run/placement.ts `shared`) presents the server's
  * STIGMER_SHARED_RUNNER_KEY as its token, and the lane admits it to the
  * runner queue (`stigmer_runner`) alone, exactly as it admits a sandbox to
- * its own queue.
+ * its own queue. Every shared runner polls that one queue, so its admission
+ * carries no per-queue poll limit, only the lane's limit in all
+ * (capacity.ts).
  *
  * The key is read HERE and nowhere else. It is not a caller identity: no
  * verifier knows it, so on every other server call it is an unknown bearer
@@ -22,6 +24,8 @@
  */
 import { createHash, timingSafeEqual } from "node:crypto";
 
+import type { LaneAdmission } from "./lane.js";
+
 /**
  * The lane's `queueOf` with the shared-runner key in front: the runner queue
  * for the key, the credential provider's answer for any other bearer. With
@@ -30,13 +34,14 @@ import { createHash, timingSafeEqual } from "node:crypto";
 export function sharedRunnerKeyQueueOf(
   key: string,
   runnerQueue: string,
-  otherwise: (rawToken: string) => Promise<string | undefined>,
-): (rawToken: string) => Promise<string | undefined> {
+  otherwise: (rawToken: string) => Promise<LaneAdmission | undefined>,
+): (rawToken: string) => Promise<LaneAdmission | undefined> {
   if (key === "") {
     return otherwise;
   }
   const expected = digest(key);
-  return async (rawToken) => (timingSafeEqual(digest(rawToken), expected) ? runnerQueue : otherwise(rawToken));
+  const admission: LaneAdmission = { queue: runnerQueue, pollLimit: "in-all-only" };
+  return async (rawToken) => (timingSafeEqual(digest(rawToken), expected) ? admission : otherwise(rawToken));
 }
 
 function digest(value: string): Buffer {

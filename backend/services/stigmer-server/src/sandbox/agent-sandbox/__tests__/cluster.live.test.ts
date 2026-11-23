@@ -178,7 +178,7 @@ describe("the agent-sandbox driver on a live cluster", () => {
       logger,
       namespace: "default",
       connection: () => temporal,
-      queueOf: async (token) => (token.startsWith("tok-live") ? taskQueue : undefined),
+      queueOf: async (token) => (token.startsWith("tok-live") ? { queue: taskQueue, pollLimit: "per-sandbox" } : undefined),
       receiptKey: async () => Buffer.alloc(32, 7),
     });
     lane.on("request", handler);

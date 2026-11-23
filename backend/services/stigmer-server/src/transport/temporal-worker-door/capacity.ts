@@ -11,6 +11,18 @@
  * replaced during a reconnect is never refused. Past either limit a poll is
  * refused with RESOURCE_EXHAUSTED, which the SDK retries with backoff.
  *
+ * The per-sandbox limit is the lane admission's to apply (lane.ts
+ * `LaneAdmission`). A sandbox's credential is held to it, so one sandbox
+ * cannot take the lane's room. The shared-runner key's admission is not:
+ * every shared runner polls the one runner queue (shared-runner-key.ts),
+ * so a per-queue limit there would cap the whole pool at a few polls, and
+ * the key is the platform's own, never a person's. Those polls are bounded
+ * by `HELD_POLLS_IN_ALL` alone, so a runaway pool still cannot exhaust
+ * Temporal's room for the namespace. That limit is shared with every
+ * sandbox: a pool large enough to hold all of it (about 500 runners at two
+ * polls each, per server process) would leave sandboxes' polls refused
+ * until runners' polls lapse, so a deployment sizes its pool well below.
+ *
  * A held Node request costs a pending promise, not a thread, so no
  * executor is needed here.
  */
@@ -23,9 +35,12 @@ export const HELD_POLLS_IN_ALL = 1_000;
 
 export type HoldRefusal = "per-sandbox" | "in-all";
 
+/** Which limits a poll is held to: a sandbox's own and the limit in all, or the limit in all alone. */
+export type PollLimit = "per-sandbox" | "in-all-only";
+
 export interface HeldPolls {
   /** A release function for the slot taken, or which limit refused. */
-  hold(queue: string): { readonly release: () => void } | { readonly refused: HoldRefusal };
+  hold(queue: string, limit: PollLimit): { readonly release: () => void } | { readonly refused: HoldRefusal };
 }
 
 export function newHeldPolls(
@@ -35,9 +50,9 @@ export function newHeldPolls(
   const byQueue = new Map<string, number>();
   let total = 0;
   return {
-    hold(queue) {
+    hold(queue, limit) {
       const held = byQueue.get(queue) ?? 0;
-      if (held >= perSandbox) {
+      if (limit === "per-sandbox" && held >= perSandbox) {
         return { refused: "per-sandbox" };
       }
       if (total >= inAll) {

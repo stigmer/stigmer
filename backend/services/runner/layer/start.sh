@@ -31,7 +31,22 @@
 #              PATH (without them a repository workspace, the agent user or
 #              an agent's hooks break).
 #   warned   - rg (the Stigmer harness's grep falls back to a substring
-#              search): one feature degrades, so the runner starts.
+#              search): one feature degrades, so the runner starts. Not
+#              asked of a computer-less runner that is not root (below).
+#
+# A runner that serves only conversations without a computer
+# (STIGMER_RUNNER_SERVES=computerless, src/runner-serves.ts) and runs as a
+# user other than root is asked for the glibc loader and /proc alone. Its
+# turns run in locked hosts, copies of the runner's own entry under Node's
+# permission model (src/agent-host/fence.ts), with no shell, repository or
+# hook, and a runner that is not root starts them as its own user: it never
+# drops to stigmer-agent (src/shared/agent-identity.ts separates only as
+# root). So neither root nor the agent's tools are asked of it, and it
+# starts as whatever user its deployment names. As root it still separates,
+# whatever it serves, so it is checked as every root runner is; so is a
+# runner whose user this script cannot read. Any other value of the
+# setting, unset included, is checked as a runner with a computer; the
+# runner itself refuses a value it does not know.
 #
 # glibc's version is not checked: that needs a fork, and below 2.28 the
 # loader refuses the Node itself with a message that names the version it
@@ -95,6 +110,11 @@ if [ ! -e /lib64/ld-linux-x86-64.so.2 ] && [ ! -e /lib/ld-linux-aarch64.so.1 ]; 
   add_problem "$libc"
 fi
 
+computerless=""
+if [ "${STIGMER_RUNNER_SERVES-}" = "computerless" ]; then
+  computerless=1
+fi
+
 uid=""
 if [ -r /proc/self/status ]; then
   while read -r key _ effective _; do
@@ -103,25 +123,39 @@ if [ -r /proc/self/status ]; then
       break
     fi
   done </proc/self/status
-  if [ "$uid" != "0" ]; then
+  if [ -z "$computerless" ] && [ "$uid" != "0" ]; then
     add_problem "running as uid ${uid:-unknown}, not root (on Substrate the base image's USER must be root)"
   fi
 else
   add_problem "no /proc (cannot read /proc/self/status)"
 fi
 
+# Known to be a computer-less runner that is not root: the one shape that
+# never starts the agent user.
+unprivileged=""
+if [ -n "$computerless" ] && [ -n "$uid" ] && [ "$uid" != "0" ]; then
+  unprivileged=1
+fi
+
 missing=""
-for tool in bash git setpriv cat sed grep head cut awk tr base64 dirname; do
-  if ! command -v "$tool" >/dev/null 2>&1; then
-    missing="${missing:+$missing, }$tool"
-  fi
-done
+if [ -z "$unprivileged" ]; then
+  for tool in bash git setpriv cat sed grep head cut awk tr base64 dirname; do
+    if ! command -v "$tool" >/dev/null 2>&1; then
+      missing="${missing:+$missing, }$tool"
+    fi
+  done
+fi
 if [ -n "$missing" ]; then
   add_problem "missing from PATH: $missing"
 fi
 
 if [ -n "$problems" ]; then
-  printf 'stigmer runner: this base image cannot run the runner layer: %s. The base image needs glibc 2.28 or newer, root, bash, git and standard text tools: %s\n' "$problems" "$GUIDE" >&2
+  if [ -n "$unprivileged" ]; then
+    needs="The base image of a runner without a computer that is not root needs glibc 2.28 or newer and /proc"
+  else
+    needs="The base image needs glibc 2.28 or newer, root, bash, git and standard text tools"
+  fi
+  printf 'stigmer runner: this base image cannot run the runner layer: %s. %s: %s\n' "$problems" "$needs" "$GUIDE" >&2
   exit 78
 fi
 
@@ -139,15 +173,18 @@ if [ -n "$server_release" ]; then
   fi
 fi
 
-if ! command -v rg >/dev/null 2>&1; then
+# A computer-less runner that is not root runs no harness that searches a
+# disk, so rg means nothing to it.
+if [ -z "$unprivileged" ] && ! command -v rg >/dev/null 2>&1; then
   printf 'stigmer runner: warning: rg is not on PATH, so the Stigmer harness'"'"'s grep falls back to a substring search (%s)\n' "$GUIDE" >&2
 fi
 
 unset NODE_OPTIONS NODE_PATH
 
 # The runner reads this to know it runs in a container shape, where it
-# starts the agent's side as the agent user (src/shared/agent-identity.ts),
-# and never downloads an engine (src/activities/execute-claude/adapter.ts).
+# starts the agent's side as the agent user when it runs as root
+# (src/shared/agent-identity.ts), and never downloads an engine
+# (src/activities/execute-claude/adapter.ts).
 export STIGMER_RUNNER_LAYER=1
 
 # The Claude engine the layer carries: engines beside this file's directory

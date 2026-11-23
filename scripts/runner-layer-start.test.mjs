@@ -44,13 +44,13 @@ const GUIDE_URL = "https://stigmer.ai/docs/guides/self-hosting/runners#bring-you
 
 /** The words of the script's `for tool in ...` line that holds `first`. */
 function toolList(first) {
-  const line = SOURCE.split("\n").find((l) => new RegExp(`^for tool in ${first}\\b`).test(l));
+  const line = SOURCE.split("\n").find((l) => new RegExp(`^\\s*for tool in ${first}\\b`).test(l));
   assert.ok(line, `start.sh has no tool list starting with ${first}`);
-  return line.replace(/^for tool in /, "").replace(/; do$/, "").split(/\s+/);
+  return line.trim().replace(/^for tool in /, "").replace(/; do$/, "").split(/\s+/);
 }
 const REQUIRED = toolList("bash");
-/** The tools the script warns about, each checked on its own `if ! command -v <tool>` line. */
-const OPTIONAL = [...SOURCE.matchAll(/^if ! command -v (\S+) >\/dev\/null/gm)].map((m) => m[1]);
+/** The tools the script warns about, each checked on its own `if ... ! command -v <tool>` line. */
+const OPTIONAL = [...SOURCE.matchAll(/^if (?:\[ -z "\$unprivileged" \] && )?! command -v (\S+) >\/dev\/null/gm)].map((m) => m[1]);
 assert.ok(OPTIONAL.length > 0, "start.sh warns about no optional tool");
 
 const which = (tool) => {
@@ -140,6 +140,56 @@ test("an empty PATH names every required tool", () => {
   assert.equal(result.status, 78);
   assert.match(result.stderr, new RegExp(`missing from PATH: ${REQUIRED.join(", ")}\\.`));
   assert.equal(result.stderr.split("\n").length, 2, "one line, then the newline");
+});
+
+/** Where this process is known to run as a user other than root: /proc names its uid, and it is not 0. */
+const KNOWN_NOT_ROOT = hasProc && !isRoot;
+
+test(
+  "a runner without a computer that is not root is asked for neither root nor the agent's tools, nor warned about rg",
+  KNOWN_NOT_ROOT ? {} : { skip: "needs a known user other than root; the gate's Linux runners are one" },
+  () => {
+    const bin = layerBin();
+    const result = start(bin, pathWith([]), ["/runner/dist/main.js"], { STIGMER_RUNNER_SERVES: "computerless" });
+    if (hasLoader) {
+      assert.equal(result.status, 0, result.stderr);
+      assert.equal(result.stdout, `args=/runner/dist/main.js|NODE_OPTIONS=unset NODE_PATH=unset LAYER=1 ENGINES=${enginesBeside(bin)}\n`);
+      assert.equal(result.stderr, "", "not even an optional tool's warning");
+    } else {
+      assert.equal(result.status, 78);
+      assert.equal(
+        result.stderr,
+        "stigmer runner: this base image cannot run the runner layer: no glibc dynamic loader (/lib64/ld-linux-x86-64.so.2 or /lib/ld-linux-aarch64.so.1). " +
+          `The base image of a runner without a computer that is not root needs glibc 2.28 or newer and /proc: ${GUIDE_URL}\n`,
+      );
+    }
+  },
+);
+
+test(
+  "a runner without a computer that is root, or whose user cannot be read, is held to every check, setpriv among them",
+  KNOWN_NOT_ROOT ? { skip: "runs as root, or where /proc cannot name the user; the runner lane runs it as root" } : {},
+  () => {
+    const hidden = ["git", "setpriv"];
+    const result = start(layerBin(), pathWith(REQUIRED.filter((t) => !hidden.includes(t))), ["/runner/dist/main.js"], {
+      STIGMER_RUNNER_SERVES: "computerless",
+    });
+    const problems = [...machineProblems(), `missing from PATH: ${hidden.join(", ")}`];
+    assert.equal(result.status, 78);
+    assert.equal(
+      result.stderr,
+      `stigmer runner: this base image cannot run the runner layer: ${problems.join("; ")}. ` +
+        `The base image needs glibc 2.28 or newer, root, bash, git and standard text tools: ${GUIDE_URL}\n`,
+    );
+  },
+);
+
+test("any other STIGMER_RUNNER_SERVES is checked as a runner with a computer", () => {
+  for (const serves of ["all", "", "Computerless", "computerless "]) {
+    const result = start(layerBin(), pathWith([]), [], { STIGMER_RUNNER_SERVES: serves });
+    assert.equal(result.status, 78, serves);
+    assert.match(result.stderr, new RegExp(`missing from PATH: ${REQUIRED.join(", ")}\\. The base image needs glibc 2\\.28 or newer, root,`));
+  }
 });
 
 test("a relative $0 is refused, not resolved", () => {

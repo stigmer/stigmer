@@ -24,7 +24,18 @@ stigmer load-test --agents 25
 
 # A bigger burst on a cheaper model, as JSON for a script
 stigmer load-test --agents 100 --model claude-haiku-4-5 --max-usd 2 -o json > burst.json
+
+# Agents without a computer, which a server with shared runners runs there
+stigmer load-test --agents 12 --computer none
 ```
+
+`--computer none` makes the burst's agent without a computer: on a server that
+runs shared runners, every run goes to one of them instead of a sandbox, and the
+burst measures how the shared runners take a crowd. The start line says
+"without a computer" and the report's `computer` field is `none`. A server with
+no shared runners still places those runs in sandboxes, so the wait lines read as
+for any burst. The default, `required`, gives the agent a computer, so every run
+asks for a sandbox.
 
 {/* AUTO_FLAGS */}
 

@@ -69,7 +69,7 @@ import { SANDBOX_QUEUE_PREFIXES, sandboxBaseName } from "../../sandbox/naming.js
 import type { SandboxScope } from "../../sandbox/provisioner.js";
 import { MAX_MESSAGE_BYTES } from "../constants.js";
 import type { LaneHandler, LaneRequest, LaneResponse } from "../lanes.js";
-import { newHeldPolls, type HeldPolls } from "./capacity.js";
+import { newHeldPolls, type HeldPolls, type PollLimit } from "./capacity.js";
 import {
   GrpcCode,
   callerGone,
@@ -102,6 +102,17 @@ export const POLL_DRAIN_MARGIN_MS = 2_000;
 /** The counter's `method` for every method the lane does not serve (observability/runner-work-queue-metrics.ts). */
 export const UNSERVED_METHOD = "unserved";
 
+/**
+ * What a credential is admitted to: the one task queue it serves, and the
+ * held-poll limits its polls meet (capacity.ts). A sandbox's credential is
+ * held per sandbox; the shared-runner key, which every shared runner
+ * presents for the one runner queue, by the limit in all alone.
+ */
+export interface LaneAdmission {
+  readonly queue: string;
+  readonly pollLimit: PollLimit;
+}
+
 export interface TemporalWorkerDoorDeps {
   readonly logger: Logger;
   /** The server's Temporal namespace, the only one served. */
@@ -109,10 +120,11 @@ export interface TemporalWorkerDoorDeps {
   /** The server's current Temporal connection; undefined while it has none. */
   readonly connection: () => ConnectionLike | undefined;
   /**
-   * The one task queue the bearer's sandbox serves, or undefined to refuse
-   * (the provider's capability, wrapped so a throw is a logged refusal).
+   * The one task queue the bearer serves and its poll limit, or undefined
+   * to refuse (the provider's capability, wrapped so a throw is a logged
+   * refusal; the shared-runner key in front of it).
    */
-  readonly queueOf: (rawToken: string) => Promise<string | undefined>;
+  readonly queueOf: (rawToken: string) => Promise<LaneAdmission | undefined>;
   readonly receiptKey: ReceiptKeySource;
   readonly heldPolls?: HeldPolls;
   /** Overrides POLL_BUDGET_MS (tests). */
@@ -130,6 +142,7 @@ interface CallContext {
   readonly deps: TemporalWorkerDoorDeps;
   readonly connection: ConnectionLike;
   readonly queue: string;
+  readonly pollLimit: PollLimit;
   readonly identity: string;
   readonly message: Uint8Array;
   readonly signal: AbortSignal;
@@ -174,7 +187,7 @@ const HANDLERS: Readonly<Record<string, Handler>> = {
     if ((kind !== NORMAL_QUEUE && kind !== UNSPECIFIED_QUEUE) || (taskQueue.normalName ?? "") !== "") {
       return refused(GrpcCode.PERMISSION_DENIED, WORDS.stickyQueue, "queue_kind");
     }
-    const slot = call.heldPolls.hold(call.queue);
+    const slot = call.heldPolls.hold(call.queue, call.pollLimit);
     if ("refused" in slot) {
       return slot.refused === "per-sandbox"
         ? refused(GrpcCode.RESOURCE_EXHAUSTED, WORDS.tooManyForSandbox, "held_per_sandbox")
@@ -283,20 +296,21 @@ const HANDLERS: Readonly<Record<string, Handler>> = {
 
 /**
  * The lane's `queueOf` over a runner-credential provider: its
- * `temporalTaskQueueOf` capability, a provider without it refusing every
- * caller, and a throw a logged refusal (a composition fault, never a
- * crash of the call).
+ * `temporalTaskQueueOf` capability, under the per-sandbox poll limit, a
+ * provider without it refusing every caller, and a throw a logged refusal
+ * (a composition fault, never a crash of the call).
  */
 export function credentialQueueOf(
   provider: Pick<RunnerCredentialProvider, "temporalTaskQueueOf">,
   logger: Logger,
-): (rawToken: string) => Promise<string | undefined> {
+): (rawToken: string) => Promise<LaneAdmission | undefined> {
   return async (rawToken) => {
     if (provider.temporalTaskQueueOf === undefined) {
       return undefined;
     }
     try {
-      return await provider.temporalTaskQueueOf(rawToken);
+      const queue = await provider.temporalTaskQueueOf(rawToken);
+      return queue === undefined ? undefined : { queue, pollLimit: "per-sandbox" };
     } catch (error) {
       logger.warn("Runner credential's Temporal queue could not be read; refusing", {
         error: error instanceof Error ? error.message : String(error),
@@ -390,8 +404,8 @@ async function decide(
   if (!read.ok) {
     return failed(read.code, WORDS[read.reason], "frame");
   }
-  const queue = await deps.queueOf(token);
-  if (queue === undefined) {
+  const admission = await deps.queueOf(token);
+  if (admission === undefined) {
     return refused(GrpcCode.PERMISSION_DENIED, WORDS.notASandbox, "credential");
   }
   const connection = deps.connection();
@@ -401,8 +415,9 @@ async function decide(
   return handler({
     deps,
     connection,
-    queue,
-    identity: identityOf(queue),
+    queue: admission.queue,
+    pollLimit: admission.pollLimit,
+    identity: identityOf(admission.queue),
     message: read.message,
     signal,
     callerDeadlineMs: grpcTimeoutMs(request.headers["grpc-timeout"]),
