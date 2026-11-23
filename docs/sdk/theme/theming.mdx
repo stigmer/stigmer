@@ -359,8 +359,8 @@ runs (a tool of a server you connected, such as `create_invoice` on your
 billing server), pass your card for it to `StigmerProvider` as `toolCards`,
 keyed by the tool's name as the agent sees it (`mcp__billing__create_invoice`).
 The step's line stays ours and still says whether it's running, done or
-failed; your card replaces what opens under it, stays in view, and shows right
-after the answer once the turn finishes. If your card throws, ours shows
+failed; your card replaces what opens under it and stays in view after the turn
+finishes. If your card throws, ours shows
 instead. See the [core reference](/docs/sdk/react/core) for `toolCards`, and
 the [run reference](/docs/sdk/react/run) for `ToolCardProps`.
 

@@ -163,6 +163,8 @@ export function OpenAccountCard({ call, answer }: ToolCardProps) {
             Needs a look
           </button>
         </div>
+      ) : call.state === "stopped" ? (
+        <span>The Agent stopped before anyone checked it.</span>
       ) : null}
       {error !== null && <span role="alert">{error}</span>}
     </section>
@@ -173,7 +175,8 @@ export function OpenAccountCard({ call, answer }: ToolCardProps) {
 - `defineCustomTool` declares the tool: its name, what it is for, and the input
   the Agent must give it. The description is what the Agent reads to decide when
   to call it.
-- The card reads the call (`call.input`, and `call.result` once it is answered).
+- The card reads the call: `call.input`, `call.result` once it is answered, and
+  `call.state`, here to say when the turn stopped before anyone answered.
   `answer` sends your user's pick back as the tool's result. It is there while
   the call waits, and only for the conversation's owner: someone only watching
   sees the account and no buttons.
@@ -349,9 +352,11 @@ export const THREAD_SLOTS: MessageThreadSlots = { MessageEntry: PersonBubble };
 
 The bubble reads your brand's own tokens, so it follows light and dark with the
 rest, and it draws only what you give it: here the text, and how many files the
-message carried. Every other message goes back to `MessageEntry`. Handing back
-loads that part with your page, before the chat draws, where the chat alone
-loads it with the conversation. In `src/App.tsx`:
+message carried. It replaces Stigmer's bubble whole, so the person's messages
+lose its Copy and Edit buttons and its file previews; draw the ones you want to
+keep. Every other message goes back to `MessageEntry`. Handing back loads that
+part with your page, before the chat draws, where the chat alone loads it with
+the conversation. In `src/App.tsx`:
 
 {/* prettier-ignore */}
 ```tsx no-compile="a run of src/App.tsx, shown whole in the last step"
@@ -394,11 +399,12 @@ export function AgentStatus({
 }
 ```
 
-`useSessionConversation` reads the conversation the chat shows: its turns, the
-one at work, its files. `describeTurnActivity` and `activityPhrase` put the turn
-at work in the same words the chat uses, such as "Waiting for the app" while
-your card waits for your user. In `src/App.tsx`, keep the conversation's ID that
-`onSessionChange` hands you and put the line in your header:
+`useSessionConversation` reads the same conversation the chat shows, over a
+connection of its own: its turns, the one at work, its files.
+`describeTurnActivity` and `activityPhrase` put the turn at work in the same
+words the chat uses, such as "Waiting for the app" while your card waits for
+your user. In `src/App.tsx`, keep the conversation's ID that `onSessionChange`
+hands you and put the line in your header:
 
 {/* prettier-ignore */}
 ```tsx no-compile="a run of src/App.tsx, shown whole in the last step"
@@ -557,11 +563,15 @@ answer from your backend with the TypeScript SDK's `answerCustomToolUse`
 Some things look the way you want but work the same in every app, so your users
 can trust them:
 
-- **What an approval shows and records.** You can draw the approval card your
-  way, but what it shows the person and the decision it records are Stigmer's.
-- **The order of events.** The conversation shows what happened in the order it
-  happened, in every app and when it is opened again later.
-- **Stop.** Your user can always stop the Agent.
+- **How an approval is answered and recorded.** An approval inside a tool's step
+  always shows Stigmer's Allow and Deny. You can draw the approval card your
+  way, and it answers through Stigmer's wiring: what your user picks is recorded
+  against what the tool will actually do, so your card must show that.
+- **The record of what happened.** The conversation's record and its export keep
+  events in the order they happened, in every app and when it is opened again
+  later.
+- **Stop.** Stigmer's Stop stays in reach while the Agent works; none of your
+  parts replaces it, and one that throws doesn't take it down.
 - **Keyboard and screen-reader access.** Stigmer's parts are reached and named
   the same way in every app. Your parts sit inside them, so give your buttons
   names, as the card and the action here do.

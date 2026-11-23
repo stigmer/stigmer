@@ -2877,6 +2877,17 @@ message's actions never take a key from the page. The host keeps each
 gives every action a `label`: it is the action's accessible name, and the
 kit draws what it is given, so a blank label leaves a button unnamed.
 
+<TypeTable
+  type={{
+    disabled: { type: "boolean", description: "When `true`, the action is shown but can't be chosen." },
+    icon: { type: "ReactNode", description: "An icon; up to two actions with one draw as icon buttons beside Copy." },
+    id: { type: "string", description: "Names the act, unique among one message's actions.", required: true },
+    label: { type: "string", description: "The words a menu shows and the button's accessible name.", required: true },
+    onAction: { type: "() => void", description: "Fires when the person chooses the action.", required: true },
+    variant: { type: "\"default\" | \"destructive\"", description: "`\"destructive\"` draws it as a danger, for an act that removes or revokes." },
+  }}
+/>
+
 
 ### MessageEntry
 
