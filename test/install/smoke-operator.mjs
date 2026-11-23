@@ -912,14 +912,18 @@ async function runSubstrate(fake, modelBaseUrl) {
   stigmer.apply({
     owner: { email: "owner@example.com" },
     image: { registry },
-    runner: { llm: { secretName: MODEL_SECRET } },
+    // The runner for agents without a computer, beside the driver, asks as
+    // little as the others below.
+    runner: { llm: { secretName: MODEL_SECRET }, resources: { requests: { cpu: "50m", memory: "512Mi" } } },
     objectStore: objectStore.spec(),
     // The server's own fence too: it reaches Substrate through it, and the
     // model's host by the range named here. Every request below is smaller
     // than its default: a CI runner has four cores, Agent Substrate's
     // control plane asks for most of them, and a pod that cannot be
     // scheduled leaves the install waiting (measured: 3910m of 4000m asked
-    // for with the defaults, the Temporal worker and the server unplaced).
+    // for with the defaults, the Temporal worker and the server unplaced;
+    // the runner for agents without a computer was the next pod left
+    // unplaced).
     server: { egress: { fenced: true, allowCIDRs: [`${modelIP}/32`] }, resources: { requests: { cpu: "100m", memory: "1Gi" } } },
     database: { postgresql: { bundled: { resources: { requests: { cpu: "50m", memory: "256Mi" } } } } },
     temporal: { bundled: { resources: { requests: { cpu: "25m", memory: "256Mi" } } } },
