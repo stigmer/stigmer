@@ -23,8 +23,10 @@ your shape starts beside the server, and every shape starts exactly one:
 - On the [Docker Compose stack](./docker-compose), the runner is the
   `stigmer-runner` service.
 - On [Kubernetes](./kubernetes), the runner is the second container of the
-  server's pod, which the Stigmer operator runs, unless a sandbox driver gives
-  each Session a runner of its own.
+  server's pod, which the Stigmer operator runs. With a sandbox driver, each
+  Session whose Agent has a computer gets a runner of its own instead, and the
+  operator runs one shared runner beside the sandboxes for Agents without a
+  computer ([Agents without a computer](#agents-without-a-computer)).
 
 ## How a run reaches the runner
 
@@ -81,8 +83,9 @@ place, but nothing durable is lost.
 How you know the runner is alive today: its log.
 `Worker ready, polling for tasks...` is the line to look for, in
 `docker compose logs stigmer-runner` or
-`kubectl logs deployment/stigmer -c runner`. The runner has no health endpoint
-yet, so the operator gives its container no probe on purpose
+`kubectl logs deployment/stigmer -c runner` (`deployment/stigmer-runner` with a
+sandbox driver). The runner has no health endpoint yet, so the operator gives
+its container no probe on purpose
 ([stigmer#1101](https://github.com/stigmer/stigmer/issues/1101)), and the
 console has no runner page.
 
@@ -195,7 +198,9 @@ Two consequences for a team:
   trust, which is what open source serves. The tenant boundary on a self-hosted
   install is a sandbox driver ([A runner per Session](#a-runner-per-session)):
   each sandboxed runner serves one Session and reaches Temporal only through the
-  Stigmer server.
+  Stigmer server. Agents without a computer share one runner there, but their
+  turns can reach neither a disk nor a program
+  ([Agents without a computer](#agents-without-a-computer)).
 - **Several Organizations need a sandbox driver.** A Stigmer Enterprise server
   whose license allows more than one Organization refuses to start without a
   sandbox driver that isolates each Session (`docker`, `agent-sandbox` or
@@ -204,11 +209,13 @@ Two consequences for a team:
   anyway, set `STIGMER_SHARED_RUNNER_ACROSS_ORGANIZATIONS=accepted`. The server
   then starts, and logs one warning naming what is shared. Any other value stops
   the server. The Stigmer operator never sets it: a licensed install on
-  Kubernetes runs no shared runner, so every Session runs in a sandbox.
+  Kubernetes runs every Session whose Agent has a computer in a sandbox, and its
+  one shared runner serves only Agents without one.
 - **One runner, one replica.** The operator runs one replica on purpose and
-  replaces the pod rather than rolling it, because two runners on one disk would
-  race for the same working directories and checkpoints. Running a second shared
-  runner isn't something these guides teach.
+  replaces the pod rather than rolling it. A runner keeps each Session's
+  checkpoints on its own disk, and any replica could take a Session's next turn:
+  a second replica would find nothing for the Sessions the first one ran, and
+  two runners on one disk would race for the same files.
 
 ## A runner per Session
 
@@ -371,6 +378,67 @@ SANDBOX_PROVISIONER_TYPE='docker' requires per-session routing — set STIGMER_A
   mechanism so the settings you meet in the server's configuration make sense;
   it isn't a procedure.
 </Callout>
+
+### Agents without a computer
+
+An Agent without a computer has no shell, repositories, folders, Environment,
+hooks, or local programs. Its turns write no file and start no program, so a
+sandbox for each of its Sessions would cost a pod for nothing. With a sandbox
+driver on and a shared-runner key set, the server sends those turns to one
+shared runner on the `stigmer_runner` queue instead, and every other turn to a
+sandbox as before. The operator sets the key for you; by hand, the settings are
+below.
+
+What the Sessions on that runner share, and what they don't:
+
+- **They share the runner's process, memory and network.** Each turn runs in a
+  locked process that can't write a file, start a program or read the runner's
+  home. `STIGMER_TURN_MEMORY_MB` caps the memory one turn may use, 512 MB unless
+  you set it.
+- **They don't share a key.** The runner holds no Organization's key. Each turn
+  acts under the credential the server minted for it, which travels sealed in
+  its Temporal task, so a licensed server with several Organizations runs this
+  runner too.
+- **They don't share a computer.** The runner refuses any turn whose Agent has
+  one; that turn belongs in a sandbox.
+
+The runner reaches Temporal the way a sandbox does: through the server, on the
+server's own address, presenting the shared-runner key. The server admits that
+key to the `stigmer_runner` queue and nothing else. So the runner needs a
+network path to the server alone.
+
+To run it beside a server you start yourself, set:
+
+| Where             | Setting                             | Value                                                                                                      |
+| ----------------- | ----------------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| Server            | `STIGMER_SHARED_RUNNER_KEY`         | A random key of at least 32 characters (`openssl rand -base64 32`). Setting it turns the shared runner on. |
+| Server and runner | `STIGMER_PAYLOAD_ENCRYPTION_KEY`    | 32 random bytes in base64 (`openssl rand -base64 32`), the same value on both.                             |
+| Server and runner | `STIGMER_PAYLOAD_ENCRYPTION_KEY_ID` | A name for that key, the same on both.                                                                     |
+| Runner            | `STIGMER_RUNNER_SERVES`             | `computerless`                                                                                             |
+| Runner            | `STIGMER_TOKEN`                     | The shared-runner key.                                                                                     |
+| Runner            | `STIGMER_BACKEND_ENDPOINT`          | The server's address as the runner reaches it, such as `http://stigmer-server:7234`.                       |
+| Runner            | `TEMPORAL_SERVICE_ADDRESS`          | That address's host and port, such as `stigmer-server:7234`.                                               |
+| Runner            | `STIGMER_TURN_MEMORY_MB`            | Optional: the memory one turn may use, in MB.                                                              |
+
+The runner reads its model keys as any runner does. The server refuses to boot
+with the shared-runner key and no payload key, because each turn's credential is
+sealed under that key. Give the runner no `STIGMER_TEMPORAL_*` settings: it
+reaches Temporal through the server, and a runner with both stops at boot and
+says why.
+
+**Run one replica.** The runner keeps each Session's checkpoints on its own
+disk, because the server has no store for them in open source. Any replica could
+take a Session's next turn, and a second replica would find nothing for the
+Sessions the first one ran: those conversations would be lost. Give the one
+runner a volume at its home, `/data` in the image.
+
+**On Kubernetes the operator does all of this** when `spec.sandboxes.driver` is
+set. It mints the shared-runner key into the Secret `stigmer-shared-runner-key`
+and the payload key into `stigmer-keys`, beside the server's other keys, and
+hands both to the server and this runner alone. No sandbox receives either. The
+runner is the Deployment `stigmer-runner`, one replica, with its state on the
+`stigmer-runner-data` claim. `spec.runner.resources`, `spec.runner.storage` and
+`spec.runner.extraEnv` size and tune it, as they do the shared runner.
 
 ### Bring your own base image
 

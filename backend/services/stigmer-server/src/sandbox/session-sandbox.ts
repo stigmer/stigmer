@@ -62,9 +62,10 @@
  * refuse the turn naming it.
  *
  * The ensure and the teardown short-circuit when the lane is disabled,
- * and the ensure when the execution's resolved target is LOCAL: the
- * conformance rosters run entirely on those fast paths (byte-identity by
- * construction).
+ * and the ensure whenever no sandbox of this server serves the turn
+ * (domain/run/placement.ts: a LOCAL target, or a conversation without a
+ * computer that a shared runner serves): the conformance rosters run
+ * entirely on those fast paths (byte-identity by construction).
  *
  * One conversation, one workspace, one runner, acting as the
  * conversation's creator: a session has one sandbox, and its runner
@@ -89,7 +90,6 @@ import {
   RunStatusSchema,
 } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 import { SessionSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/api_pb";
-import { ExecutionTarget } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
 import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 import type { Logger } from "../boot/logger.js";
@@ -98,10 +98,7 @@ import { accountForStamp } from "../domain/identityaccount/resolve.js";
 import { createdByOf } from "../pipeline/steps/authorization-facts.js";
 import type { AgentExecutionTemporalConfig } from "../domain/run/temporal/config.js";
 import type { CallerIdentity } from "../extensions/identity.js";
-import {
-  formatSessionTaskQueue,
-  resolveActivityTaskQueue,
-} from "../temporal/agentexecution/dispatch.js";
+import { resolveActivityTaskQueue } from "../temporal/agentexecution/dispatch.js";
 import type { Store } from "../store/interface.js";
 import { mintSandboxToken, type SandboxLane } from "./lane.js";
 import { MAKE_ROOM_RETRY_DELAYS_MS } from "./make-room.js";
@@ -195,19 +192,14 @@ export async function ensureSessionSandboxForExecution(
       sessionId,
       deps.temporalConfig,
       deps.logger,
+      lane.enabled,
     );
-    if (dispatch.executionTarget !== ExecutionTarget.CLOUD) {
-      return "skipped";
-    }
-    if (dispatch.taskQueue !== formatSessionTaskQueue(sessionId)) {
-      // CLOUD target under global routing: the sandbox would have to
-      // poll the shared queue, which is the external-runner posture —
-      // boot coherence validation forbids the combination; this arm is
-      // the belt-and-braces skip.
-      deps.logger.warn(
-        "Sandbox provisioning skipped: session routing is not per-session",
-        { executionId, sessionId, taskQueue: dispatch.taskQueue },
-      );
+    if (dispatch.placement !== "sandbox") {
+      // A LOCAL target, or a turn a shared runner serves (a conversation
+      // without a computer, domain/run/placement.ts): no sandbox to start.
+      // CLOUD under global routing lands here too; boot coherence
+      // validation forbids that combination, so this is its
+      // belt-and-braces skip.
       return "skipped";
     }
     const environment = await sessionEnvironmentFacts(

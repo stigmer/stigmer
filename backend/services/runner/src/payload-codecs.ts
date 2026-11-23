@@ -15,6 +15,10 @@
  * Codec order is a correctness property. Temporal applies codecs in array
  * order on encode and in reverse on decode, so a codec added here goes after
  * encryption: whatever it hands to another store is then already ciphertext.
+ *
+ * The same encryption codec opens a run credential the server sealed for a
+ * turn on a shared runner ({@link sealedValueOpener}): one key, one codec
+ * instance, the one the worker decodes its payloads with.
  */
 
 import type { BootstrapKeyMaterial } from "@stigmer/temporal-codecs";
@@ -48,4 +52,22 @@ export async function createPayloadCodecs(
   }
 
   return codecs.length > 0 ? codecs : undefined;
+}
+
+/**
+ * Opens a value the server sealed with its payload key
+ * (`@stigmer/temporal-codecs` `openSealedString`), with the chain's
+ * encryption codec; `undefined` when the chain has none. The chain is
+ * encryption alone or nothing (the module header), so its first codec is
+ * the encryption codec.
+ */
+export function sealedValueOpener(
+  codecs: readonly PayloadCodec[] | undefined,
+): ((sealed: string) => Promise<string>) | undefined {
+  const encryption = codecs?.[0];
+  if (encryption === undefined) return undefined;
+  return async (sealed) => {
+    const { openSealedString } = await import("@stigmer/temporal-codecs");
+    return openSealedString(encryption, sealed);
+  };
 }

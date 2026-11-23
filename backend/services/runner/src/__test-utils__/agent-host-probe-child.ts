@@ -14,7 +14,10 @@
  *  - `deaf`: report activity `parked`, then never settle, stop or not: an
  *    engine wedged past its stop, which only the host's death ends;
  *  - `throw`: fold one assistant message, then throw: the contract
- *    violation the runtime must still see, over the rows folded before it.
+ *    violation the runtime must still see, over the rows folded before it;
+ *  - `grow`: report activity `parked`, then hold ever more memory until the
+ *    process dies of its heap cap, as a turn that outgrows its memory does
+ *    (the test starts this child with `--max-old-space-size`).
  *
  * Arms (argv[2]): `serve` serves; `stale` announces a protocol version no
  * runner speaks and serves nothing, the mismatched build the runner refuses.
@@ -55,6 +58,15 @@ const probe: HarnessAdapter = {
       case "deaf":
         sink.recordActivity("parked");
         return new Promise<TurnOutcome>(() => {});
+      case "grow": {
+        sink.recordActivity("parked");
+        const held: number[][] = [];
+        // Yields between steps, so the parked notice crosses before the heap runs out.
+        for (;;) {
+          held.push(Array.from({ length: 250_000 }, (_, i) => i));
+          await new Promise((resolve) => setImmediate(resolve));
+        }
+      }
       case "throw":
         sink.transcript.apply({ kind: "message_start", runId: "probe-run" });
         sink.transcript.apply({ kind: "text_delta", runId: "probe-run", text: "before the break" });

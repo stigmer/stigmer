@@ -130,6 +130,8 @@ import { newOutputsBuffer, type OutputsBuffer } from "../shared/outputs-buffer.j
 import { newTurnOffloads } from "../shared/offload-store.js";
 import { holdPlatformMounts, mergeMounts, NO_MOUNTS, type PlatformMounts } from "../shared/platform-hold.js";
 import { agentHasComputer, hasComputer, hasOwnHooks } from "../shared/computer.js";
+import { credentialForTurn } from "../shared/run-credential-store.js";
+import { refusalForServes } from "../runner-serves.js";
 import { pluginTreeKey, sessionTreesDir } from "../shared/archive-tree.js";
 import { newTurnArchives, type ArchiveSource, type TurnArchives } from "../shared/archive-reader.js";
 import type { ApiResourceReference } from "@stigmer/apis/ai/stigmer/commons/apiresource/io_pb";
@@ -2066,7 +2068,7 @@ export function resolveStandingContext(
   const selectRecalledMemories = (): Promise<RecalledMemoriesContent | undefined> => {
     memorySelection ??= selectRecalledFacts(execution.status?.recalledMemories, spec.message, {
       proxyEndpoint: deps.config.proxyEndpoint,
-      stigmerToken: deps.config.stigmerTokenRef.current,
+      stigmerToken: credentialForTurn(deps.config.stigmerTokenRef) ?? null,
       executionId: deps.input.executionId,
       priorReport,
     }).then((selection) => {
@@ -2169,6 +2171,10 @@ export async function resolveTurnContext(
   if (spec.reconcileFileReview) return resolveReconcileTurn(deps, frame, sessionId);
   const { session, blueprint } = await resolveAgentBlueprint(deps, execution, sessionId);
   deps.identifyRun({ execution, session, sessionId, blueprint });
+  // A runner that serves only conversations without a computer runs no turn
+  // of one with a computer, whatever routed it here (`runner-serves.ts`).
+  const offServing = refusalForServes(deps.config.serves, hasComputer(session));
+  if (offServing !== undefined) return { kind: "settled", settlement: { kind: "turn-refused", message: offServing } };
   const unservable = refuseUnservableTurn(blueprint, capabilities, hasComputer(session));
   if (unservable !== undefined) return { kind: "settled", settlement: unservable };
   const fetched = await fetchValues(deps);

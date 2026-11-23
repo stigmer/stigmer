@@ -104,6 +104,15 @@ describe("GenerateSessionSubject wire shapes", () => {
     expect(titled).toEqual(["Indexing Basics"]);
   });
 
+  it("titles the session under the turn's own run credential, before the runner's token", async () => {
+    const { buildChatModel } = await import("../../shared/model-client.js");
+    const { withRunCredential } = await import("../../shared/run-credential-store.js");
+    const { GenerateSessionSubject } = activityUnderTest();
+    vi.mocked(buildChatModel).mockClear();
+    await withRunCredential("credential-of-the-turn", () => GenerateSessionSubject({ execution_id: EXECUTION_ID }));
+    expect(buildChatModel).toHaveBeenCalledWith(expect.objectContaining({ stigmerToken: "credential-of-the-turn" }));
+  });
+
   it("accepts the typed object without a credential", async () => {
     const { GenerateSessionSubject, reads } = activityUnderTest();
     await GenerateSessionSubject({ execution_id: EXECUTION_ID });

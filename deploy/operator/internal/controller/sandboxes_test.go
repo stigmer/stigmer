@@ -3,9 +3,9 @@
 // Under agent-sandbox, with agent-sandbox already installed by someone else,
 // the component makes the sandbox namespace, its fence and the server's Role
 // and binding there, and never takes over a namespace of that name it did not
-// make, and the runner component reports the install as one
-// without a shared runner. A licensed install that declares the shared
-// driver is refused in words naming the per-session drivers.
+// make. A licensed install that declares the shared driver is refused in
+// words naming the per-session drivers (computerless_test.go pins the one
+// runner a per-session install keeps for agents without a computer).
 //
 // The janitor does nothing while a Stigmer exists, leaves a prerequisite
 // someone else installed whole, keeps the operator's own while instances of

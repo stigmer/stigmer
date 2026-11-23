@@ -95,7 +95,9 @@
  *   pool's first worker and then for the server's sandbox image (the
  *   runner component reads PreparingSandboxImage before Ready, or the
  *   server's log says the template was published before the operator first
- *   asked), and the install is Ready with no shared runner. Two sessions run as two actors.
+ *   asked), and the install is Ready with no runner in the server's pod
+ *   (its one runner for Agents without a computer is a Deployment of its
+ *   own). Two sessions run as two actors.
  *   From inside one, by a probe the agent runs, the server, the bucket and
  *   the model answer, and the model under a name that is not a lane, the
  *   database and Temporal do not; the same probe from the server's pod

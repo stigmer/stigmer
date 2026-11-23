@@ -69,11 +69,20 @@ func ObjectStoreRegion(s3 *stigmerv1.S3Spec) string {
 }
 
 // Keys in the keys Secret; each is the server setting of the same name.
+// PayloadKey is minted only for an install that runs the computer-less
+// runner (ComputerlessRunner), and the runner reads it under the same name.
 const (
 	EncryptionKey    = "STIGMER_ENCRYPTION_KEY"
 	RunnerTokenKey   = "STIGMER_RUNNER_TOKEN_KEY"
 	PlatformTokenKey = "STIGMER_PLATFORM_TOKEN_KEY"
+	PayloadKey       = "STIGMER_PAYLOAD_ENCRYPTION_KEY"
 )
+
+// PayloadKeyID names the payload key on every payload it seals
+// (STIGMER_PAYLOAD_ENCRYPTION_KEY_ID). The operator keeps one payload key
+// per install and never rotates it, so its name is a constant, not a
+// secret.
+const PayloadKeyID = "stigmer-operator"
 
 // DatabaseConnection is where the server's records live.
 type DatabaseConnection struct {
@@ -295,6 +304,9 @@ func ServerEnv(st *stigmerv1.Stigmer, modelKeys []string) []corev1.EnvVar {
 	if PerSession(st) {
 		env = append(env, sandboxEnv(st, modelKeys)...)
 	}
+	if ComputerlessRunner(st) {
+		env = append(env, computerlessServerEnv(st)...)
+	}
 	return env
 }
 
@@ -344,12 +356,14 @@ func enterpriseEnv(st *stigmerv1.Stigmer) []corev1.EnvVar {
 	}
 }
 
-// RunnerEnabled reports whether the shared runner container renders: only
-// under the shared driver, and never under a license. A licensed server may
-// hold several organizations, and one shared runner would carry one
-// organization's key into every organization's runs (the server refuses
-// STIGMER_RUNNER_API_KEY there), so a licensed install runs agents in
-// per-session sandboxes and renders no shared runner.
+// RunnerEnabled reports whether the shared runner container renders beside
+// the server: only under the shared driver, and never under a license. A
+// licensed server may hold several organizations, and one shared runner
+// would carry one organization's key into every organization's runs (the
+// server refuses STIGMER_RUNNER_API_KEY there), so a licensed install runs
+// agents in per-session sandboxes and renders no shared runner. Under a
+// per-session driver the runner that renders instead is the computer-less
+// one (ComputerlessRunner), which holds no organization's key.
 func RunnerEnabled(st *stigmerv1.Stigmer) bool { return !Licensed(st) && !PerSession(st) }
 
 // RunnerEnv is the shared runner container's environment, before extraEnv.
@@ -452,7 +466,7 @@ func OwnedEnvNames(container string) []string {
 	substrateHTTPS.Spec.ObjectStore.S3.RunnerEndpoint = "https://x.x"
 	var env []corev1.EnvVar
 	if container == "runner" {
-		env = append(RunnerEnv(full), RunnerEnv(bucket)...)
+		env = append(append(RunnerEnv(full), RunnerEnv(bucket)...), ComputerlessRunnerEnv(agentSandbox)...)
 	} else {
 		env = append(append(ServerEnv(full, nil), ServerEnv(bucket, nil)...), ServerEnv(open, nil)...)
 		for _, arm := range []*stigmerv1.Stigmer{agentSandbox, substrateArm, substrateHTTPS} {

@@ -4,7 +4,7 @@
 import { expect, type Page, type Locator } from "@playwright/test";
 import { create } from "@bufbuild/protobuf";
 import type { CustomToolInput, HookSourceInput, Stigmer } from "@stigmer/client";
-import { Harness } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
+import { Computer, Harness } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
 import { RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 import { TerminateRunInputSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/io_pb";
 import {
@@ -124,10 +124,13 @@ export async function seedGatedSession(
     opts.gateTurns ??
     [opts.gateBlocks ?? [shellBlock("call_shell_1", "echo 'hello from e2e'")]];
 
+  // With a computer: the gated calls run commands and write files, which an
+  // agent that names nothing needing one would start without.
   const agent = await client.agent.create({
     name: `e2e-approval-agent-${stamp}`,
     org,
     instructions: "You are a test assistant for the HITL approval e2e.",
+    computer: Computer.REQUIRED,
     ...(opts.agentHooks && { hooks: opts.agentHooks }),
   });
   const agentId = agent.metadata!.id;
@@ -251,10 +254,12 @@ export async function seedToolRunSession(
     opts.toolTurns ??
     [[writeFileBlock("call_run_1", "/tmp/e2e-tool-run.txt", "hello from e2e")]];
 
+  // With a computer: its calls write files and run commands.
   const agent = await client.agent.create({
     name: `e2e-toolrun-agent-${stamp}`,
     org,
     instructions: "You are a test assistant for the tool-disclosure e2e.",
+    computer: Computer.REQUIRED,
     ...(opts.agentHooks && { hooks: opts.agentHooks }),
   });
   const agentId = agent.metadata!.id;

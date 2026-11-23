@@ -1,13 +1,18 @@
 // The keys component: the server's three keys, minted once into
-// <name>-keys and never rewritten.
+// <name>-keys and never rewritten, and a fourth for an install that runs
+// the computer-less runner.
 //
 // STIGMER_ENCRYPTION_KEY encrypts what the server stores (losing it loses
 // every stored credential); STIGMER_RUNNER_TOKEN_KEY signs the tokens each
 // run is handed; STIGMER_PLATFORM_TOKEN_KEY, an RSA key, signs the user
-// tokens service accounts mint. Each is in the exact form the server's key
-// loader accepts (canonical base64 of 32 bytes; base64 of a PEM RSA key of
-// at least 2048 bits), so a key the operator mints is never one the server
-// refuses at boot.
+// tokens service accounts mint. STIGMER_PAYLOAD_ENCRYPTION_KEY seals what
+// the computer-less runner and the server pass through Temporal, so
+// Temporal's history, kept in the database, is readable only with it; it is
+// minted only for an install with per-session sandboxes, and added to an
+// existing Secret when an install moves to one. Each is in the exact form
+// the server's key loader accepts (canonical base64 of 32 bytes; base64 of a
+// PEM RSA key of at least 2048 bits), so a key the operator mints is never
+// one the server refuses at boot.
 //
 // The Secret carries no owner reference. Deleting the Stigmer keeps it, a
 // new Stigmer of the same name uses it, and a restore of the database is
@@ -45,8 +50,17 @@ func (Keys) Name() string { return render.ComponentKeys }
 // Dependencies implements Component.
 func (Keys) Dependencies() []string { return nil }
 
-// KeyNames are the keys in the keys Secret, in the order they are minted.
+// KeyNames are the keys in every keys Secret, in the order they are minted.
 var KeyNames = []string{render.EncryptionKey, render.RunnerTokenKey, render.PlatformTokenKey}
+
+// KeyNamesFor are the keys in this Stigmer's keys Secret: KeyNames, and the
+// payload key when the computer-less runner runs.
+func KeyNamesFor(st *stigmerv1.Stigmer) []string {
+	if !render.ComputerlessRunner(st) {
+		return KeyNames
+	}
+	return append(append([]string{}, KeyNames...), render.PayloadKey)
+}
 
 // MintKey makes a new value for one key.
 func MintKey(name string) ([]byte, error) {
@@ -114,7 +128,7 @@ func (Keys) Reconcile(ctx context.Context, env *Env) (Result, error) {
 	err := env.Reader.Get(ctx, client.ObjectKey{Namespace: st.Namespace, Name: name}, &secret)
 	if apierrors.IsNotFound(err) {
 		data := map[string][]byte{}
-		for _, key := range KeyNames {
+		for _, key := range KeyNamesFor(st) {
 			v, merr := MintKey(key)
 			if merr != nil {
 				return Result{}, merr
@@ -136,7 +150,7 @@ func (Keys) Reconcile(ctx context.Context, env *Env) (Result, error) {
 	}
 
 	missing := map[string][]byte{}
-	for _, key := range KeyNames {
+	for _, key := range KeyNamesFor(st) {
 		value, ok := secret.Data[key]
 		if !ok || len(value) == 0 {
 			v, merr := MintKey(key)

@@ -1081,6 +1081,14 @@ export {
   ROUTING_SESSION,
   newConfigFromEnv as newAgentExecutionTemporalConfigFromEnv,
 } from "./domain/run/temporal/config.js";
+// Which runner serves a turn (own, sandbox, shared): the one placement rule
+// every gate that asks "does a sandbox serve this turn" reads.
+export { placeTurn } from "./domain/run/placement.js";
+export type { PlacementFacts, TurnPlacement } from "./domain/run/placement.js";
+// The shared-turn admission point (ExtensionDrivers.sharedTurnAdmission).
+export type { SharedTurnAdmission, SharedTurnFacts } from "./extensions/shared-turn-admission.js";
+// The run-credential mint's view of the turn it mints for.
+export type { RunCredentialTurn } from "./runnerauth/runner-credential-provider.js";
 export { LOADED_EXECUTION_KEY } from "./pipeline/request-context.js";
 // The answer to a waiting tool use, as the steps of the
 // `agent-execution-submit-approval:gate` slot read it, whichever method

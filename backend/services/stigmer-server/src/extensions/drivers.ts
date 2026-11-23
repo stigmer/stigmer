@@ -69,6 +69,7 @@ import type { GuestTokenMinting } from "./guest-token-minting.js";
 import type { IdentityFederation } from "./identity-federation.js";
 import type { LicenseStatusProvider } from "./license-status.js";
 import type { ProviderAvailabilityProvider } from "./provider-availability.js";
+import type { SharedTurnAdmission } from "./shared-turn-admission.js";
 import type { OutboundEgressPolicy } from "./outbound-egress.js";
 import type { ListReadScope } from "./list-read-scope.js";
 import type { MeteredUsageProvider } from "./metered-usage.js";
@@ -302,6 +303,15 @@ export interface ExtensionDrivers {
    * (extensions/provider-availability.ts carries the contract).
    */
   readonly providerAvailability?: ProviderAvailabilityProvider;
+  /**
+   * The shared-turn admission (single-instance point): whether a turn a
+   * shared runner serves may run now, waited on, never refused, and the
+   * release of its place when the turn parks or ends. Stigmer Cloud
+   * registers the one that counts an organization's running agents against
+   * its plan; when absent, nothing bounds shared turns
+   * (extensions/shared-turn-admission.ts carries the contract).
+   */
+  readonly sharedTurnAdmission?: SharedTurnAdmission;
   /**
    * The outbound-egress policy (single-instance point): which addresses
    * this edition's control plane may dial when it reaches a URL a user

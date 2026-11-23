@@ -25,6 +25,14 @@
  *     when the mint throws — a dispatch never fails on a mint;
  *   - a reconcile turn's input carries `reconcile_file_review`, and every
  *     other run's omits the key;
+ *   - a turn a shared runner serves (per-session routing, shared runners
+ *     on, a CLOUD conversation without a computer) goes to the runner
+ *     queue with `runner: "shared"` and its credential SEALED: the clear
+ *     key is absent, the sealed one opens under the payload key to the
+ *     minted credential, and the mint is told the placement; with shared
+ *     runners off the same conversation goes to its own queue as before,
+ *     and a shared turn with no sealer fails its start rather than carry
+ *     the credential in the clear;
  *   - the caller's facts ride every input (`caller_class`, and the
  *     routine and the caller's id when set), and a CLOUD target's input
  *     carries the server's limit on a wait for room, zero included, which
@@ -41,9 +49,11 @@ import { afterEach, describe, expect, it } from "vitest";
 
 import { SessionSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/api_pb";
 import {
+  Computer,
   ExecutionTarget,
   Harness,
 } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
+import { EncryptionPayloadCodec, openSealedString, sealString } from "@stigmer/temporal-codecs";
 import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 import { createLogger } from "../../../boot/logger.js";
@@ -53,14 +63,18 @@ import {
 } from "../../../domain/run/engine.js";
 import {
   AgentExecutionTemporalConfig,
+  DEFAULT_EXECUTION_TARGET_CLOUD,
   DEFAULT_EXECUTION_TARGET_LOCAL,
   ROUTING_GLOBAL,
+  ROUTING_SESSION,
 } from "../../../domain/run/temporal/config.js";
+import type { RunCredentialTurn } from "../../../runnerauth/runner-credential-provider.js";
 import type { RunCredentialMint } from "../../../runnerauth/dispatch-credential.js";
 import { newExecutionScopedRunnerCredentialProvider } from "../../../runnerauth/runner-credential-provider.js";
 import {
   isClockedToken,
   RunnerAuthService,
+  TOKEN_TYPE_EXECUTION_SCOPED,
 } from "../../../runnerauth/runnerauth.js";
 import { SqliteStore } from "../../../store/sqlite/store.js";
 import type { Store } from "../../../store/interface.js";
@@ -96,6 +110,7 @@ function newEngine(
     store: overrides.store ?? newStore(),
     runnerCredentials: keyedCredentials,
     sandboxWaitSeconds: 900,
+    sandboxLane: false,
     logger: silentLogger,
     ...overrides,
   });
@@ -182,6 +197,7 @@ function dispatchedInput(startCalls: StartCall[]): Record<string, unknown> {
 function startInput(overrides: Partial<Parameters<TemporalExecutionEngine["startInvokeWorkflow"]>[0]> = {}) {
   return {
     executionId: "run_1",
+    org: "org_1",
     sessionId: "",
     agentId: "agt_1",
     autoApproveAll: false,
@@ -370,6 +386,119 @@ describe("TemporalExecutionEngine.startInvokeWorkflow", () => {
   });
 });
 
+describe("TemporalExecutionEngine.startInvokeWorkflow on shared runners", () => {
+  const codec = new EncryptionPayloadCodec({ primary: { keyId: "pk1", key: randomBytes(32) } });
+  const seal = (value: string) => sealString(codec, value);
+
+  function sessionConfig(sharedRunners: boolean): AgentExecutionTemporalConfig {
+    return new AgentExecutionTemporalConfig(
+      "agent_execution_stigmer",
+      DEFAULT_ACTIVITY_TASK_QUEUE,
+      ROUTING_SESSION,
+      DEFAULT_EXECUTION_TARGET_CLOUD,
+      sharedRunners,
+    );
+  }
+
+  async function storeWithSession(computer: Computer): Promise<Store> {
+    const store = newStore();
+    await store.saveResource(
+      ApiResourceKind.session,
+      "ses_c",
+      SessionSchema,
+      create(SessionSchema, {
+        apiVersion: "agentic.stigmer.ai/v1",
+        kind: "Session",
+        metadata: { id: "ses_c", name: "s", org: "org_1" },
+        spec: {},
+        status: { computer },
+      }),
+    );
+    return store;
+  }
+
+  it("sends a conversation without a computer to the runner queue, marked shared, its credential sealed", async () => {
+    const turns: (RunCredentialTurn | undefined)[] = [];
+    const recording: RunCredentialMint = {
+      mintRunCredential: (executionId, turn) => {
+        turns.push(turn);
+        return keyedCredentials.mintRunCredential!(executionId);
+      },
+    };
+    const { client, startCalls } = stubClient();
+    await newEngine(client, {
+      config: sessionConfig(true),
+      store: await storeWithSession(Computer.NONE),
+      sandboxLane: true,
+      runnerCredentials: recording,
+      sealRunCredential: seal,
+    }).startInvokeWorkflow(startInput({ sessionId: "ses_c" }));
+
+    expect(startCalls[0]!.options["memo"]).toEqual({ activityTaskQueue: DEFAULT_ACTIVITY_TASK_QUEUE });
+    const input = dispatchedInput(startCalls);
+    expect(input["runner"]).toBe("shared");
+    expect("execution_context_token" in input).toBe(false);
+    const sealed = input["sealed_execution_context_token"] as string;
+    const opened = await openSealedString(codec, sealed);
+    expect(keyedCredentials.verify(TOKEN_TYPE_EXECUTION_SCOPED, opened)).toBe("run_1");
+    // The history shows no credential: nothing in the input is the token.
+    expect(JSON.stringify(input)).not.toContain(opened);
+    expect(turns).toEqual([{ sessionId: "ses_c", org: "org_1", runner: "shared" }]);
+  });
+
+  it("keeps a conversation with a computer on its own queue, unsealed, and tells the mint it is a sandbox's", async () => {
+    const turns: (RunCredentialTurn | undefined)[] = [];
+    const recording: RunCredentialMint = {
+      mintRunCredential: (executionId, turn) => {
+        turns.push(turn);
+        return keyedCredentials.mintRunCredential!(executionId);
+      },
+    };
+    const { client, startCalls } = stubClient();
+    await newEngine(client, {
+      config: sessionConfig(true),
+      store: await storeWithSession(Computer.REQUIRED),
+      sandboxLane: true,
+      runnerCredentials: recording,
+      sealRunCredential: seal,
+    }).startInvokeWorkflow(startInput({ sessionId: "ses_c" }));
+
+    expect(startCalls[0]!.options["memo"]).toEqual({ activityTaskQueue: "session:ses_c" });
+    const input = dispatchedInput(startCalls);
+    expect("runner" in input).toBe(false);
+    expect("sealed_execution_context_token" in input).toBe(false);
+    expect(input["execution_context_token"]).toEqual(expect.any(String));
+    expect(turns[0]?.runner).toBe("sandbox");
+  });
+
+  it("with shared runners off, places a conversation without a computer exactly as before", async () => {
+    const { client, startCalls } = stubClient();
+    await newEngine(client, {
+      config: sessionConfig(false),
+      store: await storeWithSession(Computer.NONE),
+      sandboxLane: true,
+      sealRunCredential: seal,
+    }).startInvokeWorkflow(startInput({ sessionId: "ses_c" }));
+
+    expect(startCalls[0]!.options["memo"]).toEqual({ activityTaskQueue: "session:ses_c" });
+    const input = dispatchedInput(startCalls);
+    expect("runner" in input).toBe(false);
+    expect("sealed_execution_context_token" in input).toBe(false);
+  });
+
+  it("refuses to start a shared turn it cannot seal, rather than carry the credential in the clear", async () => {
+    const { client, startCalls } = stubClient();
+    await expect(
+      newEngine(client, {
+        config: sessionConfig(true),
+        store: await storeWithSession(Computer.NONE),
+        sandboxLane: true,
+      }).startInvokeWorkflow(startInput({ sessionId: "ses_c" })),
+    ).rejects.toThrow(/payload key/);
+    expect(startCalls).toHaveLength(0);
+  });
+});
+
 describe("TemporalExecutionEngine lifecycle operations", () => {
   it("targets the pinned workflow ID for signal/cancel/terminate", async () => {
     const { client, handleCalls } = stubClient();
@@ -469,6 +598,7 @@ describe("newExecutionEngineStateProvider", () => {
       store: newStore(),
       runnerCredentials: keyedCredentials,
       sandboxWaitSeconds: 900,
+      sandboxLane: false,
       logger: silentLogger,
     });
 

@@ -79,9 +79,14 @@ func SandboxNamespace(st *stigmerv1.Stigmer) string { return st.Namespace + "-sa
 // sandbox drivers act as.
 func ServerServiceAccount(st *stigmerv1.Stigmer) string { return st.Name + "-server" }
 
-// BackendEndpoint is the address a sandbox dials the server at.
-func BackendEndpoint(st *stigmerv1.Stigmer) string {
-	return fmt.Sprintf("http://%s.%s.svc.cluster.local:%d", ServerService(st), st.Namespace, GRPCPort)
+// BackendEndpoint is the address a sandbox, and the computer-less runner,
+// dial the server at.
+func BackendEndpoint(st *stigmerv1.Stigmer) string { return "http://" + BackendHostPort(st) }
+
+// BackendHostPort is the backend endpoint's host and port, the Temporal
+// address of a runner that reaches Temporal through the server.
+func BackendHostPort(st *stigmerv1.Stigmer) string {
+	return fmt.Sprintf("%s.%s.svc.cluster.local:%d", ServerService(st), st.Namespace, GRPCPort)
 }
 
 // SandboxRunnerImage is the per-session runner image, pinned to the digest

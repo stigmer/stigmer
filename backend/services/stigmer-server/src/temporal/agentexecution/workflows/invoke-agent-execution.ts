@@ -46,6 +46,23 @@
  *     the turn's first ask the kill came before this turn: it asks once
  *     more and goes on, and only a second `out_of_memory` there ends it.
  *     Behind its own `patched()` id, for the same reason as `not_carried`.
+ *   - A place on a shared runner: a turn a shared runner serves (the input's
+ *     `runner: "shared"`, domain/run/placement.ts) asks for no sandbox. It
+ *     asks the AdmitSharedTurn activity for a place where a sandboxed turn
+ *     asks for its sandbox (before the first runner invocation and before
+ *     every one after it), waits on "no room" with the same loop and limit
+ *     under its own phase text and sentence, and releases its place
+ *     (ReleaseSharedTurn) when it parks on a person's answer or a pause and
+ *     when the workflow ends, before the session's queued turn starts
+ *     (../shared-turn.ts). A server with nothing bounding shared turns
+ *     answers `unbounded`, and nothing is released. The field is input,
+ *     read deterministically, so an input without it replays as recorded
+ *     and no `patched()` id is needed.
+ *   - The run credential: the input's `execution_context_token`, or, for a
+ *     turn on a shared runner, `sealed_execution_context_token` (sealed by
+ *     the server with its payload key, so it is the one value its history
+ *     does not show in the clear), carried unopened to every runner
+ *     activity that presents it.
  *   - Harness dispatch, one exhaustive switch: STIGMER/UNSPECIFIED and
  *     CLAUDE → the deterministic-state flow (EnsureThread once, thread
  *     stable across re-invocations; the engine derives its own state from
@@ -148,8 +165,10 @@ import {
   CLOSE_FILE_REVIEW_ACTIVITY_NAME,
   COUNT_OPEN_GATES_ACTIVITY_NAME,
   DEFAULT_ACTIVITY_TASK_QUEUE,
+  ADMIT_SHARED_TURN_ACTIVITY_NAME,
   ENSURE_SESSION_SANDBOX_ACTIVITY_NAME,
   MEMO_ACTIVITY_TASK_QUEUE,
+  RELEASE_SHARED_TURN_ACTIVITY_NAME,
   SIGNAL_APPROVAL_GATE_RESOLVED,
   SIGNAL_PAUSE,
   SIGNAL_RESUME,
@@ -180,6 +199,12 @@ import {
   type EnsureSessionSandboxInput,
   type SandboxEnsureOutcome,
 } from "../sandbox-wait.js";
+import {
+  SHARED_WAITING_PHASE_TEXT,
+  sharedWaitRanOutCopy,
+  type SharedTurnAdmissionOutcome,
+  type SharedTurnInput,
+} from "../shared-turn.js";
 import type { InvokeAgentExecutionWorkflowInput } from "../workflow-input.js";
 
 // ─── Loop-safety bounds (values are contract) ───────────────────────────
@@ -236,6 +261,9 @@ const approvalGateResolvedSignal = defineSignal(SIGNAL_APPROVAL_GATE_RESOLVED);
  * so the activity can present it on the run's own RPCs; omitted when the
  * dispatch carried none (zero values are omitted). The key is optional: a
  * history whose input has no token generates the same commands.
+ * `sealed_execution_context_token` is the same credential sealed with the
+ * server's payload key (a turn on a shared runner); at most one of the two
+ * is present.
  */
 interface ExecuteActivityInput {
   readonly execution_id: string;
@@ -243,6 +271,7 @@ interface ExecuteActivityInput {
   readonly invoker_identity_account_id: string;
   readonly turn_seq: number;
   readonly execution_context_token?: string;
+  readonly sealed_execution_context_token?: string;
 }
 
 /**
@@ -255,6 +284,7 @@ interface ExecuteActivityInput {
 interface GenerateSessionSubjectInput {
   readonly execution_id: string;
   readonly execution_context_token?: string;
+  readonly sealed_execution_context_token?: string;
 }
 
 interface RunnerActivities {
@@ -284,14 +314,25 @@ function executeActivityInput(
   threadId: string,
   turnSeq: number,
 ): ExecuteActivityInput {
-  const runCredential = input.execution_context_token ?? "";
   return {
     execution_id: input.execution_id,
     thread_id: threadId,
     invoker_identity_account_id: input.invoker_identity_account_id ?? "",
     turn_seq: turnSeq,
-    ...(runCredential !== "" ? { execution_context_token: runCredential } : {}),
+    ...runCredentialFields(input),
   };
+}
+
+/** The run credential as the input carries it, clear or sealed, omitted when it carries none (module header). */
+function runCredentialFields(
+  input: InvokeAgentExecutionWorkflowInput,
+): Pick<ExecuteActivityInput, "execution_context_token" | "sealed_execution_context_token"> {
+  const sealed = input.sealed_execution_context_token ?? "";
+  if (sealed !== "") {
+    return { sealed_execution_context_token: sealed };
+  }
+  const clear = input.execution_context_token ?? "";
+  return clear !== "" ? { execution_context_token: clear } : {};
 }
 
 function newEnsureThreadProxy(taskQueue: string) {
@@ -355,6 +396,10 @@ interface ServerActivities {
   [ENSURE_SESSION_SANDBOX_ACTIVITY_NAME]: (
     input: EnsureSessionSandboxInput,
   ) => Promise<SandboxEnsureOutcome>;
+  [ADMIT_SHARED_TURN_ACTIVITY_NAME]: (
+    input: SharedTurnInput,
+  ) => Promise<SharedTurnAdmissionOutcome>;
+  [RELEASE_SHARED_TURN_ACTIVITY_NAME]: (input: SharedTurnInput) => Promise<void>;
 }
 
 /**
@@ -400,6 +445,21 @@ const sandboxActivities = proxyActivities<
   retry: { maximumAttempts: 3, initialInterval: "2s" },
 });
 
+/**
+ * A shared turn's place: asked for and released on the workflow's own
+ * (stigmer) queue. An ask is a short database read and write, retried a
+ * few times; a failure after them is logged and the turn goes on, as a
+ * failed sandbox ensure does. A release is retried longer, on a
+ * non-cancellable scope, because a lost release holds a place until the
+ * composition's own freshness rule frees it.
+ */
+const sharedTurnActivities = proxyActivities<
+  Pick<ServerActivities, typeof ADMIT_SHARED_TURN_ACTIVITY_NAME | typeof RELEASE_SHARED_TURN_ACTIVITY_NAME>
+>({
+  startToCloseTimeout: "30s",
+  retry: { maximumAttempts: 5, initialInterval: "2s", backoffCoefficient: 2, maximumInterval: "30s" },
+});
+
 interface LocalActivities {
   [UPDATE_EXECUTION_STATUS_ACTIVITY_NAME]: (
     executionId: string,
@@ -437,6 +497,7 @@ export async function invokeAgentExecution(
   });
 
   const signals = installSignalBuffers();
+  const place: SharedPlace = { held: false };
 
   const activityTaskQueue = getActivityTaskQueue();
 
@@ -452,6 +513,7 @@ export async function invokeAgentExecution(
           EXECUTE_DEEP_AGENT_ACTIVITY_NAME,
           activityTaskQueue,
           signals,
+          place,
           () => workflowCancelled,
         );
         break;
@@ -461,6 +523,7 @@ export async function invokeAgentExecution(
           EXECUTE_CLAUDE_ACTIVITY_NAME,
           activityTaskQueue,
           signals,
+          place,
           () => workflowCancelled,
         );
         break;
@@ -486,6 +549,7 @@ export async function invokeAgentExecution(
     if (workflowCancelled) {
       log.info("Workflow cancelled, running cancellation cleanup", { executionId });
       await handleCancellation(executionId);
+      await releaseSharedPlace(input, place);
       await startQueuedTurn(input);
       throw (
         findInCauseChain(flowError, CancelledFailure) ??
@@ -506,6 +570,7 @@ export async function invokeAgentExecution(
       });
     }
 
+    await releaseSharedPlace(input, place);
     await startQueuedTurn(input);
     throw ApplicationFailure.create({
       message: "Workflow execution failed",
@@ -518,6 +583,7 @@ export async function invokeAgentExecution(
     { executionId },
   );
 
+  await releaseSharedPlace(input, place);
   await startQueuedTurn(input);
 }
 
@@ -602,12 +668,13 @@ async function executeDeterministicStateFlow(
   executeActivity: DeterministicStateActivityName,
   activityTaskQueue: string,
   signals: SignalBuffers,
+  place: SharedPlace,
   isWorkflowCancelled: () => boolean,
 ): Promise<RunnerActivityResult> {
   const executionId = input.execution_id;
   const sessionId = input.session_id;
 
-  const pauseCyclesWaiting = await waitForSandboxRoom(input, signals);
+  const pauseCyclesWaiting = await waitForSandboxRoom(input, signals, place);
 
   log.info("Step 1: Ensuring thread", { sessionId, agentId: input.agent_id });
   const ensureThread = newEnsureThreadProxy(activityTaskQueue);
@@ -638,15 +705,18 @@ async function executeDeterministicStateFlow(
     signals,
     isWorkflowCancelled,
     pauseCyclesSpent: pauseCyclesWaiting,
+    // A parked turn holds no place on a shared runner (../shared-turn.ts).
+    onPark: () => releaseSharedPlace(input, place),
     executeWithHitl: () =>
       executeWithHitlLoop({
         executionId,
         sessionId,
         signals,
+        onPark: () => releaseSharedPlace(input, place),
         firstInvoke: async () => {
           attempts++;
           if (attempts > 1) {
-            await askBeforeCarryingOn(input, signals, false);
+            await askBeforeCarryingOn(input, signals, false, place);
           }
           return agentProxy[executeActivity](
             executeActivityInput(input, threadId, 0),
@@ -654,7 +724,7 @@ async function executeDeterministicStateFlow(
         },
         // The thread id is stable — re-invocations reuse it.
         reinvoke: async (turnSeq) => {
-          await askBeforeCarryingOn(input, signals, true);
+          await askBeforeCarryingOn(input, signals, true, place);
           return agentProxy[executeActivity](
             executeActivityInput(input, threadId, turnSeq),
           );
@@ -686,12 +756,13 @@ async function executeDeterministicStateFlow(
 async function waitForSandboxRoom(
   input: InvokeAgentExecutionWorkflowInput,
   signals: SignalBuffers,
+  place: SharedPlace,
 ): Promise<number> {
-  const callerClass = sandboxCallerClassOf(input);
-  if (callerClass === undefined || !patched(SANDBOX_WAIT_PATCH_ID)) {
+  const ask = placeAskOf(input);
+  if (ask === undefined || (ask.kind === "sandbox" && !patched(SANDBOX_WAIT_PATCH_ID))) {
     return 0;
   }
-  const wait = await askForRoom(input, callerClass, signals, "here");
+  const wait = await askForRoom(input, ask, signals, "here", place);
   return wait.pauseCycles;
 }
 
@@ -717,15 +788,16 @@ async function askBeforeCarryingOn(
   input: InvokeAgentExecutionWorkflowInput,
   signals: SignalBuffers,
   writeWorking: boolean,
+  place: SharedPlace,
 ): Promise<void> {
-  const callerClass = sandboxCallerClassOf(input);
-  if (callerClass === undefined || !patched(SANDBOX_REENSURE_PATCH_ID)) {
+  const ask = placeAskOf(input);
+  if (ask === undefined || (ask.kind === "sandbox" && !patched(SANDBOX_REENSURE_PATCH_ID))) {
     return;
   }
   if (writeWorking) {
     await persistResumedStatus(input.execution_id);
   }
-  const wait = await askForRoom(input, callerClass, signals, "in-attempt");
+  const wait = await askForRoom(input, ask, signals, "in-attempt", place);
   if (wait.waited) {
     await persistResumedStatus(input.execution_id);
   }
@@ -737,6 +809,58 @@ async function askBeforeCarryingOn(
  */
 function sandboxCallerClassOf(input: InvokeAgentExecutionWorkflowInput): string | undefined {
   return input.execution_target === ExecutionTarget.CLOUD ? input.caller_class : undefined;
+}
+
+/** What a turn asks for before a runner invocation: its sandbox, or a place on a shared runner. */
+type PlaceAsk =
+  | { readonly kind: "sandbox"; readonly callerClass: string }
+  | { readonly kind: "shared"; readonly callerClass: string };
+
+/**
+ * The ask a turn makes before its runner invocations (module header): a
+ * place for a turn a shared runner serves, which never asks for a sandbox;
+ * a sandbox when `sandboxCallerClassOf` says so; nothing otherwise.
+ */
+function placeAskOf(input: InvokeAgentExecutionWorkflowInput): PlaceAsk | undefined {
+  if (input.runner === "shared") {
+    return { kind: "shared", callerClass: input.caller_class ?? "" };
+  }
+  const callerClass = sandboxCallerClassOf(input);
+  return callerClass === undefined ? undefined : { kind: "sandbox", callerClass };
+}
+
+/** Whether the turn holds a place on a shared runner, which it gives back when it parks or ends. */
+interface SharedPlace {
+  held: boolean;
+}
+
+/**
+ * Gives back a shared turn's place (../shared-turn.ts), if it holds one: on
+ * a non-cancellable scope, so a pause, a cancel or the workflow's end
+ * cannot skip it. A failure after the activity's retries is logged; the
+ * composition's freshness rule frees the place.
+ */
+async function releaseSharedPlace(
+  input: InvokeAgentExecutionWorkflowInput,
+  place: SharedPlace,
+): Promise<void> {
+  if (!place.held) {
+    return;
+  }
+  place.held = false;
+  try {
+    await CancellationScope.nonCancellable(() =>
+      sharedTurnActivities[RELEASE_SHARED_TURN_ACTIVITY_NAME]({
+        execution_id: input.execution_id,
+        caller_class: input.caller_class ?? "",
+      }),
+    );
+  } catch (error) {
+    log.warn("Releasing a shared turn's place failed (non-critical)", {
+      executionId: input.execution_id,
+      error: errorMessage(error),
+    });
+  }
 }
 
 /** What one wait for room came to. */
@@ -759,9 +883,10 @@ interface RoomWait {
  */
 async function askForRoom(
   input: InvokeAgentExecutionWorkflowInput,
-  callerClass: string,
+  ask: PlaceAsk,
   signals: SignalBuffers,
   pauses: "here" | "in-attempt",
+  place: SharedPlace,
 ): Promise<RoomWait> {
   const executionId = input.execution_id;
   const limitSeconds = input.sandbox_wait_seconds ?? DEFAULT_SANDBOX_WAIT_SECONDS;
@@ -771,7 +896,10 @@ async function askForRoom(
   let askedAgainAfterKill = false;
 
   for (;;) {
-    const outcome = await ensureTurnSandbox(input, callerClass, since);
+    const outcome =
+      ask.kind === "shared"
+        ? await admitSharedTurn(input, ask.callerClass, since, place)
+        : await ensureTurnSandbox(input, ask.callerClass, since);
     if (outcome === "out_of_memory" && patched(SANDBOX_OUT_OF_MEMORY_PATCH_ID)) {
       if (pauses === "here" && !askedAgainAfterKill) {
         // Killed before this turn ran anything: the driver left it asleep,
@@ -823,11 +951,13 @@ async function askForRoom(
         waitedMs,
         outcome: "ran_out",
       });
-      throw new SandboxWaitRanOut(limitSeconds, waitedMs);
+      throw ask.kind === "shared"
+        ? new SandboxWaitRanOut(limitSeconds, waitedMs, sharedWaitRanOutCopy(limitSeconds))
+        : new SandboxWaitRanOut(limitSeconds, waitedMs);
     }
 
     if (signals.pauseQueue.length === 0) {
-      await persistWaitingStatus(executionId);
+      await persistWaitingStatus(executionId, waitingPhaseText(ask));
     }
     attempt++;
     if (pauses === "in-attempt") {
@@ -866,9 +996,65 @@ async function askForRoom(
     );
     await signals.consumeResume();
     log.info("Resumed; waiting for a sandbox again", { executionId, pauseCycle: pauseCycles });
-    await persistWaitingStatus(executionId);
+    await persistWaitingStatus(executionId, waitingPhaseText(ask));
     since = undefined;
     attempt = 0;
+  }
+}
+
+/** The run's phase text while the turn waits (../sandbox-wait.ts, ../shared-turn.ts). */
+function waitingPhaseText(ask: PlaceAsk): string {
+  return ask.kind === "shared" ? SHARED_WAITING_PHASE_TEXT : SANDBOX_WAITING_PHASE_TEXT;
+}
+
+/**
+ * One ask for a place on a shared runner (../shared-turn.ts), answered in
+ * the sandbox ensure's words so the wait loop reads both alike: `ready`
+ * and `unbounded` go on (only `ready` holds a place to give back),
+ * `no_room` waits, and a failure after the activity's retries is logged
+ * and goes on, as a failed sandbox ensure does; a cancellation propagates.
+ */
+async function admitSharedTurn(
+  input: InvokeAgentExecutionWorkflowInput,
+  callerClass: string,
+  waitingSince: number | undefined,
+  place: SharedPlace,
+): Promise<SandboxEnsureOutcome> {
+  let outcome: SharedTurnAdmissionOutcome;
+  try {
+    outcome = await sharedTurnActivities[ADMIT_SHARED_TURN_ACTIVITY_NAME]({
+      execution_id: input.execution_id,
+      caller_class: callerClass,
+      ...(waitingSince !== undefined ? { waiting_since_ms: waitingSince } : {}),
+    });
+  } catch (error) {
+    if (isCancellation(error)) {
+      throw error;
+    }
+    log.warn("Asking for a shared turn's place failed (non-critical)", {
+      executionId: input.execution_id,
+      error: errorMessage(error),
+    });
+    return "failed";
+  }
+  switch (outcome) {
+    case "ready":
+      place.held = true;
+      return "ready";
+    case "unbounded":
+      return "skipped";
+    case "no_room":
+      return "no_room";
+    case "failed":
+      return "failed";
+    default: {
+      const unknown: never = outcome;
+      log.warn("A shared turn's place was answered with an unknown word; going on", {
+        executionId: input.execution_id,
+        outcome: String(unknown),
+      });
+      return "failed";
+    }
   }
 }
 
@@ -917,10 +1103,9 @@ function fireGenerateSessionSubject(
     return;
   }
   const executionId = input.execution_id;
-  const runCredential = input.execution_context_token ?? "";
   const argument: GenerateSessionSubjectInput = {
     execution_id: executionId,
-    ...(runCredential !== "" ? { execution_context_token: runCredential } : {}),
+    ...runCredentialFields(input),
   };
   const subjectProxy = newSubjectProxy(activityTaskQueue);
   void (async () => {
@@ -976,6 +1161,8 @@ interface PauseRecoveryOptions {
   readonly isWorkflowCancelled: () => boolean;
   /** Pause cycles the turn already spent waiting for a sandbox; they count against MAX_PAUSE_CYCLES. */
   readonly pauseCyclesSpent: number;
+  /** Runs when the turn parks on a pause, before it waits for resume (a shared turn gives back its place). */
+  readonly onPark: () => Promise<void>;
   readonly executeWithHitl: () => Promise<RunnerActivityResult>;
 }
 
@@ -1032,6 +1219,7 @@ async function runWithPauseAndRecovery(
         "Failed to persist PAUSED status (non-fatal)",
       );
 
+      await options.onPark();
       await signals.consumeResume();
       log.info("Resume signal received — restarting activity from checkpoint", {
         executionId,
@@ -1194,6 +1382,8 @@ interface HitlLoopOptions {
   /** The run's session, whose log holds the turn's open gates. */
   readonly sessionId: string;
   readonly signals: SignalBuffers;
+  /** Runs before the turn waits for a person's answer (a shared turn gives back its place). */
+  readonly onPark: () => Promise<void>;
   readonly firstInvoke: () => Promise<RunnerActivityResult | null>;
   readonly reinvoke: (turnSeq: number) => Promise<RunnerActivityResult | null>;
   readonly nullResultMessage: string;
@@ -1276,6 +1466,7 @@ async function executeWithHitlLoop(
       );
     } else {
       zeroGateCycles = 0;
+      await options.onPark();
       await signals.consumeApprovalGateResolved();
       log.info("Received approvalGateResolved signal", {
         executionId,
@@ -1505,12 +1696,12 @@ async function persistInterruptedStatus(executionId: string): Promise<void> {
  * recovered run's IN_PROGRESS back to PENDING; a terminal run is latched
  * by the merge.
  */
-async function persistWaitingStatus(executionId: string): Promise<void> {
+async function persistWaitingStatus(executionId: string, phaseText: string): Promise<void> {
   await persistFinalStatus(
     executionId,
     create(RunStatusSchema, {
       phase: RunPhase.RUN_PENDING,
-      setupProgress: { currentPhase: SANDBOX_WAITING_PHASE_TEXT },
+      setupProgress: { currentPhase: phaseText },
     }),
     "Failed to persist the waiting-for-a-sandbox status (non-fatal)",
   );

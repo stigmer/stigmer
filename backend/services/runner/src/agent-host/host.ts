@@ -34,6 +34,7 @@ import { InputFileNotFoundError } from "../shared/inputs-reader.js";
 import { harnessRowFor, type HarnessRow } from "../harness/registry.js";
 import type { Config } from "../config.js";
 import { DEFAULT_LIVENESS_INTERVAL_MS } from "../harness/liveness-pump.js";
+import { DEFAULT_TURN_MEMORY_MB } from "../runner-serves.js";
 import type { TurnOutcome } from "../harness/types.js";
 import { runWithExecutionContext } from "../shared/execution-context.js";
 import { withTraceparent } from "../shared/trace-context.js";
@@ -242,6 +243,10 @@ function hostConfig(wire: HostConfigWire): Config {
     shellTimeoutMaxSeconds: wire.shellTimeoutMaxSeconds,
     shellBackgroundEnabled: wire.shellBackgroundEnabled,
     workspaceLockTimeoutMs: wire.workspaceLockTimeoutMs,
+    // Which turns run here, and in how much memory, are the runner's to
+    // decide before a turn crosses (`hosting.ts`); the adapters read neither.
+    serves: "all",
+    turnMemoryMb: DEFAULT_TURN_MEMORY_MB,
   };
 }
 

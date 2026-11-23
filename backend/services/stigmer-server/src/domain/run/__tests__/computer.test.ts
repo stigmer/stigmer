@@ -10,6 +10,11 @@
  *     with hooks, a plugin with a stdio MCP server, a subagent whose pinned
  *     version has a computer (unset counts as having one). An agent with a
  *     computer is never refused, whatever it names;
+ *   - the reasons are one list (whyAgentNeedsComputer), read by the save's
+ *     refusal and by the new-agent default alike: every reason is the
+ *     refusal's own code and words, whatever the agent's setting, its own
+ *     fields come before what it lists, and an agent naming nothing that
+ *     needs a computer has no reason;
  *   - a conversation without one is refused, FAILED_PRECONDITION naming
  *     the agent, a repository, a folder, an Environment, the Claude
  *     harness and a plugin with hooks; uploads pass;
@@ -51,6 +56,7 @@ import {
   refuseClaudeWithoutComputer,
   refuseConversationWithoutComputer,
   refuseTurnWithoutComputer,
+  whyAgentNeedsComputer,
 } from "../computer.js";
 import type { RunSubagent } from "../run-subagents.js";
 
@@ -253,6 +259,118 @@ describe("an agent without a computer", () => {
         [subagent("repo-fixer", Computer.REQUIRED)],
       );
     }
+  });
+});
+
+/**
+ * Every reason an agent needs a computer, one agent each, with the code and
+ * words its save refuses an agent without one: the one list the new-agent
+ * default and the refusal both read.
+ */
+const REASONS: readonly {
+  readonly reason: string;
+  readonly spec: Omit<MessageInitShape<typeof AgentSpecSchema>, "$typeName">;
+  readonly plugins?: readonly RunPlugin[];
+  readonly subagents?: readonly RunSubagent[];
+  readonly code: Code;
+  readonly message: string;
+}[] = [
+  { reason: "the Claude harness", spec: { harness: Harness.CLAUDE }, code: Code.InvalidArgument, message: CLAUDE_NEEDS_COMPUTER_MESSAGE },
+  {
+    reason: "the shell in its tools",
+    spec: { tools: ["Read", "Bash(git *)"] },
+    code: Code.InvalidArgument,
+    message:
+      "this agent has no computer, so its tools can't list 'Bash(git *)', which runs commands; remove it from tools, or give the agent a computer",
+  },
+  {
+    reason: "its own hooks",
+    spec: { hooks: [{ source: { case: "inline", value: HOOKS } }] },
+    code: Code.InvalidArgument,
+    message: "this agent has no computer, so it can't run its own hooks; remove its hooks, or give the agent a computer",
+  },
+  {
+    reason: "an Environment",
+    spec: { environmentRef: { org: "acme", slug: "node-22" } },
+    code: Code.InvalidArgument,
+    message: "this agent has no computer, so it can't name an Environment; remove environment_ref, or give the agent a computer",
+  },
+  {
+    reason: "an MCP server of its own on this machine",
+    spec: { mcpServers: [{ name: "ledger", url: "http://localhost:3000/mcp" }] },
+    code: Code.InvalidArgument,
+    message:
+      "this agent has no computer, so its MCP server 'ledger' can't be at http://localhost:3000/mcp, which reaches this machine (loopback); use an address on the internet, or give the agent a computer",
+  },
+  {
+    reason: "a plugin with hooks",
+    spec: {},
+    plugins: [plugin("code-style", "hooks")],
+    code: Code.FailedPrecondition,
+    message: "this agent has no computer, so it can't use plugin 'code-style', which runs hooks; remove the plugin, or give the agent a computer",
+  },
+  {
+    reason: "a plugin with a local program",
+    spec: {},
+    plugins: [plugin("github-tools", "stdio")],
+    code: Code.FailedPrecondition,
+    message:
+      "this agent has no computer, so it can't use plugin 'github-tools', which runs its MCP server 'git-local' as a local program; remove the plugin, or give the agent a computer",
+  },
+  {
+    reason: "a plugin with an MCP server on this machine's network",
+    spec: {},
+    plugins: [plugin("ledger-tools", "http", "https://10.0.0.5/mcp")],
+    code: Code.FailedPrecondition,
+    message:
+      "this agent has no computer, so it can't use plugin 'ledger-tools', which has its MCP server 'remote' at https://10.0.0.5/mcp, which reaches this machine's private network (private (RFC 1918)); remove the plugin, or give the agent a computer",
+  },
+  {
+    reason: "a plugin whose agent's only tool is the shell",
+    spec: {},
+    plugins: [plugin("git-helper", "shell-agent")],
+    code: Code.FailedPrecondition,
+    message:
+      "this agent has no computer, so it can't use plugin 'git-helper', which has an agent, 'reviewer', whose only tool is the shell; remove the plugin, or give the agent a computer",
+  },
+  ...[Computer.REQUIRED, Computer.UNSPECIFIED].map((computer) => ({
+    reason: `a subagent with a computer (${Computer[computer]})`,
+    spec: {},
+    subagents: [subagent("repo-fixer", computer)],
+    code: Code.FailedPrecondition,
+    message:
+      "this agent has no computer, so it can't list subagent 'repo-fixer', which has one; remove it from subagents, save 'repo-fixer' without a computer and list that version, or give the agent a computer",
+  })),
+];
+
+describe("why an agent needs a computer", () => {
+  for (const { reason, spec, plugins = [], subagents = [], code, message } of REASONS) {
+    it(`names ${reason}, in the words its save refuses one without a computer`, () => {
+      // The reason reads what the agent names, never its own setting.
+      for (const computer of [Computer.UNSPECIFIED, Computer.NONE, Computer.REQUIRED]) {
+        expect(whyAgentNeedsComputer(create(AgentSpecSchema, { ...spec, computer }), plugins, subagents)).toEqual({ code, message });
+      }
+      const error = refusal(() => refuseAgentWithoutComputer(noComputer(spec), plugins, subagents));
+      expect([error.code, error.rawMessage]).toEqual([code, message]);
+    });
+  }
+
+  it("gives none for an agent that names nothing needing one", () => {
+    const spec = create(AgentSpecSchema, {
+      tools: ["Read", "WebFetch", "mcp__docs__search"],
+      disallowedTools: ["Bash"],
+      hooks: [{ source: { case: "inline", value: { groups: [] } } }],
+      mcpServers: [{ name: "docs", url: "https://mcp.example.com/mcp" }],
+    });
+    expect(whyAgentNeedsComputer(spec, [plugin("docs", "http")], [subagent("triage", Computer.NONE)])).toBeUndefined();
+    expect(whyAgentNeedsComputer(create(AgentSpecSchema), [], [])).toBeUndefined();
+  });
+
+  it("gives the agent's own fields before what it lists", () => {
+    const spec = create(AgentSpecSchema, { tools: ["Bash"] });
+    expect(whyAgentNeedsComputer(spec, [plugin("code-style", "hooks")], [subagent("repo-fixer", Computer.REQUIRED)])?.code).toBe(
+      Code.InvalidArgument,
+    );
   });
 });
 

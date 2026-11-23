@@ -11,6 +11,13 @@
  * stored before the setting changes, and no version is rewritten to say so
  * (a version's identity is the hash of its stored spec).
  *
+ * What an agent names that needs a computer is one list
+ * (whyAgentNeedsComputer), read twice: the save refuses an agent without a
+ * computer that names anything on it, and a new agent that leaves the
+ * setting unset gets a computer exactly when it names something on it
+ * (ResolveAgentComputer, domain/agent/steps.ts). So the default never
+ * gives an agent a setting its own save would refuse.
+ *
  * What needs a computer, and where each is refused:
  *   - the agent's own fields (a Bash entry in tools, its hooks, an
  *     Environment, COMPUTER_NONE on the Claude harness): INVALID_ARGUMENT
@@ -49,6 +56,7 @@
  */
 import { isIP } from "node:net";
 
+import { Code, ConnectError } from "@connectrpc/connect";
 import { blockedReason } from "@stigmer/outbound/egress";
 import { builtinToolOf, SHELL_TOOL } from "@stigmer/tool-vocabulary";
 
@@ -56,7 +64,7 @@ import type { AgentSpec } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/spec_p
 import type { Session } from "@stigmer/apis/ai/stigmer/agentic/session/v1/api_pb";
 import { Computer, Harness } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
 
-import { failedPreconditionError, invalidArgumentError } from "../../pipeline/errors.js";
+import { failedPreconditionError } from "../../pipeline/errors.js";
 import type { RunPlugin } from "../vault/resolve.js";
 import type { RunSubagent } from "./run-subagents.js";
 
@@ -140,9 +148,82 @@ function hasOwnHooks(spec: AgentSpec): boolean {
 }
 
 /**
- * Refuses an agent without a computer that names anything needing one: its
- * own fields first (INVALID_ARGUMENT), then the plugins and subagents it
- * lists (FAILED_PRECONDITION). Returns when the agent has a computer.
+ * Why an agent needs a computer: the code and the words its save refuses
+ * one without a computer with. INVALID_ARGUMENT names the agent's own
+ * fields, FAILED_PRECONDITION what it lists.
+ */
+export interface ComputerNeed {
+  readonly code: Code.InvalidArgument | Code.FailedPrecondition;
+  readonly message: string;
+}
+
+/**
+ * The first thing an agent names that needs a computer, whatever its own
+ * setting: its own fields first (the Claude harness, the shell in its
+ * tools, its own hooks, an Environment, an MCP server of its own on this
+ * machine or its private network), then what it lists (a plugin carrying
+ * hooks, a local program, a server on this machine or an agent whose only
+ * tool is the shell; a subagent whose pinned version has a computer).
+ * Undefined when it names none of them. The one list both the save's
+ * refusal (refuseAgentWithoutComputer) and the new-agent default
+ * (ResolveAgentComputer, domain/agent/steps.ts) read, so an agent the
+ * default leaves without a computer is one its save admits.
+ */
+export function whyAgentNeedsComputer(
+  spec: AgentSpec,
+  plugins: readonly RunPlugin[],
+  subagents: readonly RunSubagent[],
+): ComputerNeed | undefined {
+  const remedy = "or give the agent a computer";
+  const own = (message: string): ComputerNeed => ({ code: Code.InvalidArgument, message });
+  const listed = (message: string): ComputerNeed => ({ code: Code.FailedPrecondition, message });
+  if (spec.harness === Harness.CLAUDE) {
+    return own(CLAUDE_NEEDS_COMPUTER_MESSAGE);
+  }
+  const shell = spec.tools.find((entry) => builtinToolOf(entry) === SHELL_TOOL);
+  if (shell !== undefined) {
+    return own(
+      `this agent has no computer, so its tools can't list '${shell}', which runs commands; remove it from tools, ${remedy}`,
+    );
+  }
+  if (hasOwnHooks(spec)) {
+    return own(`this agent has no computer, so it can't run its own hooks; remove its hooks, ${remedy}`);
+  }
+  if ((spec.environmentRef?.id ?? "") !== "" || (spec.environmentRef?.slug ?? "") !== "") {
+    return own(`this agent has no computer, so it can't name an Environment; remove environment_ref, ${remedy}`);
+  }
+  for (const server of spec.mcpServers) {
+    const reach = machineReachOf(server.url);
+    if (reach !== undefined) {
+      return own(
+        `this agent has no computer, so its MCP server '${server.name}' can't be at ${server.url}, which reaches ${reach}; ` +
+          `use an address on the internet, ${remedy}`,
+      );
+    }
+  }
+  for (const plugin of plugins) {
+    const why = pluginNeedsComputer(plugin);
+    if (why !== undefined) {
+      return listed(
+        `this agent has no computer, so it can't use plugin '${plugin.name}', which ${why}; remove the plugin, ${remedy}`,
+      );
+    }
+  }
+  for (const subagent of subagents) {
+    if (hasComputer(subagent.spec.computer)) {
+      return listed(
+        `this agent has no computer, so it can't list subagent '${subagent.name}', which has one; remove it from subagents, ` +
+          `save '${subagent.name}' without a computer and list that version, ${remedy}`,
+      );
+    }
+  }
+  return undefined;
+}
+
+/**
+ * Refuses an agent without a computer that names anything needing one,
+ * with the first reason whyAgentNeedsComputer gives. Returns when the
+ * agent has a computer.
  */
 export function refuseAgentWithoutComputer(
   spec: AgentSpec,
@@ -152,50 +233,9 @@ export function refuseAgentWithoutComputer(
   if (hasComputer(spec.computer)) {
     return;
   }
-  const remedy = "or give the agent a computer";
-  if (spec.harness === Harness.CLAUDE) {
-    throw invalidArgumentError(CLAUDE_NEEDS_COMPUTER_MESSAGE);
-  }
-  const shell = spec.tools.find((entry) => builtinToolOf(entry) === SHELL_TOOL);
-  if (shell !== undefined) {
-    throw invalidArgumentError(
-      `this agent has no computer, so its tools can't list '${shell}', which runs commands; remove it from tools, ${remedy}`,
-    );
-  }
-  if (hasOwnHooks(spec)) {
-    throw invalidArgumentError(
-      `this agent has no computer, so it can't run its own hooks; remove its hooks, ${remedy}`,
-    );
-  }
-  if ((spec.environmentRef?.id ?? "") !== "" || (spec.environmentRef?.slug ?? "") !== "") {
-    throw invalidArgumentError(
-      `this agent has no computer, so it can't name an Environment; remove environment_ref, ${remedy}`,
-    );
-  }
-  for (const server of spec.mcpServers) {
-    const reach = machineReachOf(server.url);
-    if (reach !== undefined) {
-      throw invalidArgumentError(
-        `this agent has no computer, so its MCP server '${server.name}' can't be at ${server.url}, which reaches ${reach}; ` +
-          `use an address on the internet, ${remedy}`,
-      );
-    }
-  }
-  for (const plugin of plugins) {
-    const why = pluginNeedsComputer(plugin);
-    if (why !== undefined) {
-      throw failedPreconditionError(
-        `this agent has no computer, so it can't use plugin '${plugin.name}', which ${why}; remove the plugin, ${remedy}`,
-      );
-    }
-  }
-  for (const subagent of subagents) {
-    if (hasComputer(subagent.spec.computer)) {
-      throw failedPreconditionError(
-        `this agent has no computer, so it can't list subagent '${subagent.name}', which has one; remove it from subagents, ` +
-          `save '${subagent.name}' without a computer and list that version, ${remedy}`,
-      );
-    }
+  const need = whyAgentNeedsComputer(spec, plugins, subagents);
+  if (need !== undefined) {
+    throw new ConnectError(need.message, need.code);
   }
 }
 

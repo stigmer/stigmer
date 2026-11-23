@@ -14,6 +14,11 @@
  * codec's accepted-keys set, so a symmetric inner codec is safe to hold.
  * The wrapper is server-local; the published lib stays untouched.
  *
+ * One exception to "never encrypts": a value the server seals on purpose
+ * (`loadServerPayloadSealer`, the run credential of a turn a shared runner
+ * serves), sealed with the same key by `@stigmer/temporal-codecs`
+ * `sealString`, inside an otherwise readable input.
+ *
  * Enabled-iff-configured: no key in the environment means the codec is not
  * installed at all; a present-but-malformed key is a boot error (an operator
  * who set the key intended runner history to be encrypted — failing on the
@@ -23,6 +28,7 @@ import type { Payload, PayloadCodec } from "@temporalio/common";
 import {
   EncryptionPayloadCodec,
   loadPayloadEncryptionConfig,
+  sealString,
 } from "@stigmer/temporal-codecs";
 import type { PayloadKeyResolver } from "@stigmer/temporal-codecs";
 
@@ -85,3 +91,18 @@ export function loadServerPayloadCodecs(
     ),
   ];
 }
+
+/**
+ * The server's sealer (module header): seals one value with the payload key
+ * from the environment, or undefined when no key is configured. A present
+ * but malformed key throws, as for the codecs.
+ */
+export function loadServerPayloadSealer(): ((value: string) => Promise<string>) | undefined {
+  const config = loadPayloadEncryptionConfig((name) => process.env[name]);
+  if (config === undefined) {
+    return undefined;
+  }
+  const codec = new EncryptionPayloadCodec(config);
+  return (value) => sealString(codec, value);
+}
+

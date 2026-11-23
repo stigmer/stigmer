@@ -84,6 +84,8 @@ export type WorkflowLiveness = "open" | "closed" | "not_found";
  */
 export interface StartInvokeWorkflowInput {
   readonly executionId: string;
+  /** The run's organization: the dispatch names it to the run-credential mint (runnerauth/dispatch-credential.ts). */
+  readonly org: string;
   readonly sessionId: string;
   readonly agentId: string;
   readonly autoApproveAll: boolean;

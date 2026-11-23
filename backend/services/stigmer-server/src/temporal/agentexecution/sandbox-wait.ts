@@ -186,8 +186,10 @@ export class SandboxWaitRanOut extends Error {
   constructor(
     readonly limitSeconds: number,
     readonly waitedMs: number,
+    /** The person's sentence; a shared turn's wait words it its own way (shared-turn.ts). */
+    copy: string = sandboxWaitRanOutCopy(limitSeconds),
   ) {
-    super(sandboxWaitRanOutCopy(limitSeconds));
+    super(copy);
     this.name = "SandboxWaitRanOut";
   }
 }

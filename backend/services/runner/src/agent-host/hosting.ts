@@ -12,12 +12,23 @@
  * so the engines run in one kind of process everywhere and the one path is
  * the one every test sees.
  *
- * Two hosts over one proxy. The open host runs every turn with a computer
- * and every operation on the agent's paths (`agentFs()`). The locked host
- * (`fence.ts`) runs the Stigmer harness's turns without a computer, under
- * Node's permission model, and starts at its first such turn: it is never
- * handed an `fs` or `exec` call. Where the runner separates, both run as
- * the agent user.
+ * The hosts over one proxy. The open host runs every turn with a computer
+ * and every operation on the agent's paths (`agentFs()`). The locked hosts
+ * (`fence.ts`), one per turn slot (`host-pool.ts`), run the Stigmer
+ * harness's turns without a computer, one turn per host, under Node's
+ * permission model and the runner's turn memory as their heap cap; they are
+ * never handed an `fs` or `exec` call. Where the runner separates, all run
+ * as the agent user.
+ *
+ * When they start follows which conversations the runner serves
+ * (`runner-serves.ts`). A runner that serves every conversation starts the
+ * open host at boot and each locked host at its slot's first turn, so a
+ * runner that never serves a turn without a computer pays nothing for them.
+ * One that serves only conversations without a computer starts every locked
+ * host at boot, so a runner that cannot lock them fails its boot with the
+ * reason, and starts the open host only if a turn's saved state must be
+ * written to the session's file (a local checkpointer): it never runs a
+ * turn there.
  *
  * The host sees the environment the agent's tools have always seen
  * (`environment.ts`). When the sandbox has an Environment with packages, the folders they
@@ -43,6 +54,7 @@ import { installAgentFs, refusingAgentFs } from "../shared/agent-fs.js";
 import { handOverToAgent, type HandoverIo } from "../shared/agent-handover.js";
 import { agentIdentity, prepareAgentSeparation, type AgentIdentity } from "../shared/agent-identity.js";
 import { fencedHostEnvironment } from "./fence.js";
+import { LockedHostPool } from "./host-pool.js";
 import { createRemoteAdapter } from "./remote-adapter.js";
 import { remoteAgentFs } from "./remote-fs.js";
 import { AgentHostSupervisor, processHostStarter, type HostStarter } from "./supervisor.js";
@@ -64,7 +76,7 @@ export interface HostedHarnesses {
 export interface HostHarnessesOptions {
   /** How the host is started; the tests serve one in-process. Defaults to a child process. */
   readonly start?: HostStarter;
-  /** How the locked host is started; defaults to a child process under Node's permission model (`fence.ts`). */
+  /** How each locked host is started; defaults to a child process under Node's permission model and the turn memory cap (`fence.ts`). */
   readonly startFenced?: HostStarter;
   /** Who the host runs as; defaults to this process's facts (`shared/agent-identity.ts`). */
   readonly identity?: AgentIdentity | null;
@@ -97,20 +109,23 @@ export async function hostHarnesses(
   startEnvironmentInstall(environment);
   const proxy = await AgentProxy.start(config);
   const hostEnvironment = (): NodeJS.ProcessEnv => withEnvironmentPath(agentHostEnvironment(), environment, identity);
+  const computerless = config.serves === "computerless";
   const supervisor = new AgentHostSupervisor({
     proxy,
     slot: "open",
+    startOnFirstUse: computerless,
     start: options.start ?? processHostStarter(hostEnvironment),
   });
-  const fenced = new AgentHostSupervisor({
-    proxy,
-    slot: "fenced",
-    fenced: true,
-    startOnFirstUse: true,
-    // The environment is read only when a built entry starts locked, which no test from source can (`fence.ts`); scripts/verify-agent-host-boot.mjs --fenced boots one.
-    /* v8 ignore next -- @preserve: runs only when a built entry spawns locked */
-    start: options.startFenced ?? processHostStarter(() => fencedHostEnvironment(hostEnvironment()), { fenced: true }),
-  });
+  const heapMb = config.turnMemoryMb;
+  // The environment is read only when a built entry starts locked, which no test from source can (`fence.ts`); scripts/verify-agent-host-boot.mjs --fenced boots one.
+  /* v8 ignore next -- @preserve: runs only when a built entry spawns locked */
+  const startFenced = options.startFenced ?? processHostStarter(() => fencedHostEnvironment(hostEnvironment()), { fenced: true, heapMb });
+  const fenced = new LockedHostPool(
+    Array.from(
+      { length: Math.max(1, config.maxConcurrentActivities) },
+      (_, i) => new AgentHostSupervisor({ proxy, slot: `fenced-${i}`, fenced: true, startOnFirstUse: !computerless, heapMb, start: startFenced }),
+    ),
+  );
   // From here on, the runtime's operations on the agent's paths are the host's.
   const restoreFs = installAgentFs(
     remoteAgentFs({
@@ -126,7 +141,7 @@ export async function hostHarnesses(
             adapter: createRemoteAdapter(
               row.harness,
               row.adapter,
-              { open: supervisor, ...(FENCED_HARNESSES.has(row.harness) ? { fenced } : {}) },
+              { open: supervisor, computerless, ...(FENCED_HARNESSES.has(row.harness) ? { fenced } : {}) },
               proxy,
             ),
           }

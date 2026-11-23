@@ -1159,10 +1159,16 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
    * subagent that has a computer; its conversations and routines refuse
    * repositories, folders, an Environment and the Claude harness.
    *
-   * Unset reads as having a computer. A new agent left unset gets
-   * COMPUTER_REQUIRED; the Claude harness always has a computer, and
-   * COMPUTER_NONE on it is refused. An update that leaves this unset keeps
-   * the stored value. A conversation keeps the computer it started with.
+   * Unset reads as having a computer. A new agent left unset starts
+   * without one (COMPUTER_NONE) unless it names something that needs one,
+   * and then gets COMPUTER_REQUIRED: the Claude harness, a Bash tool, its
+   * own hooks, an Environment, an MCP server of its own on this machine or
+   * a private network, a plugin with hooks or a local MCP server, or a
+   * subagent that has a computer. A value you set is kept as set; the
+   * Claude harness always has a computer, and COMPUTER_NONE on it is
+   * refused. An update that leaves this unset keeps the stored value, so
+   * adding something that needs a computer to an agent without one is
+   * refused. A conversation keeps the computer it started with.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.session.v1.Computer computer = 20 [json_name = "computer", (.buf.validate.field) = { ... }</code>
@@ -1179,10 +1185,16 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
    * subagent that has a computer; its conversations and routines refuse
    * repositories, folders, an Environment and the Claude harness.
    *
-   * Unset reads as having a computer. A new agent left unset gets
-   * COMPUTER_REQUIRED; the Claude harness always has a computer, and
-   * COMPUTER_NONE on it is refused. An update that leaves this unset keeps
-   * the stored value. A conversation keeps the computer it started with.
+   * Unset reads as having a computer. A new agent left unset starts
+   * without one (COMPUTER_NONE) unless it names something that needs one,
+   * and then gets COMPUTER_REQUIRED: the Claude harness, a Bash tool, its
+   * own hooks, an Environment, an MCP server of its own on this machine or
+   * a private network, a plugin with hooks or a local MCP server, or a
+   * subagent that has a computer. A value you set is kept as set; the
+   * Claude harness always has a computer, and COMPUTER_NONE on it is
+   * refused. An update that leaves this unset keeps the stored value, so
+   * adding something that needs a computer to an agent without one is
+   * refused. A conversation keeps the computer it started with.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.session.v1.Computer computer = 20 [json_name = "computer", (.buf.validate.field) = { ... }</code>
@@ -5844,10 +5856,16 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
      * subagent that has a computer; its conversations and routines refuse
      * repositories, folders, an Environment and the Claude harness.
      *
-     * Unset reads as having a computer. A new agent left unset gets
-     * COMPUTER_REQUIRED; the Claude harness always has a computer, and
-     * COMPUTER_NONE on it is refused. An update that leaves this unset keeps
-     * the stored value. A conversation keeps the computer it started with.
+     * Unset reads as having a computer. A new agent left unset starts
+     * without one (COMPUTER_NONE) unless it names something that needs one,
+     * and then gets COMPUTER_REQUIRED: the Claude harness, a Bash tool, its
+     * own hooks, an Environment, an MCP server of its own on this machine or
+     * a private network, a plugin with hooks or a local MCP server, or a
+     * subagent that has a computer. A value you set is kept as set; the
+     * Claude harness always has a computer, and COMPUTER_NONE on it is
+     * refused. An update that leaves this unset keeps the stored value, so
+     * adding something that needs a computer to an agent without one is
+     * refused. A conversation keeps the computer it started with.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.session.v1.Computer computer = 20 [json_name = "computer", (.buf.validate.field) = { ... }</code>
@@ -5864,10 +5882,16 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
      * subagent that has a computer; its conversations and routines refuse
      * repositories, folders, an Environment and the Claude harness.
      *
-     * Unset reads as having a computer. A new agent left unset gets
-     * COMPUTER_REQUIRED; the Claude harness always has a computer, and
-     * COMPUTER_NONE on it is refused. An update that leaves this unset keeps
-     * the stored value. A conversation keeps the computer it started with.
+     * Unset reads as having a computer. A new agent left unset starts
+     * without one (COMPUTER_NONE) unless it names something that needs one,
+     * and then gets COMPUTER_REQUIRED: the Claude harness, a Bash tool, its
+     * own hooks, an Environment, an MCP server of its own on this machine or
+     * a private network, a plugin with hooks or a local MCP server, or a
+     * subagent that has a computer. A value you set is kept as set; the
+     * Claude harness always has a computer, and COMPUTER_NONE on it is
+     * refused. An update that leaves this unset keeps the stored value, so
+     * adding something that needs a computer to an agent without one is
+     * refused. A conversation keeps the computer it started with.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.session.v1.Computer computer = 20 [json_name = "computer", (.buf.validate.field) = { ... }</code>
@@ -5889,10 +5913,16 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
      * subagent that has a computer; its conversations and routines refuse
      * repositories, folders, an Environment and the Claude harness.
      *
-     * Unset reads as having a computer. A new agent left unset gets
-     * COMPUTER_REQUIRED; the Claude harness always has a computer, and
-     * COMPUTER_NONE on it is refused. An update that leaves this unset keeps
-     * the stored value. A conversation keeps the computer it started with.
+     * Unset reads as having a computer. A new agent left unset starts
+     * without one (COMPUTER_NONE) unless it names something that needs one,
+     * and then gets COMPUTER_REQUIRED: the Claude harness, a Bash tool, its
+     * own hooks, an Environment, an MCP server of its own on this machine or
+     * a private network, a plugin with hooks or a local MCP server, or a
+     * subagent that has a computer. A value you set is kept as set; the
+     * Claude harness always has a computer, and COMPUTER_NONE on it is
+     * refused. An update that leaves this unset keeps the stored value, so
+     * adding something that needs a computer to an agent without one is
+     * refused. A conversation keeps the computer it started with.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.session.v1.Computer computer = 20 [json_name = "computer", (.buf.validate.field) = { ... }</code>
@@ -5911,10 +5941,16 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
      * subagent that has a computer; its conversations and routines refuse
      * repositories, folders, an Environment and the Claude harness.
      *
-     * Unset reads as having a computer. A new agent left unset gets
-     * COMPUTER_REQUIRED; the Claude harness always has a computer, and
-     * COMPUTER_NONE on it is refused. An update that leaves this unset keeps
-     * the stored value. A conversation keeps the computer it started with.
+     * Unset reads as having a computer. A new agent left unset starts
+     * without one (COMPUTER_NONE) unless it names something that needs one,
+     * and then gets COMPUTER_REQUIRED: the Claude harness, a Bash tool, its
+     * own hooks, an Environment, an MCP server of its own on this machine or
+     * a private network, a plugin with hooks or a local MCP server, or a
+     * subagent that has a computer. A value you set is kept as set; the
+     * Claude harness always has a computer, and COMPUTER_NONE on it is
+     * refused. An update that leaves this unset keeps the stored value, so
+     * adding something that needs a computer to an agent without one is
+     * refused. A conversation keeps the computer it started with.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.session.v1.Computer computer = 20 [json_name = "computer", (.buf.validate.field) = { ... }</code>
@@ -5936,10 +5972,16 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
      * subagent that has a computer; its conversations and routines refuse
      * repositories, folders, an Environment and the Claude harness.
      *
-     * Unset reads as having a computer. A new agent left unset gets
-     * COMPUTER_REQUIRED; the Claude harness always has a computer, and
-     * COMPUTER_NONE on it is refused. An update that leaves this unset keeps
-     * the stored value. A conversation keeps the computer it started with.
+     * Unset reads as having a computer. A new agent left unset starts
+     * without one (COMPUTER_NONE) unless it names something that needs one,
+     * and then gets COMPUTER_REQUIRED: the Claude harness, a Bash tool, its
+     * own hooks, an Environment, an MCP server of its own on this machine or
+     * a private network, a plugin with hooks or a local MCP server, or a
+     * subagent that has a computer. A value you set is kept as set; the
+     * Claude harness always has a computer, and COMPUTER_NONE on it is
+     * refused. An update that leaves this unset keeps the stored value, so
+     * adding something that needs a computer to an agent without one is
+     * refused. A conversation keeps the computer it started with.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.session.v1.Computer computer = 20 [json_name = "computer", (.buf.validate.field) = { ... }</code>

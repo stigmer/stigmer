@@ -3,20 +3,30 @@
  * host this build speaks to, boot the harnesses the runner asked for, route
  * its calls to the turns they belong to, and start it again when it dies.
  *
- * One supervisor per host, two hosts per runner process, for the adapters'
- * worker lifetime (`harness/types.ts`): the open host, and the locked host
- * for conversations without a computer (`hosting.ts`, `fence.ts`). The
- * manager mode's session workers share them, as they share one adapter
- * object in-process. The remote adapters (`remote-adapter.ts`) are this
- * module's only callers.
+ * One supervisor per host, for the adapters' worker lifetime
+ * (`harness/types.ts`): the open host, and one locked host per turn slot
+ * for conversations without a computer (`hosting.ts`, `host-pool.ts`,
+ * `fence.ts`). The manager mode's session workers share them, as they share
+ * one adapter object in-process. The remote adapters (`remote-adapter.ts`)
+ * and the locked hosts' pool are this module's only callers.
  *
- * The locked host's supervisor starts it on its first turn, not at boot
- * (`startOnFirstUse`), so a runner that never serves such a turn pays
- * nothing, and accepts its hello only when the fence it reports is the one
- * the starter built (`fence.ts` `judgeFence`). A refused fence is final for
- * the runner's life: one Node cannot grow a lock later, so the refusal is
- * logged once and every later turn reads it at once
- * ({@link FenceRefusedError}), with no host started to learn it again.
+ * A locked host's supervisor starts it on its slot's first turn where the
+ * runner serves every conversation (`startOnFirstUse`), so a runner that
+ * never serves such a turn pays nothing, and at boot where the runner serves
+ * only conversations without a computer. It accepts the hello only when the
+ * fence it reports is the one the starter built (`fence.ts` `judgeFence`).
+ * A refused fence is final for the runner's life: one Node cannot grow a
+ * lock later, so the refusal is logged once and every later turn reads it
+ * at once ({@link FenceRefusedError}), with no host started to learn it
+ * again.
+ *
+ * A locked host is started with a heap cap (`fence.ts`, the runner's turn
+ * memory), and one that dies of it closes its channel with a
+ * {@link HostHeapExhaustedError}: the turn it served settles with the
+ * person's sentence (`remote-adapter.ts`), and only its own slot restarts.
+ * The process's exit says so, read once the process has ended
+ * ({@link spawnHostProcess}): V8 names heap exhaustion on stderr before it
+ * aborts.
  *
  * Starting is a {@link HostStarter}: production spawns the runner's own
  * entry in its agent-host mode with the channel on fd 3
@@ -53,7 +63,7 @@ import { telemetrySettings } from "../otel-export.js";
 import { RUNNER_ENTRY_URL } from "../runner-entry.js";
 import { agentIdentity, programOnPath, setprivArgs, type AgentIdentity } from "../shared/agent-identity.js";
 import { Peer, streamChannel, type LineChannel } from "./channel.js";
-import { FenceRefusedError, fencedHostLaunch, judgeFence } from "./fence.js";
+import { FenceRefusedError, fenceReadRoot, fencedHostLaunch, judgeFence } from "./fence.js";
 import {
   AGENT_HOST_CHANNEL_FD,
   AGENT_HOST_MODE_ARG,
@@ -77,6 +87,33 @@ export interface StartedHost {
 }
 
 export type HostStarter = () => StartedHost | Promise<StartedHost>;
+
+/** A host died of heap exhaustion: it grew past the cap it was started with (`fence.ts` `heapCapFlag`). */
+export class HostHeapExhaustedError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "HostHeapExhaustedError";
+  }
+}
+
+/** One host lent to one turn until `release` runs. */
+export interface HostLease {
+  readonly host: AgentHostSupervisor;
+  release(): void;
+}
+
+/**
+ * The hosts one side of the runner runs turns in: a single supervisor, whose
+ * host serves every turn it is lent for at once, or the locked hosts' pool
+ * (`host-pool.ts`), whose hosts each serve one turn at a time.
+ */
+export interface TurnHosts {
+  boot(harness: HarnessName, config: Config): Promise<void>;
+  shutdown(harness: HarnessName): Promise<void>;
+  releaseSession(harness: HarnessName, sessionId: string): Promise<void>;
+  /** A host for one turn; throws the {@link FenceRefusedError} that keeps a locked host from ever running here. */
+  acquire(): Promise<HostLease>;
+}
 
 /** What the supervisor needs of the local proxy (`agent-proxy/server.ts`). */
 export interface AgentProxyGate {
@@ -109,6 +146,8 @@ export interface AgentHostSupervisorOptions {
   readonly fenced?: boolean;
   /** Record booted harnesses and start the host at its first use, never at boot. */
   readonly startOnFirstUse?: boolean;
+  /** The heap cap the starter starts the host under, in megabytes: what a turn that outgrows it is told. */
+  readonly heapMb?: number;
 }
 
 const DEFAULT_HELLO_TIMEOUT_MS = 30_000;
@@ -121,7 +160,7 @@ interface LiveHost {
   readonly token: string;
 }
 
-export class AgentHostSupervisor {
+export class AgentHostSupervisor implements TurnHosts {
   private readonly booted = new Map<HarnessName, Config>();
   private readonly turns = new Map<string, RemoteTurnEndpoint>();
   private live: LiveHost | undefined;
@@ -168,6 +207,26 @@ export class AgentHostSupervisor {
     const peer = this.live?.peer;
     // A host that is not running holds nothing for the session.
     if (peer && !peer.closed) await peer.call("releaseSession", { harness, sessionId });
+  }
+
+  /** The host's slot at the local proxy. */
+  get slot(): string {
+    return this.options.slot ?? "open";
+  }
+
+  /** The heap cap the host runs under, in megabytes; undefined for a host started without one. */
+  get heapMb(): number | undefined {
+    return this.options.heapMb;
+  }
+
+  /** Why a locked host can never run on this runner, once a start has learned it. */
+  get refusal(): FenceRefusedError | undefined {
+    return this.refused;
+  }
+
+  /** This host, for one turn: it serves every turn it is lent for at once. */
+  async acquire(): Promise<HostLease> {
+    return { host: this, release: () => {} };
   }
 
   /** The live host, started (and booted) first when it is not running. */
@@ -354,7 +413,7 @@ export class AgentHostSupervisor {
  *
  * `env` is what the host and every process it starts see (`environment.ts`).
  */
-export function processHostStarter(env: () => NodeJS.ProcessEnv, options: { readonly fenced?: boolean } = {}): HostStarter {
+export function processHostStarter(env: () => NodeJS.ProcessEnv, options: { readonly fenced?: boolean; readonly heapMb?: number } = {}): HostStarter {
   return () => {
     const { command, args, env: runtimeEnv, execArgv } = agentHostCommand(process.versions, agentIdentity(), process.env.PATH ?? "", options);
     const { started } = spawnHostProcess(command, args, { ...env(), ...runtimeEnv });
@@ -364,6 +423,12 @@ export function processHostStarter(env: () => NodeJS.ProcessEnv, options: { read
 
 /** How long a host whose pipe has closed has to exit before it is killed: its own shutdown grace (`entry.ts`), and a margin. */
 export const HOST_KILL_GRACE_MS = 15_000;
+
+/** How long a host's broken pipe waits for the process's exit, which says why it ended, before the channel closes without it. */
+export const HOST_EXIT_REASON_WAIT_MS = 2_000;
+
+/** What V8 writes on stderr when a process dies of heap exhaustion ("FATAL ERROR: Reached heap limit Allocation failed - JavaScript heap out of memory"). */
+const HEAP_EXHAUSTED_LINE = /JavaScript heap out of memory/;
 
 /**
  * Spawn one host process with its channel on fd 3 and its output relayed
@@ -376,6 +441,13 @@ export const HOST_KILL_GRACE_MS = 15_000;
  * pending read while this side waits for the hello (#2983). Overlapped I/O
  * lets both run at once. Everywhere else Node treats the two types the
  * same. stdout and stderr only flow one way, so they stay `"pipe"`.
+ *
+ * A pipe that ends on its own (the process died) closes the channel with
+ * the process's exit, read once the process and its output have ended: a
+ * {@link HostHeapExhaustedError} when V8 said the heap ran out, else the
+ * code or signal. The pipe usually ends before the exit is known, so the
+ * channel waits for it, at most {@link HOST_EXIT_REASON_WAIT_MS}. A close
+ * the runner asks for is at once.
  */
 export function spawnHostProcess(
   command: string,
@@ -388,11 +460,21 @@ export function spawnHostProcess(
     stdio: ["ignore", "pipe", "pipe", "overlapped"],
   });
   // Piped above, so both streams exist.
+  let heapExhausted = false;
   relayLines(child.stdout!, (line) => console.log(line));
-  relayLines(child.stderr!, (line) => console.error(line));
+  relayLines(child.stderr!, (line) => {
+    if (HEAP_EXHAUSTED_LINE.test(line)) heapExhausted = true;
+    console.error(line);
+  });
   const pipe = child.stdio[AGENT_HOST_CHANNEL_FD] as Readable & Writable;
-  const channel = streamChannel(pipe, pipe);
-  child.on("exit", (code, signal) => channel.close(new Error(`agent host process ended (${signal ?? code})`)));
+  // "close" follows the exit and the end of every stream, so stderr has been read whole.
+  const exited = new Promise<Error>((resolve) => {
+    child.once("close", (code, signal) => {
+      const how = signal ?? code;
+      resolve(heapExhausted ? new HostHeapExhaustedError(`agent host process ran out of memory (${how})`) : new Error(`agent host process ended (${how})`));
+    });
+  });
+  const channel = closedWithExitReason(streamChannel(pipe, pipe), exited, HOST_EXIT_REASON_WAIT_MS);
   child.on("error", (err) => channel.close(err));
   return {
     child,
@@ -425,8 +507,9 @@ export function spawnHostProcess(
  * place the runner drops privilege. Everything the host starts inherits it.
  *
  * `fenced` starts the locked host (`fence.ts`): the same entry under Node's
- * permission model, granted only a read of its install root, with
- * `execArgv` naming those flags for the hello's check. It throws a
+ * permission model, granted only a read of its install root and capped at
+ * `heapMb` of heap where one is given, with `execArgv` naming those flags
+ * for the hello's check. It throws a
  * `FenceRefusedError`, spawning nothing, where the lock cannot be built: a
  * Node without the model, or the runner running from source under tsx.
  * Where the runner separates, the locked host is the agent user too.
@@ -435,7 +518,7 @@ export function agentHostCommand(
   versions: NodeJS.ProcessVersions = process.versions,
   identity: AgentIdentity | null = agentIdentity(),
   runnerPath: string = process.env.PATH ?? "",
-  options: { readonly fenced?: boolean; readonly entry?: string } = {},
+  options: { readonly fenced?: boolean; readonly entry?: string; readonly heapMb?: number } = {},
 ): {
   readonly command: string;
   readonly args: readonly string[];
@@ -447,7 +530,7 @@ export function agentHostCommand(
   // it is given component by component, and a link on the way (macOS's
   // `/var`, an install behind a symlink) sits outside the one read grant.
   const entry = options.fenced && existsSync(named) ? realpathSync(named) : named;
-  const fence = options.fenced ? fencedHostLaunch(entry) : undefined;
+  const fence = options.fenced ? fencedHostLaunch(entry, process.allowedNodeEnvironmentFlags, fenceReadRoot, options.heapMb) : undefined;
   // Running from source (the tests' spawned hosts, `npm start`): the entry
   // is TypeScript, loaded the way the runner itself was. A locked host never
   // runs from source (`fencedHostLaunch` refuses it above).
@@ -468,6 +551,43 @@ export function agentHostCommand(
     throw new Error("the runner's PATH has no setpriv, so the agent host cannot start as the agent");
   }
   return { command: setpriv, args: [...setprivArgs(identity), "--", ...node], env: { ...runtime, HOME: identity.home }, ...withFence };
+}
+
+/**
+ * `inner`, whose close reports the process's exit when the pipe ended on its
+ * own ({@link spawnHostProcess}); a close the runner asks for reports at once.
+ */
+function closedWithExitReason(inner: LineChannel, exited: Promise<Error>, waitMs: number): LineChannel {
+  const listeners: ((reason: Error) => void)[] = [];
+  let reported = false;
+  let closedByRunner = false;
+  const report = (reason: Error): void => {
+    if (reported) return;
+    reported = true;
+    for (const listener of listeners) listener(reason);
+  };
+  inner.onClose((reason) => {
+    if (closedByRunner) return report(reason);
+    const timer = setTimeout(() => report(reason), waitMs);
+    timer.unref();
+    void exited.then((exitReason) => {
+      clearTimeout(timer);
+      report(exitReason);
+    });
+  });
+  // A process that ended with its pipe still open (a grandchild holding it) closes the channel too.
+  void exited.then((exitReason) => inner.close(exitReason));
+  return {
+    send: (line) => inner.send(line),
+    onLine: (listener) => inner.onLine(listener),
+    onClose: (listener) => {
+      listeners.push(listener);
+    },
+    close: (reason) => {
+      closedByRunner = true;
+      inner.close(reason);
+    },
+  };
 }
 
 function relayLines(stream: Readable, write: (line: string) => void): void {

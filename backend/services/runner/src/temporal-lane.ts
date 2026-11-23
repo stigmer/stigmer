@@ -82,6 +82,16 @@ export function resolveTemporalLane(input: ResolveTemporalLaneInput): TemporalLa
   };
 }
 
+/**
+ * The Stigmer server's own Temporal door for a runner whose backend is
+ * `backendEndpoint`: the endpoint's host and port, the address that makes
+ * {@link resolveTemporalLane} choose the lane through the server.
+ * `undefined` for an endpoint that is not an http(s) URL.
+ */
+export function serverDoorAddress(backendEndpoint: string): string | undefined {
+  return hostPortOf(backendEndpoint)?.hostPort;
+}
+
 interface EndpointHostPort {
   readonly hostPort: string;
   readonly secure: boolean;

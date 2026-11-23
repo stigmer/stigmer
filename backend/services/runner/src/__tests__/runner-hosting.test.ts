@@ -14,6 +14,11 @@
  * (stigmer#1374), the runner's own STIGMER_MCP_BRIDGE_ENDPOINT wins over it,
  * and a bootstrap that fails starts no host and so releases nothing.
  *
+ * A runner that serves only conversations without a computer refuses to
+ * boot without the payload key that opens its turns' sealed credentials, and
+ * with it boots without ever asking the control plane for its bootstrap: its
+ * key opens the server's Temporal door alone.
+ *
  * Temporal, the bootstrap, the preflight, the registry and the hosting are
  * replaced at their module seams, so the root's own wiring runs in-process.
  */
@@ -91,12 +96,17 @@ vi.mock("../harness/registry.js", () => ({
   shutdownHarnesses: async () => void fakes.order.push("harnesses shut down"),
 }));
 
+import { randomBytes } from "node:crypto";
+
 import { createStigmerRunner } from "../runner.js";
+import { setRunnerSecret } from "../shared/runner-credential-store.js";
 import { DEFAULT_DRAIN_GRACE_MS } from "../config.js";
 import { getShutdownSignalForQueue, getStopNowSignalForQueue } from "../shared/worker-shutdown.js";
 
 afterEach(() => {
   vi.restoreAllMocks();
+  vi.unstubAllEnvs();
+  setRunnerSecret("STIGMER_PAYLOAD_ENCRYPTION_KEY", null);
 });
 
 describe("the static root runs the hosted table", () => {
@@ -235,5 +245,47 @@ describe("the static root hosts with the bootstrap's MCP bridge", () => {
   it("keeps the local shape when neither names a bridge", async () => {
     vi.stubEnv("STIGMER_MCP_BRIDGE_ENDPOINT", undefined);
     expect(await bootAndStop()).toEqual({ hosted: null, booted: null });
+  });
+});
+
+describe("a static root that serves only conversations without a computer", () => {
+  it("refuses to boot without the payload key, starting no host", async () => {
+    vi.spyOn(console, "log").mockImplementation(() => {});
+    const hostedBefore = fakes.hostedArgs.length;
+    await expect(
+      createStigmerRunner({
+        taskQueue: "stigmer_runner",
+        stigmerEndpoint: "localhost:7234",
+        stigmerToken: "shared-runner-key",
+        temporalAddress: "127.0.0.1:7233",
+        serves: "computerless",
+        workspaceRootDir: join(tmpdir(), "stigmer-runner-hosting-test"),
+      }),
+    ).rejects.toThrow(/^STIGMER_RUNNER_SERVES=computerless needs STIGMER_PAYLOAD_ENCRYPTION_KEY/);
+    expect(fakes.hostedArgs.length).toBe(hostedBefore);
+  });
+
+  it("boots with the payload key and never asks the control plane for its bootstrap", async () => {
+    vi.spyOn(console, "log").mockImplementation(() => {});
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    setRunnerSecret("STIGMER_PAYLOAD_ENCRYPTION_KEY", randomBytes(32).toString("base64"));
+    vi.stubEnv("STIGMER_PAYLOAD_ENCRYPTION_KEY_ID", "k1");
+    // A discovery would throw: the boot below passes only because none is made.
+    fakes.bootstrapFails = true;
+    try {
+      const runner = await createStigmerRunner({
+        taskQueue: "stigmer_runner_shared",
+        stigmerEndpoint: "localhost:7234",
+        stigmerToken: "shared-runner-key",
+        temporalAddress: "127.0.0.1:7233",
+        serves: "computerless",
+        workspaceRootDir: join(tmpdir(), "stigmer-runner-hosting-test"),
+      });
+      const started = runner.start();
+      runner.shutdown();
+      await started;
+    } finally {
+      fakes.bootstrapFails = false;
+    }
   });
 });

@@ -181,6 +181,8 @@ export function hermeticDeepAgentConfig(env: HermeticEnvironment, checkpointerTy
     shellBackgroundEnabled: true,
     workspaceLockTimeoutMs: 900_000,
     drainGraceMs: 0,
+    serves: "all",
+    turnMemoryMb: 512,
   };
 }
 

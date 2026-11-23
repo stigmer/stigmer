@@ -210,6 +210,7 @@ async function runStaticMode(config: import("./config.js").Config): Promise<void
     // consistent with manager mode, which already passes config.mode.
     executionMode: config.mode,
     drainGraceMs: config.drainGraceMs,
+    serves: config.serves,
     ...operatorBounds(config),
   });
   /* v8 ignore stop */
@@ -354,6 +355,10 @@ async function main(): Promise<void> {
   );
 
   if (runnerMode === "manager") {
+    // A shared runner polls one queue; the manager serves a person's own sessions.
+    if (config.serves !== "all") {
+      throw new Error(`STIGMER_RUNNER_SERVES=${config.serves} runs in static mode only; the manager serves every conversation of its sessions`);
+    }
     await runManagerMode(config);
     // Manager mode is driven by the host over stdin. Once it returns — via the IPC `shutdown`
     // command or stdin EOF when the host process dies — exit deterministically so a stray open

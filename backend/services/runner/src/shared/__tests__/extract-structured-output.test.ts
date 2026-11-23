@@ -92,6 +92,19 @@ describe("extractStructuredOutput", () => {
     );
   });
 
+  it("goes out under the turn's own run credential before the runner's token, which a shared runner's platform refuses", async () => {
+    const { buildChatModel } = await import("../model-client.js");
+    const { extractStructuredOutput } = await import("../extract-structured-output.js");
+    const { withRunCredential } = await import("../run-credential-store.js");
+    mockInvoke.mockResolvedValueOnce({ answer: "ok" });
+
+    await withRunCredential("credential-of-the-turn", () =>
+      extractStructuredOutput("text", SCHEMA, makeConfig({ proxyEndpoint: "https://api.stigmer.ai", stigmerTokenRef: { current: "shared-runner-key" } }), "gpt-4.1", "run_1"),
+    );
+
+    expect(buildChatModel).toHaveBeenCalledWith(expect.objectContaining({ stigmerToken: "credential-of-the-turn" }));
+  });
+
   it("scopes the extraction to the run it serves, so a proxy that refuses unscoped calls answers it (stigmer#2060)", async () => {
     // The fake proxy: like the hosted edition's, it refuses a call that
     // names no run, and answers one that does.

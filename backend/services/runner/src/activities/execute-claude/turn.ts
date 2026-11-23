@@ -89,6 +89,7 @@
  * `@temporalio/*` (`__tests__/adapter-is-temporal-free.test.ts`).
  */
 
+import { turnCredentialRef } from "../../shared/run-credential-store.js";
 import { mkdir, rm } from "node:fs/promises";
 import type { McpServerConfig, Query, SDKAssistantMessageError, SDKResultMessage, SDKUserMessage } from "@anthropic-ai/claude-agent-sdk";
 import type { JsonObject } from "@bufbuild/protobuf";
@@ -291,7 +292,7 @@ async function connectTools(input: ComputerTurnInput, sink: TurnSink, specs: rea
 const BACKINGS: Record<ClaudeAdapterConfig["checkpointerType"], (config: ClaudeAdapterConfig, sessionId: string) => TranscriptBacking> = {
   http: (config) => {
     if (config.checkpointerProxyEndpoint === null) throw new Error("the http checkpointer has no proxy endpoint on this runner");
-    return new HttpTranscripts(config.checkpointerProxyEndpoint, config.stigmerTokenRef);
+    return new HttpTranscripts(config.checkpointerProxyEndpoint, turnCredentialRef(config.stigmerTokenRef));
   },
   sqlite: (_config, sessionId) => new FileTranscripts(getClaudeTranscriptDir(sessionId)),
   memory: () => new MemoryTranscripts(),

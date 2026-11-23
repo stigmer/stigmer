@@ -74,6 +74,13 @@
  * wait, so a stream stops counting while the runner starts. A run since
  * deleted has nothing to ensure.
  *
+ * AdmitSharedTurn and ReleaseSharedTurn are a shared turn's place
+ * (shared-turn.ts): the composed admission's answer
+ * (extensions/shared-turn-admission.ts), `unbounded` with none composed,
+ * and its release. The facts come from the run's row, never the input: the
+ * run's organization and session are what the admission counts by. A run
+ * since deleted is `unbounded` (nothing to count) and releases as a no-op.
+ *
  * StartQueuedTurn is the workflow's last act: the start of the turn its
  * session's queued messages wait for (domain/run/queued-turn.ts), which
  * runs a whole run create in-process as the newest sender. Idempotent,
@@ -129,9 +136,13 @@ import {
   CLOSE_FILE_REVIEW_ACTIVITY_NAME,
   COUNT_OPEN_GATES_ACTIVITY_NAME,
   ENSURE_SESSION_SANDBOX_ACTIVITY_NAME,
+  ADMIT_SHARED_TURN_ACTIVITY_NAME,
+  RELEASE_SHARED_TURN_ACTIVITY_NAME,
   START_QUEUED_TURN_ACTIVITY_NAME,
   UPDATE_EXECUTION_STATUS_ACTIVITY_NAME,
 } from "./names.js";
+import type { SharedTurnAdmissionOutcome, SharedTurnInput } from "./shared-turn.js";
+import type { SharedTurnAdmission } from "../../extensions/shared-turn-admission.js";
 import type { EnsureSessionSandboxInput, SandboxEnsureOutcome } from "./sandbox-wait.js";
 import type { QueuedTurnStarter } from "../../domain/run/queued-turn.js";
 import { decodeRunStatusJson } from "./execution-json.js";
@@ -168,6 +179,8 @@ export interface AgentExecutionActivityDeps {
   /** Resolves a session's creator for its sandbox's credential; undefined under the trusted-local posture. */
   readonly personAccounts: AccountsByCaller | undefined;
   readonly temporalConfig: AgentExecutionTemporalConfig;
+  /** The composed shared-turn admission (ExtensionDrivers.sharedTurnAdmission); undefined bounds nothing. */
+  readonly sharedTurnAdmission?: SharedTurnAdmission;
   /** Records the activity's heartbeat; the running activity's own by default (a test passes its own). */
   readonly heartbeat?: () => void;
   /** The wall clock the wait's age is read on, epoch ms; Date.now by default. */
@@ -320,6 +333,36 @@ export function createAgentExecutionActivities(
       }
       publishSandboxWait(deps, run, input, outcome);
       return outcome;
+    },
+
+    /** A shared turn's place, asked for by the workflow (module header). */
+    [ADMIT_SHARED_TURN_ACTIVITY_NAME]: async (
+      input: SharedTurnInput,
+    ): Promise<SharedTurnAdmissionOutcome> => {
+      const admission = deps.sharedTurnAdmission;
+      if (admission === undefined) {
+        return "unbounded";
+      }
+      let run: Run;
+      try {
+        run = await store.getResource(ApiResourceKind.run, input.execution_id, RunSchema);
+      } catch (error) {
+        if (error instanceof ResourceNotFoundError) {
+          return "unbounded";
+        }
+        throw error;
+      }
+      return admission.admit({
+        executionId: input.execution_id,
+        sessionId: sessionIdOf(run.spec),
+        org: run.metadata?.org ?? "",
+        callerClass: input.caller_class,
+      });
+    },
+
+    /** A shared turn's place, given back as it parks or ends (module header). */
+    [RELEASE_SHARED_TURN_ACTIVITY_NAME]: async (input: SharedTurnInput): Promise<void> => {
+      await deps.sharedTurnAdmission?.release(input.execution_id);
     },
 
     /** The session's queued turn, started as the run's workflow ends (module header). */

@@ -8,8 +8,10 @@
  *
  * An Environment governs only a sandbox this server starts: the sandbox
  * lane composed, the conversation's target resolving to CLOUD, and its
- * turns routed to a per-session queue. That is exactly when the turn's
- * sandbox ensure provisions one (sandbox/session-sandbox.ts), so a server with no
+ * turns routed to a per-session queue (placement.ts, for a conversation
+ * with a computer, which one with an Environment always has). That is
+ * exactly when the turn's sandbox ensure provisions one
+ * (sandbox/session-sandbox.ts), so a server with no
  * sandbox driver never applies an organization default it has no way to
  * honour. Anywhere else (a conversation on the person's own machine, in
  * the desktop app or the CLI) the agent's and organization's defaults do
@@ -63,7 +65,7 @@ import type { Store } from "../../store/interface.js";
 import { environmentFactsOf, environmentName, environmentSupportOf, isLimited, unservableReason } from "../environment/facts.js";
 import { hostAdmits } from "../environment/hosts.js";
 import { PACKAGE_MANAGER_HOSTS } from "../environment/package-manager-hosts.js";
-import { ROUTING_SESSION } from "./temporal/config.js";
+import { sandboxServesTarget } from "./placement.js";
 import type { AgentExecutionTemporalConfig } from "./temporal/config.js";
 import type { RunServer, RunServersInput } from "./run-servers.js";
 import { runServers, turnServerName } from "./run-servers.js";
@@ -77,15 +79,13 @@ export interface EnvironmentPolicy {
 /** The deployment's policy: the condition the turn's sandbox ensure provisions under (the module header). */
 export function newEnvironmentPolicy(
   lane: SandboxLane,
-  temporalConfig: Pick<AgentExecutionTemporalConfig, "resolveExecutionTarget" | "activityRouting">,
+  temporalConfig: Pick<AgentExecutionTemporalConfig, "resolveExecutionTarget" | "activityRouting" | "sharedRunners">,
 ): EnvironmentPolicy {
   return {
     governs(target) {
-      return (
-        lane.enabled &&
-        temporalConfig.activityRouting === ROUTING_SESSION &&
-        temporalConfig.resolveExecutionTarget(target) === ExecutionTarget.CLOUD
-      );
+      // A conversation with an Environment has a computer, so this is the
+      // placement rule's answer for one (placement.ts).
+      return sandboxServesTarget(temporalConfig, lane.enabled, target);
     },
     support: environmentSupportOf(lane),
   };

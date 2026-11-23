@@ -148,8 +148,9 @@ describe("what a host token buys", () => {
     setEnv({ ANTHROPIC_BASE_URL: upstream.url, ANTHROPIC_API_KEY: "sk-operator" });
     const proxy = await startProxy();
     const close = proxy.openTurn({ executionId: EXECUTION, threadId: THREAD, turnKey: TURN_KEY });
+    const closeLocked = proxy.openTurn({ executionId: "run_locked", threadId: "thread-ses-locked", turnKey: "turn-key-locked", slot: "fenced" });
     try {
-      const turnHeaders = { "x-stigmer-execution-id": EXECUTION, "x-stigmer-turn-key": TURN_KEY };
+      const turnHeaders = { "x-stigmer-execution-id": "run_locked", "x-stigmer-turn-key": "turn-key-locked" };
       proxy.authorizeHost("fenced", "the-locked-host");
       const open = await call(proxy, "/v1/proxy/llm/anthropic/v1/messages", { headers: asHost });
       expect(open.status, "the open host's token still stands beside the locked host's").toBe(200);
@@ -162,6 +163,7 @@ describe("what a host token buys", () => {
       expect(stillOpen.status, "and never the open host's").toBe(200);
     } finally {
       close();
+      closeLocked();
       await proxy.close();
     }
   });

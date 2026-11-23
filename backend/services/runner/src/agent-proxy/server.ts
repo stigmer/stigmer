@@ -37,6 +37,17 @@
  *  - The model registry is exempt from the live-turn rule: it is the
  *    catalog every caller may read, and the platform's proxy serves it even
  *    to visitors.
+ *  - A turn key is good only from the host the turn runs on: the remote
+ *    adapter opens each turn in its host's slot, and a call that presents
+ *    another slot's turn key is refused. The locked hosts each hold one
+ *    turn at a time (`agent-host/host-pool.ts`), so one host never holds
+ *    another organization's key.
+ *  - A forwarded call goes out as its turn: the remote adapter opens the turn
+ *    with the run credential its activity entered, and a model, checkpoint or
+ *    engine-session call reaches the platform with that turn's credential,
+ *    the runner's own token only for a turn whose dispatch carried none
+ *    (`lanes.ts`). A runner shared by many organizations holds a key that
+ *    opens nothing else, so this is what lets its turns reach the platform.
  *  - No lane reaches the Stigmer API beyond the registry: execution reads,
  *    status writes, credential exchanges stay the runner's own calls.
  *  - The telemetry lane (`otlp/v1/traces`, `otlp/v1/metrics`) forwards the
@@ -62,7 +73,7 @@ import type { AddressInfo } from "node:net";
 
 import type { Config } from "../config.js";
 import { TURN_KEY_HEADER } from "../shared/execution-context.js";
-import type { LiveTurnRegistry } from "../agent-host/remote-adapter.js";
+import type { LiveTurnOpening, LiveTurnRegistry } from "../agent-host/remote-adapter.js";
 import type { AgentProxyGate } from "../agent-host/supervisor.js";
 import { LaneRefusal, checkpointUpstream, engineSessionUpstream, isModelProviderLane, modelUpstream, registryUpstream } from "./lanes.js";
 import { RequestTooLargeError, bearerOf, readBody, relay, replyError } from "./relay.js";
@@ -80,7 +91,14 @@ interface LiveTurn {
   readonly executionId: string;
   readonly threadId: string;
   readonly key: Buffer;
+  /** The slot of the host the turn runs on: only that host's token may present its key. */
+  readonly slot: string;
+  /** The run credential the turn's calls reach the platform with; absent when its dispatch carried none. */
+  readonly credential: string | undefined;
 }
+
+/** The slot a turn opened without one belongs to: the open host's, as a supervisor's default slot is. */
+const OPEN_SLOT = "open";
 
 export class AgentProxy implements AgentProxyGate, LiveTurnRegistry {
   /** Each host's current token, by its slot. */
@@ -116,8 +134,14 @@ export class AgentProxy implements AgentProxyGate, LiveTurnRegistry {
     this.hostTokens.set(slot, Buffer.from(token));
   }
 
-  openTurn(turn: { readonly executionId: string; readonly threadId: string; readonly turnKey: string }): () => void {
-    const live: LiveTurn = { executionId: turn.executionId, threadId: turn.threadId, key: Buffer.from(turn.turnKey) };
+  openTurn(turn: LiveTurnOpening): () => void {
+    const live: LiveTurn = {
+      executionId: turn.executionId,
+      threadId: turn.threadId,
+      key: Buffer.from(turn.turnKey),
+      slot: turn.slot ?? OPEN_SLOT,
+      credential: turn.credential === "" ? undefined : turn.credential,
+    };
     this.live.add(live);
     return () => {
       this.live.delete(live);
@@ -139,7 +163,8 @@ export class AgentProxy implements AgentProxyGate, LiveTurnRegistry {
     const path = url.pathname;
     try {
       const engineTurn = this.turnCredentialOf(req, path);
-      if (engineTurn === undefined && !this.authenticated(req)) throw new LaneRefusal(401, "the agent proxy accepts the current agent host's token only");
+      const slot = engineTurn === undefined ? this.hostSlotOf(presentedCredential(req)) : undefined;
+      if (engineTurn === undefined && slot === undefined) throw new LaneRefusal(401, "the agent proxy accepts the current agent host's token only");
       if (path === REGISTRY_PATH) {
         if (req.method !== "GET") throw new LaneRefusal(405, "the model registry is read with GET");
         await relay(res, registryUpstream(req));
@@ -154,22 +179,22 @@ export class AgentProxy implements AgentProxyGate, LiveTurnRegistry {
       if (path.startsWith(LLM_PREFIX)) {
         const [lane = "", ...segments] = path.slice(LLM_PREFIX.length).split("/");
         if (!isModelProviderLane(lane)) throw new LaneRefusal(404, `no model lane '${lane}'`);
-        const turn = engineTurn ?? this.requireLiveExecution(req);
+        const turn = engineTurn ?? this.requireLiveExecution(req, slot);
         const body = await readBody(req);
         const rest = `/${segments.join("/")}${url.search}`;
-        await relay(res, await modelUpstream(this.config, lane, rest, req, body, turn.executionId));
+        await relay(res, await modelUpstream(this.config, lane, rest, req, body, turn));
         return;
       }
       if (path === CHECKPOINT_PREFIX || path.startsWith(`${CHECKPOINT_PREFIX}/`)) {
         const body = await readBody(req);
-        this.requireLiveThreads(req, url, body, req.method === "PUT" && path === `${CHECKPOINT_PREFIX}/writes`);
-        await relay(res, checkpointUpstream(this.config, `${path.slice(CHECKPOINT_PREFIX.length)}${url.search}`, req, body));
+        const turn = this.requireLiveThreads(req, slot, url, body, req.method === "PUT" && path === `${CHECKPOINT_PREFIX}/writes`);
+        await relay(res, checkpointUpstream(this.config, `${path.slice(CHECKPOINT_PREFIX.length)}${url.search}`, req, body, turn.credential));
         return;
       }
       if (path === ENGINE_SESSIONS_PREFIX || path.startsWith(`${ENGINE_SESSIONS_PREFIX}/`)) {
         const body = await readBody(req);
-        this.requireLiveThreads(req, url, body, false);
-        await relay(res, engineSessionUpstream(this.config, `${path.slice(ENGINE_SESSIONS_PREFIX.length)}${url.search}`, req, body));
+        const turn = this.requireLiveThreads(req, slot, url, body, false);
+        await relay(res, engineSessionUpstream(this.config, `${path.slice(ENGINE_SESSIONS_PREFIX.length)}${url.search}`, req, body, turn.credential));
         return;
       }
       throw new LaneRefusal(404, `the agent proxy serves no lane at ${path}`);
@@ -183,9 +208,6 @@ export class AgentProxy implements AgentProxyGate, LiveTurnRegistry {
     }
   }
 
-  private authenticated(req: IncomingMessage): boolean {
-    return this.isHostToken(presentedCredential(req));
-  }
 
   /**
    * The live turn whose own key a model call on the Anthropic lane presents
@@ -203,23 +225,29 @@ export class AgentProxy implements AgentProxyGate, LiveTurnRegistry {
     return turn;
   }
 
-  private isHostToken(presented: string | undefined): boolean {
-    if (presented === undefined) return false;
+  /** The slot of the host whose current token `presented` is, or undefined for none. */
+  private hostSlotOf(presented: string | undefined): string | undefined {
+    if (presented === undefined) return undefined;
     const candidate = Buffer.from(presented);
-    let matched = false;
+    let matched: string | undefined;
     // Every slot is compared, so the time taken says nothing of which matched.
-    for (const expected of this.hostTokens.values()) {
-      if (candidate.length === expected.length && timingSafeEqual(candidate, expected)) matched = true;
+    for (const [slot, expected] of this.hostTokens) {
+      if (candidate.length === expected.length && timingSafeEqual(candidate, expected)) matched = slot;
     }
     return matched;
   }
 
-  /** The live turn whose key the request carries, compared in constant time. */
-  private liveTurnOf(req: { readonly headers: IncomingMessage["headers"] }): LiveTurn {
+  /**
+   * The live turn whose key the request carries, compared in constant time,
+   * and only when it runs on the host in `slot`, the host whose token the
+   * request presented.
+   */
+  private liveTurnOf(req: { readonly headers: IncomingMessage["headers"] }, slot: string | undefined): LiveTurn {
     const presented = headerValue(req.headers[TURN_KEY_HEADER]);
     if (!presented) throw new LaneRefusal(403, "a call must carry its turn's key (X-Stigmer-Turn-Key)");
     const turn = this.liveTurnPresenting(presented);
     if (turn === undefined) throw new LaneRefusal(403, "the turn key names no turn running on this runner");
+    if (turn.slot !== slot) throw new LaneRefusal(403, "the turn key is not a turn of the agent host that presents it");
     return turn;
   }
 
@@ -233,8 +261,8 @@ export class AgentProxy implements AgentProxyGate, LiveTurnRegistry {
     return undefined;
   }
 
-  private requireLiveExecution(req: { readonly headers: IncomingMessage["headers"] }): LiveTurn {
-    const turn = this.liveTurnOf(req);
+  private requireLiveExecution(req: { readonly headers: IncomingMessage["headers"] }, slot: string | undefined): LiveTurn {
+    const turn = this.liveTurnOf(req, slot);
     const executionId = headerValue(req.headers["x-stigmer-execution-id"]);
     if (!executionId) throw new LaneRefusal(403, "a model call must name its execution (X-Stigmer-Execution-Id)");
     if (executionId !== turn.executionId) throw new LaneRefusal(403, `the turn key is not execution ${executionId}'s`);
@@ -242,8 +270,8 @@ export class AgentProxy implements AgentProxyGate, LiveTurnRegistry {
   }
 
   /** Every thread a call carrying an engine's conversation (a checkpoint, an engine session) names must be its turn's own. */
-  private requireLiveThreads(req: IncomingMessage, url: URL, body: Buffer, isWriteBatch: boolean): void {
-    const turn = this.liveTurnOf(req);
+  private requireLiveThreads(req: IncomingMessage, slot: string | undefined, url: URL, body: Buffer, isWriteBatch: boolean): LiveTurn {
+    const turn = this.liveTurnOf(req, slot);
     const threads = new Set<string>();
     const queried = url.searchParams.get("thread_id");
     if (queried !== null) threads.add(queried);
@@ -251,11 +279,12 @@ export class AgentProxy implements AgentProxyGate, LiveTurnRegistry {
     // An empty write batch names no thread and writes nothing: LangGraph sends
     // one for a task whose writes all go to untracked channels, and the
     // platform answers it as a no-op.
-    if (threads.size === 0 && isWriteBatch && isEmptyWriteBatch(body)) return;
+    if (threads.size === 0 && isWriteBatch && isEmptyWriteBatch(body)) return turn;
     if (threads.size === 0) throw new LaneRefusal(403, "a call that carries an engine's conversation must name its thread");
     for (const thread of threads) {
       if (thread !== turn.threadId) throw new LaneRefusal(403, `thread ${thread} is not the turn's own`);
     }
+    return turn;
   }
 }
 

@@ -348,9 +348,20 @@ full backup, and a failing backup never takes the install out of `Ready`: the
 ## A sandbox for each Session
 
 By default every Session's Agent runs in the one shared runner beside the
-server. With a bucket declared, each Session can run in a sandbox of its own
-instead, on one of two drivers. A sandbox sleeps after `idleSeconds` without
-activity and wakes, with its files, on the Session's next message.
+server. With a bucket declared, each Session whose Agent has a computer can run
+in a sandbox of its own instead, on one of two drivers. A sandbox sleeps after
+`idleSeconds` without activity and wakes, with its files, on the Session's next
+message.
+
+An Agent without a computer needs no sandbox: it writes no file and starts no
+program. Its Sessions run on one shared runner the operator adds beside the
+sandboxes, the Deployment `stigmer-runner`. That runner serves only those
+Sessions and holds no Organization's key, so a licensed install runs it too. The
+operator mints its key and the key that seals each turn's credential, and hands
+them to the server and that runner alone. It runs one replica on purpose: the
+runner keeps each Session's checkpoints on its own disk, on the
+`stigmer-runner-data` claim, and a second replica would lose them.
+`spec.runner.resources`, `storage` and `extraEnv` size and tune it.
 
 **agent-sandbox** runs a pod per Session in the namespace `stigmer-sandboxes`
 beside the install, and the operator installs agent-sandbox when the cluster has
@@ -407,15 +418,16 @@ substrate:
   operator with `--set localRegistry=kind-registry:5000`.
 
 The sandbox image runs on amd64 and arm64 nodes alike. The
-[runners guide](./runners#a-runner-per-session) covers what a sandbox holds and
-how a Session moves between them.
+[runners guide](./runners#a-runner-per-session) covers what a sandbox holds, how
+a Session moves between them, and
+[the shared runner for Agents without a computer](./runners#agents-without-a-computer).
 
 ## Stigmer Enterprise
 
 A license Secret switches the server to the Enterprise image. It signs every
-caller in through your identity provider, and runs every Session in a sandbox of
-its own rather than on a shared runner, so a licensed install declares a bucket
-and a sandbox driver:
+caller in through your identity provider, and runs every Session whose Agent has
+a computer in a sandbox of its own rather than on a shared runner, so a licensed
+install declares a bucket and a sandbox driver:
 
 ```bash
 kubectl -n stigmer create secret generic stigmer-license \

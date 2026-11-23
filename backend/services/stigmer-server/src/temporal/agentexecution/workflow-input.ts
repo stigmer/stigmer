@@ -34,6 +34,22 @@ export interface InvokeAgentExecutionWorkflowInput {
    */
   readonly execution_context_token?: string;
   /**
+   * The same run credential sealed with the server's payload key
+   * (`@stigmer/temporal-codecs` `sealString`), carried in its place for a
+   * turn a shared runner serves when shared runners are on: such a runner
+   * serves many organizations, so the one value that acts for the turn's
+   * person is the one value its history does not show. The workflow hands
+   * it unopened to the runner activities; the runner opens it with the
+   * same key. At most one of the two is present.
+   */
+  readonly sealed_execution_context_token?: string;
+  /**
+   * `shared` when a shared runner serves the turn under shared runners
+   * (domain/run/placement.ts): the workflow asks for no sandbox, and asks
+   * for a place instead (shared-turn.ts). Absent for every other turn.
+   */
+  readonly runner?: "shared";
+  /**
    * Session harness as the proto enum numeric value (0=UNSPECIFIED treated
    * as STIGMER, 1=STIGMER, 3=CLAUDE; 2 names no harness) — selects ExecuteDeepAgent
    * or ExecuteClaude; any other number fails the run.

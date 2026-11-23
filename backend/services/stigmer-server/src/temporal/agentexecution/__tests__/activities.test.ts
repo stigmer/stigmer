@@ -61,7 +61,7 @@ import { SqliteStore } from "../../../store/sqlite/store.js";
 import type { Store } from "../../../store/interface.js";
 import { createAgentExecutionActivities } from "../activities.js";
 import { SessionSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/api_pb";
-import { ExecutionTarget } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
+import { Computer, ExecutionTarget } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
 import {
   AgentExecutionTemporalConfig,
   DEFAULT_EXECUTION_TARGET_CLOUD,
@@ -80,7 +80,11 @@ import {
   ENSURE_SESSION_SANDBOX_ACTIVITY_NAME,
   START_QUEUED_TURN_ACTIVITY_NAME,
   UPDATE_EXECUTION_STATUS_ACTIVITY_NAME,
+  ADMIT_SHARED_TURN_ACTIVITY_NAME,
+  RELEASE_SHARED_TURN_ACTIVITY_NAME,
 } from "../names.js";
+import type { SharedTurnAdmission, SharedTurnFacts } from "../../../extensions/shared-turn-admission.js";
+import type { SharedTurnInput } from "../shared-turn.js";
 
 const silentLogger = createLogger({
   level: "error",
@@ -616,6 +620,48 @@ describe("EnsureSessionSandbox activity", () => {
     return { ensure, sent, store: temp.store };
   }
 
+  it("skips a conversation without a computer when shared runners are on, asking the driver nothing", async () => {
+    const { provisioner, facts } = scriptedProvisioner(["ready"]);
+    const temp = tempStore();
+    cleanups.push(() => temp.cleanup());
+    await temp.store.saveResource(
+      ApiResourceKind.session,
+      "ses_nc",
+      SessionSchema,
+      create(SessionSchema, {
+        metadata: { id: "ses_nc", name: "ses_nc" },
+        spec: { executionTarget: ExecutionTarget.CLOUD },
+        status: { computer: Computer.NONE },
+      }),
+    );
+    await temp.store.saveResource(
+      ApiResourceKind.run,
+      "run_nc",
+      RunSchema,
+      create(RunSchema, { metadata: { id: "run_nc", name: "run_nc" }, spec: { target: { case: "sessionId", value: "ses_nc" } } }),
+    );
+    const ensure = createAgentExecutionActivities({
+      store: temp.store,
+      logger: silentLogger,
+      statusWriter: () => {
+        throw new Error("the ensure writes no status");
+      },
+      sessionEventBroker: new SessionEventBroker(silentLogger),
+      queuedTurns: async () => undefined,
+      sandboxLane: { enabled: true, provisioner, credentials },
+      personAccounts: undefined,
+      temporalConfig: new AgentExecutionTemporalConfig(
+        "agent_execution_stigmer",
+        DEFAULT_ACTIVITY_TASK_QUEUE,
+        ROUTING_SESSION,
+        DEFAULT_EXECUTION_TARGET_CLOUD,
+        true,
+      ),
+    })[ENSURE_SESSION_SANDBOX_ACTIVITY_NAME] as Ensure;
+    expect(await ensure({ execution_id: "run_nc", caller_class: "user" })).toBe("skipped");
+    expect(facts).toEqual([]);
+  });
+
   it("runs the turn's sandbox ensure with the caller's facts and answers ready, telling no stream when the turn never waited", async () => {
     const { provisioner, facts } = scriptedProvisioner(["ready"]);
     const { ensure, sent } = await sandboxFixture(provisioner, () => undefined);
@@ -730,5 +776,73 @@ describe("EnsureSessionSandbox activity", () => {
     } finally {
       vi.useRealTimers();
     }
+  });
+});
+
+describe("AdmitSharedTurn and ReleaseSharedTurn activities", () => {
+  type Admit = (input: SharedTurnInput) => Promise<string>;
+  type Release = (input: SharedTurnInput) => Promise<void>;
+
+  async function sharedFixture(admission: SharedTurnAdmission | undefined) {
+    const temp = tempStore();
+    cleanups.push(() => temp.cleanup());
+    await temp.store.saveResource(
+      ApiResourceKind.run,
+      "run_shared",
+      RunSchema,
+      create(RunSchema, {
+        metadata: { id: "run_shared", name: "run_shared", org: "org_a" },
+        spec: { target: { case: "sessionId", value: "ses_shared" } },
+      }),
+    );
+    const activities = createAgentExecutionActivities({
+      store: temp.store,
+      logger: silentLogger,
+      statusWriter: () => {
+        throw new Error("no status write here");
+      },
+      sessionEventBroker: new SessionEventBroker(silentLogger),
+      queuedTurns: async () => undefined,
+      ...WITHOUT_SANDBOX,
+      ...(admission !== undefined ? { sharedTurnAdmission: admission } : {}),
+    });
+    return {
+      admit: activities[ADMIT_SHARED_TURN_ACTIVITY_NAME] as Admit,
+      release: activities[RELEASE_SHARED_TURN_ACTIVITY_NAME] as Release,
+    };
+  }
+
+  it("answers unbounded with no admission composed, and releases as a no-op", async () => {
+    const { admit, release } = await sharedFixture(undefined);
+    expect(await admit({ execution_id: "run_shared", caller_class: "user" })).toBe("unbounded");
+    await expect(release({ execution_id: "run_shared", caller_class: "user" })).resolves.toBeUndefined();
+  });
+
+  it("asks the admission with the run's own organization and session, never the input's, and releases by run", async () => {
+    const asked: SharedTurnFacts[] = [];
+    const released: string[] = [];
+    const { admit, release } = await sharedFixture({
+      admit: async (facts) => {
+        asked.push(facts);
+        return "no_room";
+      },
+      release: async (executionId) => {
+        released.push(executionId);
+      },
+    });
+    expect(await admit({ execution_id: "run_shared", caller_class: "user" })).toBe("no_room");
+    expect(asked).toEqual([{ executionId: "run_shared", sessionId: "ses_shared", org: "org_a", callerClass: "user" }]);
+    await release({ execution_id: "run_shared", caller_class: "user" });
+    expect(released).toEqual(["run_shared"]);
+  });
+
+  it("answers unbounded for a run since deleted", async () => {
+    const { admit } = await sharedFixture({
+      admit: async () => {
+        throw new Error("never asked for a run that is gone");
+      },
+      release: async () => undefined,
+    });
+    expect(await admit({ execution_id: "run_gone", caller_class: "user" })).toBe("unbounded");
   });
 });

@@ -68,8 +68,8 @@ describe("execution-scoped provider over a keyed service", () => {
     ).toThrow(InvalidTokenError);
   });
 
-  it("mintRunCredential mints the clockless run credential, bound to the execution, on the provided lane", () => {
-    const token = provider.mintRunCredential!("run_dispatch");
+  it("mintRunCredential mints the clockless run credential, bound to the execution, on the provided lane", async () => {
+    const token = await provider.mintRunCredential!("run_dispatch");
     expect(token).not.toBe("");
     expect(provider.verify(TOKEN_TYPE_EXECUTION_SCOPED, token)).toBe(
       "run_dispatch",

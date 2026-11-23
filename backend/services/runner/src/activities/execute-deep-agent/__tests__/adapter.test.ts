@@ -45,6 +45,8 @@ const CONFIG: Config = {
   shellBackgroundEnabled: true,
   workspaceLockTimeoutMs: 900_000,
   drainGraceMs: 0,
+  serves: "all",
+  turnMemoryMb: 512,
 };
 
 describe("createDeepAgentAdapter", () => {

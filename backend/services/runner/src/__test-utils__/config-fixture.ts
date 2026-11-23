@@ -24,6 +24,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 import type { Config } from "../config.js";
+import { DEFAULT_TURN_MEMORY_MB } from "../runner-serves.js";
 import {
   DEFAULT_CURSOR_STREAM_STALL_TIMEOUT_MS,
   DEFAULT_LIVENESS_INTERVAL_MS,
@@ -64,6 +65,8 @@ export function testConfig(overrides: Partial<Config> = {}): Config {
     shellBackgroundEnabled: true,
     workspaceLockTimeoutMs: DEFAULT_WORKSPACE_LOCK_TIMEOUT_MS,
     drainGraceMs: 0,
+    serves: "all",
+    turnMemoryMb: DEFAULT_TURN_MEMORY_MB,
     ...overrides,
   };
 }

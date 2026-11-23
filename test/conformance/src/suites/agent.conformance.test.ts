@@ -31,13 +31,16 @@
 // execution class's (run-subagent.conformance.test.ts).
 //
 // Its computer (spec.computer) is filled when it is saved: a new agent that
-// names none gets one (the Claude engine always has one, and COMPUTER_NONE
-// on it is refused), and an update or apply that leaves it unset keeps the
-// stored value. An agent without one is refused, at save, everything that
-// needs one: the Bash tool, its own hooks, a plugin with hooks or a local
-// MCP server, and a subagent that has a computer. A skill with scripts is
-// not refused: the save records a warning on the agent's status, which an
-// agent with a computer never carries.
+// names none starts without one (COMPUTER_NONE) unless it names something
+// that needs one, and then gets one (COMPUTER_REQUIRED): the Claude engine,
+// the Bash tool, its own hooks, an MCP server of its own on this machine,
+// a plugin with hooks or a local MCP server, a subagent that has a
+// computer. COMPUTER_NONE on the Claude engine is refused, and an update or
+// apply that leaves the field unset keeps the stored value. An agent
+// without one is refused, at save, everything that needs one, the same
+// list the default reads. A skill with scripts is not refused: the save
+// records a warning on the agent's status, which an agent with a computer
+// never carries.
 import { AgentSchema } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb";
 import { ServiceTier, ThinkingMode } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 import { Computer, Harness } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
@@ -838,10 +841,13 @@ describe("Agent conformance — the computer", () => {
     return agent;
   }
 
-  it("[rpc:AgentCommandController.create] a new agent that names no computer gets one, on either engine, and the Claude engine is refused none (InvalidArgument)", async () => {
+  it("[rpc:AgentCommandController.create] a new agent that names no computer and nothing needing one starts without one; the Claude engine gets one and is refused none (InvalidArgument)", async () => {
     const { org } = await target.provisionTenancy();
-    expect((await created(org)).spec?.computer).toBe(Computer.REQUIRED);
-    expect((await created(org, { harness: Harness.CLAUDE })).spec?.computer).toBe(Computer.REQUIRED);
+    const unset = { computer: Computer.UNSPECIFIED };
+    expect((await created(org, unset)).spec?.computer).toBe(Computer.NONE);
+    expect((await created(org, { ...unset, tools: ["Read", "WebFetch"], disallowedTools: ["Bash"] })).spec?.computer).toBe(Computer.NONE);
+    expect((await created(org, { ...unset, harness: Harness.CLAUDE })).spec?.computer).toBe(Computer.REQUIRED);
+    expect((await created(org, { computer: Computer.REQUIRED })).spec?.computer, "a named computer is kept").toBe(Computer.REQUIRED);
     expect((await created(org, { computer: Computer.NONE })).spec?.computer).toBe(Computer.NONE);
     await expectGrpcCode(
       () => created(org, { harness: Harness.CLAUDE, computer: Computer.NONE }),
@@ -940,10 +946,39 @@ describe("Agent conformance — the computer", () => {
     expect((await created(org, { computer: Computer.NONE, subagents: subagentSlugsOf([triage!]) })).spec?.computer).toBe(Computer.NONE);
   });
 
+  it("[rpc:AgentCommandController.create] a new agent that names no computer gets one for each thing it names that needs one, which its save refuses it without", async () => {
+    const { org } = await target.provisionTenancy();
+    const hooked = await pushPlugin(
+      clients,
+      fixtures,
+      org,
+      oneServerPlugin({
+        name: uniqueName("hooked"),
+        server: { url: "https://hooked.example/mcp" },
+        hooks: { PreToolUse: [{ matcher: "*", hooks: [{ type: "command", command: "true" }] }] },
+      }),
+    );
+    const local = await pushPlugin(clients, fixtures, org, oneServerPlugin({ name: uniqueName("local"), server: { command: "npx", args: ["-y", "tickets-mcp"] } }));
+    const [fixer] = await createSubagents(clients, fixtures, org, [{ name: uniqueName("fixer"), computer: Computer.REQUIRED }]);
+    const reasons: readonly [string, AgentSpecOptions, Code][] = [
+      ["the Bash tool", { tools: ["Read", "Bash(git status)"] }, Code.InvalidArgument],
+      ["its own hooks", { hooks: [{ source: { case: "inline", value: { groups: [{ event: "PreToolUse", matcher: "*", handlers: [{ command: "true" }] }] } } }] }, Code.InvalidArgument],
+      ["a plugin with hooks", { plugins: [hooked.metadata!.slug] }, Code.FailedPrecondition],
+      ["a plugin with a local MCP server", { plugins: [local.metadata!.slug] }, Code.FailedPrecondition],
+      ["a subagent with a computer", { subagents: subagentSlugsOf([fixer!]) }, Code.FailedPrecondition],
+    ];
+    for (const [reason, opts, code] of reasons) {
+      expect((await created(org, { ...opts, computer: Computer.UNSPECIFIED })).spec?.computer, `${reason} gets a computer`).toBe(Computer.REQUIRED);
+      await expectGrpcCode(() => created(org, { ...opts, computer: Computer.NONE }), code, `${reason} is refused without one`);
+    }
+  });
+
   it("[rpc:AgentCommandController.apply] an apply and an update that leave the computer unset keep the stored one", async () => {
     const { org } = await target.provisionTenancy();
     const agent = await created(org, { computer: Computer.NONE });
-    const applied = await clients.agentCommand.apply(makeAgent({ org, name: agent.metadata!.name, instructions: "Answer billing questions briefly." }));
+    const applied = await clients.agentCommand.apply(
+      makeAgent({ org, name: agent.metadata!.name, instructions: "Answer billing questions briefly.", computer: Computer.UNSPECIFIED }),
+    );
     expect(applied.metadata?.id).toBe(agent.metadata?.id);
     expect(applied.spec?.computer, "an apply without the field keeps it").toBe(Computer.NONE);
     const { id, name, slug } = agent.metadata!;

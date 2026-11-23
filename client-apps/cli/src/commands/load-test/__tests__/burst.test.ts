@@ -1,6 +1,7 @@
 // Tests for the load test's engine (burst.ts) over a scripted server: one
-// agent of its own, every turn fired together as a new conversation with an
-// even share of the budget; a refused create kept as its code and sentence;
+// agent of its own, with a computer so each turn asks for a sandbox, every
+// turn fired together as a new conversation with an even share of the
+// budget; a refused create kept as its code and sentence;
 // the largest wait for a sandbox kept after the liveness that clears it; a
 // run the watch outlives read as still waiting; Ctrl-C aborts every follow
 // and the cleanup still terminates what is open and deletes every
@@ -8,6 +9,7 @@
 
 import { Code } from "@connectrpc/connect";
 import { RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
+import { Computer } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
 import { StigmerError } from "@stigmer/client";
 import { describe, expect, it } from "vitest";
 import { frameOf, phase, user } from "../../../resources/__test-utils__/session-events.js";
@@ -63,7 +65,13 @@ describe("runBurst", () => {
     const result = await runBurst(server, options({ model: "claude-haiku-4-5", onProgress: (p) => seen.push(p) }));
 
     expect(server.agentsMade).toEqual([
-      { name: "load-test-abc123", org: "acme", description: "Made by stigmer load-test and deleted when it ends.", instructions: AGENT_INSTRUCTIONS },
+      {
+        name: "load-test-abc123",
+        org: "acme",
+        description: "Made by stigmer load-test and deleted when it ends.",
+        instructions: AGENT_INSTRUCTIONS,
+        computer: Computer.REQUIRED,
+      },
     ]);
     expect(server.runsMade).toHaveLength(2);
     expect(server.runsMade[0]).toMatchObject({

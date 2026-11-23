@@ -155,7 +155,8 @@ func (Harness) EnumDescriptor() ([]byte, []int) {
 type Computer int32
 
 const (
-	// Unset: has a computer. A new agent's create fills it in.
+	// Unset: has a computer. A new agent's create fills it in: none, unless
+	// the agent names something that needs one.
 	Computer_COMPUTER_UNSPECIFIED Computer = 0
 	// No computer: no shell, repositories, folders, Environment, hooks or
 	// local programs. Saving such an agent, and starting its conversations or

@@ -128,7 +128,7 @@ func SizingRefusal(st *stigmerv1.Stigmer) string {
 		on       bool
 	}{
 		{ServerSizing, st.Spec.Server.Resources, true},
-		{RunnerSizing, st.Spec.Runner.Resources, RunnerEnabled(st)},
+		{RunnerSizing, st.Spec.Runner.Resources, RunnerEnabled(st) || ComputerlessRunner(st)},
 		{PostgresSizing, BundledDatabase(st).Resources, Database(st).Bundled},
 		{TemporalSizing, bundledTemporalResources(st), Temporal(st).Bundled},
 		{SubstrateWorkerSizing, substrateSpec(st).Worker.Resources, Driver(st) == stigmerv1.SandboxDriverSubstrate},
