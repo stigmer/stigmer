@@ -2,7 +2,8 @@
  * useSessionFiles lists a conversation's Files once and groups each turn's
  * outputs by run id: a person's upload (no run id) is among the Files but
  * never among a turn's outputs; a changed settled key re-reads the list;
- * without an org or a conversation it reads nothing.
+ * without an org or a conversation it reads nothing. sessionFilesRefreshKey
+ * moves when a turn starts and again when it ends, and at no other time.
  */
 import { describe, it, expect, vi } from "vitest";
 import { renderHook, waitFor } from "@testing-library/react";
@@ -10,8 +11,10 @@ import type { ReactNode } from "react";
 import { create } from "@bufbuild/protobuf";
 import type { Stigmer } from "@stigmer/client";
 import { FileSchema } from "@stigmer/apis/ai/stigmer/agentic/file/v1/api_pb";
+import { RunSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
+import { RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 import { StigmerContext } from "../../context";
-import { useSessionFiles } from "../useSessionFiles";
+import { sessionFilesRefreshKey, useSessionFiles } from "../useSessionFiles";
 
 function file(id: string, runId = "") {
   return create(FileSchema, {
@@ -63,5 +66,25 @@ describe("useSessionFiles", () => {
 
     expect(listAll).not.toHaveBeenCalled();
     expect(result.current.files).toEqual([]);
+  });
+});
+
+describe("sessionFilesRefreshKey", () => {
+  function run(id: string, phase: RunPhase) {
+    return create(RunSchema, { metadata: { id }, status: { phase } });
+  }
+
+  it("names each run with whether it has ended", () => {
+    expect(sessionFilesRefreshKey([run("r1", RunPhase.RUN_COMPLETED), run("r2", RunPhase.RUN_IN_PROGRESS)])).toBe("r1:ended,r2:started");
+  });
+
+  it("moves when a turn ends, where a run count would not", () => {
+    const started = sessionFilesRefreshKey([run("r1", RunPhase.RUN_IN_PROGRESS)]);
+    const ended = sessionFilesRefreshKey([run("r1", RunPhase.RUN_COMPLETED)]);
+    expect(ended).not.toBe(started);
+  });
+
+  it("is empty for a conversation with no turns", () => {
+    expect(sessionFilesRefreshKey([])).toBe("");
   });
 });
