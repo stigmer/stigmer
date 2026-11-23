@@ -13,5 +13,5 @@
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true
   },
-  "include": ["*.ts", "test/*.ts"]
+  "include": ["*.ts", "__tests__/*.ts"]
 }

@@ -9,7 +9,7 @@
     "agent": "tsx agent.ts",
     "ask": "tsx ask.ts",
     "typecheck": "tsc --noEmit",
-    "test": "tsx --test test/*.test.ts"
+    "test": "tsx --test __tests__/*.test.ts"
   },
   "dependencies": {
     "@bufbuild/protobuf": "^2.0.0",
