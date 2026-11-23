@@ -9,6 +9,7 @@
     "getting-started/call-from-your-app",
     "getting-started/embed-agent",
     "getting-started/one-organization-per-customer",
+    "getting-started/make-the-chat-your-own",
     "[Run it on your servers](/docs/guides/self-hosting/overview)",
     "concepts/coming-from-claude-managed-agents",
     "---How it works---",

@@ -20,6 +20,8 @@ import {
   type ToolCards,
 } from "../index.js";
 import type * as Chat from "../chat.js";
+import * as ChatEntry from "../chat.js";
+import * as Root from "../index.js";
 
 // Root-surface pin (oss#802): the package's exports map exposes only the root
 // barrel, so a type an embedder must name has to be re-exported from
@@ -55,6 +57,30 @@ describe("public API surface", () => {
     expect(fromChat).toHaveLength(6);
     expect(slots).toEqual({});
     expect(entry.messageActions).toHaveLength(1);
+  });
+
+  // A slot draws the cases it changes and hands the rest back to ours, so the
+  // light chat entry carries every slot's built-in, the root's same value.
+  // `Required` makes a new slot fail this file's typecheck until its
+  // built-in is exported here too.
+  it("every slot's built-in is importable from the chat entry, the root's same value", () => {
+    const fromChat: Required<Chat.MessageThreadSlots> = {
+      MessageEntry: ChatEntry.MessageEntry,
+      ApprovalCard: ChatEntry.ApprovalCard,
+      TodoCard: ChatEntry.TodoCard,
+      TodoRow: ChatEntry.TodoRow,
+      PlanFileCard: ChatEntry.PlanFileCard,
+      PlanCompletionCard: ChatEntry.PlanCompletionCard,
+      PlanStreamingCard: ChatEntry.PlanStreamingCard,
+      SetupProgress: ChatEntry.SetupProgress,
+      RecalledMemoriesCard: ChatEntry.RecalledMemoriesCard,
+      RunErrorNotice: ChatEntry.RunErrorNotice,
+      LivenessStatusLine: ChatEntry.LivenessStatusLine,
+    };
+    for (const [name, builtIn] of Object.entries(fromChat)) {
+      expect(builtIn, name).toBeDefined();
+      expect(builtIn, name).toBe(Root[name as keyof typeof Root]);
+    }
   });
 
   // A host declares its own tools with the client's helper (re-exported at

@@ -1,10 +1,12 @@
 // A host's own actions on a message: what the host is told about the
-// message, and the data form of each action, in the words of the kit's
-// existing data act (`DetailAction`). The kit draws them (MessageActionBar),
-// so their look, their keyboard access and the row they sit in stay the
-// kit's; a host that draws its own bubble receives the same data.
+// message, and the data form of each action: the fields of the kit's page
+// action (`DetailAction`) a message offers, declared here so the reference
+// lists them and a change to page actions never changes these. The kit
+// draws them (MessageActionBar), so their look, their keyboard access and
+// the row they sit in stay the kit's; a host that draws its own bubble
+// receives the same data.
 
-import type { DetailAction } from "../resource-detail/types.js";
+import type { ReactNode } from "react";
 
 /**
  * What a host is told about a message it may act on.
@@ -50,4 +52,20 @@ export interface MessageInfo {
  * gives every action a `label`: it is the action's accessible name, and the
  * kit draws what it is given, so a blank label leaves a button unnamed.
  */
-export type MessageAction = Pick<DetailAction, "id" | "label" | "icon" | "onAction" | "disabled" | "variant">;
+export interface MessageAction {
+  /** Names the act, unique among one message's actions. */
+  readonly id: string;
+  /** The words a menu shows and the button's accessible name. */
+  readonly label: string;
+  /** An icon; up to two actions with one draw as icon buttons beside Copy. */
+  readonly icon?: ReactNode;
+  /** Fires when the person chooses the action. */
+  readonly onAction: () => void;
+  /** When `true`, the action is shown but can't be chosen. */
+  readonly disabled?: boolean;
+  /**
+   * `"destructive"` draws it as a danger, for an act that removes or revokes.
+   * @default "default"
+   */
+  readonly variant?: "default" | "destructive";
+}

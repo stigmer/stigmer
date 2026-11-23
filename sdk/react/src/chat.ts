@@ -14,8 +14,7 @@ export type { SessionRunConfig } from "./session/run-config.js";
 export type { OnCustomToolUse } from "./session/useCustomToolUseCallback.js";
 // Making the chat your own: a host's tool cards (`toolCards` on the
 // provider), its message actions (`messageActions` on the chat) and the
-// thread's slots (`threadSlots`), with the props each slot receives. Types
-// only: the entry's bytes do not move.
+// thread's slots (`threadSlots`), with the props each slot receives.
 export type {
   CustomToolAnswer,
   ToolCallInfo,
@@ -36,4 +35,22 @@ export type {
   RecalledMemoriesCardProps,
   RunErrorNoticeProps,
   LivenessStatusLineProps,
+} from "./run/index.js";
+// Each slot's built-in, the same value the root exports: a slot draws the
+// cases it changes and hands every other one back to ours, so a page on this
+// entry alone can. A page that imports none loads nothing more; one that
+// imports a built-in loads it before the chat draws, where `AgentChat`
+// alone loads it with the conversation.
+export {
+  MessageEntry,
+  ApprovalCard,
+  TodoCard,
+  TodoRow,
+  PlanFileCard,
+  PlanCompletionCard,
+  PlanStreamingCard,
+  SetupProgress,
+  RecalledMemoriesCard,
+  RunErrorNotice,
+  LivenessStatusLine,
 } from "./run/index.js";

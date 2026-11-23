@@ -125,6 +125,20 @@ test("the embedding tutorial parses into the app, its install, its files and its
   );
 });
 
+test("make-the-chat-your-own parses into its five files, then App.tsx whole, and the tutorial's two servers", () => {
+  const page = readFileSync(fileURLToPath(new URL("../../../docs/getting-started/make-the-chat-your-own.mdx", import.meta.url)), "utf8");
+  const steps = docSteps(page);
+  assert.deepEqual(
+    steps.filter((step) => step.kind === "harness").map((step) => step.performs),
+    ["backend", "dev-server"],
+  );
+  assert.deepEqual(
+    steps.filter((step) => step.kind === "file").map((step) => step.path),
+    ["src/brand.css", "src/open-account.tsx", "src/month-end-notes.tsx", "src/person-bubble.tsx", "src/agent-status.tsx", "src/App.tsx"],
+  );
+  assert.deepEqual(steps.filter((step) => step.kind === "command"), []);
+});
+
 test("an install line's registry half is every package outside @stigmer/*, in its order", () => {
   assert.deepEqual(registryPackagesOf("npm install @stigmer/client @connectrpc/connect-node"), ["@connectrpc/connect-node"]);
   assert.deepEqual(

@@ -341,8 +341,11 @@ Available slots: `MessageEntry`, `ApprovalCard`, `TodoCard`, `TodoRow`,
 fails) and `LivenessStatusLine` (the line that shows the agent is still
 working between visible steps). Each slot's props type is exported from
 `@stigmer/react-sdk` under the built-in's name plus `Props`, beside the
-built-in itself. See the [run reference](/docs/sdk/react/run) for each
-slot's props.
+built-in itself, and the light chat entry, `@stigmer/react-sdk/chat`, exports
+both too. A slot that hands a case back to a built-in loads it with your page,
+before the chat draws, where the chat alone loads it with the conversation. For
+`MessageEntry` that is the message renderer and its markdown. See the
+[run reference](/docs/sdk/react/run) for each slot's props.
 
 If a slot throws while it draws, ours draws in its place with the same props
 and the chat keeps going; the error reaches your root's caught-error handler
@@ -356,8 +359,8 @@ runs (a tool of a server you connected, such as `create_invoice` on your
 billing server), pass your card for it to `StigmerProvider` as `toolCards`,
 keyed by the tool's name as the agent sees it (`mcp__billing__create_invoice`).
 The step's line stays ours and still says whether it's running, done or
-failed; your card replaces what opens under it, stays in view, and shows right
-after the answer once the turn finishes. If your card throws, ours shows
+failed; your card replaces what opens under it and stays in view after the turn
+finishes. If your card throws, ours shows
 instead. See the [core reference](/docs/sdk/react/core) for `toolCards`, and
 the [run reference](/docs/sdk/react/run) for `ToolCardProps`.
 
