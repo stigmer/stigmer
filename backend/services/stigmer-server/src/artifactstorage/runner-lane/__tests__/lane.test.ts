@@ -75,7 +75,7 @@ beforeAll(async () => {
       verify: () => {
         throw new Error("unused");
       },
-      authorizeRunnerForRun: (token) => Promise.resolve(token === "runner"),
+      authorizeRunnerArtifactAccess: (token) => Promise.resolve(token === "runner" ? "allow" : "undecided"),
     },
     identityVerifiers: [
       {

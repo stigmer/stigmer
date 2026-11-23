@@ -64,6 +64,13 @@ export type {
 // own HTTP listener (`ComposedServer.runnerArtifactLane`): a handler over
 // Node's HTTP/1.1 or HTTP/2 request and response.
 export type { LaneHandler, LaneRequest, LaneResponse } from "./transport/lanes.js";
+// The two exact paths the runner artifact lane serves: a composition that
+// mounts the handler on its own listener names them from here, never from a
+// second spelling of the runner's wire.
+export {
+  RUNNER_ARTIFACT_DOWNLOAD_PATH,
+  RUNNER_ARTIFACT_UPLOAD_PATH,
+} from "./transport/constants.js";
 export { loadConfig } from "./boot/config.js";
 export type { ServerConfig } from "./boot/config.js";
 export { createLogger } from "./boot/logger.js";
@@ -931,6 +938,9 @@ export {
 export type { HarnessWord } from "./modelcatalog/pin-validation.js";
 export type {
   RunnerCredentialProvider,
+  // The runner artifact lane's three answers, for a composition that
+  // decides its own runner credentials there (authorizeRunnerArtifactAccess).
+  RunnerArtifactDecision,
   // The runner-credential capability shapes: the optional methods'
   // domain-shaped request/result types — a composition implementing the
   // exchange, bootstrap, sandbox-mint, or EC-read capabilities types

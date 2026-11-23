@@ -4,17 +4,21 @@
  *
  * 1. A runner credential. A runner presents the credential of the run it is
  *    serving: the run credential every dispatch carries, or a sandbox's own
- *    token, which is bound to the run that last woke the sandbox. When the
- *    composition decides runner credentials itself (`authorizeRunnerForRun`,
- *    an edition whose credential serves a whole session), its answer
- *    admits; a "no" leaves the bearer to the identity path, since that
- *    edition's runners may present identity tokens. Otherwise open source's
- *    execution-scoped credential admits for its own run while that run is
- *    live, and for any run of the same session and organization: a later
- *    turn reconciles a file review an earlier turn of its session wrote, by
- *    that turn's keys. A credential that verifies but names an unrelated
- *    run, or a run that has ended, is refused outright; it is a runner's,
- *    never a person's, so the identity path does not see it.
+ *    token, which is bound to the run that last woke the sandbox. Open
+ *    source's execution-scoped credential admits for its own run while that
+ *    run is live, and for any run of the same session and organization: a
+ *    later turn reconciles a file review an earlier turn of its session
+ *    wrote, by that turn's keys. A credential that verifies but names an
+ *    unrelated run, or a run that has ended, is refused outright; it is a
+ *    runner's, never a person's, so the identity path does not see it. A
+ *    composition that mints runner credentials of its own decides them here
+ *    (`authorizeRunnerArtifactAccess`) with the same three outcomes: it
+ *    admits, it refuses outright, or it leaves the bearer to the identity
+ *    path, since only the composition can tell its runner credential from
+ *    an identity token and say how far it reaches. This is not the per-run
+ *    doors' question (`authorizeRunnerForRun`, "is this the runner acting
+ *    for exactly this run"): a run's folder is also read by a later turn of
+ *    its conversation.
  * 2. An identity. Any bearer the composed verifier chain claims (a person's
  *    token, an API key, a composition's own runner tokens), admitted when
  *    the composed authorizer allows it to edit the run (an upload) or view
@@ -60,7 +64,7 @@ import { TOKEN_TYPE_EXECUTION_SCOPED } from "../../runnerauth/runnerauth.js";
 
 export interface RunnerArtifactAccessDeps {
   readonly logger: Logger;
-  readonly runnerAuth: Pick<RunnerCredentialProvider, "authorizeRunnerForRun" | "verify">;
+  readonly runnerAuth: Pick<RunnerCredentialProvider, "authorizeRunnerArtifactAccess" | "verify">;
   /** Where a credential's run and the key's run are read, for liveness and session. */
   readonly store: BoundExecutionStore;
   readonly identityVerifiers: ReadonlyArray<IdentityVerifier>;
@@ -102,17 +106,29 @@ async function runnerCredentialDecision(
   token: string,
   runId: string,
 ): Promise<ArtifactAccess | "not-a-runner-credential"> {
-  const composed = deps.runnerAuth.authorizeRunnerForRun?.bind(deps.runnerAuth);
+  const composed = deps.runnerAuth.authorizeRunnerArtifactAccess?.bind(deps.runnerAuth);
   if (composed !== undefined) {
+    let decision;
     try {
-      return (await composed(token, runId))
-        ? { kind: "allow", by: "runner" }
-        : "not-a-runner-credential";
+      decision = await composed(token, runId);
     } catch (error) {
       deps.logger.warn("Runner credential authorization failed; refusing", {
         error: errorText(error),
       });
       return { kind: "deny" };
+    }
+    switch (decision) {
+      case "allow":
+        return { kind: "allow", by: "runner" };
+      case "deny":
+        deps.logger.warn("A runner credential asked for artifacts its composition refuses it; refusing", { runId });
+        return { kind: "deny" };
+      case "undecided":
+        return "not-a-runner-credential";
+      default: {
+        const exhaustive: never = decision;
+        throw new Error(`unknown runner artifact decision ${String(exhaustive)}`);
+      }
     }
   }
   let boundRunId: string;

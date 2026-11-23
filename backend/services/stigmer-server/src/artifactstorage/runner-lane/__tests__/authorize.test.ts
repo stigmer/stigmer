@@ -8,9 +8,11 @@
  *     is admitted (a later turn reads an earlier turn's file review);
  *   - one bound to a run of another session, or of another organization,
  *     is refused, and never reaches the identity path;
- *   - a composition's own runner decision admits on yes, and on no leaves
- *     the bearer to the identity path; one that throws refuses, and the
- *     identity path is never asked;
+ *   - a composition's own runner decision admits on `allow`, refuses
+ *     outright on `deny` (the identity path is never asked, though the
+ *     authorizer would allow the account), and on `undecided` leaves the
+ *     bearer to the identity path; one that throws refuses, and one that
+ *     answers outside its contract is an error, never an admission;
  *   - an identity is admitted by the authorizer's allow on the run, with
  *     edit for an upload and view for a download; deny and not-found
  *     refuse, unavailable is unavailable, and an answer outside the
@@ -39,6 +41,7 @@ import { createLogger } from "../../../boot/logger.js";
 import type { AuthzCheck, AuthzDecision, Authorizer } from "../../../extensions/authorizer.js";
 import type { CallerIdentity, IdentityVerifier } from "../../../extensions/identity.js";
 import type { BoundExecutionStore } from "../../../runnerauth/bound-execution.js";
+import type { RunnerArtifactDecision } from "../../../runnerauth/runner-credential-provider.js";
 import { InvalidTokenError, TOKEN_TYPE_EXECUTION_SCOPED } from "../../../runnerauth/runnerauth.js";
 import { ResourceNotFoundError } from "../../../store/interface.js";
 import { decideArtifactAccess, type RunnerArtifactAccessDeps } from "../authorize.js";
@@ -88,7 +91,7 @@ function depsOf(opts: {
   rows?: Record<string, unknown>;
   decide?: (check: AuthzCheck) => AuthzDecision;
   verifier?: (token: string) => Promise<CallerIdentity | null>;
-  authorizeRunnerForRun?: (token: string, runId: string) => Promise<boolean>;
+  authorizeRunnerArtifactAccess?: (token: string, runId: string) => Promise<RunnerArtifactDecision>;
   isVisitor?: (caller: CallerIdentity) => boolean;
   isNeverRunner?: (caller: CallerIdentity) => boolean;
 }): RunnerArtifactAccessDeps & { checks: AuthzCheck[] } {
@@ -120,7 +123,9 @@ function depsOf(opts: {
     ),
     runnerAuth: {
       verify,
-      ...(opts.authorizeRunnerForRun === undefined ? {} : { authorizeRunnerForRun: opts.authorizeRunnerForRun }),
+      ...(opts.authorizeRunnerArtifactAccess === undefined
+        ? {}
+        : { authorizeRunnerArtifactAccess: opts.authorizeRunnerArtifactAccess }),
     },
     identityVerifiers: [verifier],
     authorizer,
@@ -150,21 +155,43 @@ describe("decideArtifactAccess: a runner credential", () => {
     expect(deps.checks).toEqual([]);
   });
 
-  it("follows a composition's own runner decision on yes, and hands a no to the identity path", async () => {
+  it("follows a composition's own runner decision: allow admits, undecided goes to the identity path", async () => {
     const deps = depsOf({
-      authorizeRunnerForRun: (token) => Promise.resolve(token === "sandbox"),
+      authorizeRunnerArtifactAccess: (token) => Promise.resolve(token === "sandbox" ? "allow" : "undecided"),
       decide: () => ({ kind: "allow" }),
     });
     expect(await decideArtifactAccess(deps, "sandbox", "run_3", true)).toEqual({ kind: "allow", by: "runner" });
+    expect(deps.checks).toEqual([]);
     expect(await decideArtifactAccess(deps, "person", "run_3", true)).toEqual({ kind: "allow", by: "ida_person" });
+    expect(deps.checks).toHaveLength(1);
+  });
+
+  it("refuses outright a runner credential its composition denies, though the authorizer would allow its account", async () => {
+    // The composition's one-turn credential acts as a person who may open
+    // both runs; it is a runner's, held to its own conversation.
+    const deps = depsOf({
+      authorizeRunnerArtifactAccess: (_token, runId) => Promise.resolve(runId === "run_1" ? "allow" : "deny"),
+      decide: () => ({ kind: "allow" }),
+    });
+    expect(await decideArtifactAccess(deps, "person", "run_1", false)).toEqual({ kind: "allow", by: "runner" });
+    expect(await decideArtifactAccess(deps, "person", "run_3", false)).toEqual({ kind: "deny" });
+    expect(await decideArtifactAccess(deps, "person", "run_3", true)).toEqual({ kind: "deny" });
+    expect(deps.checks).toEqual([]);
   });
 
   it("refuses when a composition's own runner decision throws, and never asks the identity path", async () => {
     const deps = depsOf({
-      authorizeRunnerForRun: () => Promise.reject(new Error("session store down")),
+      authorizeRunnerArtifactAccess: () => Promise.reject(new Error("session store down")),
       decide: () => ({ kind: "allow" }),
     });
     expect(await decideArtifactAccess(deps, "person", "run_1", false)).toEqual({ kind: "deny" });
+    expect(deps.checks).toEqual([]);
+  });
+
+  it("refuses to answer, never admitting, when a composition's runner decision is outside its contract", async () => {
+    const odd = "maybe" as unknown as RunnerArtifactDecision;
+    const deps = depsOf({ authorizeRunnerArtifactAccess: () => Promise.resolve(odd), decide: () => ({ kind: "allow" }) });
+    await expect(decideArtifactAccess(deps, "person", "run_1", false)).rejects.toThrow("unknown runner artifact decision");
     expect(deps.checks).toEqual([]);
   });
 });

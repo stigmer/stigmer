@@ -121,13 +121,19 @@ import {
   SERVER_RELEASE_ENV,
   TARGET_RESOURCE_KEY,
   TOKEN_TYPE_EXECUTION_SCOPED,
+  RUNNER_ARTIFACT_DOWNLOAD_PATH,
+  RUNNER_ARTIFACT_UPLOAD_PATH,
   BOUND_ELSEWHERE_DENY_REASON,
   boundOrgOf,
   updateContext,
 } from "@stigmer/server";
 import type { BindingVerdict, CredentialBinding } from "@stigmer/server";
 import type { RunLane, RunLanes } from "@stigmer/server";
-import type { LaneHandler, NeverRunnerClassifier } from "@stigmer/server";
+import type {
+  LaneHandler,
+  NeverRunnerClassifier,
+  RunnerArtifactDecision,
+} from "@stigmer/server";
 import type {
   RunResponseDecorator,
   AgentExecutionTemporalConfig,
@@ -767,6 +773,21 @@ const credentialProvider: RunnerCredentialProvider = {
   mintSandboxCredential: (request: SandboxCredentialRequest): string =>
     `fake-${request.scope}-token`,
   authorizeExecutionValuesRead: async (): Promise<boolean> => false,
+  // The runner artifact lane's decision: this edition's sandbox token is
+  // admitted, its one-turn token is refused outright for any run but its
+  // own, and every other bearer is left to the lane's identity path.
+  authorizeRunnerArtifactAccess: async (
+    rawToken: string,
+    runId: string,
+  ): Promise<RunnerArtifactDecision> => {
+    if (rawToken === "fake-session-token") {
+      return "allow";
+    }
+    if (rawToken.startsWith("fake-turn-token:")) {
+      return rawToken === `fake-turn-token:${runId}` ? "allow" : "deny";
+    }
+    return "undecided";
+  },
   // The fifth capability: decrypt-key resolution for the
   // server-managed rpk_ payload keys the bootstrap arm above hands out.
   resolvePayloadKey: async (keyId: string): Promise<Buffer | undefined> =>
@@ -1576,8 +1597,11 @@ export async function composeFakeCloud(): Promise<ComposedServer> {
  */
 export function consumerRunnerArtifactMount(
   server: ComposedServer,
-): LaneHandler | undefined {
-  return server.runnerArtifactLane;
+): { readonly paths: ReadonlyArray<string>; readonly handle: LaneHandler } | undefined {
+  const handle = server.runnerArtifactLane;
+  return handle === undefined
+    ? undefined
+    : { paths: [RUNNER_ARTIFACT_UPLOAD_PATH, RUNNER_ARTIFACT_DOWNLOAD_PATH], handle };
 }
 
 /**
