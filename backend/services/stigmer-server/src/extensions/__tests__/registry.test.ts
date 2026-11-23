@@ -35,6 +35,7 @@ import type { GateSlotName } from "../gate-slots.js";
 import type { IdentityVerifier } from "../identity.js";
 import type { MeteredUsageProvider } from "../metered-usage.js";
 import type { ResourceRowReader } from "../resource-row-reader.js";
+import type { SharedTurnAdmission } from "../shared-turn-admission.js";
 import { resolveExtensions } from "../registry.js";
 import type { ServerExtension } from "../registry.js";
 
@@ -409,6 +410,26 @@ describe("resolveExtensions — merge semantics", () => {
       ]),
     ).toThrowError(
       /extension 'mint-b' registers a EvalRunCallerMint, but 'mint-a' already did/,
+    );
+  });
+
+  it("resolves one SharedTurnAdmission and throws on a second, naming both units", () => {
+    const admission: SharedTurnAdmission = {
+      admit: () => Promise.resolve("ready"),
+      release: () => Promise.resolve(),
+    };
+    expect(
+      resolveExtensions([{ name: "places", drivers: { sharedTurnAdmission: admission } }]).drivers
+        .sharedTurnAdmission,
+    ).toBe(admission);
+    expect(resolveExtensions([]).drivers.sharedTurnAdmission).toBeUndefined();
+    expect(() =>
+      resolveExtensions([
+        { name: "places-a", drivers: { sharedTurnAdmission: admission } },
+        { name: "places-b", drivers: { sharedTurnAdmission: admission } },
+      ]),
+    ).toThrowError(
+      "extension 'places-b' registers a SharedTurnAdmission, but 'places-a' already did — exactly one may be composed",
     );
   });
 

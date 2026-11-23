@@ -2,8 +2,9 @@
  * The sealed string: one value encrypted inside a readable payload
  * (encryption/sealed-value.ts). Pins that a seal round-trips under the key
  * it names, opens under a codec that holds that key as its secondary, and
- * fails closed on every other input: another key, tampering, a plaintext
- * payload passed off as a seal, a non-string, and a codec that would not
+ * fails closed on every other input: another key, tampering, bytes that
+ * are no payload, a plaintext payload passed off as a seal, a sealed
+ * payload that is not JSON, a non-string, and a codec that would not
  * encrypt.
  */
 import { randomBytes } from "node:crypto";
@@ -56,6 +57,19 @@ describe("sealed string", () => {
     const plain: Payload = { metadata: { encoding: Buffer.from("json/plain") }, data: Buffer.from('"v"') };
     const forged = Buffer.from(temporal.api.common.v1.Payload.encode(plain).finish()).toString("base64");
     await expect(openSealedString(codec(), forged)).rejects.toThrow(/not encrypted/);
+  });
+
+  it("refuses a value that is not base64 of a payload", async () => {
+    // A length-delimited field (tag 0x0a) claiming 5 bytes, then none.
+    const truncated = Buffer.from([0x0a, 0x05]).toString("base64");
+    await expect(openSealedString(codec(), truncated)).rejects.toThrow("The sealed value is not a sealed payload");
+  });
+
+  it("refuses a seal whose payload is not a JSON one", async () => {
+    const c = codec();
+    const [encrypted] = await c.encode([{ metadata: { encoding: Buffer.from("binary/plain") }, data: Buffer.from("v") }]);
+    const sealed = Buffer.from(temporal.api.common.v1.Payload.encode(encrypted!).finish()).toString("base64");
+    await expect(openSealedString(c, sealed)).rejects.toThrow("The sealed value does not hold a JSON payload");
   });
 
   it("refuses a seal that holds no string", async () => {

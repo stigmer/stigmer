@@ -23,7 +23,11 @@
  *  - a fence refusal one slot learned refuses every later turn at once,
  *    starting no other slot;
  *  - a runner that serves only conversations without a computer refuses a
- *    turn with one before any host is lent.
+ *    turn with one before any host is lent;
+ *  - a session's release reaches every live host of the pool;
+ *  - a lease released twice gives its host back once;
+ *  - a pool of no slots is refused, and a failure to lend a host that is
+ *    not a fence refusal reaches the turn's runtime as a throw.
  */
 
 import { describe, expect, it } from "vitest";
@@ -40,7 +44,7 @@ import { Peer, loopbackChannels, type LineChannel } from "../channel.js";
 import { FenceRefusedError } from "../fence.js";
 import { LockedHostPool } from "../host-pool.js";
 import { createRemoteAdapter, type LiveTurnOpening } from "../remote-adapter.js";
-import { AgentHostSupervisor, HostHeapExhaustedError } from "../supervisor.js";
+import { AgentHostSupervisor, HostHeapExhaustedError, type HostLease, type TurnHosts } from "../supervisor.js";
 import { AGENT_HOST_PROTOCOL_VERSION, type HostCalls, type HostNotices, type RunnerCalls, type RunnerNotices, type WireSettlement } from "../protocol.js";
 
 type HostSide = Peer<RunnerCalls, HostCalls, HostNotices, RunnerNotices>;
@@ -49,6 +53,8 @@ type HostSide = Peer<RunnerCalls, HostCalls, HostNotices, RunnerNotices>;
 interface Slot {
   started: number;
   readonly turns: string[];
+  /** The sessions the live host was told to release. */
+  readonly released: string[];
   /** Ends the live host's channel as its process's death would. */
   die(reason: Error): void;
   /** Answers every `runTurn` once released; a turn is held open until then. */
@@ -67,6 +73,7 @@ interface Runner {
   readonly adapter: HarnessAdapter;
   readonly slots: Slot[];
   readonly opened: LiveTurnOpening[];
+  readonly pool: LockedHostPool;
 }
 
 function runner(options: { readonly slots: number; readonly computerless?: boolean; readonly refuseLock?: boolean; readonly heapMb?: number }): Runner {
@@ -82,7 +89,7 @@ function runner(options: { readonly slots: number; readonly computerless?: boole
   const slots: Slot[] = [];
   const supervisors = Array.from({ length: options.slots }, (_, i) => {
     let live: LineChannel | undefined;
-    const slot: Slot = { started: 0, turns: [], die: (reason) => live?.close(reason), gate: gate() };
+    const slot: Slot = { started: 0, turns: [], released: [], die: (reason) => live?.close(reason), gate: gate() };
     slots.push(slot);
     return new AgentHostSupervisor({
       proxy,
@@ -99,7 +106,10 @@ function runner(options: { readonly slots: number; readonly computerless?: boole
         const host: HostSide = new Peer<RunnerCalls, HostCalls, HostNotices, RunnerNotices>(hostEnd, "host");
         host.handle("boot", async () => null);
         host.handle("shutdown", async () => null);
-        host.handle("releaseSession", async () => null);
+        host.handle("releaseSession", async ({ sessionId }) => {
+          slot.released.push(sessionId);
+          return null;
+        });
         host.handle("runTurn", async ({ turnId }): Promise<WireSettlement> => {
           slot.turns.push(turnId);
           await slot.gate.opened;
@@ -120,8 +130,9 @@ function runner(options: { readonly slots: number; readonly computerless?: boole
     releaseSession: async () => {},
     runTurn: async () => ({ kind: "completed" }),
   };
-  const adapter = createRemoteAdapter("stigmer", local, { open, fenced: new LockedHostPool(supervisors), computerless: options.computerless ?? false }, proxy);
-  return { adapter, slots, opened };
+  const pool = new LockedHostPool(supervisors);
+  const adapter = createRemoteAdapter("stigmer", local, { open, fenced: pool, computerless: options.computerless ?? false }, proxy);
+  return { adapter, slots, opened, pool };
 }
 
 function withoutComputer(executionId: string): TurnInput {
@@ -223,5 +234,64 @@ describe("the locked hosts' pool", () => {
     expect(outcome.kind === "failed" && outcome.message).toContain("STIGMER_RUNNER_SERVES=computerless");
     expect(opened, "no turn was opened at the proxy").toEqual([]);
     expect(slots[0]!.started).toBe(0);
+  });
+
+  it("tells every live host of the pool to release a session", async () => {
+    const { adapter, slots } = runner({ slots: 2 });
+    await adapter.boot(testConfig());
+    const a = runAs(adapter, withoutComputer("run_a"), "c1");
+    const b = runAs(adapter, withoutComputer("run_b"), "c2");
+    await until(() => slots.every((slot) => slot.turns.length === 1), "both hosts running");
+    for (const slot of slots) slot.gate.release();
+    await Promise.all([a, b]);
+
+    await adapter.releaseSession("ses_shared");
+    expect(slots.map((slot) => slot.released)).toEqual([["ses_shared"], ["ses_shared"]]);
+    await adapter.shutdown();
+  });
+
+  it("gives a host back once however many times its lease is released", async () => {
+    const { pool } = runner({ slots: 1 });
+    const first = await pool.acquire();
+    first.release();
+    first.release();
+
+    const second = await pool.acquire();
+    let third: HostLease | undefined;
+    void pool.acquire().then((lease) => {
+      third = lease;
+    });
+    await new Promise((resolve) => setTimeout(resolve, 30));
+    expect(third, "the one host is lent once, not twice").toBeUndefined();
+
+    second.release();
+    await until(() => third !== undefined, "the waiting turn lent the host");
+    expect(third!.host).toBe(second.host);
+  });
+
+  it("refuses a pool of no slots", () => {
+    expect(() => new LockedHostPool([])).toThrow("the locked hosts' pool needs at least one slot");
+  });
+
+  it("hands a failure to lend a host that is no fence refusal to the turn's runtime as a throw", async () => {
+    const proxy = { endpoint: "http://127.0.0.1:9", authorizeHost: () => {}, openTurn: () => () => {} };
+    const open = new AgentHostSupervisor({ proxy, log: () => {}, startOnFirstUse: true, start: () => Promise.reject(new Error("the open host was started")) });
+    const fenced: TurnHosts = {
+      boot: async () => {},
+      shutdown: async () => {},
+      releaseSession: async () => {},
+      acquire: () => Promise.reject(new Error("no host to lend")),
+    };
+    const local: HarnessAdapter = {
+      name: "stigmer",
+      capabilities: DEEP_AGENT_CAPABILITIES,
+      boot: async () => {},
+      shutdown: async () => {},
+      releaseSession: async () => {},
+      runTurn: async () => ({ kind: "completed" }),
+    };
+    const adapter = createRemoteAdapter("stigmer", local, { open, fenced }, proxy);
+
+    await expect(runAs(adapter, withoutComputer("run_unlent"), "c")).rejects.toThrow("no host to lend");
   });
 });

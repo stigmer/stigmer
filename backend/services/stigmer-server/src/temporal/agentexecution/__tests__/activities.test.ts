@@ -29,7 +29,11 @@
  *     turn that never waited sends nothing; a run since deleted is
  *     `skipped`, and a store fault reading it fails the activity; and it
  *     heartbeats while the ensure runs, through the running activity's own
- *     context unless a test hands it one.
+ *     context unless a test hands it one;
+ *   - AdmitSharedTurn answers `unbounded` with no admission composed and
+ *     for a run since deleted, asks the admission with the run's own
+ *     organization and session, and fails on a store fault reading the
+ *     run; ReleaseSharedTurn releases by run.
  */
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -810,6 +814,7 @@ describe("AdmitSharedTurn and ReleaseSharedTurn activities", () => {
     return {
       admit: activities[ADMIT_SHARED_TURN_ACTIVITY_NAME] as Admit,
       release: activities[RELEASE_SHARED_TURN_ACTIVITY_NAME] as Release,
+      store: temp.store,
     };
   }
 
@@ -845,5 +850,19 @@ describe("AdmitSharedTurn and ReleaseSharedTurn activities", () => {
       release: async () => undefined,
     });
     expect(await admit({ execution_id: "run_gone", caller_class: "user" })).toBe("unbounded");
+  });
+
+  it("fails on a store fault reading the run, so the activity is retried, and asks nothing", async () => {
+    const asked: SharedTurnFacts[] = [];
+    const { admit, store } = await sharedFixture({
+      admit: async (facts) => {
+        asked.push(facts);
+        return "ready";
+      },
+      release: async () => undefined,
+    });
+    vi.spyOn(store, "getResource").mockRejectedValueOnce(new Error("store down"));
+    await expect(admit({ execution_id: "run_shared", caller_class: "user" })).rejects.toThrow("store down");
+    expect(asked, "no place was asked for").toEqual([]);
   });
 });

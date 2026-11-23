@@ -354,6 +354,7 @@ async function main(): Promise<void> {
     `taskQueue=${config.taskQueue}`,
   );
 
+  /* v8 ignore next -- @preserve: manager mode's process boundary (above); main() runs at import, so only the runner's own process reaches its refusal of a shared runner, and no test boots that process */
   if (runnerMode === "manager") {
     // A shared runner polls one queue; the manager serves a person's own sessions.
     if (config.serves !== "all") {

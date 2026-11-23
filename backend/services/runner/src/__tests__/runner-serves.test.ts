@@ -12,7 +12,7 @@
  *  - a runner that serves only conversations without a computer refuses to
  *    boot without the payload key that opens its turns' sealed credentials;
  *  - it reaches Temporal at the explicit address or the server's own door,
- *    never by discovery;
+ *    never by discovery, and refuses to boot when it has neither;
  *  - in the cloud it requires a credential on every activity that acts for
  *    a turn, and nowhere else;
  *  - it refuses a conversation with a computer, naming the setting.
@@ -112,6 +112,12 @@ describe("a runner that serves only conversations without a computer", () => {
       temporalAddress: "stigmer-server:7234",
       temporalNamespace: "shared",
     });
+  });
+
+  it("refuses to boot when no address is set and the backend endpoint names no server door", () => {
+    expect(() => computerlessCoordinates({ temporalAddress: "  " }, "unix:///run/stigmer.sock")).toThrow(
+      "STIGMER_RUNNER_SERVES=computerless reaches Temporal through the Stigmer server or at TEMPORAL_SERVICE_ADDRESS, and the backend endpoint unix:///run/stigmer.sock names no server door; set TEMPORAL_SERVICE_ADDRESS",
+    );
   });
 
   it("requires a credential on every activity that acts for a turn, in the cloud only", () => {

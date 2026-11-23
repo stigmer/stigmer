@@ -40,6 +40,15 @@ describe("StigmerRunnerOptions validation", () => {
       "stigmerEndpoint is required",
     );
   });
+
+  it("rejects a turn memory below the floor, naming the setting", async () => {
+    const createStigmerRunner = await importFactory();
+    const options = { ...VALID_OPTIONS, turnMemoryMb: 64 };
+
+    await expect(createStigmerRunner(options)).rejects.toThrow(
+      'STIGMER_TURN_MEMORY_MB="64" is not a whole number of megabytes',
+    );
+  });
 });
 
 describe("StigmerRunnerOptions type contract", () => {
