@@ -1,21 +1,21 @@
 ---
 name: stigmer-integrate
 description: >
-  Puts the person's Stigmer agent into their own product, whatever their
-  stack: calls it from their backend (TypeScript, Python, Go or Java),
-  streams its reply to their page, puts the chat in their React app and
-  makes it wear their brand, signs their users in (their own sign-in,
-  Auth0, Okta, Clerk), decides whose conversation a run becomes, walls
-  each business customer off in an organization of its own, answers
-  approvals in their own screens, and moves code off Claude Managed
-  Agents. Use when the person says "call our agent from our backend",
-  "when a customer uploads X, run the agent on it", "stream the reply to
-  the page", "put the chat in our app", "make it look like us", "our
-  users are signed in with Auth0", "each customer must be separate",
-  "approve in our own dashboard" or "we're on Claude Managed Agents". To
-  set Stigmer up first, use the stigmer-setup skill; to run an agent or
-  read its runs, the stigmer-run skill; for questions about Stigmer
-  itself, the stigmer skill.
+  Puts the person's Stigmer agent into their own product: calls it from
+  their backend (TypeScript, Python, Go or Java), streams its reply to
+  their page, puts the chat in their React app with their own look, cards
+  and tools, signs their users in (their own sign-in, Auth0, Okta, Clerk),
+  decides whose conversation a run becomes, walls each business customer
+  off in an organization of its own, answers approvals in their own
+  screens, and moves code off Claude Managed Agents. Use when the person
+  says "call our agent from our backend", "when a customer uploads X, run
+  the agent on it", "stream the reply to the page", "make the chat look
+  and act like ours", "show our own card when our tool runs", "let the
+  agent open our screens", "our users are signed in with Auth0", "each
+  customer must be separate", "approve in our own dashboard" or "we're on
+  Claude Managed Agents". To set Stigmer up, use the stigmer-setup skill;
+  to run an agent or read its runs, the stigmer-run skill; for questions
+  about Stigmer, the stigmer skill.
 ---
 
 # Putting a Stigmer agent in the person's product
@@ -55,7 +55,7 @@ Find these before you answer or write anything. Each one changes the code.
    request names the signed-in user.
 
 Then check what their installed SDK has before you write against it:
-`npm ls @stigmer/client`, `pip show stigmer-sdk`, the `go.stigmer.ai/sdk`
+`npm ls @stigmer/client @stigmer/react-sdk`, `pip show stigmer-sdk`, the `go.stigmer.ai/sdk`
 line in `go.mod`, the `stigmer-sdk` dependency in their build file. The
 docs follow Stigmer's newest code: when a page shows something their
 installed SDK lacks, say it is newer than their version and that upgrading
@@ -154,19 +154,49 @@ https://stigmer.ai/docs/getting-started/embed-agent, https://stigmer.ai/docs/gui
 - Allowed origins in the embedding settings restrict which pages may use
   the tokens.
 
-### Make the chat wear their brand
+### Make the chat their own
 
-Their colours, font and dark mode go on a theme class that overrides the
-`--stgm-*` tokens, applied through `StigmerProvider`; dark mode follows
-their own toggle through `colorMode`, and every token they override needs a
-dark value too. Parts of the chat (the approval card, message rows) are
-replaced through slots (`threadSlots` on `AgentChat`), each receiving the
-built-in's props; a chat in markup entirely their own is built from the
-`@stigmer/react-core` hooks. Pages: https://stigmer.ai/docs/sdk/theme/theming, https://stigmer.ai/docs/sdk/theme/presets,
-https://stigmer.ai/docs/sdk/theme/tokens, https://stigmer.ai/docs/sdk/react-core/build-a-chat.
+Climb only as far as the ask needs; each level keeps everything below it
+Stigmer's. Pages: https://stigmer.ai/docs/getting-started/make-the-chat-your-own,
+https://stigmer.ai/docs/sdk/theme/theming,
+https://stigmer.ai/docs/guides/channels/embed-an-agent,
+https://stigmer.ai/docs/sdk/react-core/build-a-chat,
+https://stigmer.ai/docs/sdk/streaming.
+
+1. **Their look**: a theme class overriding the `--stgm-*` tokens (color
+   with its `-foreground` partner, font, radius), passed as `className` to
+   `StigmerProvider`, with `colorMode` from their own toggle or `"system"`;
+   every token they override needs a dark value too.
+2. **Their card or their button on our parts**: a card for one of their
+   tools goes in `toolCards` on `StigmerProvider`, keyed by the tool's name
+   as the agent sees it (`mcp__<server>__<tool>` for a connected server's
+   tool, the declared name for one of the app's own); it draws the call's
+   input, state and result inside our row. An action on a message
+   (`messageActions` on `AgentChat`) is a function from the message's info,
+   `isFinalAnswer` included, to their actions, drawn beside Copy.
+3. **Tools their app answers**: the agent calls the app's own tools,
+   declared with `defineCustomTool` (`@stigmer/client`) in `AgentChat`'s
+   `customTools`. A call waits until the app answers: the card's `answer`,
+   `onCustomToolUse` for a panel of their own, or `answerCustomToolUse`
+   from their backend. The agent reads the answer; `isError` tells it the
+   tool failed.
+4. **One of our parts swapped**: `threadSlots` replaces a part (the
+   person's bubble, the approval card) with theirs, which hands every case
+   it doesn't draw back to the built-in, exported from
+   `@stigmer/react-sdk/chat` too.
+5. **Their whole screen**: their own markup from the `@stigmer/react-core`
+   hooks (`useSessionConversation`); then the TypeScript SDK alone.
 
 - Never override the kit's internal class names, use `!important`, or fork
-  the kit: tokens and slots are the contract.
+  the kit; nor invent a `renderTool`, `onToolCall` or other prop the pages
+  don't name.
+- Built-in tools (shell, files, search) take no card; only theirs do.
+- Define cards and slots at module level, not inside a component.
+- An approval's decision is Stigmer's: a step that needs one keeps Allow
+  and Deny, and a replaced approval card answers through the slot's
+  wiring. Only its look is theirs.
+- Only the conversation's owner answers a waiting call; `customTools` are
+  read once, when the conversation is created.
 - Their page loads their font itself; the token only names it.
 
 ### One organization per business customer
