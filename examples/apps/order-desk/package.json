@@ -1,0 +1,30 @@
+{
+  "name": "@stigmer/example-order-desk",
+  "version": "0.0.0",
+  "private": true,
+  "description": "An app whose tools live on its own server: a shop's order desk serves two tools over MCP, makes a Stigmer agent without a computer that uses them, and asks it a question",
+  "type": "module",
+  "scripts": {
+    "start": "tsx server.ts",
+    "agent": "tsx agent.ts",
+    "ask": "tsx ask.ts",
+    "typecheck": "tsc --noEmit",
+    "test": "tsx --test test/*.test.ts"
+  },
+  "dependencies": {
+    "@bufbuild/protobuf": "^2.0.0",
+    "@connectrpc/connect-node": "^2.1.1",
+    "@modelcontextprotocol/sdk": "^1.32.2",
+    "@stigmer/apis": "*",
+    "@stigmer/client": "*",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "tsx": "^4.19.4",
+    "typescript": "^5.8.0"
+  },
+  "engines": {
+    "node": "^22.13.0 || >=23.4.0"
+  }
+}

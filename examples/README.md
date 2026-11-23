@@ -21,6 +21,16 @@ table as a `.csv` file too, beside the report, which opens in any spreadsheet.
 [Make it yours](https://stigmer.ai/docs/getting-started/make-it-yours) gives it
 to the variance reporter.
 
+## Apps
+
+An app is a whole program, not a job: it runs beside Stigmer and calls it from
+its own code. Apps sit in `apps/`, outside the catalogue, so the console never
+offers one as a first question.
+
+| App | What it shows | Folder |
+| --- | --- | --- |
+| Order desk, for a shop | An agent without a computer whose only tools are on the app's own server, reached over MCP | [`apps/order-desk/`](apps/order-desk/) |
+
 ## Variance report (`variance-report/`)
 
 An accounting product's user uploads a quarter's ledger. The agent works out

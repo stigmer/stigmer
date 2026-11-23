@@ -149,7 +149,10 @@ For a first Agent to give these tools to, see
 A plugin shares a server with every Agent and chat that lists it. When one Agent
 needs a server, or you create Agents from your own code, write the server in the
 Agent itself under `mcp_servers`, as an agent in Claude Managed Agents or a
-Claude Code subagent lists its own. There is no plugin to package.
+Claude Code subagent lists its own. There is no plugin to package. When the
+server is your own product's, and its tools are all the Agent needs,
+[run an Agent whose tools live on your server](/docs/guides/integrations/tools-on-your-own-server)
+builds one end to end, with no computer.
 
 - **Who may.** Only your Organization's admins add a server to an Agent or
   change its address or headers. Anyone who may edit the Agent may keep or

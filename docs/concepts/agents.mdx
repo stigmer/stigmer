@@ -423,6 +423,23 @@ the setting changes nothing. A `computer` you write is kept as written. The
 `COMPUTER_NONE` on it is refused. A conversation keeps the computer it started
 with: changing the setting changes only new conversations.
 
+### How much sooner it answers
+
+An Agent without a computer answers sooner, because no sandbox starts or wakes
+for it. On Stigmer Cloud, preprod, on 2026-11-23, pairs of conversations on a
+one-line Agent, one with a computer and one without, were timed from the send to
+the answer's first word, at least 30 turns on each path. A new conversation's
+first word came after 4.97 s with a computer and 1.71 s without. A follow-up a
+minute later, while the sandbox was still awake, came after 2.04 s and 1.71 s.
+One sent after the sandbox fell asleep came after 4.98 s and 1.76 s. These are
+medians, and each holds the model's own wait for its first byte, between 0.34 s
+and 0.40 s on every path. Without it, Stigmer's part was 4.63 s against 1.35 s
+for a new conversation, 1.65 s against 1.31 s for an awake follow-up, and 4.64 s
+against 1.38 s after a sleep.
+
+[Run an Agent whose tools live on your server](/docs/guides/integrations/tools-on-your-own-server)
+builds one.
+
 ## The built-in assistant
 
 A Session that names no Agent runs the **built-in assistant**. It is what the
