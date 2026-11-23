@@ -29,7 +29,7 @@ import { FileDocument } from "../../run/FileDocument.js";
 import { useSessionRailViews } from "../useSessionRailViews.js";
 import type { SessionPanelController } from "../useSessionPanel.js";
 import { useWorkspaceReadRefs } from "../useWorkspaceReadRefs.js";
-import { outputKey, type SessionOutputEntry } from "../useSessionOutputs.js";
+import { outputKey, type SessionOutputEntry } from "@stigmer/react-core";
 import { givenKey, type SessionGivenEntry } from "../useSessionGivenFiles.js";
 import { RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 

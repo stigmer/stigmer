@@ -1,6 +1,6 @@
 # @stigmer/react-core
 
-React hooks for [Stigmer](https://stigmer.ai), the open-source backend for the agents in your product. This is the conversation layer of Stigmer's React kits: the client context, the fetch cache, and the hooks that start a run, follow a session, answer an approval and review a file change, with nothing that draws. A chat that does not render HTML (a terminal, a native app) builds on this package alone; [`@stigmer/react-sdk`](../react/README.md) builds its components over it, and [`@stigmer/ink-ui`](../ink/) its terminal views.
+React hooks for [Stigmer](https://stigmer.ai), the open-source backend for the agents in your product. This is the conversation layer of Stigmer's React kits: the client context, the fetch cache, and the hooks that start a run, follow a session, answer an approval, review a file change and list the files a conversation made, with nothing that draws. A chat that does not render HTML (a terminal, a native app) builds on this package alone; [`@stigmer/react-sdk`](../react/README.md) builds its components over it, and [`@stigmer/ink-ui`](../ink/) its terminal views.
 
 ## Install
 

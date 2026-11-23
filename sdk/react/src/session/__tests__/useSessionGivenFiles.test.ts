@@ -11,7 +11,7 @@ import { create } from "@bufbuild/protobuf";
 import { FileSchema } from "@stigmer/apis/ai/stigmer/agentic/file/v1/api_pb";
 import { SessionResourceSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/resource_pb";
 import { deriveSessionGivenFiles, givenKey } from "../useSessionGivenFiles";
-import { outputKey } from "../useSessionOutputs";
+import { outputKey } from "@stigmer/react-core";
 
 function file(id: string, filename: string, runId = "", outputPath = "") {
   return create(FileSchema, {

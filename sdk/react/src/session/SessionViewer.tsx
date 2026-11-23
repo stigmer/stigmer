@@ -14,7 +14,6 @@ import { SessionViewerLayout } from "./SessionViewerLayout.js";
 import { SessionInspectorContext } from "./inspector/SessionInspectorContext.js";
 import type { SessionInspectorProps } from "./inspector/SessionInspector.js";
 import type { SessionStreamingPlan } from "./inspector/SessionInspectorRegion.js";
-import { isTerminalPhase } from "@stigmer/react-core/internal";
 import { MessageThread, type MessageThreadSlots } from "../run/MessageThread.js";
 import type { MessageAction, MessageInfo } from "../run/message-actions.js";
 import { THREAD_GUTTER_CLASS } from "../internal/thread-gutter.js";
@@ -31,16 +30,21 @@ import { SpinnerIcon } from "../internal/SpinnerIcon.js";
 import { turnOutcome, type TurnChange } from "./turn-outcome.js";
 import { TurnChangeDialog } from "./TurnChangeDialog.js";
 import { FilePreviewModal } from "../run/FilePreviewModal.js";
-import { deriveRunFileChanges } from "../run/deriveRunFileChanges.js";
 import { SessionSummary } from "./SessionSummary.js";
 import { CONVERSATION_FILES_VIEW_ID } from "./useSessionRailViews.js";
 import { useRunSettings } from "./run-settings.js";
 import { ProviderKeyNotice } from "../billing/ProviderKeyNotice.js";
 import { agentHoursUsedUp, DEFAULT_MODELS_HUB_HREF, providerKeyRequired } from "../billing/refusals.js";
 import { ErrorMessage, SecretFlowErrorGuide, isSecretFlowError } from "../error/index.js";
-import { useStigmer } from "@stigmer/react-core";
+import {
+  deriveRunFileChanges,
+  outputKey,
+  sessionFilesRefreshKey,
+  useSessionFiles,
+  useSessionOutputs,
+  useStigmer,
+} from "@stigmer/react-core";
 import { findLatestSessionPlan, planFilesByRun } from "../library/detect-plan-file.js";
-import { useSessionFiles } from "../file/useSessionFiles.js";
 import { findStreamingPlan } from "../library/detect-streaming-plan.js";
 import { useSessionAccess } from "./useSessionAccess.js";
 import { useSessionPageFlow } from "./useSessionPageFlow.js";
@@ -56,7 +60,6 @@ import { AgentVersionNotice } from "./AgentVersionNotice.js";
 import { agentRefOfSession, isSameAgent } from "./agentRefOfSession.js";
 import { useTurnEndingWiring, type SessionAgentRef } from "./useTurnEndingWiring.js";
 import { useSessionWriteBacks } from "./useSessionWriteBacks.js";
-import { useSessionOutputs, outputKey } from "./useSessionOutputs.js";
 import { OutputFileContext, underOutputs, type OutputFileOpener } from "../run/OutputFileContext.js";
 import { useSessionGivenFiles } from "./useSessionGivenFiles.js";
 import { useCustomToolUseCallback, type OnCustomToolUse } from "./useCustomToolUseCallback.js";
@@ -472,16 +475,7 @@ export function SessionViewer({
   // the Files sent with its message become the conversation's, and its
   // outputs register when it ends. They feed the Files facet, the plan card
   // and the plan tab.
-  const refreshKey = useMemo(
-    () =>
-      flow.allRuns
-        .map((run) => {
-          const ended = isTerminalPhase(run.status?.phase ?? RunPhase.RUN_PHASE_UNSPECIFIED);
-          return `${run.metadata?.id ?? ""}:${ended ? "ended" : "started"}`;
-        })
-        .join(","),
-    [flow.allRuns],
-  );
+  const refreshKey = useMemo(() => sessionFilesRefreshKey(flow.allRuns), [flow.allRuns]);
   const sessionFiles = useSessionFiles(org || null, sessionId || null, refreshKey);
   const files = sessionFiles.files;
 

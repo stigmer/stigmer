@@ -19,7 +19,7 @@ vi.mock("../useSessionWriteBacks", () => ({
 }));
 
 import { useSessionRailViews, CONVERSATION_FILES_VIEW_ID } from "../useSessionRailViews";
-import type { SessionOutputEntry } from "../useSessionOutputs";
+import type { SessionOutputEntry } from "@stigmer/react-core";
 import type { SessionGivenEntry } from "../useSessionGivenFiles";
 import type { SetupTabProps } from "../facets/SetupTab";
 

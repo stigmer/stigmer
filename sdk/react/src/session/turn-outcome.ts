@@ -34,7 +34,7 @@ import {
   type TurnPhase,
 } from "@stigmer/client";
 import { fileForRowPath } from "@stigmer/react-core";
-import { deriveRunFileChanges } from "../run/deriveRunFileChanges.js";
+import { deriveRunFileChanges } from "@stigmer/react-core";
 import { findPlanFile } from "../library/detect-plan-file.js";
 
 /** A changed file's place in its turn's review: the set that names it and the file, with its state. */

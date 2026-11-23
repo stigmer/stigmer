@@ -6,7 +6,7 @@ import { FileSchema } from "@stigmer/apis/ai/stigmer/agentic/file/v1/api_pb";
 import { RunSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 import { RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 import { FILE_DOCUMENT_ENTRY_ID } from "../../run/file-document";
-import { outputKey, type SessionOutputEntry } from "../useSessionOutputs";
+import { outputKey, type SessionOutputEntry } from "@stigmer/react-core";
 import { givenKey, type SessionGivenEntry } from "../useSessionGivenFiles";
 import { CONVERSATION_FILES_VIEW_ID } from "../useSessionRailViews";
 import { samples } from "../../test";

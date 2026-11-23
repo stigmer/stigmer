@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import type { File as StigmerFile } from "@stigmer/apis/ai/stigmer/agentic/file/v1/api_pb";
 import { timestampDate } from "@bufbuild/protobuf/wkt";
-import { outputKey, type SessionOutputEntry } from "../useSessionOutputs.js";
+import { outputKey, type SessionOutputEntry } from "@stigmer/react-core";
 import { givenKey, type SessionGivenEntry } from "../useSessionGivenFiles.js";
 import { UNSTYLED_LIST } from "../../internal/element-resets.js";
 import { FilePreviewModal } from "../../run/FilePreviewModal.js";

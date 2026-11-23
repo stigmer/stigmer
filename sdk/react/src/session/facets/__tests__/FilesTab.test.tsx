@@ -17,7 +17,7 @@ import { FileSchema } from "@stigmer/apis/ai/stigmer/agentic/file/v1/api_pb";
 import { RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 import { StigmerContext } from "@stigmer/react-core";
 import { FilesTab, type FilesTabProps } from "../FilesTab";
-import { deriveSessionOutputs } from "../../useSessionOutputs";
+import { deriveSessionOutputs } from "@stigmer/react-core";
 import { givenKey, type SessionGivenEntry } from "../../useSessionGivenFiles";
 
 function output(filename: string, runId = "run_1", id = `file_${filename.replace(/\W/g, "_")}`, created?: Date) {

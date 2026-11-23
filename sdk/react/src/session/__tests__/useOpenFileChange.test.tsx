@@ -11,7 +11,8 @@ import type { Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 // ---------------------------------------------------------------------------
 
 let mockFileChanges: DisplayFileChange[] = [];
-vi.mock("../useSessionFileChanges", () => ({
+vi.mock("@stigmer/react-core", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@stigmer/react-core")>()),
   useSessionFileChanges: (executions: readonly unknown[]) => ({
     // Honor the EMPTY_EXECUTIONS gate: no runs in → no changes out.
     fileChanges: executions.length > 0 ? mockFileChanges : [],

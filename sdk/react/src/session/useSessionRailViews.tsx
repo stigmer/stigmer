@@ -5,7 +5,7 @@ import type { Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 import type { SurfaceRailView } from "../workspace/WorkspaceSurface.js";
 import type { ApplyResourceResult } from "../library/useApplyResource.js";
 import { useSessionWriteBacks } from "./useSessionWriteBacks.js";
-import type { SessionOutputEntry } from "./useSessionOutputs.js";
+import type { SessionOutputEntry } from "@stigmer/react-core";
 import type { SessionGivenEntry } from "./useSessionGivenFiles.js";
 import { SetupTab, type SetupTabProps } from "./facets/SetupTab.js";
 import { ChangesTab } from "./facets/ChangesTab.js";

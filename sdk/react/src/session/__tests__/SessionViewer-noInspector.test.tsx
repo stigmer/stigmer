@@ -87,10 +87,6 @@ function runWithCapture() {
 const run = runWithCapture();
 const conv = { ...conversationOf(finished), runs: [run] };
 
-vi.mock("../../file/useSessionFiles", () => ({
-  useSessionFiles: () => ({ files: finished.files, isLoading: false, error: null, refetch: () => {} }),
-}));
-
 const workspace = {
   entries: [],
   hasEntries: false,
@@ -153,6 +149,7 @@ vi.mock("../useSessionAccess", () => ({
 
 vi.mock("@stigmer/react-core", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@stigmer/react-core")>()),
+  useSessionFiles: () => ({ files: finished.files, isLoading: false, error: null, refetch: () => {} }),
   useStigmer: () => ({
     platform: { getServerInfo: async () => ({}) },
     routine: { get: async () => Promise.reject(new Error("not found")) },
