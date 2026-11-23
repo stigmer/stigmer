@@ -321,6 +321,7 @@ import {
 
 function PersonBubble(props: MessageEntryProps) {
   if (props.message.kind !== "user") return <MessageEntry {...props} />;
+  const sent = props.files?.length ?? 0;
   return (
     <div
       className="person-bubble"
@@ -333,14 +334,11 @@ function PersonBubble(props: MessageEntryProps) {
         color: "var(--stgm-primary-foreground)",
       }}
     >
-      {props.files?.map((file) => (
-        <small
-          key={file.fileId ?? file.filename}
-          style={{ display: "block", opacity: 0.85 }}
-        >
-          {file.filename ?? "Attached file"}
+      {sent > 0 && (
+        <small style={{ display: "block" }}>
+          {sent === 1 ? "1 file attached" : `${sent} files attached`}
         </small>
-      ))}
+      )}
       {props.message.text}
     </div>
   );
@@ -350,9 +348,10 @@ export const THREAD_SLOTS: MessageThreadSlots = { MessageEntry: PersonBubble };
 ```
 
 The bubble reads your brand's own tokens, so it follows light and dark with the
-rest. Every other message goes back to `MessageEntry`. Handing back loads that
-part with your page, before the chat draws, where the chat alone loads it with
-the conversation. In `src/App.tsx`:
+rest, and it draws only what you give it: here the text, and how many files the
+message carried. Every other message goes back to `MessageEntry`. Handing back
+loads that part with your page, before the chat draws, where the chat alone
+loads it with the conversation. In `src/App.tsx`:
 
 {/* prettier-ignore */}
 ```tsx no-compile="a run of src/App.tsx, shown whole in the last step"

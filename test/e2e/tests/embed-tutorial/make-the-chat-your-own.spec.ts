@@ -115,7 +115,7 @@ test.describe("make the chat your own, run from its page on the embedding tutori
     // The swapped part: the person's message in the app's own bubble, with the file it carried.
     const bubble = app.locator(".person-bubble");
     await expect(bubble, "the swapped part: the person's message in the app's bubble").toContainText(MESSAGE, { timeout: 60_000 });
-    await expect(bubble).toContainText("ledger.csv");
+    await expect(bubble, "the bubble draws what the page gives it: the files the message carried").toContainText("1 file attached");
 
     // The app's tool and its card: the card inside the kit's row, which keeps its own line.
     const thread = messageThread(app);
