@@ -37,6 +37,11 @@ const STEP = { fontSize: 13, opacity: 0.8, margin: "0 0 4px" };
 const LIST = { listStyle: "none", margin: "4px 0 8px", paddingLeft: 14 };
 const BOX = { border: "1px solid currentColor", borderRadius: 6, padding: 12 };
 
+/** An answer or a decision keeps its error in the hook, shown below; its rejection ends here. */
+function settled(pending: Promise<void>): Promise<void> {
+  return pending.catch(() => undefined);
+}
+
 // ---- the client ----
 
 interface ChatProps {
@@ -98,18 +103,18 @@ function Conversation({ org, agent, sessionId: existing }: Omit<ChatProps, "clie
     <section aria-label="Conversation" style={{ display: "flex", flexDirection: "column", gap: 12, height: "100%" }}>
       <ol style={{ flex: 1, overflowY: "auto", listStyle: "none", margin: 0, padding: 0 }}>
         {conversation.turns.map((turn) => (
-          <TurnView key={turn.runId} turn={turn} made={files.outputsByRun.get(turn.runId) ?? []} onReview={conversation.reviewFileChanges} />
+          <TurnView key={turn.runId} turn={turn} made={files.outputsByRun.get(turn.runId) ?? []} onReview={(...decision) => settled(conversation.reviewFileChanges(...decision))} />
         ))}
       </ol>
       {conversation.asks.map((ask) => (
-        <Ask key={ask.id} ask={ask} onAnswer={(answer) => conversation.answerToolUse(ask.id, answer)} />
+        <Ask key={ask.id} ask={ask} onAnswer={(answer) => settled(conversation.answerToolUse(ask.id, answer))} />
       ))}
       {conversation.customToolUses.map((call) => (
         <AppToolCall
           key={call.id}
           call={call}
           error={conversation.customToolAnswerErrors.get(call.id)}
-          onAnswer={(text, isError) => conversation.answerCustomToolUse(call.id, text, { isError })}
+          onAnswer={(text, isError) => settled(conversation.answerCustomToolUse(call.id, text, { isError }))}
         />
       ))}
       {startError && <p role="alert">The conversation did not start: {startError.message}</p>}
@@ -288,10 +293,19 @@ function MadeFile({ file }: { file: StigmerFile }): ReactElement {
   const [error, setError] = useState<string | null>(null);
 
   async function open(): Promise<void> {
+    // The tab opens inside the click, where every browser allows one; the
+    // file's link, which expires soon, is fetched after and sent to it.
+    const tab = window.open("", "_blank");
+    if (tab === null) {
+      setError("the browser blocked the new tab");
+      return;
+    }
     try {
       const { url } = await stigmer.file.getDownloadUrl(file.metadata?.id ?? "");
-      window.open(url, "_blank", "noopener");
+      tab.opener = null;
+      tab.location.href = url;
     } catch (failure) {
+      tab.close();
       setError(failure instanceof Error ? failure.message : String(failure));
     }
   }

@@ -132,7 +132,7 @@ draw together, where the first one happened (next section):
     <section aria-label="Conversation" style={{ display: "flex", flexDirection: "column", gap: 12, height: "100%" }}>
       <ol style={{ flex: 1, overflowY: "auto", listStyle: "none", margin: 0, padding: 0 }}>
         {conversation.turns.map((turn) => (
-          <TurnView key={turn.runId} turn={turn} made={files.outputsByRun.get(turn.runId) ?? []} onReview={conversation.reviewFileChanges} />
+          <TurnView key={turn.runId} turn={turn} made={files.outputsByRun.get(turn.runId) ?? []} onReview={(...decision) => settled(conversation.reviewFileChanges(...decision))} />
         ))}
       </ol>
 // …
@@ -329,10 +329,19 @@ function MadeFile({ file }: { file: StigmerFile }): ReactElement {
   const [error, setError] = useState<string | null>(null);
 
   async function open(): Promise<void> {
+    // The tab opens inside the click, where every browser allows one; the
+    // file's link, which expires soon, is fetched after and sent to it.
+    const tab = window.open("", "_blank");
+    if (tab === null) {
+      setError("the browser blocked the new tab");
+      return;
+    }
     try {
       const { url } = await stigmer.file.getDownloadUrl(file.metadata?.id ?? "");
-      window.open(url, "_blank", "noopener");
+      tab.opener = null;
+      tab.location.href = url;
     } catch (failure) {
+      tab.close();
       setError(failure instanceof Error ? failure.message : String(failure));
     }
   }
@@ -357,7 +366,7 @@ write rounding.ts").
 
 ```tsx title="Chat.tsx" no-compile="a run of sdk/react-core/examples/chat/Chat.tsx, which the package's typecheck compiles whole"
       {conversation.asks.map((ask) => (
-        <Ask key={ask.id} ask={ask} onAnswer={(answer) => conversation.answerToolUse(ask.id, answer)} />
+        <Ask key={ask.id} ask={ask} onAnswer={(answer) => settled(conversation.answerToolUse(ask.id, answer))} />
       ))}
 // …
 function Ask({ ask, onAnswer }: { ask: ToolUse; onAnswer: (answer: "allow" | "deny") => Promise<void> }): ReactElement {
@@ -421,7 +430,7 @@ const SHOW_PAGE = defineCustomTool({
           key={call.id}
           call={call}
           error={conversation.customToolAnswerErrors.get(call.id)}
-          onAnswer={(text, isError) => conversation.answerCustomToolUse(call.id, text, { isError })}
+          onAnswer={(text, isError) => settled(conversation.answerCustomToolUse(call.id, text, { isError }))}
         />
       ))}
 // …
@@ -458,14 +467,21 @@ buttons. A page that shows someone else's conversation draws both without them.
 
 ## Say what went wrong
 
-A call that fails does not throw from these hooks: each keeps its error for you
-to show. `sendError` keeps the message that was not sent in
-`pendingUserMessage`, and `retryLastSend` sends it again; `answerError`,
-`fileReviewError` and `stopError` say an answer, a decision on a file or a Stop
-did not reach the server. A conversation that fails to start throws from
-`create`, and `useCreateRun` keeps the error.
+A call that fails keeps its error in the hook for you to show. `sendError` keeps
+the message that was not sent in `pendingUserMessage`, and `retryLastSend` sends
+it again; `answerError`, `fileReviewError` and `stopError` say an answer, a
+decision on a file or a Stop did not reach the server. An answer and a decision
+on a file also reject when they fail, so the program settles each where it
+calls it: the error shows from the hook, and nothing escapes as an unhandled
+rejection. A conversation that fails to start throws from `create`, and
+`useCreateRun` keeps the error.
 
 ```tsx title="Chat.tsx" no-compile="a run of sdk/react-core/examples/chat/Chat.tsx, which the package's typecheck compiles whole"
+/** An answer or a decision keeps its error in the hook, shown below; its rejection ends here. */
+function settled(pending: Promise<void>): Promise<void> {
+  return pending.catch(() => undefined);
+}
+// …
       {startError && <p role="alert">The conversation did not start: {startError.message}</p>}
       {conversation.sendError && (
         <p role="alert">

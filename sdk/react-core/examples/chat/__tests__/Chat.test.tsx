@@ -7,7 +7,8 @@
  * (`isError` false) or Can't (`isError` true) and leaves the list once the
  * answer is in the log; a changed file is kept by its digest; and a file a
  * turn made is listed once its turn ends (the files list re-read on the
- * runs' key) and opened through a short-lived link. Every query is by role
+ * runs' key) and opened in a tab opened inside the click, then sent to its
+ * short-lived link. Every query is by role
  * and accessible name, so the test also holds the program's names.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -203,7 +204,8 @@ describe("the hooks guide's chat", () => {
   });
 
   it("lists a file the turn made once the turn ends, and opens it", async () => {
-    const opened = vi.spyOn(window, "open").mockReturnValue(null);
+    const tab = { opener: window as Window | null, location: { href: "" }, close: vi.fn() };
+    const opened = vi.spyOn(window, "open").mockReturnValue(tab as unknown as Window);
     events = sessionEventStream([samples.userMessageEvent("Write the audit.", { runId: RUN }), samples.runStatusEvent("running", { runId: RUN })]);
     open();
     await waitFor(() => expect(methods.listAll).toHaveBeenCalledTimes(1));
@@ -215,7 +217,9 @@ describe("the hooks guide's chat", () => {
 
     const made = await screen.findByRole("list", { name: "Files made" });
     fireEvent.click(within(made).getByRole("button", { name: "audit.md" }));
-    await waitFor(() => expect(opened).toHaveBeenCalledWith("https://files.example/audit.md", "_blank", "noopener"));
+    expect(opened).toHaveBeenCalledWith("", "_blank");
+    await waitFor(() => expect(tab.location.href).toBe("https://files.example/audit.md"));
+    expect(tab.opener).toBeNull();
     expect(methods.getDownloadUrl).toHaveBeenCalledWith(files[0]!.metadata!.id);
     opened.mockRestore();
   });
