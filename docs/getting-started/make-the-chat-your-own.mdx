@@ -225,10 +225,11 @@ toolCards={TOOL_CARDS}
 customTools={CUSTOM_TOOLS}
 ```
 
-Your card goes inside Stigmer's step for the call. The step's line stays
-Stigmer's and keeps saying what is happening, an approval the call needs stays
-Stigmer's, and if your card throws, Stigmer's own draws instead. Define cards at
-the top level of a module, as here, not inside a component.
+Your card goes inside Stigmer's step for the call and replaces only what opens
+under it. The step's line stays Stigmer's and still says whether the call is
+running, done or failed, an approval the call needs stays Stigmer's, and if your
+card throws, Stigmer's own draws instead. Define cards at the top level of a
+module, as here, not inside a component.
 
 The same `toolCards` map takes a card for a tool of a server you connected to
 the Agent, keyed by its name as the Agent sees it, `mcp__<server>__<tool>`:
@@ -236,6 +237,13 @@ the Agent, keyed by its name as the Agent sees it, `mcp__<server>__<tool>`:
 ```tsx no-compile="a fragment beside the steps; InvoiceCard is yours"
 const TOOL_CARDS: ToolCards = { mcp__billing__create_invoice: InvoiceCard };
 ```
+
+A card is drawn from the moment the call starts, not only once it has a result,
+so it draws each state the call can be in. `call.state` is `"running"` while the
+tool works, `"completed"` or `"failed"` once it returned, with `call.result`,
+and `"denied"` or `"stopped"` when it never will. Read `call.result` only when
+it is there. The [reference](/docs/sdk/react/run#toolcallstate) lists every
+state.
 
 </Step>
 <Step>

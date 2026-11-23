@@ -182,7 +182,9 @@ The client words each step the way Stigmer's own chat does: `stepPhrase` turns
 a call into "Read invoice.ts" or "Searched for round( in src/billing", in the
 tense it stands in, and `failureWords` says why a step failed in a sentence. Use
 your own words instead by reading the call's `name`, `input`, `state` and
-`result`.
+`result`. A step's `state` is the session log's own, so it reads
+`waiting_on_host` where a card for `AgentChat`, which gets the kit's narrower
+view of the call, reads `"waiting-on-host"`.
 
 When the agent keeps a to-do list, `turnSteps` returns it as the agent's plan:
 each item with the steps made while it was in progress, and the steps made
