@@ -172,7 +172,10 @@ function ResourcesDropdown() {
       </Menu.Trigger>
 
       <Menu.Portal>
-        <Menu.Positioner side="bottom" align="center" sideOffset={8}>
+        {/* Above the header (z-50) and every page's content: with no level of
+            its own the menu opened under the home page's hero, whose text took
+            the clicks meant for its links. */}
+        <Menu.Positioner side="bottom" align="center" sideOffset={8} className="z-[60]">
           <Menu.Popup
             className={cn(
               "min-w-[10rem] py-1.5",

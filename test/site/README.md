@@ -45,6 +45,16 @@ trace) when it fails.
   or serious violation fails. The site has one colour mode, dark, so each page
   is audited once per width.
 
+## The header's links
+
+The same spec follows each of the header's Resources links from the home page
+with a real click, at both widths: through the "Resources" menu at the desktop
+width and through the navigation panel at the phone width. Playwright presses a
+link only when the link is what a pointer would hit there, so a menu drawn under
+the page's content fails the case (#3433: the menu opened under the hero, whose
+headline took the clicks). A link added to `NAV_RESOURCES`
+(`site/src/lib/constants.ts`) joins the spec's `RESOURCES` list.
+
 ## A violation the site already has
 
 When the audit finds a critical or serious violation that is not your change's
