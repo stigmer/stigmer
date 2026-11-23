@@ -434,6 +434,15 @@ take a Session's next turn, and a second replica would find nothing for the
 Sessions the first one ran: those conversations would be lost. Give the one
 runner a volume at its home, `/data` in the image.
 
+**A Session keeps the runner it started on.** Whether the shared runner serves a
+Session is decided when the Session is made, and kept for its whole life,
+because each runner holds the checkpoints of the Sessions it runs. Turning the
+shared runner on leaves every existing Session in its sandbox; only new Sessions
+of Agents without a computer use it. Turning it off again refuses the next turn
+of a Session that ran on it ("this conversation runs on shared runners, which
+this server no longer has"), so its history is never silently dropped: start a
+new conversation.
+
 **On Kubernetes the operator does all of this** when `spec.sandboxes.driver` is
 set. It mints the shared-runner key into the Secret `stigmer-shared-runner-key`
 and the payload key into `stigmer-keys`, beside the server's other keys, and
