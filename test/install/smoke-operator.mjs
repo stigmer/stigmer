@@ -741,7 +741,9 @@ async function runAgentSandbox(fake, modelBaseUrl) {
   try {
     const { baseUrl } = forward;
     await waitForServing(baseUrl, SERVER_HEALTHY_TIMEOUT_MS);
-    const agent = await createSmokeAgent(baseUrl, { log });
+    // Its turns run commands in their sandboxes, so the agent has a computer:
+    // one without would run on the install's runner for agents without one.
+    const agent = await createSmokeAgent(baseUrl, { log, computer: "COMPUTER_REQUIRED" });
     const marker = `slept-and-woke-${randomUUID().slice(0, 8)}`;
     first = await runInSession(baseUrl, fake, { orgId: agent.orgId, agent, command: `echo ${marker} > /workspace/sleep-wake.txt`, reply: "Saved." });
     log(`session one: run ${first.runId} COMPLETED, its file written in its sandbox`);
@@ -972,7 +974,9 @@ async function runSubstrate(fake, modelBaseUrl) {
   try {
     const { baseUrl } = forward;
     await waitForServing(baseUrl, SERVER_HEALTHY_TIMEOUT_MS);
-    const agent = await createSmokeAgent(baseUrl, { log });
+    // Its turns run commands in their sandboxes, so the agent has a computer:
+    // one without would run on the install's runner for agents without one.
+    const agent = await createSmokeAgent(baseUrl, { log, computer: "COMPUTER_REQUIRED" });
     const marker = `slept-and-woke-${randomUUID().slice(0, 8)}`;
     first = await runInSession(baseUrl, fake, { orgId: agent.orgId, agent, command: `echo ${marker} > /workspace/sleep-wake.txt`, reply: "Saved." });
     log(`session one: run ${first.runId} COMPLETED, its file written in its actor`);
