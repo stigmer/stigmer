@@ -155,6 +155,9 @@ export type SceneId =
   | "agent-chat-popup-closed"
   | "agent-chat-popup"
   | "from-hooks"
+  | "from-hooks-busy"
+  | "from-hooks-file-review"
+  | "from-hooks-waiting-on-app"
   | "parts"
   | "help"
   | "help-none"
@@ -1667,7 +1670,18 @@ const LISTED: readonly Scene[] = [
   },
   {
     id: "from-hooks",
-    title: "The hooks guide's chat: a completed turn, drawn by the program built from the hooks alone",
+    title: "The hooks guide's chat: a finished turn with an edit and two files it made, drawn by the program built from the hooks alone",
+    widths: ["desktop", "narrow"],
+  },
+  {
+    id: "from-hooks-busy",
+    title: "The hooks guide's chat: a long turn at work, each step under its to-do and a helper at work",
+    widths: ["desktop", "narrow"],
+  },
+  { id: "from-hooks-file-review", title: "The hooks guide's chat: a turn's two changed files, each with Keep and Undo", widths: ["desktop"] },
+  {
+    id: "from-hooks-waiting-on-app",
+    title: "The hooks guide's chat: a call of the app's own tool waiting for the app, with Done and Can't",
     widths: ["desktop", "narrow"],
   },
   { id: "parts", title: "The console's shared parts, each in every variant and state it has", widths: ["desktop", "narrow"] },

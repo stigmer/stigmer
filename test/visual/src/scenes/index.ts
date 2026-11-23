@@ -15,7 +15,7 @@ import {
   skillUploadDragScene,
   skillUploadDropScene,
 } from "./library-detail.tsx";
-import { fromHooksScene } from "./from-hooks.tsx";
+import { fromHooksBusyScene, fromHooksFileReviewScene, fromHooksScene, fromHooksWaitingOnAppScene } from "./from-hooks.tsx";
 import { varianceReporterScene } from "./agent-pages.tsx";
 import { skillDetailScene, skillFilesScene } from "./skill.tsx";
 import { dashboardPageScene, dashboardScene } from "./dashboard.tsx";
@@ -374,6 +374,9 @@ export const DRAWINGS: Readonly<Record<SceneId, () => Drawing>> = {
   "agent-chat-popup-closed": () => agentChatScene("busy", "popup", false),
   "agent-chat-popup": () => agentChatScene("finished", "popup", true),
   "from-hooks": fromHooksScene,
+  "from-hooks-busy": fromHooksBusyScene,
+  "from-hooks-file-review": fromHooksFileReviewScene,
+  "from-hooks-waiting-on-app": fromHooksWaitingOnAppScene,
   parts: partsScene,
   help: helpScene,
   "help-none": helpNoneScene,

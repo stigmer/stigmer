@@ -51,6 +51,20 @@ export const LIVE: readonly LiveDemo[] = [
   { name: "end-user", scene: "session-end-user", title: "The session view as an end user inside a product sees it", height: 640, interactive: true },
   { name: "from-hooks", scene: "from-hooks", title: "A chat built from the hooks alone", height: 560, interactive: true },
   {
+    name: "from-hooks-busy",
+    scene: "from-hooks-busy",
+    title: "The chat built from the hooks, a long turn at work under its plan",
+    height: 560,
+    interactive: false,
+  },
+  {
+    name: "from-hooks-waiting-on-app",
+    scene: "from-hooks-waiting-on-app",
+    title: "The chat built from the hooks, a call of the app's own tool waiting for its answer",
+    height: 420,
+    interactive: false,
+  },
+  {
     name: "parts",
     scene: "parts",
     title: "The console's shared parts: buttons, the page header, the status pill, the empty state and the error message",

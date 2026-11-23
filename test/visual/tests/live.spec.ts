@@ -120,7 +120,7 @@ test.describe("KIT-13 a message sent in a docs demo gets a scripted answer, neve
     await open(page, "from-hooks");
     await page.getByRole("textbox", { name: "Message" }).fill("What changed?");
     await page.getByRole("button", { name: "Send" }).click();
-    await page.getByRole("group", { name: /The agent asks to run git log/ }).getByRole("button", { name: "Allow" }).click({ timeout: 15_000 });
+    await page.getByRole("group", { name: "The agent asks first" }).filter({ hasText: "git log" }).getByRole("button", { name: "Allow" }).click({ timeout: 15_000 });
     await expect(page.getByText(/^Two changes this week/)).toBeVisible({ timeout: 15_000 });
     await expect(page.getByRole("alert")).toHaveCount(0);
   });
