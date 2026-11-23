@@ -57,6 +57,7 @@ import type { GuestTokenMinting } from "./guest-token-minting.js";
 import type { IdentityFederation } from "./identity-federation.js";
 import type { LicenseStatusProvider } from "./license-status.js";
 import type { ProviderAvailabilityProvider } from "./provider-availability.js";
+import type { SharedTurnAdmission } from "./shared-turn-admission.js";
 import type { OutboundEgressPolicy } from "./outbound-egress.js";
 import type { ListReadScope } from "./list-read-scope.js";
 import type { GrantScope } from "./grant-scope.js";
@@ -463,6 +464,8 @@ export interface ResolvedExtensionDrivers {
    * serves getModelReadiness and refuses by the same answer.
    */
   readonly providerAvailability: ProviderAvailabilityProvider | undefined;
+  /** The shared-turn admission — undefined = nothing bounds shared turns. */
+  readonly sharedTurnAdmission: SharedTurnAdmission | undefined;
   /**
    * The outbound-egress policy — undefined = compose.ts installs open
    * source's relaxed posture (only the link-local range refused).
@@ -576,6 +579,8 @@ export function resolveExtensions(
   let licenseStatusDeclaredBy: string | undefined;
   let providerAvailability: ProviderAvailabilityProvider | undefined;
   let providerAvailabilityDeclaredBy: string | undefined;
+  let sharedTurnAdmission: SharedTurnAdmission | undefined;
+  let sharedTurnAdmissionDeclaredBy: string | undefined;
   let outboundEgress: OutboundEgressPolicy | undefined;
   let outboundEgressDeclaredBy: string | undefined;
   let platformTokenKeys: PlatformTokenKeyRing | undefined;
@@ -904,6 +909,16 @@ export function resolveExtensions(
       providerAvailabilityDeclaredBy = unit.name;
     }
 
+    if (unit.drivers?.sharedTurnAdmission !== undefined) {
+      if (sharedTurnAdmissionDeclaredBy !== undefined) {
+        throw new Error(
+          `extension '${unit.name}' registers a SharedTurnAdmission, but '${sharedTurnAdmissionDeclaredBy}' already did — exactly one may be composed`,
+        );
+      }
+      sharedTurnAdmission = unit.drivers.sharedTurnAdmission;
+      sharedTurnAdmissionDeclaredBy = unit.name;
+    }
+
     if (unit.drivers?.outboundEgress !== undefined) {
       if (outboundEgressDeclaredBy !== undefined) {
         throw new Error(
@@ -1177,6 +1192,7 @@ export function resolveExtensions(
       principalDisplay,
       licenseStatus,
       providerAvailability,
+      sharedTurnAdmission,
       outboundEgress,
       platformTokenKeys,
       guestTokenMinting,

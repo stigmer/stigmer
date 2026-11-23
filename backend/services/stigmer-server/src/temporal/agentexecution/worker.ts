@@ -29,6 +29,7 @@ import { createAgentExecutionActivities } from "./activities.js";
 import type { QueuedTurnStarter } from "../../domain/run/queued-turn.js";
 import type { AccountsByCaller } from "../../domain/identityaccount/resolve.js";
 import type { SandboxLane } from "../../sandbox/lane.js";
+import type { SharedTurnAdmission } from "../../extensions/shared-turn-admission.js";
 
 export interface AgentExecutionWorkerDeps {
   readonly store: Store;
@@ -49,6 +50,8 @@ export interface AgentExecutionWorkerDeps {
   readonly sandboxLane: SandboxLane;
   /** Resolves a session's creator for its sandbox's runner credential; undefined under the trusted-local posture (sandbox/session-sandbox.ts). */
   readonly personAccounts: AccountsByCaller | undefined;
+  /** The composed shared-turn admission (the AdmitSharedTurn and ReleaseSharedTurn activities); undefined bounds nothing. */
+  readonly sharedTurnAdmission?: SharedTurnAdmission;
 }
 
 export function newAgentExecutionWorkerFactory(
@@ -64,6 +67,7 @@ export function newAgentExecutionWorkerFactory(
       sandboxLane: deps.sandboxLane,
       personAccounts: deps.personAccounts,
       temporalConfig: deps.temporalConfig,
+      ...(deps.sharedTurnAdmission !== undefined ? { sharedTurnAdmission: deps.sharedTurnAdmission } : {}),
     });
 
     const workflowSource = resolveWorkflowSource({

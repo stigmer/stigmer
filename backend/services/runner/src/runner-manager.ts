@@ -31,7 +31,8 @@ import {
   DEFAULT_WORKSPACE_LOCK_TIMEOUT_MS,
 } from "./config.js";
 import type { WorkerActivities } from "./worker.js";
-import { runCredentialActivityInterceptor } from "./interceptors/run-credential-activity.js";
+import { configureRunCredentialBoundary, runCredentialActivityInterceptor } from "./interceptors/run-credential-activity.js";
+import { DEFAULT_TURN_MEMORY_MB } from "./runner-serves.js";
 import { heartbeatWorkerOptions } from "./shared/heartbeat.js";
 import { telemetrySettings } from "./otel-export.js";
 import { resolveRunnerBootstrap, refreshRunnerAccessToken } from "./bootstrap.js";
@@ -122,6 +123,9 @@ export interface RunnerManagerOptions {
 
   /** Max wait for the per-workspace turn lock (ms). @default 900000 */
   readonly workspaceLockTimeoutMs?: number;
+
+  /** The heap each turn without a computer may use, in megabytes (`runner-serves.ts`). @default 512 */
+  readonly turnMemoryMb?: number;
 
   /** Checkpointer type for LangGraph agent state. @default "sqlite" (or "http" if proxyEndpoint is set) */
   readonly checkpointerType?: "memory" | "http" | "sqlite";
@@ -346,7 +350,7 @@ async function buildStigmerRunnerManager(
       `[runner-manager] Artifact store: could not resolve config for boot log: ${err}`,
     );
   }
-  const { createPayloadCodecs } = await import("./payload-codecs.js");
+  const { createPayloadCodecs, sealedValueOpener } = await import("./payload-codecs.js");
   // Server-managed payload-encryption keys (cloud desktop runners) ride the
   // bootstrap response; an env-configured key still wins inside the loader.
   // A cloud server that mints runner tokens but returns no key predates key
@@ -364,6 +368,10 @@ async function buildStigmerRunnerManager(
         "runner key management?)",
     );
   }
+  // The activity boundary opens a sealed run credential with the same codec;
+  // the manager serves every conversation, so it requires none.
+  const openSealed = sealedValueOpener(payloadCodecs);
+  configureRunCredentialBoundary(openSealed === undefined ? {} : { openSealed });
 
   const connection = await NativeConnection.connect({
     address: config.temporalAddress,
@@ -652,6 +660,9 @@ export function mapManagerOptionsToConfig(
     // None: the manager's workers exit at once on its host's quit (issue
     // #177); their turns continue when the app returns.
     drainGraceMs: 0,
+    // The manager serves every conversation of the person it runs for.
+    serves: "all",
+    turnMemoryMb: options.turnMemoryMb ?? DEFAULT_TURN_MEMORY_MB,
   };
 }
 

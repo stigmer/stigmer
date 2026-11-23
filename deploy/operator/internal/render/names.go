@@ -162,6 +162,18 @@ func RunnerKeySecret(st *stigmerv1.Stigmer) string { return st.Name + "-runner-k
 // RunnerKeyKey is the runner key Secret's one key.
 const RunnerKeyKey = "STIGMER_TOKEN"
 
+// SharedRunnerKeySecret holds the key the server admits the computer-less
+// runner by. Nothing is stored under it, so a lost Secret only means a new
+// key on the next start of both.
+func SharedRunnerKeySecret(st *stigmerv1.Stigmer) string { return st.Name + "-shared-runner-key" }
+
+// SharedRunnerKeyKey is the shared-runner key Secret's one key, the server
+// setting of the same name.
+const SharedRunnerKeyKey = "STIGMER_SHARED_RUNNER_KEY"
+
+// ComputerlessRunnerDeployment is the computer-less runner's workload.
+func ComputerlessRunnerDeployment(st *stigmerv1.Stigmer) string { return st.Name + "-runner" }
+
 // registry is the declared registry, or Stigmer's own.
 func registry(st *stigmerv1.Stigmer) string {
 	if st.Spec.Image.Registry != "" {

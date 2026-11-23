@@ -19,7 +19,10 @@
  *  - the production starter runs this build's entry in its agent-host mode
  *    under the runner's own Node (as Node, under an Electron embedder), from
  *    source under tsx; a host that cannot
- *    be spawned closes its channel instead of throwing; the host outlives
+ *    be spawned closes its channel instead of throwing; a close the runner
+ *    asks for is reported at once, and a pipe that ended on its own is
+ *    reported once the wait for the exit runs out, the exit after it
+ *    reporting nothing more; the host outlives
  *    the SIGTERM and SIGINT its process group receives (a daemon's stop, a
  *    terminal's Ctrl-C) and exits only when its pipe closes, so a runner
  *    draining its turns keeps its host; a host that has not exited a grace
@@ -403,6 +406,42 @@ describe("the production starter", () => {
     const reason = await new Promise<Error>((resolve) => started.channel.onClose(resolve));
     expect(reason.message).toMatch(/ENOENT/);
     started.kill();
+  });
+
+  it("reports a close the runner asks for at once, not waiting for the process to exit", async () => {
+    const alive = "setInterval(() => {}, 1000);";
+    const { started, child } = spawnHostProcess(process.execPath, ["-e", alive], { ...process.env });
+    const reasons: Error[] = [];
+    started.channel.onClose((reason) => reasons.push(reason));
+    await new Promise((resolve) => setTimeout(resolve, 100));
+
+    started.channel.close(new Error("the runner ended it"));
+    expect(reasons.map((reason) => reason.message), "reported before the process exited").toEqual(["the runner ended it"]);
+    expect(child.exitCode).toBeNull();
+
+    const closed = new Promise<void>((resolve) => child.once("close", () => resolve()));
+    child.kill("SIGKILL");
+    await closed;
+    await new Promise((resolve) => setImmediate(resolve));
+    expect(reasons, "the exit after it reports nothing more").toHaveLength(1);
+  });
+
+  it("closes a pipe that ended on its own once the wait for the exit runs out, and ignores the exit after it", async () => {
+    // Closes its end of the channel and lingers past the wait for its exit.
+    const lingering = 'require("node:fs").closeSync(3); setInterval(() => {}, 1000);';
+    const { started, child } = spawnHostProcess(process.execPath, ["-e", lingering], { ...process.env });
+    const reasons: Error[] = [];
+    const firstReason = new Promise<Error>((resolve) => started.channel.onClose(resolve));
+    started.channel.onClose((reason) => reasons.push(reason));
+
+    expect((await firstReason).message, "the pipe's own end, the exit not yet known").toBe("agent host channel closed");
+    expect(child.exitCode).toBeNull();
+
+    const closed = new Promise<void>((resolve) => child.once("close", () => resolve()));
+    child.kill("SIGKILL");
+    await closed;
+    await new Promise((resolve) => setImmediate(resolve));
+    expect(reasons, "the exit after the wait reports nothing more").toHaveLength(1);
   });
 });
 

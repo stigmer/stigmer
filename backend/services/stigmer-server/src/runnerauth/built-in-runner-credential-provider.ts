@@ -218,7 +218,7 @@ export function newBuiltInRunnerCredentialProvider(
           }
           return {
             minted: true,
-            token: mintRunCredential(execution.executionId),
+            token: await mintRunCredential(execution.executionId),
             // No `exp` on a run credential; 0 is the proto default and
             // the runner's acquire sites read no expiry from it.
             expiresInSeconds: 0,

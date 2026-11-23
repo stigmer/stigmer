@@ -1,6 +1,7 @@
-// The engine of `stigmer load-test`: make one agent of its own, start N
-// turns on it at the same moment, watch each until it ends or the watch's
-// time is up, read each run once, then delete everything it made.
+// The engine of `stigmer load-test`: make one agent of its own, with a
+// computer, start N turns on it at the same moment, watch each until it ends
+// or the watch's time is up, read each run once, then delete everything it
+// made.
 //
 // - Every turn is a new conversation (`startTurn` with a `sessionSpec`), so
 //   each asks the fleet for a sandbox of its own. The creates are fired
@@ -27,6 +28,7 @@
 import type { Agent } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb";
 import type { Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 import { RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
+import { Computer } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
 import type { Duration } from "@bufbuild/protobuf/wkt";
 import {
   type AgentInput,
@@ -118,6 +120,9 @@ export async function runBurst(client: LoadTestClient, options: BurstOptions): P
     org: options.org,
     description: "Made by stigmer load-test and deleted when it ends.",
     instructions: AGENT_INSTRUCTIONS,
+    // A computer, so each turn asks the fleet for a sandbox: an agent that
+    // names nothing needing one starts without, and its turns would ask for none.
+    computer: Computer.REQUIRED,
   });
   const agentId = agent.metadata?.id ?? "";
   const agentRef = { org: agent.metadata?.org ?? options.org, slug: agent.metadata?.slug ?? "" };

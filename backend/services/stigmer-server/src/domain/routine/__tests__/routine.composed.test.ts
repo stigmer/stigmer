@@ -35,7 +35,7 @@
  */
 import { RunSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 import { RunPhase, ServiceTier } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
-import { Harness } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
+import { Computer, Harness } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
@@ -125,7 +125,9 @@ beforeAll(async () => {
       apiVersion: "agentic.stigmer.ai/v1",
       kind: "Agent",
       metadata: { name, org: "acme", slug },
-      spec: { instructions: "a composed-test target agent" },
+      // With a computer, so a routine on them may name the Claude engine
+      // and an Environment, which an agent without one refuses.
+      spec: { instructions: "a composed-test target agent", computer: Computer.REQUIRED },
     });
   }
 });

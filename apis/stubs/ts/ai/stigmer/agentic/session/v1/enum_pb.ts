@@ -107,7 +107,8 @@ export const HarnessSchema: GenEnum<Harness> = /*@__PURE__*/
  */
 export enum Computer {
   /**
-   * Unset: has a computer. A new agent's create fills it in.
+   * Unset: has a computer. A new agent's create fills it in: none, unless
+   * the agent names something that needs one.
    *
    * @generated from enum value: COMPUTER_UNSPECIFIED = 0;
    */

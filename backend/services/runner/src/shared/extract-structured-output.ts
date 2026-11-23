@@ -23,6 +23,7 @@
  */
 
 import type { Config } from "../config.js";
+import { credentialForTurn } from "./run-credential-store.js";
 import { getEconomyModel } from "./model-registry.js";
 import { buildChatModel } from "./model-client.js";
 import { checkDirectCredentials } from "./llm-backend.js";
@@ -72,7 +73,7 @@ export async function extractStructuredOutput(
   const { model: llm } = await buildChatModel({
     modelName: extractionModel,
     proxyEndpoint,
-    stigmerToken: config.stigmerTokenRef.current ?? undefined,
+    stigmerToken: credentialForTurn(config.stigmerTokenRef),
     headerScope: { executionId },
     maxTokens: 4096,
   });

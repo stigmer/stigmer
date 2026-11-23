@@ -970,6 +970,7 @@ export function newStartWorkflowStep(deps: {
       try {
         await engine.engine.startInvokeWorkflow({
           executionId,
+          org: execution.metadata?.org ?? "",
           sessionId: sessionIdOf(execution.spec),
           agentId: execution.status?.agentId ?? "",
           autoApproveAll: execution.spec?.autoApproveAll ?? false,

@@ -15,6 +15,10 @@
  *    surface at once, and the next turn runs on a host the supervisor
  *    started again; one that dies after the runtime asked the turn to stop
  *    settles it `interrupted`, the stop the runtime already decided;
+ *  - a host that grows past its heap cap (a real `--max-old-space-size`)
+ *    dies, is read as having run out of memory, and settles its turn with
+ *    the person's sentence naming the cap; the next turn runs on a host the
+ *    supervisor started again;
  *  - an adapter that throws reaches the runtime as a throw, its rows kept;
  *  - a host that speaks another protocol version is refused at boot;
  *  - shutting the last harness down ends the host process.
@@ -30,6 +34,7 @@ import { testConfig } from "../../__test-utils__/config-fixture.js";
 import { turnInputFixture } from "../../__test-utils__/turn-input-fixture.js";
 import type { HarnessAdapter, TurnOutcome } from "../../harness/types.js";
 import { createRemoteAdapter } from "../remote-adapter.js";
+import { heapCapFlag } from "../fence.js";
 import { AgentHostSupervisor, spawnHostProcess, type HostStarter } from "../supervisor.js";
 import { MessageType } from "../../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
 
@@ -46,17 +51,24 @@ afterEach(() => {
   }
 });
 
-function probeStarter(arm: "serve" | "stale"): HostStarter {
+function probeStarter(arm: "serve" | "stale", heapMb?: number): HostStarter {
   return () => {
-    const { started, child } = spawnHostProcess(process.execPath, ["--import", "tsx", CHILD, arm], { ...process.env });
+    const heap = heapMb === undefined ? [] : [heapCapFlag(heapMb)];
+    const { started, child } = spawnHostProcess(process.execPath, [...heap, "--import", "tsx", CHILD, arm], { ...process.env });
     spawned.push(child);
     return started;
   };
 }
 
-function hostedProbe(arm: "serve" | "stale" = "serve"): { readonly adapter: HarnessAdapter; readonly supervisor: AgentHostSupervisor } {
+function hostedProbe(arm: "serve" | "stale" = "serve", heapMb?: number): { readonly adapter: HarnessAdapter; readonly supervisor: AgentHostSupervisor } {
   const proxy = { endpoint: "http://127.0.0.1:9", authorizeHost: () => {}, openTurn: () => () => {} };
-  const supervisor = new AgentHostSupervisor({ proxy, start: probeStarter(arm), firstRestartDelayMs: 50, log: () => {} });
+  const supervisor = new AgentHostSupervisor({
+    proxy,
+    start: probeStarter(arm, heapMb),
+    firstRestartDelayMs: 50,
+    log: () => {},
+    ...(heapMb === undefined ? {} : { heapMb }),
+  });
   const local: HarnessAdapter = {
     name: "probe",
     capabilities: DEEP_AGENT_CAPABILITIES,
@@ -83,12 +95,18 @@ async function whenParked(sink: RecordingTurnSink): Promise<void> {
   }
 }
 
-function withinBound<T>(promise: Promise<T>): Promise<T> {
+function withinBound<T>(promise: Promise<T>, boundMs: number = SETTLE_BOUND_MS): Promise<T> {
   return Promise.race([
     promise,
-    new Promise<T>((_, reject) => setTimeout(() => reject(new Error(`not settled within ${SETTLE_BOUND_MS}ms`)), SETTLE_BOUND_MS)),
+    new Promise<T>((_, reject) => setTimeout(() => reject(new Error(`not settled within ${boundMs}ms`)), boundMs)),
   ]);
 }
+
+/** The probe's heap cap: room for the host and its loader, little beside. */
+const PROBE_HEAP_MB = 192;
+
+/** The bound a host that grows to its cap and dies must settle within: V8 collects hard before it gives up. */
+const OOM_BOUND_MS = 30_000;
 
 describe("the agent host as a child process", () => {
   it("carries a turn across the real pipe: rows, the awaited persist and the usage reach the runtime", async () => {
@@ -146,6 +164,25 @@ describe("the agent host as a child process", () => {
     expect(await withinBound(settled)).toEqual({ kind: "interrupted" });
     await adapter.shutdown();
   });
+
+  it("settles a turn whose host outgrew its heap cap with the person's sentence, and runs the next turn on a restarted host", async () => {
+    const { adapter } = hostedProbe("serve", PROBE_HEAP_MB);
+    await adapter.boot(testConfig());
+    const { sink, settled } = startTurn(adapter, "grow");
+    await whenParked(sink);
+
+    const outcome = await withinBound(settled, OOM_BOUND_MS);
+    expect(outcome).toMatchObject({
+      kind: "failed",
+      surface: "actionable",
+      message: `This turn ran out of memory (${PROBE_HEAP_MB} MB) and was stopped. Start a new turn or simplify the request.`,
+    });
+
+    const next = startTurn(adapter, "say");
+    expect(await withinBound(next.settled, OOM_BOUND_MS), "the next turn runs on a new host").toEqual({ kind: "completed" });
+    expect(spawned, "the supervisor started a second host").toHaveLength(2);
+    await adapter.shutdown();
+  }, 60_000);
 
   it("hands an adapter's throw to the runtime as a throw, the rows it folded first kept", async () => {
     const { adapter } = hostedProbe();

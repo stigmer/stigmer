@@ -36,6 +36,7 @@
 import { SystemMessage, HumanMessage } from "@langchain/core/messages";
 import { ConnectError, Code } from "@connectrpc/connect";
 import { GENERATE_SESSION_SUBJECT_ACTIVITY_NAME } from "@stigmer/temporal-codecs/activity-names";
+import { credentialForTurn } from "../shared/run-credential-store.js";
 import { activityStarted, activityFinished } from "../idle-watchdog.js";
 import { StigmerClient } from "../client/stigmer-client.js";
 import { getSummarizationModel } from "../shared/model-registry.js";
@@ -337,6 +338,8 @@ function log(msg: string): void {
 export interface GenerateSessionSubjectInput {
   readonly execution_id: string;
   readonly execution_context_token?: string;
+  /** The run credential sealed with the server's payload key, for a turn on a shared runner; the activity boundary opens it (`shared/run-credential.ts`). */
+  readonly sealed_execution_context_token?: string;
 }
 
 export function createGenerateSessionSubjectActivities(config: Config) {
@@ -357,7 +360,8 @@ export function createGenerateSessionSubjectActivities(config: Config) {
         log(`started: execution=${executionId}`);
         await generateSessionSubject(executionId, client, {
           proxyEndpoint: config.proxyEndpoint,
-          stigmerToken: config.stigmerTokenRef.current,
+          // The turn's own credential first: a shared runner's own key reaches no model lane.
+          stigmerToken: credentialForTurn(config.stigmerTokenRef) ?? null,
           primaryModel: config.primaryModel,
         });
       } finally {

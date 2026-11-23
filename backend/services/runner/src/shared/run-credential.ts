@@ -18,10 +18,17 @@
  * cross-component wire contract; the server's
  * temporal/agentexecution/workflows/invoke-agent-execution.ts builds it).
  *
+ * A turn sent to a runner shared by many organizations carries it sealed
+ * instead, under {@link SEALED_RUN_CREDENTIAL_INPUT_KEY}: the server seals it
+ * with its payload key so its workflow history never shows it in the clear,
+ * and the runner opens it with the same key (`@stigmer/temporal-codecs`
+ * `openSealedString`). At most one of the two keys is present.
+ *
  * One reader: `interceptors/run-credential-activity.ts` enters the store
- * (`run-credential-store.ts`) at the activity boundary, and
- * `client/stigmer-client.ts` reads it per request. No activity body touches
- * a credential.
+ * (`run-credential-store.ts`) at the activity boundary, opening a sealed
+ * credential first, and the control plane's clients read it per request
+ * (`run-credential-store.ts` names them). No activity body touches a
+ * credential.
  */
 
 /**
@@ -44,5 +51,22 @@ export function readRunCredentialFromInput(arg: unknown): string | undefined {
     return undefined;
   }
   const value = (arg as Record<string, unknown>)[RUN_CREDENTIAL_INPUT_KEY];
+  return typeof value === "string" && value !== "" ? value : undefined;
+}
+
+/**
+ * The snake_case key under which a dispatch to a shared runner carries the
+ * run credential sealed (the module header). Byte-pinned: the server's
+ * invoke workflow writes it on `ExecuteActivityInput` and
+ * `GenerateSessionSubjectInput`.
+ */
+export const SEALED_RUN_CREDENTIAL_INPUT_KEY = "sealed_execution_context_token" as const;
+
+/** The sealed run credential an activity input carries, by the same rule as {@link readRunCredentialFromInput}. */
+export function readSealedRunCredentialFromInput(arg: unknown): string | undefined {
+  if (arg === null || typeof arg !== "object") {
+    return undefined;
+  }
+  const value = (arg as Record<string, unknown>)[SEALED_RUN_CREDENTIAL_INPUT_KEY];
   return typeof value === "string" && value !== "" ? value : undefined;
 }

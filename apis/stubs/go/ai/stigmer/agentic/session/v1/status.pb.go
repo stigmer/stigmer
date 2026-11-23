@@ -59,7 +59,11 @@ type SessionStatus struct {
 	// Whether this conversation has a computer, from its agent's version
 	// (AgentSpec.computer). Unset reads as having one: a conversation from
 	// before the setting, or one with no agent.
-	Computer      Computer `protobuf:"varint,10,opt,name=computer,proto3,enum=ai.stigmer.agentic.session.v1.Computer" json:"computer,omitempty"`
+	Computer Computer `protobuf:"varint,10,opt,name=computer,proto3,enum=ai.stigmer.agentic.session.v1.Computer" json:"computer,omitempty"`
+	// Whether this conversation's turns run on a runner the server shares
+	// across conversations, rather than in a sandbox of its own. Only a
+	// conversation without a computer can.
+	SharedRunner  bool `protobuf:"varint,11,opt,name=shared_runner,json=sharedRunner,proto3" json:"shared_runner,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -157,11 +161,18 @@ func (x *SessionStatus) GetComputer() Computer {
 	return Computer_COMPUTER_UNSPECIFIED
 }
 
+func (x *SessionStatus) GetSharedRunner() bool {
+	if x != nil {
+		return x.SharedRunner
+	}
+	return false
+}
+
 var File_ai_stigmer_agentic_session_v1_status_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_session_v1_status_proto_rawDesc = "" +
 	"\n" +
-	"*ai/stigmer/agentic/session/v1/status.proto\x12\x1dai.stigmer.agentic.session.v1\x1a(ai/stigmer/agentic/session/v1/enum.proto\x1a2ai/stigmer/commons/apiresource/field_options.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a+ai/stigmer/commons/apiresource/status.proto\"\x87\x05\n" +
+	"*ai/stigmer/agentic/session/v1/status.proto\x12\x1dai.stigmer.agentic.session.v1\x1a(ai/stigmer/agentic/session/v1/enum.proto\x1a2ai/stigmer/commons/apiresource/field_options.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a+ai/stigmer/commons/apiresource/status.proto\"\xac\x05\n" +
 	"\rSessionStatus\x12F\n" +
 	"\x05audit\x18c \x01(\v20.ai.stigmer.commons.apiresource.ApiResourceAuditR\x05audit\x12\x19\n" +
 	"\bagent_id\x18\x01 \x01(\tR\aagentId\x12,\n" +
@@ -173,7 +184,8 @@ const file_ai_stigmer_agentic_session_v1_status_proto_rawDesc = "" +
 	"\venvironment\x18\b \x01(\v24.ai.stigmer.commons.apiresource.ApiResourceReferenceB\x04\xe0\x85,CR\venvironment\x12_\n" +
 	"\x12environment_source\x18\t \x01(\x0e20.ai.stigmer.agentic.session.v1.EnvironmentSourceR\x11environmentSource\x12C\n" +
 	"\bcomputer\x18\n" +
-	" \x01(\x0e2'.ai.stigmer.agentic.session.v1.ComputerR\bcomputer\x1aA\n" +
+	" \x01(\x0e2'.ai.stigmer.agentic.session.v1.ComputerR\bcomputer\x12#\n" +
+	"\rshared_runner\x18\v \x01(\bR\fsharedRunner\x1aA\n" +
 	"\x13VaultAttachersEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01B\x9b\x02\n" +

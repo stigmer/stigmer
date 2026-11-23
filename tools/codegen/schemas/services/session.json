@@ -2085,6 +2085,16 @@
         },
         "description": "Whether this conversation has a computer, from its agent's version\n (AgentSpec.computer). Unset reads as having one: a conversation from\n before the setting, or one with no agent.",
         "required": false
+      },
+      {
+        "name": "SharedRunner",
+        "jsonName": "sharedRunner",
+        "protoField": "shared_runner",
+        "type": {
+          "kind": "bool"
+        },
+        "description": "Whether this conversation's turns run on a runner the server shares\n across conversations, rather than in a sandbox of its own. Only a\n conversation without a computer can.",
+        "required": false
       }
     ]
   },

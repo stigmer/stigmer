@@ -6,16 +6,24 @@
  * interleave in one process each see their own credential and never the
  * other's. That is what lets one shared `StigmerClient` — one per worker for
  * the turn activities — present the right run's credential per request.
+ *
+ * Beside it: the sealed key's reader, and the runner's own calls during a
+ * turn reading the turn's credential before the runner's token
+ * (`credentialForTurn`, `turnCredentialRef`), per request.
  */
 
 import { describe, expect, it } from "vitest";
 
 import {
   RUN_CREDENTIAL_INPUT_KEY,
+  SEALED_RUN_CREDENTIAL_INPUT_KEY,
   readRunCredentialFromInput,
+  readSealedRunCredentialFromInput,
 } from "../run-credential.js";
 import {
+  credentialForTurn,
   currentRunCredential,
+  turnCredentialRef,
   withRunCredential,
 } from "../run-credential-store.js";
 
@@ -105,5 +113,41 @@ describe("run-credential store", () => {
     expect(seen.filter(([name]) => name === "none").map(([, c]) => c)).toEqual(
       Array(4).fill(undefined),
     );
+  });
+});
+
+describe("readSealedRunCredentialFromInput", () => {
+  it("reads a non-empty string under the sealed key, and nothing else", () => {
+    expect(readSealedRunCredentialFromInput({ [SEALED_RUN_CREDENTIAL_INPUT_KEY]: "c2VhbGVk" })).toBe("c2VhbGVk");
+    expect(readSealedRunCredentialFromInput({ [SEALED_RUN_CREDENTIAL_INPUT_KEY]: "" })).toBeUndefined();
+    expect(readSealedRunCredentialFromInput({ [RUN_CREDENTIAL_INPUT_KEY]: "clear" })).toBeUndefined();
+    expect(readSealedRunCredentialFromInput("ses_1")).toBeUndefined();
+  });
+});
+
+describe("the runner's own calls during a turn", () => {
+  const runnerToken = { current: "shared-runner-key" };
+
+  it("present the turn's credential first, and the runner's token outside a turn or for a turn that carried none", async () => {
+    expect(credentialForTurn(runnerToken)).toBe("shared-runner-key");
+    expect(await withRunCredential("cred-a", async () => credentialForTurn(runnerToken))).toBe("cred-a");
+    expect(credentialForTurn({ current: null })).toBeUndefined();
+  });
+
+  it("read the credential per request through the ref, so one client serves two turns at once as each", async () => {
+    const ref = turnCredentialRef(runnerToken);
+    const tick = (): Promise<void> => new Promise((resolve) => setTimeout(resolve, 1));
+    const seen = await Promise.all([
+      withRunCredential("cred-a", async () => {
+        await tick();
+        return ref.current;
+      }),
+      withRunCredential("cred-b", async () => {
+        await tick();
+        return ref.current;
+      }),
+    ]);
+    expect(seen).toEqual(["cred-a", "cred-b"]);
+    expect(ref.current).toBe("shared-runner-key");
   });
 });

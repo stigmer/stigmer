@@ -1,7 +1,7 @@
 /**
  * The locked host's lock (`fence.ts`): the flag Node takes, the one folder
- * it may read in each shape the runner ships in, the fence the host reports
- * and the runner's judgment of it. The spawned locked host shows Node
+ * it may read in each shape the runner ships in, the heap cap, the fence the
+ * host reports and the runner's judgment of it. The spawned locked host shows Node
  * enforcing it (`fenced-host.test.ts`); the built entry's boot under it is
  * `scripts/verify-agent-host-boot.mjs --fenced`.
  */
@@ -19,6 +19,7 @@ import {
   fencedHostEnvironment,
   NO_LANGSMITH_PROFILE,
   fencedHostLaunch,
+  heapCapFlag,
   judgeFence,
   permissionFlag,
   type HostFenceReport,
@@ -178,18 +179,19 @@ describe("the fence a host reports", () => {
         return false;
       },
     };
-    expect(currentFence(permission, ["--permission"], "/home/agent")).toEqual({ ...LOCKED, execArgv: ["--permission"] });
+    expect(currentFence(permission, ["--permission"], "/home/agent", 560 * 1024 * 1024)).toEqual({ ...LOCKED, execArgv: ["--permission"], heapLimitMb: 560 });
     expect(asked).toEqual(["fs.read /home/agent", "fs.write", "child", "worker"]);
   });
 
   it("reads every scope as open without the permission model", () => {
-    expect(currentFence(undefined, [], "/home/agent")).toEqual({
+    expect(currentFence(undefined, [], "/home/agent", 4144 * 1024 * 1024)).toEqual({
       permission: false,
       execArgv: [],
       fsReadHome: true,
       fsWrite: true,
       childProcess: true,
       worker: true,
+      heapLimitMb: 4144,
     });
   });
 });
@@ -211,5 +213,34 @@ describe("the runner's judgment of a reported fence", () => {
   it("refuses any flag beyond the runner's, since Node cannot be asked about an addon or WASI grant", () => {
     expect(judgeFence({ ...LOCKED, execArgv: [...LOCKED.execArgv, "--allow-addons"] }, LOCKED.execArgv)).toMatch(/not the lock the runner built/);
     expect(judgeFence({ ...LOCKED, execArgv: ["--permission", "--allow-fs-read=/"] }, LOCKED.execArgv)).toMatch(/not the lock the runner built/);
+  });
+});
+
+describe("the heap cap", () => {
+  it("is the last flag of the lock when the runner asks for one, and absent otherwise", () => {
+    expect(fencedHostLaunch("/opt/runner/dist/main.js", new Set(["--permission", "--allow-net"]), () => "/opt/runner/dist", 512).execArgv).toEqual([
+      "--permission",
+      "--allow-fs-read=/opt/runner/dist",
+      "--allow-net",
+      "--max-old-space-size=512",
+    ]);
+    expect(fencedHostLaunch("/opt/runner/dist/main.js", new Set(["--permission"]), () => "/opt/runner/dist").execArgv).not.toContain(heapCapFlag(512));
+  });
+
+  it("is proved by V8's own heap limit in the hello: the cap and the young generation beside it, no more", () => {
+    const capped = [...LOCKED.execArgv, heapCapFlag(512)];
+    expect(judgeFence({ ...LOCKED, execArgv: capped, heapLimitMb: 560 }, capped), "512 MB of old space and V8's 48 MB young generation").toBeNull();
+    expect(judgeFence({ ...LOCKED, execArgv: capped, heapLimitMb: 4144 }, capped)).toBe(
+      "the locked agent program's heap is not held to its memory cap of 512 MB (V8 reports 4144 MB)",
+    );
+    expect(judgeFence({ ...LOCKED, execArgv: capped }, capped), "a hello that reports no limit").toMatch(/not held to its memory cap of 512 MB \(V8 reports null MB\)/);
+    expect(judgeFence({ ...LOCKED, heapLimitMb: 560 }, capped), "a host started without the flag").toMatch(/not the lock the runner built/);
+  });
+
+  it("is reported by a real Node started under it", () => {
+    const run = spawnSync(process.execPath, [heapCapFlag(256), "--input-type=module", "-e", "import { getHeapStatistics } from 'node:v8'; console.log(getHeapStatistics().heap_size_limit)"], { encoding: "utf8" });
+    const limitMb = Math.round(Number(run.stdout.trim()) / (1024 * 1024));
+    const capped = [...LOCKED.execArgv, heapCapFlag(256)];
+    expect(judgeFence({ ...LOCKED, execArgv: capped, heapLimitMb: limitMb }, capped), `V8 reported ${limitMb} MB`).toBeNull();
   });
 });

@@ -6,8 +6,11 @@
  *
  *  - Forward, when the runner talks to the Stigmer platform's proxy
  *    (`config.proxyEndpoint` set): the call goes to the same path there,
- *    with the host's token replaced by the runner's control-plane token,
- *    read per request so rotation stays the runner's. A model call carries
+ *    with the host's token replaced by the credential of the turn the call
+ *    belongs to, the run credential its dispatch carried; for a turn whose
+ *    dispatch carried none, the runner's control-plane token, read per
+ *    request so rotation stays the runner's (the artifact store's rule,
+ *    `shared/artifact-storage.ts`). A model call carries
  *    the execution id of the live turn `server.ts` checked it against
  *    (`X-Stigmer-Execution-Id`), because the platform's proxy authorizes and
  *    meters by it: the id the host's clients stamp, or for an engine that
@@ -80,8 +83,9 @@ const MODEL_CALL_PATHS: Readonly<Record<ModelProviderLane, RegExp>> = {
 /**
  * Where one model call goes. `rest` is the path after the lane's prefix,
  * with its query (`/v1/messages`, `/model/<id>/invoke-with-response-stream`).
- * `executionId` is the live turn's the proxy checked the call against
- * (`server.ts`), the scope a forwarded call carries to the platform.
+ * `turn` is the live turn the proxy checked the call against (`server.ts`):
+ * its execution is the scope a forwarded call carries to the platform, and
+ * its credential the one it goes out with.
  */
 export async function modelUpstream(
   config: Config,
@@ -89,7 +93,7 @@ export async function modelUpstream(
   rest: string,
   req: IncomingMessage,
   body: Buffer,
-  executionId: string,
+  turn: TurnScope,
 ): Promise<Upstream> {
   const method = req.method ?? "POST";
   const path = rest.split("?")[0] ?? "";
@@ -101,7 +105,7 @@ export async function modelUpstream(
     return {
       url: laneUrl(config.proxyEndpoint, `/v1/proxy/llm/${lane}${rest}`),
       method,
-      headers: { ...forwardableHeaders(req.headers, false), [CHECKED_SCOPE_HEADER]: executionId, authorization: `Bearer ${runnerToken(config)}` },
+      headers: { ...forwardableHeaders(req.headers, false), [CHECKED_SCOPE_HEADER]: turn.executionId, authorization: `Bearer ${forwardCredential(config, turn.credential)}` },
       body,
     };
   }
@@ -136,9 +140,9 @@ export function registryUpstream(req: IncomingMessage): Upstream {
   };
 }
 
-/** A checkpoint call, forwarded to the platform's checkpoint lane. `rest` keeps its query. */
-export function checkpointUpstream(config: Config, rest: string, req: IncomingMessage, body: Buffer): Upstream {
-  return conversationStateUpstream(config, "/v1/proxy/checkpoints", "the checkpoint lane is not served: this runner checkpoints locally", rest, req, body);
+/** A checkpoint call, forwarded to the platform's checkpoint lane under its turn's `credential`. `rest` keeps its query. */
+export function checkpointUpstream(config: Config, rest: string, req: IncomingMessage, body: Buffer, credential: string | undefined): Upstream {
+  return conversationStateUpstream(config, "/v1/proxy/checkpoints", "the checkpoint lane is not served: this runner checkpoints locally", rest, req, body, credential);
 }
 
 /**
@@ -147,19 +151,27 @@ export function checkpointUpstream(config: Config, rest: string, req: IncomingMe
  * same name. Served exactly where the checkpoint lane is: both carry an
  * engine's conversation, placed by one setting. `rest` keeps its query.
  */
-export function engineSessionUpstream(config: Config, rest: string, req: IncomingMessage, body: Buffer): Upstream {
-  return conversationStateUpstream(config, "/v1/proxy/engine-sessions", "the engine-sessions lane is not served: this runner keeps an engine's conversation locally", rest, req, body);
+export function engineSessionUpstream(config: Config, rest: string, req: IncomingMessage, body: Buffer, credential: string | undefined): Upstream {
+  return conversationStateUpstream(config, "/v1/proxy/engine-sessions", "the engine-sessions lane is not served: this runner keeps an engine's conversation locally", rest, req, body, credential);
 }
 
 /** A call on a lane that carries an engine's conversation to the platform, where the runner's setting puts it there. */
-function conversationStateUpstream(config: Config, lane: string, notServed: string, rest: string, req: IncomingMessage, body: Buffer): Upstream {
+function conversationStateUpstream(
+  config: Config,
+  lane: string,
+  notServed: string,
+  rest: string,
+  req: IncomingMessage,
+  body: Buffer,
+  credential: string | undefined,
+): Upstream {
   if (config.checkpointerType !== "http" || config.checkpointerProxyEndpoint === null) {
     throw new LaneRefusal(404, notServed);
   }
   return {
     url: laneUrl(config.checkpointerProxyEndpoint, `${lane}${rest}`),
     method: req.method ?? "GET",
-    headers: { ...forwardableHeaders(req.headers, false), authorization: `Bearer ${runnerToken(config)}` },
+    headers: { ...forwardableHeaders(req.headers, false), authorization: `Bearer ${forwardCredential(config, credential)}` },
     body,
   };
 }
@@ -266,7 +278,15 @@ async function foundryUpstream(rest: string, method: string, headers: Record<str
 
 // ─── Helpers ──────────────────────────────────────────────────────────────
 
-function runnerToken(config: Config): string {
+/** The live turn a forwarded call belongs to: its execution, and the run credential it goes out with. */
+export interface TurnScope {
+  readonly executionId: string;
+  readonly credential: string | undefined;
+}
+
+/** The credential a forwarded call goes out with: its turn's, else the runner's own (the module header). */
+function forwardCredential(config: Config, turnCredential: string | undefined): string {
+  if (turnCredential) return turnCredential;
   const token = config.stigmerTokenRef.current;
   if (!token) throw new LaneRefusal(503, "the runner holds no Stigmer credential to forward this call with");
   return token;

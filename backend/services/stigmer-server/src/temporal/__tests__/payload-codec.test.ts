@@ -9,11 +9,12 @@ import { Buffer } from "node:buffer";
 import { randomBytes } from "node:crypto";
 import { afterEach, describe, expect, it } from "vitest";
 
-import { EncryptionPayloadCodec } from "@stigmer/temporal-codecs";
+import { EncryptionPayloadCodec, openSealedString } from "@stigmer/temporal-codecs";
 import type { Payload } from "@temporalio/common";
 
 import {
   loadServerPayloadCodecs,
+  loadServerPayloadSealer,
   ServerDecryptionPayloadCodec,
 } from "../payload-codec.js";
 
@@ -175,3 +176,25 @@ describe("loadServerPayloadCodecs", () => {
     expect(loadServerPayloadCodecs(async () => undefined)).toEqual([]);
   });
 });
+
+describe("loadServerPayloadSealer", () => {
+  afterEach(() => {
+    delete process.env["STIGMER_PAYLOAD_ENCRYPTION_KEY"];
+    delete process.env["STIGMER_PAYLOAD_ENCRYPTION_KEY_ID"];
+  });
+
+  it("is absent with no key, so the boot can refuse shared runners", () => {
+    expect(loadServerPayloadSealer()).toBeUndefined();
+  });
+
+  it("seals with the configured key, so a runner holding the same key opens it", async () => {
+    process.env["STIGMER_PAYLOAD_ENCRYPTION_KEY"] = KEY.toString("base64");
+    process.env["STIGMER_PAYLOAD_ENCRYPTION_KEY_ID"] = KEY_ID;
+    const seal = loadServerPayloadSealer()!;
+    const sealed = await seal("run-credential");
+    const runnerCodec = new EncryptionPayloadCodec({ primary: { keyId: KEY_ID, key: KEY } });
+    expect(await openSealedString(runnerCodec, sealed)).toBe("run-credential");
+    expect(sealed).not.toContain("run-credential");
+  });
+});
+

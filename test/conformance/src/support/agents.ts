@@ -25,7 +25,7 @@
 // the suite, not here: this module represents validity by construction, the
 // convention every builder in support/ follows.
 import type { RunConfigSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/invocation_pb";
-import type { Computer, Harness } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
+import { Computer, type Harness } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
 import type { InitShape } from "./init-shape";
 import { AgentSchema } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb";
 import { type AgentMcpServerSchema, AgentSpecSchema, type HookSourceSchema } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/spec_pb";
@@ -79,9 +79,15 @@ export interface AgentSpecOptions {
   runConfig?: InitShape<typeof RunConfigSchema>;
   harness?: Harness;
   // Whether the agent's conversations have a computer (spec.computer).
-  // Unset by default, so a fixture gets the server's default for a new
-  // agent exactly as a person's agent does; an arm about agents without a
-  // computer sets COMPUTER_NONE.
+  // makeAgentSpec leaves it unset unless named, so an update or an apply
+  // built from it keeps the stored value. makeAgent, the fixture a suite
+  // creates its agents from, names COMPUTER_REQUIRED unless the arm names
+  // one: a new agent that names nothing needing a computer starts without
+  // one, and the suite's arms run commands, attach repositories and
+  // folders, review files and run on the Claude engine, which need it. An
+  // arm about agents without a computer sets COMPUTER_NONE; an arm about
+  // the server's own default sets COMPUTER_UNSPECIFIED, which is the field
+  // left unset on the wire.
   computer?: Computer;
   // The agent's own hooks block, as written (a plugin's hooks come with the
   // plugin when it is listed in `plugins`).
@@ -126,14 +132,15 @@ export interface AgentOptions extends AgentSpecOptions {
   labels?: Record<string, string>;
 }
 
-// A complete, valid Agent resource ready to hand to create/apply/update.
+// A complete, valid Agent resource ready to hand to create/apply/update,
+// with a computer unless the arm names its own setting (`computer` above).
 export function makeAgent(opts: AgentOptions): InitShape<typeof AgentSchema> {
   const { org, name, labels, ...spec } = opts;
   return {
     apiVersion: AGENT_API_VERSION,
     kind: AGENT_KIND,
     metadata: { name, org, ...(labels !== undefined ? { labels } : {}) },
-    spec: makeAgentSpec(spec),
+    spec: makeAgentSpec({ ...spec, computer: spec.computer ?? Computer.REQUIRED }),
   };
 }
 

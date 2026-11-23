@@ -276,4 +276,16 @@ java.lang.String defaultValue);
    * @return The computer.
    */
   ai.stigmer.agentic.session.v1.Computer getComputer();
+
+  /**
+   * <pre>
+   * Whether this conversation's turns run on a runner the server shares
+   * across conversations, rather than in a sandbox of its own. Only a
+   * conversation without a computer can.
+   * </pre>
+   *
+   * <code>bool shared_runner = 11 [json_name = "sharedRunner"];</code>
+   * @return The sharedRunner.
+   */
+  boolean getSharedRunner();
 }

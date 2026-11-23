@@ -5,7 +5,7 @@
  * wire contract.
  */
 
-import type { RUN_CREDENTIAL_INPUT_KEY } from "./run-credential.js";
+import type { RUN_CREDENTIAL_INPUT_KEY, SEALED_RUN_CREDENTIAL_INPUT_KEY } from "./run-credential.js";
 
 export interface ExecuteActivityInput {
   readonly execution_id: string;
@@ -28,6 +28,13 @@ export interface ExecuteActivityInput {
    * the control-plane client presents it per request (`run-credential.ts`).
    */
   readonly execution_context_token?: string;
+  /**
+   * The same run credential sealed with the server's payload key, sent in
+   * its place to a runner shared by many organizations; at most one of the
+   * two is present. Opened by the activity boundary, never by an activity
+   * (`interceptors/run-credential-activity.ts`).
+   */
+  readonly sealed_execution_context_token?: string;
 }
 
 /**
@@ -38,6 +45,8 @@ export interface ExecuteActivityInput {
  */
 type _RunCredentialKeyIsOnTheWire =
   ExecuteActivityInput[typeof RUN_CREDENTIAL_INPUT_KEY];
+type _SealedRunCredentialKeyIsOnTheWire =
+  ExecuteActivityInput[typeof SEALED_RUN_CREDENTIAL_INPUT_KEY];
 
 export interface NormalizedActivityInput {
   readonly executionId: string;

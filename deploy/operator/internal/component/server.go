@@ -20,13 +20,24 @@
 // stores it at boot as its runner service account's key, and the runner
 // presents the same value.
 //
-// Under a per-session driver there is no shared runner: the runner
-// component judges only the model key every sandbox is handed, and is Ready
-// once one exists. The server learns which keys the Secret holds from this
-// component's read, because it refuses to boot on a listed key with no value
-// (render/sandbox.go). A licensed install that declares the shared driver is
-// refused: a licensed server may hold several organizations, and one shared
-// runner would carry one organization's key into every organization's runs.
+// Under a per-session driver each conversation with a computer runs in a
+// sandbox of its own, and the one shared runner beside the sandboxes serves
+// only conversations without one (render/computerless.go). The server
+// component mints the key the server admits that runner by (once, like the
+// runner key) before the server starts, since the server reads it at boot;
+// the payload key is the keys component's. The runner component applies
+// the runner's own Deployment once the server serves, so the runner never
+// runs ahead of the server it reaches Temporal through, and judges it and
+// the model key every sandbox is handed. The server learns which keys the
+// Secret holds from this component's read, because it refuses to boot on a
+// listed key with no value (render/sandbox.go). An install that moves back
+// to the shared driver loses the computer-less runner's Deployment before
+// the server's pod, which takes back the runner's claim, is applied.
+//
+// A licensed install that declares the shared driver is refused: a licensed
+// server may hold several organizations, and one shared runner would carry
+// one organization's key into every organization's runs. The computer-less
+// runner holds no organization's key, so a licensed install runs it too.
 
 package component
 
@@ -89,6 +100,13 @@ func (Server) Reconcile(ctx context.Context, env *Env) (Result, error) {
 			return Result{}, err
 		}
 	}
+	if render.ComputerlessRunner(st) {
+		if err := ensureSharedRunnerKey(ctx, env); err != nil {
+			return Result{}, err
+		}
+	} else if err := removeObject(ctx, env, appsv1.SchemeGroupVersion.WithKind("Deployment"), render.ComputerlessRunnerDeployment(st)); err != nil {
+		return Result{}, err
+	}
 	var modelKeys []string
 	if render.PerSession(st) {
 		held, _, err := readModelSecret(ctx, env)
@@ -128,11 +146,17 @@ func (Server) Reconcile(ctx context.Context, env *Env) (Result, error) {
 // containerReady reports whether a container in the server's newest pod is
 // ready (for a container with no probe: running).
 func containerReady(ctx context.Context, env *Env, container string) (bool, error) {
+	return podContainerReady(ctx, env, render.ComponentServer, container)
+}
+
+// podContainerReady reports whether a container in a component's newest pod
+// is ready (for a container with no probe: running).
+func podContainerReady(ctx context.Context, env *Env, component, container string) (bool, error) {
 	st := env.Stigmer
 	var pods corev1.PodList
 	if err := env.Reader.List(ctx, &pods, client.InNamespace(st.Namespace),
-		client.MatchingLabels(render.SelectorLabels(st, render.ComponentServer))); err != nil {
-		return false, fmt.Errorf("listing the server's pods: %w", err)
+		client.MatchingLabels(render.SelectorLabels(st, component))); err != nil {
+		return false, fmt.Errorf("listing the %s's pods: %w", component, err)
 	}
 	var newest *corev1.Pod
 	for i := range pods.Items {
@@ -184,12 +208,25 @@ func (Runner) Reconcile(ctx context.Context, env *Env) (Result, error) {
 		keyNote = "; no model key is declared (spec.runner.llm), so agents cannot run until one is"
 	}
 	if render.PerSession(st) {
+		if err := Apply(ctx, env, render.ComputerlessRunnerClaim(st), render.ComputerlessRunnerDeploymentObject(st)); err != nil {
+			return Result{}, err
+		}
 		if render.Driver(st) == stigmerv1.SandboxDriverSubstrate {
 			if wait := waitForSandboxImage(ctx, env); wait != nil {
 				return *wait, nil
 			}
 		}
-		r := Ready(fmt.Sprintf("agents run in per-session sandboxes (%s), so there is no shared runner%s", render.Driver(st), keyNote))
+		ready, err := podContainerReady(ctx, env, render.ComponentRunner, render.RunnerContainer)
+		if err != nil {
+			return Result{}, err
+		}
+		if !ready {
+			return Explain(ctx, env, render.SelectorLabels(st, render.ComponentRunner), []string{render.RunnerContainer},
+				Deploying(stigmerv1.ReasonDeploying, Ref("Deployment", st.Namespace, render.ComputerlessRunnerDeployment(st)),
+					"waiting for the runner that serves agents without a computer to start"))
+		}
+		r := Ready(fmt.Sprintf("agents with a computer run in per-session sandboxes (%s); agents without one run on one shared runner, serving task queue %s%s",
+			render.Driver(st), render.RunnerTaskQueue, keyNote))
 		r.Reason = stigmerv1.ReasonPerSessionSandboxes
 		return r, nil
 	}
@@ -240,8 +277,21 @@ func readModelSecret(ctx context.Context, env *Env) (held map[string][]byte, mis
 // ensureRunnerKey mints the runner key Secret once: an stk_ key in the form
 // the server's keys take (32 random bytes, base64url without padding).
 func ensureRunnerKey(ctx context.Context, env *Env) error {
+	return ensureMintedKey(ctx, env, render.RunnerKeySecret(env.Stigmer), render.RunnerKeyKey, "stk_")
+}
+
+// ensureSharedRunnerKey mints the shared-runner key Secret once: 32 random
+// bytes, base64url without padding, 43 characters where the server asks for
+// at least 32.
+func ensureSharedRunnerKey(ctx context.Context, env *Env) error {
+	return ensureMintedKey(ctx, env, render.SharedRunnerKeySecret(env.Stigmer), render.SharedRunnerKeyKey, "")
+}
+
+// ensureMintedKey creates a Secret holding one random key under key, once:
+// a Secret that exists is never rewritten. It is owned by the Stigmer,
+// since nothing is stored under the key.
+func ensureMintedKey(ctx context.Context, env *Env, name, key, prefix string) error {
 	st := env.Stigmer
-	name := render.RunnerKeySecret(st)
 	var existing corev1.Secret
 	err := env.Reader.Get(ctx, client.ObjectKey{Namespace: st.Namespace, Name: name}, &existing)
 	if err == nil {
@@ -252,7 +302,7 @@ func ensureRunnerKey(ctx context.Context, env *Env) error {
 	}
 	b := make([]byte, 32)
 	if _, err := rand.Read(b); err != nil {
-		return fmt.Errorf("reading random bytes for the runner key: %w", err)
+		return fmt.Errorf("reading random bytes for %s: %w", key, err)
 	}
 	secret := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
@@ -262,7 +312,7 @@ func ensureRunnerKey(ctx context.Context, env *Env) error {
 			OwnerReferences: []metav1.OwnerReference{OwnerReference(st)},
 		},
 		Type: corev1.SecretTypeOpaque,
-		Data: map[string][]byte{render.RunnerKeyKey: []byte("stk_" + base64.RawURLEncoding.EncodeToString(b))},
+		Data: map[string][]byte{key: []byte(prefix + base64.RawURLEncoding.EncodeToString(b))},
 	}
 	if err := env.Client.Create(ctx, secret); err != nil && !apierrors.IsAlreadyExists(err) {
 		return fmt.Errorf("creating Secret %s: %w", name, err)

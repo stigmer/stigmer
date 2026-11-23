@@ -78,7 +78,7 @@ import { newExecutionEngineStateProvider } from "../temporal/agentexecution/engi
 import { newPluginToolsEngineStateProvider } from "../temporal/plugintools/engine-client.js";
 import { newAgentExecutionWorkerFactory } from "../temporal/agentexecution/worker.js";
 import { TemporalManager } from "../temporal/manager.js";
-import { loadServerPayloadCodecs } from "../temporal/payload-codec.js";
+import { loadServerPayloadCodecs, loadServerPayloadSealer } from "../temporal/payload-codec.js";
 import type { Client as TemporalClient } from "@temporalio/client";
 
 import { RoutineArtifact } from "../temporal/routine/artifact.js";
@@ -326,6 +326,7 @@ import {
   currentConnectionOf,
 } from "../transport/temporal-worker-door/lane.js";
 import { temporalAddressThroughServer } from "../transport/temporal-worker-door/address.js";
+import { sharedRunnerKeyQueueOf } from "../transport/temporal-worker-door/shared-runner-key.js";
 import { newReceiptKeySource } from "../transport/temporal-worker-door/receipt-key.js";
 import { initWorkQueueMetrics } from "../observability/runner-work-queue-metrics.js";
 import { initRunWorkflowGoneMetrics } from "../observability/run-workflow-gone-metrics.js";
@@ -1115,7 +1116,24 @@ export async function composeServer(
   // immutability step must resolve UNSPECIFIED through the SAME default
   // dispatch uses — one definition, so policy and dispatch can never
   // disagree (oss#397).
-  const temporalConfig = newConfigFromEnv();
+  const temporalConfig = newConfigFromEnv({ sharedRunners: config.sharedRunnerKey !== "" });
+  // A shared runner's turn carries its credential sealed with the payload
+  // key (temporal/agentexecution/engine-client.ts), so shared runners
+  // without a key are refused here, never per turn.
+  const sealRunCredential = loadServerPayloadSealer();
+  // Shared runners serve conversations without a computer beside per-session
+  // queues; under global routing every turn already goes to the one runner
+  // queue, so the key would admit its holder to every conversation's turns.
+  if (config.sharedRunnerKey !== "" && temporalConfig.activityRouting !== ROUTING_SESSION) {
+    throw new Error(
+      "STIGMER_SHARED_RUNNER_KEY requires per-session routing: under global routing every conversation's turns, those with a computer included, share the one runner queue the key opens; set STIGMER_ACTIVITY_ROUTING=session (beside a sandbox driver), or unset STIGMER_SHARED_RUNNER_KEY",
+    );
+  }
+  if (config.sharedRunnerKey !== "" && sealRunCredential === undefined) {
+    throw new Error(
+      "STIGMER_SHARED_RUNNER_KEY is set and STIGMER_PAYLOAD_ENCRYPTION_KEY is not: a shared runner's turn carries its person's credential sealed with the payload key; set STIGMER_PAYLOAD_ENCRYPTION_KEY and STIGMER_PAYLOAD_ENCRYPTION_KEY_ID (the same values the shared runners get), or unset STIGMER_SHARED_RUNNER_KEY",
+    );
+  }
   // The sandbox lane: the configured driver — built-in tier or
   // composition-registered — or the default external-runner posture
   // (SANDBOX_PROVISIONER_TYPE unset: no driver constructed, the ensure
@@ -1151,6 +1169,9 @@ export async function composeServer(
     builtInSandboxProvisionerFactories(),
     extensions.drivers.sandboxProvisionerDrivers,
   );
+  // Under per-session routing, shared runners (STIGMER_SHARED_RUNNER_KEY)
+  // serve the conversations without a computer beside the driver
+  // (domain/run/placement.ts).
   if (
     sandboxProvisioner !== undefined &&
     temporalConfig.activityRouting !== ROUTING_SESSION
@@ -1369,6 +1390,11 @@ export async function composeServer(
         // waits for room, through the broker above.
         sandboxLane,
         personAccounts,
+        // What bounds turns a shared runner serves, when a unit composes it
+        // (extensions/shared-turn-admission.ts); nothing otherwise.
+        ...(extensions.drivers.sharedTurnAdmission !== undefined
+          ? { sharedTurnAdmission: extensions.drivers.sharedTurnAdmission }
+          : {}),
       }),
       newRoutineWorkerFactory({
         store,
@@ -1427,6 +1453,8 @@ export async function composeServer(
     store,
     runnerCredentials,
     sandboxWaitSeconds: config.sandboxWaitSeconds,
+    sandboxLane: sandboxLane.enabled,
+    ...(sealRunCredential !== undefined ? { sealRunCredential } : {}),
     logger,
   });
   // The artifact blob store (shared by run attachments and run files,
@@ -2631,7 +2659,13 @@ export async function composeServer(
     logger,
     namespace: config.temporalNamespace,
     connection: currentConnectionOf(temporalManager),
-    queueOf: credentialQueueOf(runnerCredentials, logger),
+    // The shared-runner key opens this lane, for the runner queue alone
+    // (shared-runner-key.ts); every other bearer is the provider's to answer.
+    queueOf: sharedRunnerKeyQueueOf(
+      config.sharedRunnerKey,
+      temporalConfig.runnerQueue,
+      credentialQueueOf(runnerCredentials, logger),
+    ),
     receiptKey: newReceiptKeySource(store.bootstrapState),
   });
 

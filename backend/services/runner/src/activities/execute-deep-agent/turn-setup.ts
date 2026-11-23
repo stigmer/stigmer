@@ -45,6 +45,7 @@ import type { Command } from "@langchain/langgraph";
 import { createDeepAgent, type AnyBackendProtocol } from "deepagents";
 import { InteractionMode } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 import { hasComputer } from "../../shared/computer.js";
+import { credentialForTurn, turnCredentialRef } from "../../shared/run-credential-store.js";
 
 import type { Config } from "../../config.js";
 import type { TurnInput, TurnSink } from "../../harness/types.js";
@@ -249,7 +250,8 @@ export async function openCheckpointer(input: TurnInput, sink: TurnSink, config:
   const checkpointer = await createCheckpointer({
     type: config.checkpointerType,
     proxyEndpoint: config.checkpointerProxyEndpoint ?? undefined,
-    authToken: config.stigmerTokenRef,
+    // The turn's own credential first: a shared runner's own key opens no checkpoint lane.
+    authToken: turnCredentialRef(config.stigmerTokenRef),
     sqlitePath: config.checkpointerType === "sqlite" ? await ensureCheckpointDbPath(input.sessionId) : undefined,
   });
   sink.setupTiming.mark("create_checkpointer");
@@ -596,7 +598,7 @@ export async function buildEngine(
     const built = await buildChatModel({
       modelName: name,
       proxyEndpoint: config.proxyEndpoint ?? undefined,
-      stigmerToken: config.stigmerTokenRef.current ?? undefined,
+      stigmerToken: credentialForTurn(config.stigmerTokenRef),
       headerScope: { executionId },
       serviceTier: input.model.serviceTier,
       temperature: null,

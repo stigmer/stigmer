@@ -449,6 +449,20 @@ export interface ServerConfig {
    */
   readonly sandboxWaitSeconds: number;
   /**
+   * The shared-runner key (STIGMER_SHARED_RUNNER_KEY; empty when unset).
+   * Set, it turns shared runners on: under per-session routing, a turn of a
+   * conversation without a computer goes to the runner queue a shared
+   * runner polls, not to a sandbox (domain/run/placement.ts), and a runner
+   * presenting this key as its token is admitted to the server's Temporal
+   * worker lane for that queue and nothing else
+   * (transport/temporal-worker-door/shared-runner-key.ts). Unset, every turn
+   * is placed as before. The same value is the shared runners' STIGMER_TOKEN.
+   * A value shorter than 32 characters fails the boot, and so does a key
+   * with no payload-encryption key: each shared turn's credential is sealed
+   * in its task with that key (boot/compose.ts).
+   */
+  readonly sharedRunnerKey: string;
+  /**
    * The model providers this server's runners reach
    * (STIGMER_RUNNER_PROVIDERS: a comma-separated list of `anthropic` and
    * `openai`), as names, never values. Undefined when unset:
@@ -561,6 +575,20 @@ function loadSandboxWaitSeconds(env: NodeJS.ProcessEnv): number {
     );
   }
   return seconds;
+}
+
+/** The shortest shared-runner key the boot accepts: a key is a password, and a short one is guessable. */
+export const MIN_SHARED_RUNNER_KEY_LENGTH = 32;
+
+/** STIGMER_SHARED_RUNNER_KEY (ServerConfig.sharedRunnerKey): unset or empty is off; a set value must be long enough. */
+function loadSharedRunnerKey(env: NodeJS.ProcessEnv): string {
+  const value = (env["STIGMER_SHARED_RUNNER_KEY"] ?? "").trim();
+  if (value !== "" && value.length < MIN_SHARED_RUNNER_KEY_LENGTH) {
+    throw new Error(
+      `STIGMER_SHARED_RUNNER_KEY is ${value.length} characters long; a shared-runner key must be at least ${MIN_SHARED_RUNNER_KEY_LENGTH} (for example \`openssl rand -base64 32\`), or leave it unset to run no shared runners`,
+    );
+  }
+  return value;
 }
 
 /**
@@ -701,6 +729,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): ServerConfig {
     ),
     ...loadSandboxRunnerEnv(env),
     sandboxWaitSeconds: loadSandboxWaitSeconds(env),
+    sharedRunnerKey: loadSharedRunnerKey(env),
     runnerProviders: loadRunnerProviders(env),
     routineFiresPerHour: envInt(
       env,

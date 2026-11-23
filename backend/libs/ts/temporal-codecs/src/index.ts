@@ -28,6 +28,7 @@
 
 export { EncryptionPayloadCodec } from "./encryption/payload-codec.js";
 export { loadPayloadEncryptionConfig } from "./encryption/config.js";
+export { openSealedString, sealString } from "./encryption/sealed-value.js";
 export type {
   BootstrapKeyMaterial,
   EncryptionKey,

@@ -328,25 +328,30 @@ thinking off for it, without changing the Agent.
 
 ## A computer, or none
 
-By default an Agent's conversations have a computer: somewhere its commands run,
-and where the repositories, folders and Environment a conversation brings live.
-An Agent that only talks and calls online tools, such as one that answers
-questions about a customer's ledger through the ledger's own service, needs
-none. Its author says so with `computer`:
+A computer is somewhere an Agent's commands run. The repositories and folders a
+conversation brings, and its Environment, live there too. A new Agent starts
+without one unless it names something that needs one: the
+[Claude harness](/docs/concepts/harnesses), `Bash` in `tools`, its own `hooks`,
+an `environment_ref`, an MCP server of its own on the machine it runs on or a
+private network, a Plugin that runs hooks, starts a local MCP server or has a
+subagent whose only tool is the shell, or a subagent that has a computer. Naming
+any of these gives it one (`COMPUTER_REQUIRED`). An Agent that only talks and
+calls online tools, such as one that answers questions about a customer's ledger
+through the ledger's own MCP server, needs none and gets none. To give any other
+Agent a computer, such as one that works in the repository a conversation
+brings, set `computer: COMPUTER_REQUIRED`, or turn on the switch in the
+**Computer** section of its page in the console:
 
 ```yaml
 apiVersion: agentic.stigmer.ai/v1
 kind: Agent
 metadata:
-  name: ledger-answers
+  name: test-fixer
 spec:
   instructions: |
-    You answer questions about a customer's ledger. Look each account up
-    with the ledger tools before you reply, and quote the figures you used.
-  computer: COMPUTER_NONE
-  mcp_servers:
-    - name: ledger
-      url: https://ledger.example.com/mcp
+    You fix the failing tests in the repository this conversation brings.
+    Run the tests, read what failed, and change the code until they pass.
+  computer: COMPUTER_REQUIRED
 ```
 
 An Agent without a computer runs no commands: none of its conversations is
@@ -358,7 +363,9 @@ names the thing to remove:
   `environment_ref`, a Plugin that runs hooks or starts a local MCP server, a
   subagent that has a computer, or an MCP server (its own or a Plugin's) at an
   address on the machine it runs on or a private network, such as
-  `http://localhost:3000/mcp` or `https://10.0.0.5/mcp`.
+  `http://localhost:3000/mcp` or `https://10.0.0.5/mcp`. Adding one of these to
+  an Agent saved without a computer is refused, not given one: turn the computer
+  on in the same save.
 - **Starting a conversation or a routine** on it with a git repository or a
   folder attached, an Environment, or the Claude harness. Uploaded files still
   work.
@@ -409,12 +416,12 @@ it, and the console shows it under the switch. The Agent can still read the
 scripts. An eval case that builds its starting folder with a script doesn't run
 for such an Agent; its row reads "not run: needs a computer".
 
-A new Agent that doesn't name `computer` gets one (`COMPUTER_REQUIRED`), and an
-Agent saved before the setting existed keeps the one it had. Saving an Agent
-again without the field keeps what it has, so a YAML file written before the
-setting changes nothing. The [Claude harness](/docs/concepts/harnesses) always
-has a computer, so `COMPUTER_NONE` on it is refused. A conversation keeps the
-computer it started with: changing the setting changes only new conversations.
+An Agent saved before the setting existed keeps the computer it had. Saving an
+Agent again without the field keeps what it has, so a YAML file written before
+the setting changes nothing. A `computer` you write is kept as written. The
+[Claude harness](/docs/concepts/harnesses) always has a computer, so
+`COMPUTER_NONE` on it is refused. A conversation keeps the computer it started
+with: changing the setting changes only new conversations.
 
 ## The built-in assistant
 

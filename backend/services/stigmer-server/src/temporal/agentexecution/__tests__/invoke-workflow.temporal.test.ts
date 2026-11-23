@@ -78,6 +78,16 @@
  *     that wait is taken once by the attempt's monitor and the turn asks
  *     again on resume; a LOCAL target asks nothing.
  *
+ *   - a turn a shared runner serves (`runner: "shared"`) never asks for a
+ *     sandbox, even on a CLOUD target: it asks AdmitSharedTurn for a place
+ *     before its runner, waits PENDING under its own phase text while there
+ *     is no room and runs once there is; a wait past the limit ends as
+ *     no_sandbox_room with the shared sentence; it releases its place when
+ *     it parks on an approval and when it ends, before the session's queued
+ *     turn, and asks again before it carries on; an `unbounded` answer
+ *     releases nothing; its sealed credential reaches every runner activity
+ *     unopened, and the clear key is absent.
+ *
  * Recorder discipline (oss#892): Temporal activities are at-least-once —
  * a workflow task whose completion fails to commit re-executes its local
  * activities (their markers never landed), so count-exact recorder pins
@@ -183,6 +193,16 @@ interface ActivityScript {
   sandboxCalls: Array<Record<string, unknown>>;
   /** The phase persisted last before each EnsureSessionSandbox call (undefined for none), in order. */
   sandboxAfterPhases: Array<RunPhase | undefined>;
+  /** Consumed per AdmitSharedTurn call, in order; `sharedDefault` once empty. */
+  sharedAnswers: string[];
+  /** AdmitSharedTurn's answer once `sharedAnswers` is used up. */
+  sharedDefault: string;
+  /** Each AdmitSharedTurn call's input, in order. */
+  sharedCalls: Array<Record<string, unknown>>;
+  /** Each ReleaseSharedTurn call's input, in order. */
+  releaseCalls: Array<Record<string, unknown>>;
+  /** The sealed credential each Execute* invocation carried, in order (undefined when absent). */
+  executeSealed: Array<string | undefined>;
   /** Consumed per CountOpenGates call, in order; last one sticks. An Error fails the call. */
   openGateCounts: Array<number | Error>;
   /** Each CountOpenGates call's (execution id, session id), in order. */
@@ -228,6 +248,11 @@ function resetScript(): void {
     sandboxDefault: "ready",
     sandboxCalls: [],
     sandboxAfterPhases: [],
+    sharedAnswers: [],
+    sharedDefault: "ready",
+    sharedCalls: [],
+    releaseCalls: [],
+    executeSealed: [],
     openGateCounts: [],
     gateCalls: [],
     persistedStatuses: [],
@@ -263,7 +288,9 @@ function scriptedActivities(): Record<string, (...args: never[]) => Promise<unkn
     thread_id: string;
     turn_seq: number;
     execution_context_token?: string;
+    sealed_execution_context_token?: string;
   }) => {
+    script.executeSealed.push(input.sealed_execution_context_token);
     script.executeCalls.push({
       thread_id: input.thread_id,
       turn_seq: input.turn_seq,
@@ -330,6 +357,15 @@ function scriptedActivities(): Record<string, (...args: never[]) => Promise<unkn
         throw ApplicationFailure.create({ message: "Activity function EnsureSessionSandbox is not registered on this Worker", nonRetryable: true });
       }
       return answer;
+    },
+    AdmitSharedTurn: async (input: Record<string, unknown>): Promise<string> => {
+      script.sharedCalls.push(input);
+      script.order.push("admit");
+      return script.sharedAnswers.shift() ?? script.sharedDefault;
+    },
+    ReleaseSharedTurn: async (input: Record<string, unknown>): Promise<void> => {
+      script.releaseCalls.push(input);
+      script.order.push("release");
     },
     CountOpenGates: async (executionId: string, sessionId: string): Promise<number> => {
       script.gateCalls.push([executionId, sessionId]);
@@ -1132,6 +1168,88 @@ describe("invoke-agent-execution workflow (TestWorkflowEnvironment)", () => {
       await (await startWorkflow(workflowInput({ execution_target: ExecutionTarget.CLOUD }))).result();
       expect(script.sandboxCalls).toEqual([]);
       expect(script.executeCalls).toHaveLength(2);
+    }, 60_000);
+  });
+
+  describe("a turn a shared runner serves", () => {
+    const shared = (overrides: Partial<InvokeAgentExecutionWorkflowInput> = {}) =>
+      workflowInput({
+        execution_target: ExecutionTarget.CLOUD,
+        caller_class: "user",
+        runner: "shared",
+        sealed_execution_context_token: "c2VhbGVk",
+        ...overrides,
+      });
+    const persisted = (phase: RunPhase) => script.persistedStatuses.filter((entry) => entry.status.phase === phase);
+
+    it("asks for a place, never a sandbox, carries the sealed credential unopened, and gives the place back before the queued turn", async (testCtx) => {    if (!envReady) return testCtx.skip();
+      script.executeBehaviors = [async () => slimResult(RunPhase.RUN_COMPLETED)];
+
+      await (await startWorkflow(shared())).result();
+
+      expect(script.sandboxCalls).toEqual([]);
+      expect(script.order).toEqual(["close", "admit", "execute", "release", "queued"]);
+      expect(script.sharedCalls[0]).toEqual({ execution_id: currentExecutionId, caller_class: "user" });
+      expect(script.executeSealed).toEqual(["c2VhbGVk"]);
+      expect(script.executeCredentials, "the clear key is absent").toEqual([undefined]);
+      expect(script.subjectArguments).toEqual([{ execution_id: currentExecutionId, sealed_execution_context_token: "c2VhbGVk" }]);
+    }, 60_000);
+
+    it("waits PENDING under its own words while there is no room, then runs", async (testCtx) => {    if (!envReady) return testCtx.skip();
+      script.sharedAnswers = ["no_room"];
+      script.executeBehaviors = [async () => slimResult(RunPhase.RUN_COMPLETED)];
+
+      await (await startWorkflow(shared())).result();
+
+      expect(script.order.slice(0, 4)).toEqual(["close", "admit", "admit", "execute"]);
+      expect(typeof script.sharedCalls[1]!["waiting_since_ms"]).toBe("number");
+      expect(persisted(RunPhase.RUN_PENDING)[0]!.status.setupProgress?.currentPhase).toBe("Waiting for room to run");
+      expect(script.releaseCalls).toHaveLength(1);
+    }, 60_000);
+
+    it("ends a wait past its limit with the shared sentence, holding nothing to release", async (testCtx) => {    if (!envReady) return testCtx.skip();
+      script.sharedDefault = "no_room";
+
+      await expect((await startWorkflow(shared({ sandbox_wait_seconds: 1 }))).result()).rejects.toThrow(/Workflow execution failed/);
+
+      expect(script.executeCalls).toEqual([]);
+      const failed = persisted(RunPhase.RUN_FAILED)[0]!.status;
+      expect(failed.stopDetail?.kind).toBe("no_sandbox_room");
+      expect(failed.error).toBe(
+        "Your organization was running as many agents as it may at once for 1 second, so this turn didn't start. Nothing was lost: run it again to wait for room.",
+      );
+      expect(script.releaseCalls, "a turn never admitted gives nothing back").toEqual([]);
+      expect(script.queuedTurnCalls).toEqual(["ses_1"]);
+    }, 60_000);
+
+    it("gives its place back while it waits for an approval, and asks again before it carries on", async (testCtx) => {    if (!envReady) return testCtx.skip();
+      script.executeBehaviors = [
+        async () => slimResult(RunPhase.RUN_WAITING_FOR_APPROVAL),
+        async () => slimResult(RunPhase.RUN_COMPLETED),
+      ];
+      script.openGateCounts = [1];
+
+      const handle = await startWorkflow(shared());
+      await waitForPersistedPhase(RunPhase.RUN_WAITING_FOR_APPROVAL);
+      const deadline = Date.now() + 15_000;
+      while (script.releaseCalls.length === 0 && Date.now() < deadline) {
+        await new Promise((resolve) => setTimeout(resolve, 50));
+      }
+      expect(script.releaseCalls, "a parked turn holds no place").toHaveLength(1);
+      await handle.signal(SIGNAL_APPROVAL_GATE_RESOLVED);
+      await handle.result();
+
+      expect(script.order).toEqual(["close", "admit", "execute", "release", "admit", "execute", "release", "queued"]);
+      expect(script.executeSealed).toEqual(["c2VhbGVk", "c2VhbGVk"]);
+    }, 60_000);
+
+    it("releases nothing when nothing bounds shared turns", async (testCtx) => {    if (!envReady) return testCtx.skip();
+      script.sharedDefault = "unbounded";
+      script.executeBehaviors = [async () => slimResult(RunPhase.RUN_COMPLETED)];
+
+      await (await startWorkflow(shared())).result();
+
+      expect(script.order).toEqual(["close", "admit", "execute", "queued"]);
     }, 60_000);
   });
 

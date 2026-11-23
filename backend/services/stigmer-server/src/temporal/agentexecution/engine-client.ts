@@ -27,6 +27,15 @@
  * the recover path ignorant of credentials; a provider without the
  * capability (an edition credentialed another way) leaves the key off.
  *
+ * Where the turn runs is the dispatch's placement (domain/run/placement.ts),
+ * which the mint is told. A turn of a conversation stamped shared carries `runner: "shared"`, so its workflow asks for a place, not
+ * a sandbox, and its credential SEALED with the server's payload key
+ * (`sealed_execution_context_token`): a shared runner serves many
+ * organizations, and its history must not show a value that acts for the
+ * turn's person. The boot refuses shared runners without a payload key, so
+ * a seal is always possible; a seal that fails fails the start rather than
+ * carry the credential in the clear.
+ *
  * The caller's facts ride the input too (`caller_class`, `routine_id`,
  * `caller_identity_id`): the workflow's own sandbox ensure hands them to
  * the driver as the request's would, and on a CLOUD target the input
@@ -74,6 +83,14 @@ export interface TemporalExecutionEngineDeps {
   readonly runnerCredentials: RunCredentialMint;
   /** How long a turn may wait for a sandbox with room (ServerConfig.sandboxWaitSeconds). */
   readonly sandboxWaitSeconds: number;
+  /** Whether this server starts sandboxes (sandbox/lane.ts `enabled`), for the placement. */
+  readonly sandboxLane: boolean;
+  /**
+   * Seals a value with the server's payload key (`@stigmer/temporal-codecs`
+   * `sealString`); undefined on a server without one, which the boot allows
+   * only with shared runners off.
+   */
+  readonly sealRunCredential?: (value: string) => Promise<string>;
   readonly logger: Logger;
 }
 
@@ -81,7 +98,7 @@ export class TemporalExecutionEngine implements ConnectedExecutionEngine {
   constructor(private readonly deps: TemporalExecutionEngineDeps) {}
 
   async startInvokeWorkflow(input: StartInvokeWorkflowInput): Promise<void> {
-    const { client, config, store, runnerCredentials, sandboxWaitSeconds, logger } = this.deps;
+    const { client, config, store, runnerCredentials, sandboxWaitSeconds, sandboxLane, logger } = this.deps;
 
     let dispatch;
     try {
@@ -90,6 +107,7 @@ export class TemporalExecutionEngine implements ConnectedExecutionEngine {
         input.sessionId,
         config,
         logger,
+        sandboxLane,
       );
     } catch (error) {
       // The message travels to the wire verbatim as FailedPrecondition
@@ -100,11 +118,14 @@ export class TemporalExecutionEngine implements ConnectedExecutionEngine {
     }
 
     const workflowId = invokeWorkflowIdFor(input.executionId);
-    const runCredential = runCredentialForDispatch(
+    const runCredential = await runCredentialForDispatch(
       runnerCredentials,
       input.executionId,
+      { sessionId: input.sessionId, org: input.org, runner: dispatch.placement },
       logger,
     );
+    const sharedTurn = dispatch.sharedTurn;
+    const credentialFields = await this.credentialFields(runCredential, sharedTurn);
 
     // Slim input (workflow-input.ts): zero-value fields are omitted, so
     // every recorded history carries the same keys.
@@ -117,9 +138,8 @@ export class TemporalExecutionEngine implements ConnectedExecutionEngine {
       ...(dispatch.executionTarget !== 0
         ? { execution_target: dispatch.executionTarget }
         : {}),
-      ...(runCredential !== ""
-        ? { execution_context_token: runCredential }
-        : {}),
+      ...credentialFields,
+      ...(sharedTurn ? { runner: "shared" as const } : {}),
       ...(input.reconcileFileReview === true
         ? { reconcile_file_review: true }
         : {}),
@@ -153,6 +173,26 @@ export class TemporalExecutionEngine implements ConnectedExecutionEngine {
       stigmer_queue: config.stigmerQueue,
       activity_queue: dispatch.taskQueue,
     });
+  }
+
+  /** The credential as the input carries it: sealed for a shared turn, in the clear otherwise, absent when there is none (module header). */
+  private async credentialFields(
+    runCredential: string,
+    sharedTurn: boolean,
+  ): Promise<Pick<InvokeAgentExecutionWorkflowInput, "execution_context_token" | "sealed_execution_context_token">> {
+    if (runCredential === "") {
+      return {};
+    }
+    if (!sharedTurn) {
+      return { execution_context_token: runCredential };
+    }
+    const seal = this.deps.sealRunCredential;
+    if (seal === undefined) {
+      // The boot refuses shared runners without a payload key; this arm
+      // keeps a composition that skipped the boot from leaking the value.
+      throw new Error("a shared runner's turn needs the server's payload key to seal its credential, and none is configured");
+    }
+    return { sealed_execution_context_token: await seal(runCredential) };
   }
 
   async signalApprovalGateResolved(executionId: string): Promise<void> {
@@ -275,6 +315,14 @@ export interface EngineStateProviderDeps {
   readonly runnerCredentials: RunCredentialMint;
   /** How long a turn may wait for a sandbox with room (ServerConfig.sandboxWaitSeconds). */
   readonly sandboxWaitSeconds: number;
+  /** Whether this server starts sandboxes (sandbox/lane.ts `enabled`), for the placement. */
+  readonly sandboxLane: boolean;
+  /**
+   * Seals a value with the server's payload key (`@stigmer/temporal-codecs`
+   * `sealString`); undefined on a server without one, which the boot allows
+   * only with shared runners off.
+   */
+  readonly sealRunCredential?: (value: string) => Promise<string>;
   readonly logger: Logger;
 }
 
@@ -307,6 +355,8 @@ export function newExecutionEngineStateProvider(
             store: deps.store,
             runnerCredentials: deps.runnerCredentials,
             sandboxWaitSeconds: deps.sandboxWaitSeconds,
+            sandboxLane: deps.sandboxLane,
+            ...(deps.sealRunCredential !== undefined ? { sealRunCredential: deps.sealRunCredential } : {}),
             logger: deps.logger,
           }),
         },

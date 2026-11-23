@@ -10,6 +10,16 @@
  * global state and should be initialized by the consumer before calling
  * this factory. The Temporal OTel activity interceptor is still wired
  * internally when the standard settings export traces (`otel-export.ts`).
+ *
+ * A runner that serves only conversations without a computer
+ * (`serves: "computerless"`, `runner-serves.ts`) is shared by many
+ * organizations, and its `STIGMER_TOKEN` is a static key the server accepts
+ * at its Temporal door alone. So its boot uses that key for nothing else: it
+ * discovers no bootstrap (its Temporal address is the explicit one, else the
+ * server's own door, `temporal-lane.ts`), adopts no minted runner token,
+ * renews nothing, and refuses to start without the payload key that opens
+ * its turns' sealed credentials. Every server call it makes for a turn goes
+ * out under that turn's credential (`shared/run-credential-store.ts`).
  */
 
 import { mkdirSync } from "node:fs";
@@ -39,7 +49,15 @@ import {
 import { loadTemporalConnectionConfig } from "@stigmer/temporal-codecs";
 import type { TemporalConnectionConfig } from "@stigmer/temporal-codecs";
 import { markBoot, emitRunnerBootTiming } from "./shared/cold-start-timing.js";
-import { bootTemporalLane, newTemporalApiKeySink } from "./temporal-lane.js";
+import { bootTemporalLane, newTemporalApiKeySink, serverDoorAddress } from "./temporal-lane.js";
+import type { RunnerBootstrapConfig } from "./client/stigmer-client.js";
+import {
+  DEFAULT_TURN_MEMORY_MB,
+  assertServesCanBoot,
+  credentialRequiredActivities,
+  parseTurnMemoryMb,
+  type RunnerServes,
+} from "./runner-serves.js";
 
 /**
  * Configuration for creating a Stigmer runner.
@@ -143,6 +161,16 @@ export interface StigmerRunnerOptions {
    * {@link createStigmerRunnerManager} provides via its own `executionMode`.
    */
   readonly executionMode?: "local" | "cloud";
+
+  /**
+   * Which conversations the runner serves: every one (`"all"`), or only
+   * those without a computer (`"computerless"`, a runner shared by many
+   * organizations; `runner-serves.ts` says what changes). @default "all"
+   */
+  readonly serves?: RunnerServes;
+
+  /** The heap each turn without a computer may use, in megabytes (`runner-serves.ts`). @default 512 */
+  readonly turnMemoryMb?: number;
 }
 
 /** Handle returned by {@link createStigmerRunner}. */
@@ -257,6 +285,8 @@ async function buildStigmerRunner(
   // ref exists from here so the boot config can carry it.
   const runnerTokenRef: TokenRef = { current: null };
   const bootConfig = mapOptionsToConfig(options, tokenRef, runnerTokenRef);
+  const computerless = bootConfig.serves === "computerless";
+  assertServesCanBoot(bootConfig.serves, getRunnerSecret("STIGMER_PAYLOAD_ENCRYPTION_KEY"));
 
   assertLlmBackendsPreflight(bootConfig.proxyEndpoint);
 
@@ -269,12 +299,16 @@ async function buildStigmerRunner(
   // discovery; otherwise localhost. Only the worker connection dials Temporal
   // — no activity does (emit-event, the last one, now routes signals through
   // the server's SendSignal lane; see oss#517).
-  const coordinates = await resolveRunnerBootstrap({
-    explicitAddress: options.temporalAddress,
-    explicitNamespace: options.temporalNamespace,
-    token: options.stigmerToken,
-    stigmerEndpoint: bootConfig.stigmerBackendEndpoint,
-  });
+  // A runner that serves only conversations without a computer never
+  // discovers: its key opens the server's Temporal door and nothing else.
+  const coordinates = computerless
+    ? computerlessCoordinates(options, bootConfig.stigmerBackendEndpoint)
+    : await resolveRunnerBootstrap({
+        explicitAddress: options.temporalAddress,
+        explicitNamespace: options.temporalNamespace,
+        token: options.stigmerToken,
+        stigmerEndpoint: bootConfig.stigmerBackendEndpoint,
+      });
   const config: Config = {
     ...bootConfig,
     temporalAddress: coordinates.temporalAddress,
@@ -351,7 +385,8 @@ async function buildStigmerRunner(
   // A renewed token is also the Temporal API key behind the server; the
   // connection exists only once the worker is created below.
   const temporalApiKey = newTemporalApiKeySink();
-  const tokenRenewal = await startStaticSandboxTokenRenewal(config, tokenRef, temporalApiKey.apply);
+  // A shared runner's key is static, never a token: nothing renews it.
+  const tokenRenewal = computerless ? null : await startStaticSandboxTokenRenewal(config, tokenRef, temporalApiKey.apply);
 
   const activities = await createAllActivities(config, hosted.rows);
   markBoot("activities_imported");
@@ -362,6 +397,7 @@ async function buildStigmerRunner(
   console.log(
     `[runner] Task queue: ${config.taskQueue} | ` +
       `Mode: ${config.mode} | ` +
+      `Serves: ${config.serves} | ` +
       `Max concurrency: ${config.maxConcurrentActivities}`,
   );
   // Surface the resolved artifact store at boot so a path/type misconfiguration
@@ -384,11 +420,19 @@ async function buildStigmerRunner(
     );
   }
 
-  const { createPayloadCodecs } = await import("./payload-codecs.js");
+  const { createPayloadCodecs, sealedValueOpener } = await import("./payload-codecs.js");
   // Server-managed keys from the bootstrap response apply here too (a CLI
   // daemon with a cloud token is desktop-class); cloud sandboxes are
   // unaffected — their env-injected platform key wins inside the loader.
   const payloadCodecs = await createPayloadCodecs(coordinates.payloadEncryption);
+  // The activity boundary opens a sealed run credential with the same codec,
+  // and on a shared cloud runner refuses a turn that carries none.
+  const { configureRunCredentialBoundary } = await import("./interceptors/run-credential-activity.js");
+  const openSealed = sealedValueOpener(payloadCodecs);
+  configureRunCredentialBoundary({
+    ...(openSealed === undefined ? {} : { openSealed }),
+    requireCredentialFor: credentialRequiredActivities(config.serves, config.mode),
+  });
 
   // Register the queue's shutdown signal BEFORE the worker can poll, so an
   // activity interrupted by shutdown() below classifies the cancellation as a
@@ -456,6 +500,25 @@ function validateOptions(options: StigmerRunnerOptions): void {
   // temporalAddress is intentionally NOT required: when omitted, the runner
   // discovers it from the control plane (token-only embedding), falling back to
   // localhost when no token is present.
+  if (options.turnMemoryMb !== undefined) parseTurnMemoryMb(String(options.turnMemoryMb));
+}
+
+/**
+ * The Temporal coordinates of a runner that serves only conversations
+ * without a computer: the explicit address, else the server's own Temporal
+ * door (`temporal-lane.ts`), never discovered (the module header).
+ */
+export function computerlessCoordinates(
+  options: Pick<StigmerRunnerOptions, "temporalAddress" | "temporalNamespace">,
+  backendEndpoint: string,
+): RunnerBootstrapConfig {
+  const temporalAddress = options.temporalAddress?.trim() || serverDoorAddress(backendEndpoint);
+  if (!temporalAddress) {
+    throw new Error(
+      `STIGMER_RUNNER_SERVES=computerless reaches Temporal through the Stigmer server or at TEMPORAL_SERVICE_ADDRESS, and the backend endpoint ${backendEndpoint} names no server door; set TEMPORAL_SERVICE_ADDRESS`,
+    );
+  }
+  return { temporalAddress, temporalNamespace: options.temporalNamespace?.trim() || "default" };
 }
 
 /** What a drained static worker still holds, released by {@link releaseAfterDrain}. */
@@ -565,6 +628,8 @@ export function mapOptionsToConfig(
     workspaceLockTimeoutMs:
       options.workspaceLockTimeoutMs ?? DEFAULT_WORKSPACE_LOCK_TIMEOUT_MS,
     drainGraceMs: options.drainGraceMs ?? DEFAULT_DRAIN_GRACE_MS,
+    serves: options.serves ?? "all",
+    turnMemoryMb: options.turnMemoryMb ?? DEFAULT_TURN_MEMORY_MB,
   };
 }
 

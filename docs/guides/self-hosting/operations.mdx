@@ -469,8 +469,7 @@ kubectl -n stigmer rollout restart deploy/stigmer
 
 At its start the server deletes the old key of its `runner` service account and
 stores the new one, and its log says "the shared runner's key changed". An
-install whose Sessions each run in a sandbox has no shared runner and no key to
-rotate.
+install whose Sessions each run in a sandbox has no runner key to rotate.
 
 </Tab>
 </Tabs>

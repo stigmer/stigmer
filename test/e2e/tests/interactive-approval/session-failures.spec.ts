@@ -21,7 +21,7 @@
 // specs in this project.
 import type { Stigmer } from "@stigmer/client";
 import { RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
-import { Harness } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
+import { Computer, Harness } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
 import type { Page } from "@playwright/test";
 import { test, expect } from "../../fixtures";
 import { anthropicText, anthropicToolUses } from "../../fixtures/mock-llm";
@@ -52,7 +52,13 @@ interface Seeded {
 /** An agent, a session on `harness`, and one turn with `MESSAGE`, the mock already scripted. */
 async function seedTurn(client: Stigmer, harness: Harness, runConfig?: { readonly maxToolRounds?: number }): Promise<Seeded> {
   const stamp = `${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
-  const agent = await client.agent.create({ name: `e2e-fail-agent-${stamp}`, org: ORG, instructions: "You are a test assistant." });
+  // With a computer: the turns run on the Claude engine too, and call the shell.
+  const agent = await client.agent.create({
+    name: `e2e-fail-agent-${stamp}`,
+    org: ORG,
+    instructions: "You are a test assistant.",
+    computer: Computer.REQUIRED,
+  });
   const session = await client.session.create({ name: `e2e-fail-session-${stamp}`, org: ORG, agentRef: { org: ORG, slug: agent.metadata!.slug }, harness });
   const run = await client.run.create({
     name: `e2e-fail-run-${stamp}`,

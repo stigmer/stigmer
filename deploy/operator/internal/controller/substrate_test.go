@@ -170,6 +170,7 @@ func (f *fakeHealth) SandboxesServing(context.Context, string) (bool, error) {
 func TestTheRunnerWaitsForTheSandboxImage(t *testing.T) {
 	ctx := context.Background()
 	s := substrateStigmer(t, "http://minio.storage.svc.cluster.local:9000")
+	readyRunnerPod(t, s)
 	health := &fakeHealth{err: errors.New("connection refused")}
 	env := &component.Env{Client: k8s, Reader: k8s, Stigmer: s, ServerHealth: health}
 

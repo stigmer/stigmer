@@ -642,6 +642,8 @@ describe("loadArtifactStorageConfig", () => {
     shellBackgroundEnabled: true,
     workspaceLockTimeoutMs: 900000,
     drainGraceMs: 0,
+    serves: "all" as const,
+    turnMemoryMb: 512,
   };
 
   afterEach(() => {

@@ -7,7 +7,8 @@
  * domain) and policy enforcement (the session update pipeline's
  * execution-target immutability step) must both use it rather than
  * re-deriving the default, so they can never disagree about where an
- * execution runs.
+ * execution runs. Which runner serves a turn is domain/run/placement.ts,
+ * read from this config.
  */
 import { ExecutionTarget } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
 
@@ -41,7 +42,9 @@ export const DEFAULT_EXECUTION_TARGET_CLOUD = "cloud";
  * Queue architecture:
  *   - stigmerQueue: server workflows on agent_execution_stigmer
  *   - runnerQueue: unified-runner activities on stigmer_runner (global) or
- *     session:{id} (per-session)
+ *     session:{id} (per-session); under per-session routing with shared
+ *     runners on, the turns of conversations without a computer go to
+ *     runnerQueue too (domain/run/placement.ts)
  */
 export class AgentExecutionTemporalConfig {
   constructor(
@@ -61,6 +64,12 @@ export class AgentExecutionTemporalConfig {
      * DEFAULT_EXECUTION_TARGET_CLOUD (server provisions a sandbox).
      */
     readonly defaultExecutionTarget: string,
+    /**
+     * Whether shared runners serve this server's conversations without a
+     * computer (STIGMER_SHARED_RUNNER_KEY set; boot/config.ts
+     * sharedRunnerKey). Off, every turn is placed as before.
+     */
+    readonly sharedRunners: boolean = false,
   ) {}
 
   /**
@@ -81,11 +90,14 @@ export class AgentExecutionTemporalConfig {
 }
 
 /**
- * Builds the config from environment variables with the defaults above.
+ * Builds the config from environment variables with the defaults above;
+ * whether shared runners are on is the caller's (the boot reads the key).
  * Env-derived strings only — no Temporal connection is made
  * here (the TemporalManager owns the connection).
  */
-export function newConfigFromEnv(): AgentExecutionTemporalConfig {
+export function newConfigFromEnv(
+  options: { readonly sharedRunners?: boolean } = {},
+): AgentExecutionTemporalConfig {
   return new AgentExecutionTemporalConfig(
     valueOrDefault(
       process.env.TEMPORAL_AGENT_EXECUTION_STIGMER_TASK_QUEUE,
@@ -100,6 +112,7 @@ export function newConfigFromEnv(): AgentExecutionTemporalConfig {
       process.env.STIGMER_DEFAULT_EXECUTION_TARGET,
       DEFAULT_EXECUTION_TARGET_LOCAL,
     ),
+    options.sharedRunners ?? false,
   );
 }
 
