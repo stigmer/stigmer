@@ -29,10 +29,11 @@
  *     on, a CLOUD conversation without a computer) goes to the runner
  *     queue with `runner: "shared"` and its credential SEALED: the clear
  *     key is absent, the sealed one opens under the payload key to the
- *     minted credential, and the mint is told the placement; with shared
- *     runners off the same conversation goes to its own queue as before,
- *     and a shared turn with no sealer fails its start rather than carry
- *     the credential in the clear;
+ *     minted credential, and the mint is told the placement; a turn is
+ *     placed by its conversation's stamp, so one made before shared runners
+ *     (not stamped) keeps its own queue, one stamped shared is refused once
+ *     shared runners are off (never moved), and a shared turn with no
+ *     sealer fails its start rather than carry the credential in the clear;
  *   - the caller's facts ride every input (`caller_class`, and the
  *     routine and the caller's id when set), and a CLOUD target's input
  *     carries the server's limit on a wait for room, zero included, which
@@ -69,6 +70,7 @@ import {
   ROUTING_SESSION,
 } from "../../../domain/run/temporal/config.js";
 import type { RunCredentialTurn } from "../../../runnerauth/runner-credential-provider.js";
+import { SHARED_RUNNERS_OFF_MESSAGE } from "../../../domain/run/placement.js";
 import type { RunCredentialMint } from "../../../runnerauth/dispatch-credential.js";
 import { newExecutionScopedRunnerCredentialProvider } from "../../../runnerauth/runner-credential-provider.js";
 import {
@@ -400,7 +402,7 @@ describe("TemporalExecutionEngine.startInvokeWorkflow on shared runners", () => 
     );
   }
 
-  async function storeWithSession(computer: Computer): Promise<Store> {
+  async function storeWithSession(computer: Computer, sharedRunner = computer === Computer.NONE): Promise<Store> {
     const store = newStore();
     await store.saveResource(
       ApiResourceKind.session,
@@ -411,7 +413,7 @@ describe("TemporalExecutionEngine.startInvokeWorkflow on shared runners", () => 
         kind: "Session",
         metadata: { id: "ses_c", name: "s", org: "org_1" },
         spec: {},
-        status: { computer },
+        status: { computer, sharedRunner },
       }),
     );
     return store;
@@ -471,11 +473,11 @@ describe("TemporalExecutionEngine.startInvokeWorkflow on shared runners", () => 
     expect(turns[0]?.runner).toBe("sandbox");
   });
 
-  it("with shared runners off, places a conversation without a computer exactly as before", async () => {
+  it("places a conversation made before shared runners came on (not stamped) in its sandbox, as before", async () => {
     const { client, startCalls } = stubClient();
     await newEngine(client, {
-      config: sessionConfig(false),
-      store: await storeWithSession(Computer.NONE),
+      config: sessionConfig(true),
+      store: await storeWithSession(Computer.NONE, false),
       sandboxLane: true,
       sealRunCredential: seal,
     }).startInvokeWorkflow(startInput({ sessionId: "ses_c" }));
@@ -484,6 +486,21 @@ describe("TemporalExecutionEngine.startInvokeWorkflow on shared runners", () => 
     const input = dispatchedInput(startCalls);
     expect("runner" in input).toBe(false);
     expect("sealed_execution_context_token" in input).toBe(false);
+  });
+
+  it("refuses a turn of a conversation stamped shared once shared runners are off, never moving it to a sandbox", async () => {
+    const { client, startCalls } = stubClient();
+    await expect(
+      newEngine(client, {
+        config: sessionConfig(false),
+        store: await storeWithSession(Computer.NONE, true),
+        sandboxLane: true,
+        sealRunCredential: seal,
+      }).startInvokeWorkflow(startInput({ sessionId: "ses_c" })),
+    ).rejects.toSatisfy(
+      (error: unknown) => error instanceof EngineDispatchError && error.message === SHARED_RUNNERS_OFF_MESSAGE,
+    );
+    expect(startCalls).toHaveLength(0);
   });
 
   it("refuses to start a shared turn it cannot seal, rather than carry the credential in the clear", async () => {

@@ -1637,6 +1637,7 @@ SessionStatus contains system-managed state for a session.
     environment: { type: "ApiResourceReference", description: "The Environment this conversation runs in, whichever named it; unset when none applies.", typeDescriptionLink: "#apiresourcereference" },
     environmentSource: { type: "EnvironmentSource", description: "Which choice environment came from.", typeDescriptionLink: "#environmentsource" },
     computer: { type: "Computer", description: "Whether this conversation has a computer, from its agent's version (AgentSpec.computer).", typeDescriptionLink: "#computer" },
+    sharedRunner: { type: "boolean", description: "Whether this conversation's turns run on a runner the server shares across conversations, rather than in a sandbox of its own." },
   }}
 />
 

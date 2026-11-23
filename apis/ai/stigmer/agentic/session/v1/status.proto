@@ -89,4 +89,20 @@ message SessionStatus {
   // until the first turn, then kept, so a re-pin changes only new
   // conversations. The runner reads it: COMPUTER_NONE binds no shell.
   Computer computer = 10;
+
+  // Whether this conversation's turns run on a runner the server shares
+  // across conversations, rather than in a sandbox of its own. Only a
+  // conversation without a computer can.
+  //
+  // @internal
+  // Server-owned: worked out with computer, on every write until the first
+  // turn, then kept for the conversation's whole life: true when the server
+  // runs shared runners (STIGMER_SHARED_RUNNER_KEY, per-session routing),
+  // the conversation's target is a sandbox's (CLOUD) and it has no
+  // computer. Every turn is placed by it, never by the server's settings
+  // at the time, so switching shared runners on or off never moves a
+  // conversation away from the runner that holds its saved state; a turn of
+  // a conversation stamped true on a server without shared runners is
+  // refused.
+  bool shared_runner = 11;
 }

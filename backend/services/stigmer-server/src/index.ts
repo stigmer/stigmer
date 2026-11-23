@@ -1083,8 +1083,8 @@ export {
 } from "./domain/run/temporal/config.js";
 // Which runner serves a turn (own, sandbox, shared): the one placement rule
 // every gate that asks "does a sandbox serve this turn" reads.
-export { placeTurn } from "./domain/run/placement.js";
-export type { PlacementFacts, TurnPlacement } from "./domain/run/placement.js";
+export { placeTurn, sharedRunnerFor, SHARED_RUNNERS_OFF_MESSAGE } from "./domain/run/placement.js";
+export type { PlacementConfig, PlacementFacts, SharedRunnerFacts, TurnPlacement } from "./domain/run/placement.js";
 // The shared-turn admission point (ExtensionDrivers.sharedTurnAdmission).
 export type { SharedTurnAdmission, SharedTurnFacts } from "./extensions/shared-turn-admission.js";
 // The run-credential mint's view of the turn it mints for.

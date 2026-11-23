@@ -19,6 +19,8 @@
 //     so the turn's status writes, its session events and its session's title
 //     land only because every call the turn made carried the turn's own
 //     credential (the runner-as-subject proof, on a shared runner);
+//   - each conversation is stamped with its runner when it is made
+//     (SessionStatus.shared_runner): every later turn is placed by it;
 //   - a turn whose conversation has a computer is never taken by the shared
 //     runner (it would refuse it): the shared runner's log names the
 //     computer-less run alone.
@@ -204,6 +206,13 @@ describe.skipIf(!hasEngine)("shared runners beside a sandbox driver (a member's 
     const sandboxInput = await workflowInputOf(sandboxedId);
     expect("runner" in sandboxInput).toBe(false);
     expect("sealed_execution_context_token" in sandboxInput).toBe(false);
+
+    // Each conversation carries the runner it was made for, for its whole
+    // life: the stamp every later turn is placed by.
+    const sharedSession = await member.sessionQuery.get({ value: sessionIdOf(computerlessEnd) });
+    expect(sharedSession.status?.sharedRunner).toBe(true);
+    const sandboxSession = await member.sessionQuery.get({ value: sessionIdOf(sandboxedEnd) });
+    expect(sandboxSession.status?.sharedRunner ?? false).toBe(false);
 
     // Which runner served which: the shared runner names the computer-less
     // run alone.

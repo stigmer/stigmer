@@ -1,16 +1,18 @@
 /**
- * The one placement rule (placement.ts), as a table: every routing mode,
- * target, computer stamp, driver and switch, and the answer each must
- * give. The rows that pin safety: with shared runners off, no turn is ever
- * `shared` under per-session routing (an edition takes this code before
- * any runner polls the shared queue); a conversation with a computer, or
- * an unset stamp, is never `shared`; and the Environment policy's
- * question agrees with the rule for a conversation with a computer.
+ * The one placement rule (placement.ts), as two tables. The stamp's rule:
+ * a conversation is stamped shared only under per-session routing, with
+ * shared runners on, a CLOUD target and no computer (an unset computer
+ * reads as having one). The turn's rule: every turn is placed by the stamp,
+ * never by the server's settings at the time, so a conversation made
+ * before shared runners keeps its sandbox when they come on, and one
+ * stamped shared stays shared when they go off (dispatch refuses its turn,
+ * dispatch.test.ts). And the Environment policy's question agrees with the
+ * rule for a conversation with a computer.
  */
-import { ExecutionTarget, Computer } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
+import { Computer, ExecutionTarget } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
 import { describe, expect, it } from "vitest";
 
-import { placeTurn, sandboxServesTarget, type TurnPlacement } from "../placement.js";
+import { placeTurn, sandboxServesTarget, sharedRunnerFor, type TurnPlacement } from "../placement.js";
 import {
   AgentExecutionTemporalConfig,
   DEFAULT_EXECUTION_TARGET_CLOUD,
@@ -29,37 +31,34 @@ const SESSION_LOCAL_ON = config(ROUTING_SESSION, DEFAULT_EXECUTION_TARGET_LOCAL,
 const GLOBAL_ON = config(ROUTING_GLOBAL, DEFAULT_EXECUTION_TARGET_LOCAL, true);
 const GLOBAL_OFF = config(ROUTING_GLOBAL, DEFAULT_EXECUTION_TARGET_LOCAL, false);
 
-type Row = [string, AgentExecutionTemporalConfig, ExecutionTarget, Computer | undefined, boolean, string, TurnPlacement];
-
-const ROWS: Row[] = [
-  ["global routing, as always", GLOBAL_OFF, ExecutionTarget.UNSPECIFIED, Computer.REQUIRED, false, "ses_1", "shared"],
-  ["global routing with shared runners on", GLOBAL_ON, ExecutionTarget.CLOUD, Computer.NONE, false, "ses_1", "shared"],
-  ["session routing with no session id", SESSION_CLOUD_ON, ExecutionTarget.CLOUD, Computer.NONE, true, "", "shared"],
-  ["a sandboxed conversation", SESSION_CLOUD_ON, ExecutionTarget.UNSPECIFIED, Computer.REQUIRED, true, "ses_1", "sandbox"],
-  ["an unset stamp has a computer", SESSION_CLOUD_ON, ExecutionTarget.UNSPECIFIED, Computer.UNSPECIFIED, true, "ses_1", "sandbox"],
-  ["no stamp read has a computer", SESSION_CLOUD_ON, ExecutionTarget.UNSPECIFIED, undefined, true, "ses_1", "sandbox"],
-  ["no computer, shared runners on", SESSION_CLOUD_ON, ExecutionTarget.UNSPECIFIED, Computer.NONE, true, "ses_1", "shared"],
-  ["no computer, shared runners on, no driver", SESSION_CLOUD_ON, ExecutionTarget.CLOUD, Computer.NONE, false, "ses_1", "shared"],
-  ["no computer, shared runners OFF: as before", SESSION_CLOUD_OFF, ExecutionTarget.UNSPECIFIED, Computer.NONE, true, "ses_1", "sandbox"],
-  ["no computer, shared runners OFF, no driver: as before", SESSION_CLOUD_OFF, ExecutionTarget.CLOUD, Computer.NONE, false, "ses_1", "own"],
-  ["a CLOUD target with no driver", SESSION_CLOUD_ON, ExecutionTarget.CLOUD, Computer.REQUIRED, false, "ses_1", "own"],
-  ["a LOCAL target (the desktop) never moves", SESSION_CLOUD_ON, ExecutionTarget.LOCAL, Computer.NONE, true, "ses_1", "own"],
-  ["UNSPECIFIED resolving LOCAL never moves", SESSION_LOCAL_ON, ExecutionTarget.UNSPECIFIED, Computer.NONE, true, "ses_1", "own"],
-];
-
-describe("placeTurn", () => {
-  it.each(ROWS)("%s", (_label, cfg, target, computer, sandboxLane, sessionId, expected) => {
-    expect(placeTurn({ config: cfg, target, computer, sandboxLane, sessionId })).toBe(expected);
+describe("sharedRunnerFor (the stamp)", () => {
+  const rows: Array<[string, AgentExecutionTemporalConfig, ExecutionTarget, Computer | undefined, boolean]> = [
+    ["no computer, shared runners on", SESSION_CLOUD_ON, ExecutionTarget.UNSPECIFIED, Computer.NONE, true],
+    ["a computer", SESSION_CLOUD_ON, ExecutionTarget.UNSPECIFIED, Computer.REQUIRED, false],
+    ["an unset computer has one", SESSION_CLOUD_ON, ExecutionTarget.UNSPECIFIED, Computer.UNSPECIFIED, false],
+    ["no computer read has one", SESSION_CLOUD_ON, ExecutionTarget.UNSPECIFIED, undefined, false],
+    ["shared runners off", SESSION_CLOUD_OFF, ExecutionTarget.UNSPECIFIED, Computer.NONE, false],
+    ["a LOCAL target (the desktop)", SESSION_CLOUD_ON, ExecutionTarget.LOCAL, Computer.NONE, false],
+    ["UNSPECIFIED resolving LOCAL", SESSION_LOCAL_ON, ExecutionTarget.UNSPECIFIED, Computer.NONE, false],
+    ["global routing", GLOBAL_ON, ExecutionTarget.CLOUD, Computer.NONE, false],
+  ];
+  it.each(rows)("%s", (_label, cfg, target, computer, expected) => {
+    expect(sharedRunnerFor({ config: cfg, target, computer })).toBe(expected);
   });
+});
 
-  it("with shared runners off, never answers shared under per-session routing", () => {
-    for (const target of [ExecutionTarget.UNSPECIFIED, ExecutionTarget.LOCAL, ExecutionTarget.CLOUD]) {
-      for (const computer of [undefined, Computer.UNSPECIFIED, Computer.REQUIRED, Computer.NONE]) {
-        for (const sandboxLane of [true, false]) {
-          expect(placeTurn({ config: SESSION_CLOUD_OFF, target, computer, sandboxLane, sessionId: "ses_1" })).not.toBe("shared");
-        }
-      }
-    }
+describe("placeTurn (by the stamp)", () => {
+  const rows: Array<[string, AgentExecutionTemporalConfig, ExecutionTarget, boolean, boolean, string, TurnPlacement]> = [
+    ["global routing, as always", GLOBAL_OFF, ExecutionTarget.UNSPECIFIED, false, false, "ses_1", "shared"],
+    ["session routing with no session id", SESSION_CLOUD_ON, ExecutionTarget.CLOUD, false, true, "", "shared"],
+    ["a conversation stamped shared", SESSION_CLOUD_ON, ExecutionTarget.UNSPECIFIED, true, true, "ses_1", "shared"],
+    ["stamped shared, shared runners now off: still shared", SESSION_CLOUD_OFF, ExecutionTarget.UNSPECIFIED, true, true, "ses_1", "shared"],
+    ["not stamped, shared runners now on: still its sandbox", SESSION_CLOUD_ON, ExecutionTarget.UNSPECIFIED, false, true, "ses_1", "sandbox"],
+    ["a CLOUD target with no driver", SESSION_CLOUD_ON, ExecutionTarget.CLOUD, false, false, "ses_1", "own"],
+    ["a LOCAL target never moves", SESSION_CLOUD_ON, ExecutionTarget.LOCAL, false, true, "ses_1", "own"],
+  ];
+  it.each(rows)("%s", (_label, cfg, target, sharedRunner, sandboxLane, sessionId, expected) => {
+    expect(placeTurn({ config: cfg, target, sharedRunner, sandboxLane, sessionId })).toBe(expected);
   });
 });
 

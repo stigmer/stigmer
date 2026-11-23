@@ -28,8 +28,7 @@
  * capability (an edition credentialed another way) leaves the key off.
  *
  * Where the turn runs is the dispatch's placement (domain/run/placement.ts),
- * which the mint is told. A turn a shared runner serves under shared
- * runners carries `runner: "shared"`, so its workflow asks for a place, not
+ * which the mint is told. A turn of a conversation stamped shared carries `runner: "shared"`, so its workflow asks for a place, not
  * a sandbox, and its credential SEALED with the server's payload key
  * (`sealed_execution_context_token`): a shared runner serves many
  * organizations, and its history must not show a value that acts for the
@@ -125,7 +124,7 @@ export class TemporalExecutionEngine implements ConnectedExecutionEngine {
       { sessionId: input.sessionId, org: input.org, runner: dispatch.placement },
       logger,
     );
-    const sharedTurn = dispatch.placement === "shared" && config.sharedRunners;
+    const sharedTurn = dispatch.sharedTurn;
     const credentialFields = await this.credentialFields(runCredential, sharedTurn);
 
     // Slim input (workflow-input.ts): zero-value fields are omitted, so
