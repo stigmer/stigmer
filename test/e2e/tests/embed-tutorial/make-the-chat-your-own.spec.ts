@@ -29,7 +29,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test, expect, type Locator, type Page } from "@playwright/test";
 import { OIDC_STACK } from "../../fixtures/oidc";
-import { MockControl, getMockControlUrl, messageThread, toolCallRow } from "../../helpers/approval";
+import { MockControl, getMockControlUrl, messageThread } from "../../helpers/approval";
 import { anthropicText, anthropicToolUses } from "../../fixtures/mock-llm";
 import {
   APP_PORT,
@@ -122,7 +122,7 @@ test.describe("make the chat your own, run from its page on the embedding tutori
     const card = thread.getByRole("region", { name: "Account Travel" });
     await expect(card, "the app's card: drawn for the agent's call of open_account").toBeVisible({ timeout: 120_000 });
     await expect(card).toContainText("+18% against budget");
-    const row = toolCallRow(thread).filter({ has: card });
+    const row = card.locator('xpath=ancestor::*[@data-cursor-target="tool-call-row"]');
     await expect(row, "the kit's row keeps its own line around the app's card").toContainText("Waiting for the app");
     await expect(header, "the conversation hook: the header says what the agent waits on").toContainText("Waiting for the app");
     await app.screenshot({ path: testInfo.outputPath("waiting-light.png"), fullPage: true });
