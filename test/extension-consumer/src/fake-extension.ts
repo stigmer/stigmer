@@ -121,12 +121,19 @@ import {
   SERVER_RELEASE_ENV,
   TARGET_RESOURCE_KEY,
   TOKEN_TYPE_EXECUTION_SCOPED,
+  RUNNER_ARTIFACT_DOWNLOAD_PATH,
+  RUNNER_ARTIFACT_UPLOAD_PATH,
   BOUND_ELSEWHERE_DENY_REASON,
   boundOrgOf,
   updateContext,
 } from "@stigmer/server";
 import type { BindingVerdict, CredentialBinding } from "@stigmer/server";
 import type { RunLane, RunLanes } from "@stigmer/server";
+import type {
+  LaneHandler,
+  NeverRunnerClassifier,
+  RunnerArtifactDecision,
+} from "@stigmer/server";
 import type {
   RunResponseDecorator,
   AgentExecutionTemporalConfig,
@@ -766,6 +773,21 @@ const credentialProvider: RunnerCredentialProvider = {
   mintSandboxCredential: (request: SandboxCredentialRequest): string =>
     `fake-${request.scope}-token`,
   authorizeExecutionValuesRead: async (): Promise<boolean> => false,
+  // The runner artifact lane's decision: this edition's sandbox token is
+  // admitted, its one-turn token is refused outright for any run but its
+  // own, and every other bearer is left to the lane's identity path.
+  authorizeRunnerArtifactAccess: async (
+    rawToken: string,
+    runId: string,
+  ): Promise<RunnerArtifactDecision> => {
+    if (rawToken === "fake-session-token") {
+      return "allow";
+    }
+    if (rawToken.startsWith("fake-turn-token:")) {
+      return rawToken === `fake-turn-token:${runId}` ? "allow" : "deny";
+    }
+    return "undecided";
+  },
   // The fifth capability: decrypt-key resolution for the
   // server-managed rpk_ payload keys the bootstrap arm above hands out.
   resolvePayloadKey: async (keyId: string): Promise<Buffer | undefined> =>
@@ -1076,6 +1098,17 @@ const consumerRunLanes: RunLanes = {
     };
     return Promise.resolve(lane);
   },
+};
+
+/**
+ * A consumer-shaped never-runner classifier (registered below as
+ * `drivers.neverRunnerClassifier`): a caller class this edition mints for
+ * work its server starts is permitted on its runs and is still never
+ * their runner, so the runner artifact lane refuses it. Keyed on the
+ * verified caller alone.
+ */
+const consumerNeverRunnerClassifier: NeverRunnerClassifier = {
+  isNeverRunner: (caller) => caller.callerClass === "machine",
 };
 
 /**
@@ -1512,6 +1545,9 @@ export const fakeExtension: ServerExtension = {
     // The run-lanes seam: which lane a visitor's turn comes through, and
     // that lane's settings, operator profile and approval mode.
     runLanes: consumerRunLanes,
+    // The never-runner seam: which callers a runner's door refuses
+    // whatever they are permitted on.
+    neverRunnerClassifier: consumerNeverRunnerClassifier,
     // The identity-account seams: the identity-account domain served over the
     // consumer's own store, and the federated arms only it can serve.
     identityAccountStore: consumerIdentityAccountStore,
@@ -1552,6 +1588,20 @@ export async function composeFakeCloud(): Promise<ComposedServer> {
     // set for it; it states the release of the package it installed.
     version: "0.0.0-consumer",
   });
+}
+
+/**
+ * An edition that serves `/v1/proxy` on a listener of its own mounts the
+ * composed runner artifact lane there: the handler the server hands out,
+ * never a second instance. Undefined when the store cannot presign.
+ */
+export function consumerRunnerArtifactMount(
+  server: ComposedServer,
+): { readonly paths: ReadonlyArray<string>; readonly handle: LaneHandler } | undefined {
+  const handle = server.runnerArtifactLane;
+  return handle === undefined
+    ? undefined
+    : { paths: [RUNNER_ARTIFACT_UPLOAD_PATH, RUNNER_ARTIFACT_DOWNLOAD_PATH], handle };
 }
 
 /**

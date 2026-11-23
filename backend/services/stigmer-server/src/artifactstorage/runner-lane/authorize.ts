@@ -4,17 +4,21 @@
  *
  * 1. A runner credential. A runner presents the credential of the run it is
  *    serving: the run credential every dispatch carries, or a sandbox's own
- *    token, which is bound to the run that last woke the sandbox. When the
- *    composition decides runner credentials itself (`authorizeRunnerForRun`,
- *    an edition whose credential serves a whole session), its answer
- *    admits; a "no" leaves the bearer to the identity path, since that
- *    edition's runners may present identity tokens. Otherwise open source's
- *    execution-scoped credential admits for its own run while that run is
- *    live, and for any run of the same session and organization: a later
- *    turn reconciles a file review an earlier turn of its session wrote, by
- *    that turn's keys. A credential that verifies but names an unrelated
- *    run, or a run that has ended, is refused outright; it is a runner's,
- *    never a person's, so the identity path does not see it.
+ *    token, which is bound to the run that last woke the sandbox. Open
+ *    source's execution-scoped credential admits for its own run while that
+ *    run is live, and for any run of the same session and organization: a
+ *    later turn reconciles a file review an earlier turn of its session
+ *    wrote, by that turn's keys. A credential that verifies but names an
+ *    unrelated run, or a run that has ended, is refused outright; it is a
+ *    runner's, never a person's, so the identity path does not see it. A
+ *    composition that mints runner credentials of its own decides them here
+ *    (`authorizeRunnerArtifactAccess`) with the same three outcomes: it
+ *    admits, it refuses outright, or it leaves the bearer to the identity
+ *    path, since only the composition can tell its runner credential from
+ *    an identity token and say how far it reaches. This is not the per-run
+ *    doors' question (`authorizeRunnerForRun`, "is this the runner acting
+ *    for exactly this run"): a run's folder is also read by a later turn of
+ *    its conversation.
  * 2. An identity. Any bearer the composed verifier chain claims (a person's
  *    token, an API key, a composition's own runner tokens), admitted when
  *    the composed authorizer allows it to edit the run (an upload) or view
@@ -26,7 +30,12 @@
  *    and a visitor is never a runner, though its own lane account may own
  *    the runs it started. The folder holds what the run's tools returned in
  *    full, which a visitor's conversation never shows it. A classifier that
- *    throws counts as a visitor (extensions/visitor-classifier.ts).
+ *    throws counts as a visitor (extensions/visitor-classifier.ts). A caller
+ *    the composed never-runner classifier names is refused the same way,
+ *    and for the same reason: an edition's own credential for work the
+ *    server starts (a judge run's system account, say) may be permitted on
+ *    its runs and is still no runner. That classifier can only refuse, and
+ *    one that throws refuses (extensions/never-runner-classifier.ts).
  *
  * The answer separates a missing or unrecognized credential (401) from a
  * refusal (403) and from an authorization or identity backend that could
@@ -43,6 +52,7 @@ import { IamPermission } from "@stigmer/apis/ai/stigmer/iam/v1/enum_pb";
 import type { Logger } from "../../boot/logger.js";
 import type { Authorizer } from "../../extensions/authorizer.js";
 import type { CallerIdentity, IdentityVerifier } from "../../extensions/identity.js";
+import type { NeverRunnerClassifier } from "../../extensions/never-runner-classifier.js";
 import type { VisitorClassifier } from "../../extensions/visitor-classifier.js";
 import { authenticateBearerToken } from "../../pipeline/interceptors/auth.js";
 import {
@@ -54,13 +64,15 @@ import { TOKEN_TYPE_EXECUTION_SCOPED } from "../../runnerauth/runnerauth.js";
 
 export interface RunnerArtifactAccessDeps {
   readonly logger: Logger;
-  readonly runnerAuth: Pick<RunnerCredentialProvider, "authorizeRunnerForRun" | "verify">;
+  readonly runnerAuth: Pick<RunnerCredentialProvider, "authorizeRunnerArtifactAccess" | "verify">;
   /** Where a credential's run and the key's run are read, for liveness and session. */
   readonly store: BoundExecutionStore;
   readonly identityVerifiers: ReadonlyArray<IdentityVerifier>;
   readonly authorizer: Authorizer;
   /** Which callers are visitors; absent, nobody is (open source). */
   readonly visitorClassifier?: VisitorClassifier;
+  /** Which callers are never runners; absent, no caller is ruled out (open source). */
+  readonly neverRunnerClassifier?: NeverRunnerClassifier;
   /** Unix milliseconds; the wall clock when absent. */
   readonly now?: () => number;
 }
@@ -94,17 +106,29 @@ async function runnerCredentialDecision(
   token: string,
   runId: string,
 ): Promise<ArtifactAccess | "not-a-runner-credential"> {
-  const composed = deps.runnerAuth.authorizeRunnerForRun?.bind(deps.runnerAuth);
+  const composed = deps.runnerAuth.authorizeRunnerArtifactAccess?.bind(deps.runnerAuth);
   if (composed !== undefined) {
+    let decision;
     try {
-      return (await composed(token, runId))
-        ? { kind: "allow", by: "runner" }
-        : "not-a-runner-credential";
+      decision = await composed(token, runId);
     } catch (error) {
       deps.logger.warn("Runner credential authorization failed; refusing", {
         error: errorText(error),
       });
       return { kind: "deny" };
+    }
+    switch (decision) {
+      case "allow":
+        return { kind: "allow", by: "runner" };
+      case "deny":
+        deps.logger.warn("A runner credential asked for artifacts its composition refuses it; refusing", { runId });
+        return { kind: "deny" };
+      case "undecided":
+        return "not-a-runner-credential";
+      default: {
+        const exhaustive: never = decision;
+        throw new Error(`unknown runner artifact decision ${String(exhaustive)}`);
+      }
     }
   }
   let boundRunId: string;
@@ -160,7 +184,19 @@ async function identityDecision(
     return { kind: "unauthenticated" };
   }
   if (isVisitor(deps, caller)) {
-    deps.logger.warn("A visitor asked for an artifact URL; refusing", { identityId: caller.identityId, runId });
+    deps.logger.warn("A visitor asked for an artifact URL; refusing", {
+      identityId: caller.identityId,
+      callerClass: caller.callerClass,
+      runId,
+    });
+    return { kind: "deny" };
+  }
+  if (isNeverRunner(deps, caller)) {
+    deps.logger.warn("A caller that is never a runner asked for an artifact URL; refusing", {
+      identityId: caller.identityId,
+      callerClass: caller.callerClass,
+      runId,
+    });
     return { kind: "deny" };
   }
   const decision = await deps.authorizer.authorize(caller, {
@@ -193,6 +229,23 @@ function isVisitor(deps: RunnerArtifactAccessDeps, caller: CallerIdentity): bool
   } catch (error) {
     deps.logger.error("Visitor classifier failed; refusing the artifact URL (fail-closed contract)", {
       identityId: caller.identityId,
+      error: errorText(error),
+    });
+    return true;
+  }
+}
+
+/** Whether the composed classifier names `caller` never a runner; a throw counts as one. */
+function isNeverRunner(deps: RunnerArtifactAccessDeps, caller: CallerIdentity): boolean {
+  if (deps.neverRunnerClassifier === undefined) {
+    return false;
+  }
+  try {
+    return deps.neverRunnerClassifier.isNeverRunner(caller);
+  } catch (error) {
+    deps.logger.error("Never-runner classifier failed; refusing the artifact URL (fail-closed contract)", {
+      identityId: caller.identityId,
+      callerClass: caller.callerClass,
       error: errorText(error),
     });
     return true;

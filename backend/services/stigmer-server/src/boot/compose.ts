@@ -313,6 +313,7 @@ import {
   createConsoleLane,
   type ConsoleSignInPosture,
 } from "../transport/console/handler.js";
+import type { LaneHandler } from "../transport/lanes.js";
 import { createRegistryLanes } from "../transport/registry/lanes.js";
 import { createUnifiedPortServer } from "../transport/server.js";
 import {
@@ -397,6 +398,18 @@ export interface ComposedServer {
    * differently from the server it fronts.
    */
   identityVerifiers: ReadonlyArray<IdentityVerifier>;
+  /**
+   * The runner artifact lane's handler (artifactstorage/runner-lane/lane.ts),
+   * the same instance the unified port routes the two artifact paths to;
+   * undefined when the artifact store cannot presign a runner's upload, where
+   * no lane is served. Exposed for a composition that serves `/v1/proxy` on
+   * an HTTP listener of its own (stigmer/stigmer#3444): mounting this
+   * handler there keeps one lane, with one set of refusals, on both
+   * listeners, where a second instance built at the edge would authorize
+   * from its own copy of the composed dependencies. The handler answers 404
+   * for any path but its two, so a mount wider than those is harmless.
+   */
+  runnerArtifactLane: LaneHandler | undefined;
   /**
    * The one routes function both routers are built from (exposed for
    * tests, the `store` posture — the tier-truthfulness invariant
@@ -2685,6 +2698,9 @@ export async function composeServer(
         ...(extensions.drivers.visitorClassifier === undefined
           ? {}
           : { visitorClassifier: extensions.drivers.visitorClassifier }),
+        ...(extensions.drivers.neverRunnerClassifier === undefined
+          ? {}
+          : { neverRunnerClassifier: extensions.drivers.neverRunnerClassifier }),
       })
     : undefined;
 
@@ -2782,6 +2798,7 @@ export async function composeServer(
     sessionEventBroker,
     inProcessTransport: inProcessWiring.transport,
     identityVerifiers,
+    runnerArtifactLane,
     routes,
     organizationPurge,
     stalledRuns,
