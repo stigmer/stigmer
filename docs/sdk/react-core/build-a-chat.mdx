@@ -1,26 +1,28 @@
 ---
 title: Build a chat from the hooks
-description: A whole chat in about a hundred lines of your own markup, using only the hooks in @stigmer/react-core — start a conversation, follow its turns, answer an approval and stop a turn.
+description: A whole chat in your own markup, using only the hooks in @stigmer/react-core — start a conversation, follow its turns and steps, the agent's plan and its helpers, the files it changed and made, its questions and your app's own tools, and stop a turn.
 ---
 
 `AgentChat` is the chat with Stigmer's look. When your product needs its own
 look, or a chat that is not a chat window at all, build it from the hooks
-`@stigmer/react-core` exports. They hold everything a conversation needs:
-starting it, following its turns as they stream, answering the agent's
-questions, and stopping a turn. You write only the markup.
+`@stigmer/react-core` exports. They hold everything a conversation shows:
+the agent's messages and thinking, each step it takes, its plan, the helpers it
+sends off, the files it changes and makes, the questions it asks, and calls of
+your app's own tools. You write only the markup.
 
-This guide walks through one small program, `Chat.tsx`, that does all of that
-with plain HTML. It is compiled with the package on every change, so the code
-below is code that builds. Here it is running, answered by a scripted server
-instead of an agent:
+This guide walks through one program, `Chat.tsx`, that draws all of it with
+plain HTML. It is compiled with the package on every change and tested on its
+own, so the code below is code that builds and runs. Here it is on a finished
+turn that edited a file and made two, answered by a scripted server instead of
+an agent:
 
 <Live
   name="from-hooks"
-  alt="A plain chat built from the hooks: a finished turn with its file edit and answer, and a textarea to send the next message"
+  alt="A plain chat built from the hooks: a finished turn's steps, its answer, the two files it made as buttons, and a textarea to send the next message"
 />
 
 Type a message and send it: the agent reads two files, asks before it runs a
-command, and answers when you allow it.
+command, and answers when you allow it. Select a file it made to open it.
 
 ## Before you start
 
@@ -41,8 +43,27 @@ the conversation:
 
 ```tsx title="Chat.tsx" no-compile="a run of sdk/react-core/examples/chat/Chat.tsx, which the package's typecheck compiles whole"
 import { useState, type FormEvent, type ReactElement } from "react";
-import type { Stigmer, ToolUse, Turn } from "@stigmer/client";
-import { StigmerContext, useCreateRun, useSessionConversation } from "@stigmer/react-core";
+import type { File as StigmerFile } from "@stigmer/apis/ai/stigmer/agentic/file/v1/api_pb";
+import {
+  defineCustomTool,
+  failureWords,
+  stepPhrase,
+  turnSteps,
+  type Stigmer,
+  type Thread,
+  type ToolUse,
+  type Turn,
+  type TurnItem,
+} from "@stigmer/client";
+import {
+  StigmerContext,
+  sessionFilesRefreshKey,
+  useCreateRun,
+  useSessionConversation,
+  useSessionFiles,
+  useStigmer,
+  type UseSessionConversationReturn,
+} from "@stigmer/react-core";
 // …
 interface ChatProps {
   client: Stigmer;
@@ -70,15 +91,18 @@ also scopes its theme, which a chat with its own markup does not need.
 ## Start the conversation, then follow it
 
 `useCreateRun` starts a conversation with its first message. Its `sessionSpec`
-names the agent, and the server creates the conversation and returns its ID.
-`useSessionConversation` follows that conversation: its `turns` fill in as the
-agent works, and `sendFollowUp` sends every message after the first.
+names the agent and the tools your app answers (below), and the server creates
+the conversation and returns its ID. `useSessionConversation` follows that
+conversation: its `turns` fill in as the agent works, and `sendFollowUp` sends
+every message after the first.
 
 ```tsx title="Chat.tsx" no-compile="a run of sdk/react-core/examples/chat/Chat.tsx, which the package's typecheck compiles whole"
 function Conversation({ org, agent, sessionId: existing }: Omit<ChatProps, "client">): ReactElement {
   const [sessionId, setSessionId] = useState<string | null>(existing ?? null);
   const { create, isCreating, error: startError } = useCreateRun();
   const conversation = useSessionConversation(sessionId, org);
+  // The files the turns made, read again as each turn starts and ends.
+  const files = useSessionFiles(org, sessionId, sessionFilesRefreshKey(conversation.runs));
 
   async function send(message: string): Promise<void> {
     if (sessionId !== null) {
@@ -86,7 +110,11 @@ function Conversation({ org, agent, sessionId: existing }: Omit<ChatProps, "clie
       return;
     }
     const [agentOrg, slug] = agent.split("/");
-    const started = await create({ org, message, sessionSpec: { agentRef: { org: agentOrg ?? org, slug: slug ?? agent } } });
+    const started = await create({
+      org,
+      message,
+      sessionSpec: { agentRef: { org: agentOrg ?? org, slug: slug ?? agent }, customTools: [SHOW_PAGE] },
+    });
     setSessionId(started.sessionId);
   }
 ```
@@ -94,63 +122,265 @@ function Conversation({ org, agent, sessionId: existing }: Omit<ChatProps, "clie
 ## Draw the turns
 
 Each turn holds the person's message and the agent's `items` in the order the
-agent produced them: messages, tool calls, thinking. This chat shows messages
-and a line for each tool call, and says when a turn failed:
+agent produced them: messages, thinking, notes, and tool calls. This chat shows
+messages as written, thinking closed until the reader opens it, a note quietly,
+and a marker where earlier messages were summarized to make room. The tool calls
+draw together, where the first one happened (next section):
 
 ```tsx title="Chat.tsx" no-compile="a run of sdk/react-core/examples/chat/Chat.tsx, which the package's typecheck compiles whole"
   return (
     <section aria-label="Conversation" style={{ display: "flex", flexDirection: "column", gap: 12, height: "100%" }}>
       <ol style={{ flex: 1, overflowY: "auto", listStyle: "none", margin: 0, padding: 0 }}>
         {conversation.turns.map((turn) => (
-          <TurnView key={turn.runId} turn={turn} />
+          <TurnView key={turn.runId} turn={turn} made={files.outputsByRun.get(turn.runId) ?? []} onReview={(...decision) => settled(conversation.reviewFileChanges(...decision))} />
         ))}
       </ol>
 // …
-function TurnView({ turn }: { turn: Turn }): ReactElement {
+function TurnView({ turn, made, onReview }: { turn: Turn; made: readonly StigmerFile[]; onReview: UseSessionConversationReturn["reviewFileChanges"] }): ReactElement {
+  // The steps draw together, where the turn's first step happened.
+  const firstStep = turn.items.findIndex((item) => item.kind === "tool_use");
   return (
     <li style={{ marginBottom: 16 }}>
       {turn.userMessage && <p style={{ fontWeight: 600 }}>{turn.userMessage.text}</p>}
-      {turn.items.map((item) => {
-        if (item.kind === "message") return <p key={item.id}>{item.text}</p>;
-        if (item.kind === "tool_use") return <ToolLine key={item.id} tool={item} />;
-        return null;
+      {turn.items.map((item, index) => {
+        if (item.kind !== "tool_use") return <Item key={item.id} item={item} />;
+        return index === firstStep ? <Steps key="steps" turn={turn} /> : null;
       })}
+      <TurnFiles turn={turn} made={made} onReview={onReview} />
       {turn.status?.phase === "failed" && <p role="alert">The turn failed: {turn.status.error}</p>}
     </li>
   );
 }
 
-function ToolLine({ tool }: { tool: ToolUse }): ReactElement {
-  const target = typeof tool.input.path === "string" ? tool.input.path : typeof tool.input.command === "string" ? tool.input.command : "";
-  const done = tool.result !== undefined ? "done" : tool.state;
-  return (
-    <p style={{ fontFamily: "monospace", fontSize: 13, opacity: 0.8 }}>
-      {tool.name} {target} · {done}
-    </p>
-  );
+function Item({ item }: { item: Exclude<TurnItem, ToolUse> }): ReactElement {
+  switch (item.kind) {
+    case "message":
+      return <p>{item.text}</p>;
+    case "user_message":
+      return <p style={{ fontWeight: 600 }}>{item.text}</p>;
+    case "thinking":
+      return (
+        <details>
+          <summary>Thinking</summary>
+          <p>{item.text}</p>
+        </details>
+      );
+    case "note":
+      return <p style={STEP}>Note: {item.text}</p>;
+    case "compacted":
+      return <p style={STEP}>Earlier messages summarized</p>;
+  }
 }
 ```
 
 Text is shown as written. To render the agent's markdown, pass `item.text` to
 the markdown renderer you already use.
 
+## Show each step, under the agent's plan
+
+The client words each step the way Stigmer's own chat does: `stepPhrase` turns
+a call into "Read invoice.ts" or "Searched for round( in src/billing", in the
+tense it stands in, and `failureWords` says why a step failed in a sentence. Use
+your own words instead by reading the call's `name`, `input`, `state` and
+`result`.
+
+When the agent keeps a to-do list, `turnSteps` returns it as the agent's plan:
+each item with the steps made while it was in progress, and the steps made
+outside any item after it. A step that opened a helper carries the helper's own
+`thread`: what it was asked, its steps and its reply, drawn with the same
+`StepList`, so a helper's helper draws too.
+
+```tsx title="Chat.tsx" no-compile="a run of sdk/react-core/examples/chat/Chat.tsx, which the package's typecheck compiles whole"
+const TODO_STATUS = { pending: "to do", in_progress: "working", completed: "done", cancelled: "dropped" } as const;
+const WAITS_FOR: Partial<Record<ToolUse["state"], string>> = { waiting: "waiting for your approval", waiting_on_host: "waiting for the app" };
+
+/** The turn's steps: under the agent's plan when it keeps one, then the rest in order. */
+function Steps({ turn }: { turn: Turn }): ReactElement {
+  const { plan, loose } = turnSteps(turn);
+  return (
+    <>
+      {plan.length > 0 && (
+        <ol aria-label="Plan" style={{ margin: "4px 0 8px", paddingLeft: 22 }}>
+          {plan.map(({ todo, calls }) => (
+            <li key={todo.id}>
+              {todo.content} · {TODO_STATUS[todo.status]}
+              <StepList tools={calls} />
+            </li>
+          ))}
+        </ol>
+      )}
+      <StepList tools={loose} />
+    </>
+  );
+}
+
+function StepList({ tools }: { tools: readonly ToolUse[] }): ReactElement | null {
+  if (tools.length === 0) return null;
+  return (
+    <ul style={LIST}>
+      {tools.map((tool) => (
+        <Step key={tool.id} tool={tool} />
+      ))}
+    </ul>
+  );
+}
+
+function Step({ tool }: { tool: ToolUse }): ReactElement {
+  const phrase = stepPhrase(tool);
+  const waits = WAITS_FOR[tool.state];
+  const why = phrase.tense === "failed" && tool.result ? failureWords(tool.result.text) : "";
+  return (
+    <li style={STEP}>
+      {phrase.text}
+      {waits && ` · ${waits}`}
+      {why && ` · ${why}`}
+      {tool.thread && <Helper thread={tool.thread} />}
+    </li>
+  );
+}
+
+/** A helper the agent sent off: what it was asked, its own steps, and its reply. */
+function Helper({ thread }: { thread: Thread }): ReactElement {
+  const steps = thread.items.filter((item): item is ToolUse => item.kind === "tool_use");
+  return (
+    <div role="group" aria-label={`Helper: ${thread.agentName}`} style={{ margin: "4px 0", paddingLeft: 12, borderLeft: "1px solid currentColor" }}>
+      <p style={{ margin: 0 }}>
+        {thread.agentName}, asked: {thread.input}
+      </p>
+      <StepList tools={steps} />
+      {thread.reply && <p style={{ margin: 0 }}>{thread.reply}</p>}
+    </div>
+  );
+}
+```
+
+Here is that part on a long turn at work: two to-dos done with their steps
+under them, and a helper still working under the third.
+
+<Live
+  name="from-hooks-busy"
+  alt="The plain chat on a long turn: the agent's plan as a numbered list, each to-do with its status and the steps made under it, and a helper's question and search nested under the third"
+/>
+
+## Keep or undo the files a turn changed, open the ones it made
+
+A turn that edits files lists them in `fileReview`, each with its path, its line
+counts and whether it is still undecided. `reviewFileChanges` keeps or undoes
+one file, bound to the `digest` of what the reader saw, so what is kept is what
+was reviewed.
+
+The files a turn made (a report, a table) are the conversation's Files.
+`useSessionFiles` lists them with each turn's in `outputsByRun`, and re-reads
+the list when its key changes. `sessionFilesRefreshKey` makes that key from the
+conversation's runs, so the list re-reads as each turn starts and ends and a
+turn's files appear when it finishes. A file opens through a short-lived link
+from `file.getDownloadUrl`.
+
+```tsx title="Chat.tsx" no-compile="a run of sdk/react-core/examples/chat/Chat.tsx, which the package's typecheck compiles whole"
+  const files = useSessionFiles(org, sessionId, sessionFilesRefreshKey(conversation.runs));
+// …
+const DECIDED = { kept: "kept", undoing: "undoing", undone: "undone", undo_failed: "couldn't undo" } as const;
+const CAPTION = { fontSize: 13, fontWeight: 600, margin: "8px 0 0" };
+
+/** What the turn changed, kept or undone while undecided, and the files it made. */
+function TurnFiles({ turn, made, onReview }: { turn: Turn; made: readonly StigmerFile[]; onReview: UseSessionConversationReturn["reviewFileChanges"] }): ReactElement {
+  const changed = turn.fileReview.flatMap((set) => set.files.map((file) => ({ set, file })));
+  return (
+    <>
+      {changed.length > 0 && <p aria-hidden style={CAPTION}>Files changed</p>}
+      {changed.length > 0 && (
+        <ul aria-label="Files changed" style={LIST}>
+          {changed.map(({ set, file }) => (
+            <li key={file.fileChangeId}>
+              {file.path} · +{file.linesAdded} −{file.linesRemoved}{" "}
+              {file.state === "undecided" ? (
+                <>
+                  <button type="button" style={CONTROL} aria-label={`Keep ${file.path}`} onClick={() => void onReview(set.changeSetId, "keep", { fileChangeId: file.fileChangeId, expectedDigest: file.digest })}>
+                    Keep
+                  </button>{" "}
+                  <button type="button" style={CONTROL} aria-label={`Undo ${file.path}`} onClick={() => void onReview(set.changeSetId, "undo", { fileChangeId: file.fileChangeId, expectedDigest: file.digest })}>
+                    Undo
+                  </button>
+                </>
+              ) : (
+                DECIDED[file.state]
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
+      {made.length > 0 && <p aria-hidden style={CAPTION}>Files made</p>}
+      {made.length > 0 && (
+        <ul aria-label="Files made" style={LIST}>
+          {made.map((file) => (
+            <li key={file.metadata?.id}>
+              <MadeFile file={file} />
+            </li>
+          ))}
+        </ul>
+      )}
+    </>
+  );
+}
+
+/** A file the turn made, opened in a new tab through a short-lived link. */
+function MadeFile({ file }: { file: StigmerFile }): ReactElement {
+  const stigmer = useStigmer();
+  const [error, setError] = useState<string | null>(null);
+
+  async function open(): Promise<void> {
+    // The tab opens inside the click, where every browser allows one; the
+    // file's link, which expires soon, is fetched after and sent to it.
+    const tab = window.open("", "_blank");
+    if (tab === null) {
+      setError("the browser blocked the new tab");
+      return;
+    }
+    try {
+      const { url } = await stigmer.file.getDownloadUrl(file.metadata?.id ?? "");
+      tab.opener = null;
+      tab.location.href = url;
+    } catch (failure) {
+      tab.close();
+      setError(failure instanceof Error ? failure.message : String(failure));
+    }
+  }
+
+  return (
+    <>
+      <button type="button" style={CONTROL} onClick={() => void open()}>
+        {file.spec?.filename}
+      </button>
+      {error && <span role="alert"> The file did not open: {error}</span>}
+    </>
+  );
+}
+```
+
 ## Answer the agent's questions
 
 When the agent asks before it acts, the ask appears in `asks`. Answer it with
 `answerToolUse`: `"allow"` lets the call run, `"deny"` refuses it and the agent
-carries on without it.
+carries on without it. `stepPhrase` says what the agent wants to do ("Wants to
+write rounding.ts").
 
 ```tsx title="Chat.tsx" no-compile="a run of sdk/react-core/examples/chat/Chat.tsx, which the package's typecheck compiles whole"
       {conversation.asks.map((ask) => (
-        <Ask key={ask.id} ask={ask} onAnswer={(answer) => conversation.answerToolUse(ask.id, answer)} />
+        <Ask key={ask.id} ask={ask} onAnswer={(answer) => settled(conversation.answerToolUse(ask.id, answer))} />
       ))}
 // …
 function Ask({ ask, onAnswer }: { ask: ToolUse; onAnswer: (answer: "allow" | "deny") => Promise<void> }): ReactElement {
-  const command = typeof ask.input.command === "string" ? ask.input.command : ask.name;
+  const command = typeof ask.input.command === "string" ? ask.input.command : "";
   return (
-    <div role="group" aria-label={`The agent asks to run ${command}`} style={{ border: "1px solid currentColor", borderRadius: 6, padding: 12 }}>
+    <div role="group" aria-label="The agent asks first" style={BOX}>
       <p>
-        The agent asks to run <code>{command}</code>.
+        The agent asks first: {stepPhrase(ask).text}
+        {command && (
+          <>
+            {" "}
+            <code>{command}</code>
+          </>
+        )}
       </p>
       <button type="button" style={CONTROL} onClick={() => void onAnswer("allow")}>
         Allow
@@ -163,15 +393,95 @@ function Ask({ ask, onAnswer }: { ask: ToolUse; onAnswer: (answer: "allow" | "de
 }
 ```
 
-## Say what went wrong
+## Answer your app's own tools
 
-A call that fails does not throw from these hooks: each keeps its error for you
-to show. `sendError` keeps the message that was not sent in
-`pendingUserMessage`, and `retryLastSend` sends it again; `answerError` and
-`stopError` say an answer or a Stop did not reach the server. A conversation
-that fails to start throws from `create`, and `useCreateRun` keeps the error.
+Your app can give the agent tools of its own: open a page, fill in a form, pick
+from your data. Declare each with `defineCustomTool` and pass it in
+`customTools` when the conversation is created. A call of one waits for your
+app's answer in `customToolUses`; do what it asks, then answer with
+`answerCustomToolUse`. The agent reads your text as the tool's result, and
+`isError` tells it the tool failed. Once answered, the call leaves the list and
+its step reads as done. See [your app's own tools](/docs/concepts/sessions#your-apps-own-tools)
+for what a declaration holds, and
+[the app's own tools](/docs/guides/channels/embed-an-agent#the-apps-own-tools) in
+the embedding guide for the kit's way.
 
 ```tsx title="Chat.tsx" no-compile="a run of sdk/react-core/examples/chat/Chat.tsx, which the package's typecheck compiles whole"
+/** A tool of this app the agent may call; the chat answers it (below). */
+const SHOW_PAGE = defineCustomTool({
+  name: "show_page",
+  description: "Open a page of this app for the person, such as their billing settings.",
+  inputSchema: {
+    type: "object",
+    properties: { path: { type: "string", description: "The page's path in the app, such as /settings/billing." } },
+    required: ["path"],
+  },
+});
+// …
+    const started = await create({
+      org,
+      message,
+      sessionSpec: { agentRef: { org: agentOrg ?? org, slug: slug ?? agent }, customTools: [SHOW_PAGE] },
+    });
+    setSessionId(started.sessionId);
+// …
+      {conversation.customToolUses.map((call) => (
+        <AppToolCall
+          key={call.id}
+          call={call}
+          error={conversation.customToolAnswerErrors.get(call.id)}
+          onAnswer={(text, isError) => settled(conversation.answerCustomToolUse(call.id, text, { isError }))}
+        />
+      ))}
+// …
+function AppToolCall({ call, error, onAnswer }: { call: ToolUse; error: Error | undefined; onAnswer: (text: string, isError: boolean) => Promise<void> }): ReactElement {
+  const asked = stepPhrase(call).text;
+  // Do what the tool asks in your app (here, open call.input.path), then
+  // answer: the agent reads the text as the tool's result.
+  return (
+    <div role="group" aria-label={`The agent asks your app: ${asked}`} style={BOX}>
+      <p>
+        The agent asks your app: <strong>{asked}</strong>
+      </p>
+      <pre style={{ fontSize: 13, whiteSpace: "pre-wrap", overflowWrap: "anywhere" }}>{JSON.stringify(call.input, null, 2)}</pre>
+      <button type="button" style={CONTROL} onClick={() => void onAnswer("Done.", false)}>
+        Done
+      </button>{" "}
+      <button type="button" style={CONTROL} onClick={() => void onAnswer("The app couldn't do it.", true)}>
+        Can't
+      </button>
+      {error && <p role="alert">Your app's answer did not reach the agent: {error.message}</p>}
+    </div>
+  );
+}
+```
+
+<Live
+  name="from-hooks-waiting-on-app"
+  alt="The plain chat while the agent waits for the app: its step says it waits for the app, and a box at the foot shows what the agent asked, with Done and Can't"
+/>
+
+Only the conversation's owner may answer an ask or a call of your app's tools;
+the server refuses anyone else. This chat is the owner's own, so it draws the
+buttons. A page that shows someone else's conversation draws both without them.
+
+## Say what went wrong
+
+A call that fails keeps its error in the hook for you to show. `sendError` keeps
+the message that was not sent in `pendingUserMessage`, and `retryLastSend` sends
+it again; `answerError`, `fileReviewError` and `stopError` say an answer, a
+decision on a file or a Stop did not reach the server. An answer and a decision
+on a file also reject when they fail, so the program settles each where it
+calls it: the error shows from the hook, and nothing escapes as an unhandled
+rejection. A conversation that fails to start throws from `create`, and
+`useCreateRun` keeps the error.
+
+```tsx title="Chat.tsx" no-compile="a run of sdk/react-core/examples/chat/Chat.tsx, which the package's typecheck compiles whole"
+/** An answer or a decision keeps its error in the hook, shown below; its rejection ends here. */
+function settled(pending: Promise<void>): Promise<void> {
+  return pending.catch(() => undefined);
+}
+// …
       {startError && <p role="alert">The conversation did not start: {startError.message}</p>}
       {conversation.sendError && (
         <p role="alert">
@@ -182,6 +492,7 @@ that fails to start throws from `create`, and `useCreateRun` keeps the error.
         </p>
       )}
       {conversation.answerError && <p role="alert">Your answer did not reach the agent: {conversation.answerError.message}</p>}
+      {conversation.fileReviewError && <p role="alert">Your decision on a file did not reach the agent: {conversation.fileReviewError.message}</p>}
       {conversation.stopError && <p role="alert">The turn did not stop: {conversation.stopError.message}</p>}
 ```
 
@@ -250,6 +561,50 @@ function Composer({
   );
 }
 ```
+
+## The whole conversation
+
+A chat draws each turn's own changes and files, as above. A list beside it can
+show the whole conversation's instead: `useSessionFileChanges` collapses every
+turn's edits into one net change per file, and `useSessionOutputs` lists each
+file the agent made once, the newest turn's version winning.
+
+```tsx title="ConversationFiles.tsx"
+import type { ReactElement } from "react";
+import { sessionFilesRefreshKey, useSessionConversation, useSessionFileChanges, useSessionFiles, useSessionOutputs } from "@stigmer/react-core";
+
+/** Every file a conversation changed and made, for a list beside the chat. */
+export function ConversationFiles({ org, sessionId }: { org: string; sessionId: string }): ReactElement {
+  const conversation = useSessionConversation(sessionId, org);
+  const { fileChanges } = useSessionFileChanges(conversation.runs);
+  const { files } = useSessionFiles(org, sessionId, sessionFilesRefreshKey(conversation.runs));
+  const { outputs } = useSessionOutputs(files, conversation.runs);
+  return (
+    <aside aria-label="This conversation's files">
+      <h2>Changed</h2>
+      <ul>
+        {fileChanges.map((change) => (
+          <li key={change.path}>
+            {change.path} ({change.changeType})
+          </li>
+        ))}
+      </ul>
+      <h2>Made</h2>
+      <ul>
+        {outputs.map((output) => (
+          <li key={output.file.metadata?.id}>{output.file.spec?.filename}</li>
+        ))}
+      </ul>
+    </aside>
+  );
+}
+```
+
+Everything else a session shows (the agent version a turn ran, the memories it
+recalled, the wait while its sandbox starts) is public too, in
+`useSessionConversation`'s `runs` and each turn's fields. The
+[React core reference](/docs/sdk/react-core/reference) lists every hook and
+what it returns.
 
 ## What's next
 

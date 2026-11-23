@@ -9,7 +9,7 @@ import { DiffViewer } from "../version-history/DiffViewer.js";
 import { DiffFileList } from "../version-history/DiffFileList.js";
 import { DiffSummary } from "../version-history/DiffSummary.js";
 import type { DiffHunk, FileDiffEntry } from "../version-history/types.js";
-import { countHunks, toFileDiffEntry } from "./deriveRunFileChanges.js";
+import { countHunks, toFileDiffEntry } from "./file-diff-entry.js";
 import { FilePathLink } from "./FilePathLink.js";
 import { EmptyChangeNotice } from "./EmptyChangeNotice.js";
 import { useFileChangeContent } from "@stigmer/react-core";

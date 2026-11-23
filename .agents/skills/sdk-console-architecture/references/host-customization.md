@@ -13,14 +13,14 @@ level they need:
   (`useSessionConversation` and the file and output hooks), the headless layer.
 - **Build on the TypeScript SDK** when they want everything their own.
 
-This file is the contract for the first three: every part of the viewer and
-whether a host may change it, the asks that justify each way to customize, each
-mechanism's data contract, what stays fixed for every host, and where each
-setting lives. `SKILL.md` names the decision ("Hosts customize through
-mechanisms"); this file is its long form. A mechanism marked "built" is in the
-code. One marked "designed" is the agreed shape for code not yet written, and a
-sentence about it in the present tense describes that design, not today's code.
-A change to a design is a change to this file first.
+This file is the contract for the first three, and the data the fourth reads:
+every part of the viewer and whether a host may change it, the asks that justify
+each way to customize, each mechanism's data contract, what stays fixed for
+every host, and where each setting lives. `SKILL.md` names the decision ("Hosts
+customize through mechanisms"); this file is its long form. A mechanism marked
+"built" is in the code. One marked "designed" is the agreed shape for code not
+yet written, and a sentence about it in the present tense describes that design,
+not today's code. A change to a design is a change to this file first.
 
 ## The rules
 
@@ -102,18 +102,19 @@ Each row: the ask, its kinds of source, the public trace, and what answers it.
 Every real-host ask so far comes from hosts close to the maintainers; an outside
 developer's ask joins this table when one comes.
 
-| Row | Ask                                                       | Kinds of source                                   | Public trace                                                                                                                                          | Answer                                                                                                                                   |
-| --- | --------------------------------------------------------- | ------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
-| C1  | A host's own card when its own MCP tool runs              | real host; market                                 | stigmer/stigmer#3379 (where the ask came from is in its comments); assistant-ui tool UI, CopilotKit tool rendering                                    | Tool cards (built)                                                                                                                       |
-| C2  | The host's own actions on a message, the answer above all | real host; market; the kit's own use (the scores) | stigmer/stigmer#3380 (its comments); AI Elements message, assistant-ui thread                                                                         | Message actions (built)                                                                                                                  |
-| C3  | A right-click menu on the answer                          | real host, once                                   | inside stigmer/stigmer#3380                                                                                                                           | Asked once: no menu drawn by the kit; the bubble slot's data (for C2 and C5) lets a host build one                                       |
-| C4  | The agent asks the host to open its own screens           | real host; market; modelled                       | stigmer/stigmer#973; Managed Agents custom tools, CopilotKit frontend tools, AI SDK tool usage; the integrate bank's `move-off-claude-managed-agents` | Custom tools (built)                                                                                                                     |
-| C5  | The host's design system on thread parts                  | real host                                         | stigmer/stigmer#187                                                                                                                                   | Done: `threadSlots`                                                                                                                      |
-| C6  | The host's own recovery on the error notice               | real host                                         | stigmer/stigmer#351                                                                                                                                   | Done: the turn-ending wiring                                                                                                             |
-| C7  | Per-run credentials                                       | real host                                         | stigmer/stigmer#166                                                                                                                                   | Done, then removed (stigmer/stigmer#2026)                                                                                                |
-| C8  | The approval prompt looks like the host's confirm dialog  | modelled                                          | the integrate bank's `chat-wears-our-brand`                                                                                                           | Partly met: the `ApprovalCard` slot draws an ask with no row of its own, not one inside a tool's row. One kind of source, so no new seam |
-| C9  | Hear what the viewer does (a turn ended, a tool finished) | none                                              | none                                                                                                                                                  | Not asked; no mechanism                                                                                                                  |
-| C10 | Links, composer extras, opening the closed rows           | none                                              | none                                                                                                                                                  | Not asked                                                                                                                                |
+| Row | Ask                                                       | Kinds of source                                   | Public trace                                                                                                                                                                                                            | Answer                                                                                                                                   |
+| --- | --------------------------------------------------------- | ------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| C1  | A host's own card when its own MCP tool runs              | real host; market                                 | stigmer/stigmer#3379 (where the ask came from is in its comments); assistant-ui tool UI, CopilotKit tool rendering                                                                                                      | Tool cards (built)                                                                                                                       |
+| C2  | The host's own actions on a message, the answer above all | real host; market; the kit's own use (the scores) | stigmer/stigmer#3380 (its comments); AI Elements message, assistant-ui thread                                                                                                                                           | Message actions (built)                                                                                                                  |
+| C3  | A right-click menu on the answer                          | real host, once                                   | inside stigmer/stigmer#3380                                                                                                                                                                                             | Asked once: no menu drawn by the kit; the bubble slot's data (for C2 and C5) lets a host build one                                       |
+| C4  | The agent asks the host to open its own screens           | real host; market; modelled                       | stigmer/stigmer#973; Managed Agents custom tools, CopilotKit frontend tools, AI SDK tool usage; the integrate bank's `move-off-claude-managed-agents`                                                                   | Custom tools (built)                                                                                                                     |
+| C5  | The host's design system on thread parts                  | real host                                         | stigmer/stigmer#187                                                                                                                                                                                                     | Done: `threadSlots`                                                                                                                      |
+| C6  | The host's own recovery on the error notice               | real host                                         | stigmer/stigmer#351                                                                                                                                                                                                     | Done: the turn-ending wiring                                                                                                             |
+| C7  | Per-run credentials                                       | real host                                         | stigmer/stigmer#166                                                                                                                                                                                                     | Done, then removed (stigmer/stigmer#2026)                                                                                                |
+| C8  | The approval prompt looks like the host's confirm dialog  | modelled                                          | the integrate bank's `chat-wears-our-brand`                                                                                                                                                                             | Partly met: the `ApprovalCard` slot draws an ask with no row of its own, not one inside a tool's row. One kind of source, so no new seam |
+| C9  | Hear what the viewer does (a turn ended, a tool finished) | none                                              | none                                                                                                                                                                                                                    | Not asked; no mechanism                                                                                                                  |
+| C10 | Links, composer extras, opening the closed rows           | none                                              | none                                                                                                                                                                                                                    | Not asked                                                                                                                                |
+| C11 | Draw the whole screen from the conversation data          | the kit's own use; market; modelled               | `sdk/ink` (the terminal kit draws its own screen from `@stigmer/react-core` alone); the AI SDK's hooks-only chat, assistant-ui's headless primitives; the integrate bank's `account-changes-approved-in-our-ops-screen` | The public hooks and the guide's program (below)                                                                                         |
 
 The scores count as the kit's own use for C2 with a limit: they are a control a
 data act cannot express, and they are hidden from the `endUser` and `guest`
@@ -435,6 +436,61 @@ The kit's side, built:
   `defineCustomTool` from `@stigmer/client`, as it imports the client itself, so
   that entry re-exports no client value. The root entry re-exports
   `defineCustomTool` beside `createRunnerAdapter`.
+
+## Drawing your own screen
+
+A host that draws no viewer of ours reads the conversation from the public hooks
+in `@stigmer/react-core` and draws it in its own markup: a terminal, a native
+app, or a page in its own design system (Headless first). The level's promise is
+that every kind of thing a session shows is public data, in that one package,
+with the client's own words for it where a host wants ours (`stepPhrase`,
+`turnSteps`, `describeTurnEnding`). The guide "Build a chat from the hooks"
+(`docs/sdk/react-core/build-a-chat.mdx`) draws all of it in one program,
+`sdk/react-core/examples/chat/Chat.tsx`.
+
+Our grouping of a turn into rows is not public: `buildThreadItems` and
+`ThreadItem` stay internal, because the structure of a turn's work is what the
+viewer's redesigns change (stigmer/stigmer#3046), and no host has asked for our
+rows. What a host needs of our structure is public as a pure function: a turn's
+plan with each step under its to-do item is `turnSteps`.
+
+Where each row kind's data is public is code: `sdk/react/src/run/row-data.ts`
+maps every kind to the fields and names it reads, so a new kind fails to compile
+until it names where a host reads it, and a renamed field or export fails too.
+Only one kind reads a name outside the core, the agent version's label
+(`agentVersionLabel`, from the kit's headless layer); a test
+(`sdk/react/src/run/__tests__/row-data.test.ts`) fails on any other, and when
+this table and the map disagree.
+
+| Part (row kind)                     | Where a host reads it                                                                                                                                                                                                               |
+| ----------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `message`                           | `useSessionConversation.turns`, `Turn.userMessage`, `Turn.items`, `Turn.answer`; a turn started with no message: `syntheticUserPrompt`                                                                                              |
+| `queued-message`                    | `useSessionConversation.queued`, `useSessionConversation.pendingUserMessage`                                                                                                                                                        |
+| `approval-request`                  | `Turn.asks`, `useSessionConversation.asks`, answered with `useSessionConversation.answerToolUse`; worded by `stepPhrase`                                                                                                            |
+| `todos`                             | `Turn.todos`; each item with its steps: `turnSteps`                                                                                                                                                                                 |
+| `plan-completion`                   | the plan file a plan turn made: `useSessionFiles` keyed by `sessionFilesRefreshKey`, beside `useSessionConversation.runs`                                                                                                           |
+| `plan-writing`                      | `Turn.items` while a plan turn writes, `useSessionConversation.runs`                                                                                                                                                                |
+| `setup-progress`                    | `useSessionConversation.activeTurn`, `useSessionConversation.activeRun`, `Turn.liveness`                                                                                                                                            |
+| `recalled-memories`                 | `Turn.memory`, `useSessionConversation.runs`                                                                                                                                                                                        |
+| `execution-error`                   | `Turn.status`, `Turn.errors`; worded by `describeTurnEnding`                                                                                                                                                                        |
+| `liveness`                          | `Turn.liveness`, `useSessionConversation.stopBackgroundCommand`; worded by `describeTurnActivity`                                                                                                                                   |
+| `tool-group`                        | `Turn.items`, `ToolUse.state`, `ToolUse.result`; the app's own tools: `useSessionConversation.customToolUses`, answered with `useSessionConversation.answerCustomToolUse`; worded by `stepPhrase`, `failureWords`, `toolPublicName` |
+| `plan`                              | `Turn.todos`, `Turn.items`; `turnSteps`, `stepPhrase`                                                                                                                                                                               |
+| `how-it-got-there`                  | `Turn.items`, `Turn.answer`; `stepPhrase`                                                                                                                                                                                           |
+| `subagent`                          | `ToolUse.thread`; `stepPhrase`                                                                                                                                                                                                      |
+| `outcome`                           | `Turn.fileReview`, decided with `useSessionConversation.reviewFileChanges`; `Turn.structuredOutput`; the files it made: `useSessionFiles` keyed by `sessionFilesRefreshKey`                                                         |
+| `turn-scores`                       | None: the scores are a control a data view cannot express, hidden from end users and guests.                                                                                                                                        |
+| `phase-badge`                       | `Turn.status`, `Turn.ended`                                                                                                                                                                                                         |
+| `context-compacted`                 | `Turn.items`                                                                                                                                                                                                                        |
+| `agent-version`                     | `useSessionConversation.runs`, labelled by `agentVersionLabel` (the kit's headless layer)                                                                                                                                           |
+| `loaded-versions`                   | `useSessionConversation.runs`                                                                                                                                                                                                       |
+| Every file the conversation made    | `useSessionOutputs` (one entry per output path, newest turn winning) over the files list                                                                                                                                            |
+| Every file the conversation changed | `useSessionFileChanges` (one net change per path), its text by `useFileChangeContent`                                                                                                                                               |
+| The conversation's state            | `useSessionConversation`: `activePhase`, `isStoppable` and `stop`, `sendFollowUp`, the errors                                                                                                                                       |
+
+Who may answer is the server's rule, the same at every level: only the
+conversation's owner answers an approval or a call of the app's own tool; a page
+showing someone else's conversation draws both without their controls.
 
 ## Where each setting lives
 

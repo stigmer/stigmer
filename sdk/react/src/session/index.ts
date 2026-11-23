@@ -59,11 +59,8 @@ export type {
 export { TranscriptExportMenu } from "./TranscriptExportMenu.js";
 export type { TranscriptExportMenuProps } from "./TranscriptExportMenu.js";
 
-export { useSessionOutputs, outputKey } from "./useSessionOutputs.js";
-export type {
-  SessionOutputEntry,
-  UseSessionOutputsReturn,
-} from "./useSessionOutputs.js";
+export { useSessionOutputs, outputKey } from "@stigmer/react-core";
+export type { SessionOutputEntry, UseSessionOutputsReturn } from "@stigmer/react-core";
 
 export { useSessionGivenFiles, givenKey, UPLOADS_FOLDER } from "./useSessionGivenFiles.js";
 export type {
@@ -79,8 +76,8 @@ export type {
 
 export { useWorkspaceReadRefs } from "./useWorkspaceReadRefs.js";
 
-export { useSessionFileChanges } from "./useSessionFileChanges.js";
-export type { UseSessionFileChangesReturn } from "./useSessionFileChanges.js";
+export { useSessionFileChanges } from "@stigmer/react-core";
+export type { UseSessionFileChangesReturn } from "@stigmer/react-core";
 
 export { useSessionUsage } from "@stigmer/react-core";
 export type {

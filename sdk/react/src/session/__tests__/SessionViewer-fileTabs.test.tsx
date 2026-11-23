@@ -1,12 +1,13 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import type { ReactElement } from "react";
+import type { ReactElement, ReactNode } from "react";
+import type { Stigmer } from "@stigmer/client";
 import { render, screen, cleanup, act, fireEvent, waitFor } from "@testing-library/react";
 import { create } from "@bufbuild/protobuf";
 import { FileSchema } from "@stigmer/apis/ai/stigmer/agentic/file/v1/api_pb";
 import { RunSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 import { RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 import { FILE_DOCUMENT_ENTRY_ID } from "../../run/file-document";
-import { outputKey, type SessionOutputEntry } from "../useSessionOutputs";
+import { outputKey, StigmerContext, type SessionOutputEntry } from "@stigmer/react-core";
 import { givenKey, type SessionGivenEntry } from "../useSessionGivenFiles";
 import { CONVERSATION_FILES_VIEW_ID } from "../useSessionRailViews";
 import { samples } from "../../test";
@@ -185,6 +186,11 @@ vi.mock("@stigmer/react-core", async (importOriginal) => ({
 }));
 
 import { SessionViewer } from "../SessionViewer";
+
+/** The client the core's own hooks read from their context: the conversation's Files among them. */
+function WithClient({ children }: { children: ReactNode }): ReactElement {
+  return <StigmerContext.Provider value={client as unknown as Stigmer}>{children}</StigmerContext.Provider>;
+}
 import { SessionInspector } from "../inspector/SessionInspector";
 
 /** The latest editors array the (mocked) WorkspaceSurface received. */
@@ -235,7 +241,7 @@ afterEach(() => {
 
 describe("SessionViewer — Files facet open/pin wiring", () => {
   it("threads onOpenFileDocument + onActivateFileDocument into the Files rail view", async () => {
-    render(<SessionViewer sessionId="ses_1" org="acme" inspector={<SessionInspector />} />);
+    render(<SessionViewer sessionId="ses_1" org="acme" inspector={<SessionInspector />} />, { wrapper: WithClient });
     await showPanelWithFiles();
 
     expect(typeof filesTabCallback("onOpenFileDocument")).toBe("function");
@@ -243,7 +249,7 @@ describe("SessionViewer — Files facet open/pin wiring", () => {
   });
 
   it("opening a saved File lands a PREVIEW tab; activating it pins the tab", async () => {
-    render(<SessionViewer sessionId="ses_1" org="acme" inspector={<SessionInspector />} />);
+    render(<SessionViewer sessionId="ses_1" org="acme" inspector={<SessionInspector />} />, { wrapper: WithClient });
     await showPanelWithFiles();
 
     // Single-click preview → one preview tab keyed by the output's identity.
@@ -260,7 +266,7 @@ describe("SessionViewer — Files facet open/pin wiring", () => {
   });
 
   it("opens a given File's tab at its place under the uploads folder, with a document for it", async () => {
-    render(<SessionViewer sessionId="ses_1" org="acme" inspector={<SessionInspector />} />);
+    render(<SessionViewer sessionId="ses_1" org="acme" inspector={<SessionInspector />} />, { wrapper: WithClient });
     await showPanelWithFiles();
     const given = (filesTabProps().given as readonly SessionGivenEntry[])[0]!;
 
@@ -288,7 +294,7 @@ describe("SessionViewer — a File document's lifecycle", () => {
   }
 
   it("closes a deleted File's tab and re-reads the conversation's Files", async () => {
-    render(<SessionViewer sessionId="ses_1" org="acme" inspector={<SessionInspector />} />);
+    render(<SessionViewer sessionId="ses_1" org="acme" inspector={<SessionInspector />} />, { wrapper: WithClient });
     await showPanelWithFiles();
     act(() => filesTabCallback("onOpenFileDocument")(outputKey(output)));
     const reads = listAll.mock.calls.length;
@@ -300,7 +306,7 @@ describe("SessionViewer — a File document's lifecycle", () => {
   });
 
   it("says a File is no longer available when its tab outlives it", async () => {
-    render(<SessionViewer sessionId="ses_1" org="acme" inspector={<SessionInspector />} />);
+    render(<SessionViewer sessionId="ses_1" org="acme" inspector={<SessionInspector />} />, { wrapper: WithClient });
     await showPanelWithFiles();
     act(() => filesTabCallback("onOpenFileDocument")("gone/old.md"));
 
@@ -311,7 +317,7 @@ describe("SessionViewer — a File document's lifecycle", () => {
 
 describe("SessionViewer — the Files facet lists what was saved and what was given", () => {
   it("lists a turn's Files by output path, and a person's upload at the place the conversation gave it", async () => {
-    render(<SessionViewer sessionId="ses_1" org="acme" inspector={<SessionInspector />} />);
+    render(<SessionViewer sessionId="ses_1" org="acme" inspector={<SessionInspector />} />, { wrapper: WithClient });
     await showPanelWithFiles();
 
     expect(listAll.mock.calls[0]![0]).toEqual({ org: "acme", sessionId: "ses_1" });
@@ -323,7 +329,7 @@ describe("SessionViewer — the Files facet lists what was saved and what was gi
   });
 
   it("re-reads the conversation's Files when the facet opens", async () => {
-    render(<SessionViewer sessionId="ses_1" org="acme" inspector={<SessionInspector />} />);
+    render(<SessionViewer sessionId="ses_1" org="acme" inspector={<SessionInspector />} />, { wrapper: WithClient });
     await showPanelWithFiles();
     const reads = listAll.mock.calls.length;
 
@@ -333,7 +339,7 @@ describe("SessionViewer — the Files facet lists what was saved and what was gi
   });
 
   it("re-reads the conversation's Files when a turn starts, before it ends", async () => {
-    const { rerender } = render(<SessionViewer sessionId="ses_1" org="acme" inspector={<SessionInspector />} />);
+    const { rerender } = render(<SessionViewer sessionId="ses_1" org="acme" inspector={<SessionInspector />} />, { wrapper: WithClient });
     await showPanelWithFiles();
     const reads = listAll.mock.calls.length;
 
@@ -359,7 +365,7 @@ describe("SessionViewer — the inspector's other doors", () => {
     stubSessionPageFlow.executionTarget = "cloud" as never;
     stubWorkspace.entries = [{ id: "e1", type: "git", name: "billing" }] as never;
     try {
-      render(<SessionViewer sessionId="ses_1" org="acme" inspector={<SessionInspector />} />);
+      render(<SessionViewer sessionId="ses_1" org="acme" inspector={<SessionInspector />} />, { wrapper: WithClient });
       await showPanelWithFiles();
       expect(railIds()).toContain("changes");
     } finally {
@@ -368,7 +374,7 @@ describe("SessionViewer — the inspector's other doors", () => {
     }
     cleanup();
     surfaceProps.length = 0;
-    render(<SessionViewer sessionId="ses_1" org="acme" inspector={<SessionInspector />} />);
+    render(<SessionViewer sessionId="ses_1" org="acme" inspector={<SessionInspector />} />, { wrapper: WithClient });
     await showPanelWithFiles();
     expect(railIds()).not.toContain("changes");
   });
@@ -382,6 +388,7 @@ describe("SessionViewer — the inspector's other doors", () => {
         onBrowseLocalFolder={async () => "/Users/ada/billing"}
         inspector={<SessionInspector />}
       />,
+      { wrapper: WithClient },
     );
     await showPanelWithFiles();
     await act(async () => {
@@ -391,7 +398,7 @@ describe("SessionViewer — the inspector's other doors", () => {
   });
 
   it("says a turn ended before its plan was done, in the plan tab, when there is no plan to show", async () => {
-    render(<SessionViewer sessionId="ses_1" org="acme" inspector={<SessionInspector />} />);
+    render(<SessionViewer sessionId="ses_1" org="acme" inspector={<SessionInspector />} />, { wrapper: WithClient });
     await showPanelWithFiles();
     const documents = surfaceProps.at(-1)!.virtualDocuments as ReadonlyArray<{ content: React.ReactNode }>;
     render(<>{documents[0]!.content}</>);
@@ -399,7 +406,7 @@ describe("SessionViewer — the inspector's other doors", () => {
   });
 
   it("opens a File the turn returned as the inspector's document tab, from the turn's outcome", async () => {
-    render(<SessionViewer sessionId="ses_1" org="acme" inspector={<SessionInspector />} />);
+    render(<SessionViewer sessionId="ses_1" org="acme" inspector={<SessionInspector />} />, { wrapper: WithClient });
     await showPanelWithFiles();
     const turn = samples.turn({ runId: "run_1" });
     render(<>{(threadProps.at(-1)!.turnOutcome as (turn: unknown) => React.ReactNode)(turn)}</>);
@@ -410,7 +417,7 @@ describe("SessionViewer — the inspector's other doors", () => {
   it("opens a change the turn made in the inspector's editor, from the turn's outcome", async () => {
     stubWorkspace.entries = [{ id: "e1", type: "git", name: "billing" }] as never;
     try {
-      render(<SessionViewer sessionId="ses_1" org="acme" inspector={<SessionInspector />} />);
+      render(<SessionViewer sessionId="ses_1" org="acme" inspector={<SessionInspector />} />, { wrapper: WithClient });
       await showPanelWithFiles();
       const turn = samples.turn({
         runId: "run_1",
@@ -430,17 +437,17 @@ describe("SessionViewer — the inspector's other doors", () => {
     try {
       versions.currentHash = "v2";
       status.agentVersionHash = "v2";
-      render(<SessionViewer sessionId="ses_1" org="acme" inspector={<SessionInspector />} />);
+      render(<SessionViewer sessionId="ses_1" org="acme" inspector={<SessionInspector />} />, { wrapper: WithClient });
       expect(threadProps.at(-1)!.agentVersionLabel).toBeUndefined();
       cleanup();
 
       status.agentVersionHash = "v1";
-      render(<SessionViewer sessionId="ses_1" org="acme" inspector={<SessionInspector />} />);
+      render(<SessionViewer sessionId="ses_1" org="acme" inspector={<SessionInspector />} />, { wrapper: WithClient });
       expect(threadProps.at(-1)!.agentVersionLabel).toBe(versions.labelOf);
       cleanup();
 
       versions.currentHash = "";
-      render(<SessionViewer sessionId="ses_1" org="acme" inspector={<SessionInspector />} />);
+      render(<SessionViewer sessionId="ses_1" org="acme" inspector={<SessionInspector />} />, { wrapper: WithClient });
       expect(threadProps.at(-1)!.agentVersionLabel).toBeUndefined();
     } finally {
       versions.currentHash = "";

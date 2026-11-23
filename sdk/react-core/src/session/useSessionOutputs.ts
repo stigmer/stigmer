@@ -19,7 +19,7 @@ import { useMemo } from "react";
 import type { File as StigmerFile } from "@stigmer/apis/ai/stigmer/agentic/file/v1/api_pb";
 import type { Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 import { RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
-import { isTerminalPhase } from "@stigmer/react-core/internal";
+import { isTerminalPhase } from "../run/run-phases.js";
 
 /**
  * One output File, with what content views and Apply gating need about the
@@ -59,15 +59,10 @@ export interface UseSessionOutputsReturn {
  * (where the agent saved it under the outputs folder), falling back to the
  * filename.
  *
- * This is the SINGLE source of truth for output identity across three sites
- * that must agree or a tab could fail to resolve its File:
- * 1. de-duplication here (newest turn wins per key),
- * 2. the virtual-document tab `path` when an output opens in the editor area
- *    (see `SessionViewer` / `useSessionPanel.openFileDocument`), and
- * 3. the `outputKey → entry` lookup that renders the open tab's document.
- *
- * Its basename doubles as the editor tab's label (paths render as their last
- * `/` segment in `EditorTabs`).
+ * The one identity of an output: the de-duplication here (newest turn wins
+ * per key) reads it, and so must anything that opens an output and later
+ * looks its entry up again (the React kit's editor tabs key an open output
+ * by it), or the lookup could miss its File.
  */
 export function outputKey(file: StigmerFile): string {
   return file.status?.outputPath || file.spec?.filename || file.metadata?.id || "";
@@ -87,7 +82,7 @@ export function outputKey(file: StigmerFile): string {
  * ```tsx
  * function MadeFiles({ sessionId, org }: { sessionId: string; org: string }) {
  *   const conv = useSessionConversation(sessionId, org);
- *   const { files } = useSessionFiles(org, sessionId, String(conv.runs.length));
+ *   const { files } = useSessionFiles(org, sessionId, sessionFilesRefreshKey(conv.runs));
  *   const { outputCount } = useSessionOutputs(files, conv.runs);
  *   return <p>{outputCount} files made</p>;
  * }

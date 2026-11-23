@@ -6,7 +6,7 @@ import { FileSchema } from "@stigmer/apis/ai/stigmer/agentic/file/v1/api_pb";
 import { useSessionPanel, type UseSessionPanelOptions } from "../useSessionPanel";
 import { PLAN_DOCUMENT_ENTRY_ID, PLAN_DOCUMENT_PATH } from "../plan-document";
 import { FILE_DOCUMENT_ENTRY_ID } from "../../run/file-document";
-import { outputKey } from "../useSessionOutputs";
+import { outputKey } from "@stigmer/react-core";
 
 // ---------------------------------------------------------------------------
 // The unified-panel controller: collapsed-by-default state, the open-editor

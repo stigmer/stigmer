@@ -6,7 +6,7 @@ import type { DisplayFileChange } from "@stigmer/client";
 import type { WorkspaceEntry } from "../workspace/useWorkspaceEntries.js";
 import type { SelectedWorkspaceFile } from "../internal/store/workspace-file-selection-store.js";
 import { findChangeForSelection } from "../workspace/findChangeForSelection.js";
-import { useSessionFileChanges } from "./useSessionFileChanges.js";
+import { useSessionFileChanges } from "@stigmer/react-core";
 
 /**
  * Stable empty runs passed to {@link useSessionFileChanges} while no file

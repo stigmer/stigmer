@@ -29,10 +29,6 @@ const workspace = {
   clear: () => {},
 };
 
-vi.mock("../../file/useSessionFiles", () => ({
-  useSessionFiles: () => ({ files: [], isLoading: false, error: null, refetch: () => {} }),
-}));
-
 // One flow per conversation, as the real hook keeps its values stable: a
 // fresh object each render would loop the viewer's effects on a re-render.
 const flows = new WeakMap<object, unknown>();
@@ -98,6 +94,7 @@ vi.mock("../useSessionAccess", () => ({
 
 vi.mock("@stigmer/react-core", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@stigmer/react-core")>()),
+  useSessionFiles: () => ({ files: [], isLoading: false, error: null, refetch: () => {} }),
   useStigmer: () => ({
     platform: { getServerInfo: async () => ({}) },
     routine: { get: async () => Promise.reject(new Error("not found")) },

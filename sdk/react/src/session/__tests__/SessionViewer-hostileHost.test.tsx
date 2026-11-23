@@ -28,10 +28,6 @@ const workspace = {
   clear: () => {},
 };
 
-vi.mock("../../file/useSessionFiles", () => ({
-  useSessionFiles: () => ({ files: [], isLoading: false, error: null, refetch: () => {} }),
-}));
-
 vi.mock("../useSessionPageFlow", () => ({
   useSessionPageFlow: () => ({
     conv,
@@ -84,6 +80,7 @@ vi.mock("../useSessionAccess", () => ({
 
 vi.mock("@stigmer/react-core", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@stigmer/react-core")>()),
+  useSessionFiles: () => ({ files: [], isLoading: false, error: null, refetch: () => {} }),
   useStigmer: () => ({
     platform: { getServerInfo: async () => ({}) },
     routine: { get: async () => Promise.reject(new Error("not found")) },

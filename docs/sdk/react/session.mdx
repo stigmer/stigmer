@@ -635,10 +635,11 @@ const turns = fold?.turns ?? [];
 
 Pure derivation hook that aggregates an agent's file changes across every
 run in a session into one net change per file. A headless building
-block for platform builders composing a consolidated session-changes surface
-(typically paired with [`FileChangesView`](/docs/sdk/react/run#filechangesview)); the Console itself renders
-file changes in the transcript (stamped edit rows + the per-turn decision
-bar) and does not consume this hook.
+block for a consolidated session-changes surface (a side list of every
+file the conversation touched; the React kit draws one as its file
+changes view); the Console itself renders file changes in the transcript
+(stamped edit rows + the per-turn decision bar) and does not consume this
+hook.
 
 A thin memoizing wrapper over [`deriveRunFileChanges`](/docs/sdk/react/run#deriverunfilechanges) — the
 execution-domain core. The source (each run's file record, via
@@ -796,7 +797,7 @@ function useSessionOutputs(files: readonly File[], runs: readonly Run[]): UseSes
 ```tsx
 function MadeFiles({ sessionId, org }: { sessionId: string; org: string }) {
   const conv = useSessionConversation(sessionId, org);
-  const { files } = useSessionFiles(org, sessionId, String(conv.runs.length));
+  const { files } = useSessionFiles(org, sessionId, sessionFilesRefreshKey(conv.runs));
   const { outputCount } = useSessionOutputs(files, conv.runs);
   return <p>{outputCount} files made</p>;
 }
@@ -1904,15 +1905,10 @@ The stable identity of an output within a conversation: its output path
 (where the agent saved it under the outputs folder), falling back to the
 filename.
 
-This is the SINGLE source of truth for output identity across three sites
-that must agree or a tab could fail to resolve its File:
-1. de-duplication here (newest turn wins per key),
-2. the virtual-document tab `path` when an output opens in the editor area
-   (see `SessionViewer` / `useSessionPanel.openFileDocument`), and
-3. the `outputKey → entry` lookup that renders the open tab's document.
-
-Its basename doubles as the editor tab's label (paths render as their last
-`/` segment in `EditorTabs`).
+The one identity of an output: the de-duplication here (newest turn wins
+per key) reads it, and so must anything that opens an output and later
+looks its entry up again (the React kit's editor tabs key an open output
+by it), or the lookup could miss its File.
 
 ```tsx
 import type { File } from "@stigmer/apis/ai/stigmer/agentic/file/v1/api_pb";

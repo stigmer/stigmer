@@ -22,6 +22,8 @@ export type { UseAgentSearchOptions, UseAgentSearchReturn } from "./agent/useAge
 export type { InteractionModeOption } from "./composer/interaction-mode.js";
 export { StigmerContext } from "./context.js";
 export { DeploymentModeContext, useDeploymentMode, useResourceAvailable } from "./deployment-mode.js";
+export { sessionFilesRefreshKey, useSessionFiles } from "./file/useSessionFiles.js";
+export type { UseSessionFilesReturn } from "./file/useSessionFiles.js";
 export { useWhoAmI } from "./grant/useWhoAmI.js";
 export type { UseWhoAmIOptions, UseWhoAmIReturn } from "./grant/useWhoAmI.js";
 export { useStigmer } from "./hooks.js";
@@ -66,6 +68,7 @@ export type {
   FileReviewRowState,
   FileReviewability,
 } from "./run/file-review-status.js";
+export { deriveRunFileChanges } from "./run/deriveRunFileChanges.js";
 export { runPhaseOf } from "./run/run-phases.js";
 export {
   defaultDisclosureForCategory,
@@ -116,8 +119,12 @@ export { useSessionConversation } from "./session/useSessionConversation.js";
 export type { SendFollowUpOptions, UseSessionConversationReturn } from "./session/useSessionConversation.js";
 export { useSessionEvents } from "./session/useSessionEvents.js";
 export type { UseSessionEventsOptions, UseSessionEventsReturn } from "./session/useSessionEvents.js";
+export { useSessionFileChanges } from "./session/useSessionFileChanges.js";
+export type { UseSessionFileChangesReturn } from "./session/useSessionFileChanges.js";
 export { useSessionList } from "./session/useSessionList.js";
 export type { UseSessionListOptions, UseSessionListReturn } from "./session/useSessionList.js";
+export { deriveSessionOutputs, outputKey, useSessionOutputs } from "./session/useSessionOutputs.js";
+export type { SessionOutputEntry, UseSessionOutputsReturn } from "./session/useSessionOutputs.js";
 export { useSessionRuns } from "./session/useSessionRuns.js";
 export type { UseSessionRunsReturn } from "./session/useSessionRuns.js";
 export { useSessionUsage } from "./session/useSessionUsage.js";

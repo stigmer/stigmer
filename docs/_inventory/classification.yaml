@@ -987,8 +987,10 @@ pages:
     fate: keep
     diataxis: how-to
     teaches:
-      Build a whole chat with your own markup from useCreateRun and
-      useSessionConversation — start, follow, answer an ask, stop.
+      Build a whole chat with your own markup from useCreateRun,
+      useSessionConversation and useSessionFiles — start, follow, each step
+      under the agent's plan, helpers, files changed and made, answer an ask
+      and the app's own tools, stop.
     medium: interactive
     why:
       The program the guide quotes runs beside it, so the reader sees each

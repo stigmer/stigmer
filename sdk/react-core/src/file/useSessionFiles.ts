@@ -18,12 +18,19 @@
  * - The server lists newest first, and both fields keep that order.
  * - A person's uploads carry no run id and are listed in `files` but never
  *   in `outputsByRun`: the outputs of a turn are only what it saved.
+ * - The key's rule is one function, `sessionFilesRefreshKey`, which every
+ *   caller passes its runs through, so a host cannot build a key that
+ *   misses a turn's end (a run count does: it moves when a turn starts and
+ *   not when it ends, so that turn's outputs never appear).
  */
 
 import { useEffect, useMemo, useRef } from "react";
 import type { File as StigmerFile } from "@stigmer/apis/ai/stigmer/agentic/file/v1/api_pb";
-import { useStigmer } from "@stigmer/react-core";
-import { useFetch } from "@stigmer/react-core/internal";
+import type { Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
+import { RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
+import { isTerminalPhase } from "../run/run-phases.js";
+import { useStigmer } from "../hooks.js";
+import { useFetch } from "../internal/useFetch.js";
 
 const NO_FILES: readonly StigmerFile[] = [];
 
@@ -47,18 +54,17 @@ export interface UseSessionFilesReturn {
  *
  * @param org - The conversation's organization, or `null` to skip.
  * @param sessionId - The conversation's id, or `null` to skip.
- * @param refreshKey - Any string that changes when a turn starts or ends
- *   (each run's id with whether it has ended); a change re-reads the list.
+ * @param refreshKey - A string that changes when a turn starts or ends:
+ *   {@link sessionFilesRefreshKey} of the conversation's runs. A change
+ *   re-reads the list.
  *
  * @example
  * ```tsx
- * import type { Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
- *
- * function RunsWithFiles({ org, sessionId, runs }: { org: string; sessionId: string; runs: readonly Run[] }) {
- *   // Refetch as each run ends, so the files it made appear.
- *   const refreshKey = runs.map((r) => `${r.metadata?.id}:${isTerminalPhase(r.status?.phase ?? 0)}`).join(",");
- *   const { outputsByRun } = useSessionFiles(org, sessionId, refreshKey);
- *   return <p>{outputsByRun.size} runs made files</p>;
+ * function TurnsWithFiles({ org, sessionId }: { org: string; sessionId: string }) {
+ *   const conversation = useSessionConversation(sessionId, org);
+ *   // Re-read as each turn starts and ends, so the files it made appear.
+ *   const { outputsByRun } = useSessionFiles(org, sessionId, sessionFilesRefreshKey(conversation.runs));
+ *   return <p>{outputsByRun.size} turns made files</p>;
  * }
  * ```
  */
@@ -109,4 +115,30 @@ export function useSessionFiles(
     () => ({ files: data, outputsByRun, isLoading, error, refetch }),
     [data, outputsByRun, isLoading, error, refetch],
   );
+}
+
+/**
+ * The `refreshKey` {@link useSessionFiles} re-reads on: each run's id with
+ * whether it has ended, so the key moves when a turn starts (the Files sent
+ * with its message join the conversation) and when it ends (its outputs
+ * register), and at no other time.
+ *
+ * @param runs - The conversation's runs (`useSessionConversation().runs`).
+ *
+ * @example
+ * ```tsx
+ * function FileCount({ org, sessionId }: { org: string; sessionId: string }) {
+ *   const conversation = useSessionConversation(sessionId, org);
+ *   const { files } = useSessionFiles(org, sessionId, sessionFilesRefreshKey(conversation.runs));
+ *   return <p>{files.length} files</p>;
+ * }
+ * ```
+ */
+export function sessionFilesRefreshKey(runs: readonly Run[]): string {
+  return runs
+    .map((run) => {
+      const ended = isTerminalPhase(run.status?.phase ?? RunPhase.RUN_PHASE_UNSPECIFIED);
+      return `${run.metadata?.id ?? ""}:${ended ? "ended" : "started"}`;
+    })
+    .join(",");
 }

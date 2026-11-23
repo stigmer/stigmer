@@ -226,8 +226,11 @@ raw log type; and what an approval shows and records, the order of events, the
 transcript, Stop and keyboard access stay fixed for every host. Every row kind
 the thread draws is open or closed with its reason, in a map that fails to
 compile on an undecided kind (`sdk/react/src/run/row-kinds.ts`), and a host part
-that throws draws the kit's own in its place. The parts, the ask corpus, each
-mechanism's contract and where each setting lives are in
+that throws draws the kit's own in its place. A host that draws its own screen
+reads every kind of row from public data in `@stigmer/react-core`, mapped kind
+by kind in `sdk/react/src/run/row-data.ts`; our grouping into rows stays
+internal. The parts, the ask corpus, each mechanism's contract and where each
+setting lives are in
 [references/host-customization.md](references/host-customization.md)
 (stigmer/stigmer#3379, #3380, #973).
 

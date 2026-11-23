@@ -233,7 +233,7 @@ function useSessionFiles(org: string | null, sessionId: string | null, refreshKe
   type={{
     org: { type: "string | null", description: "The conversation's organization, or `null` to skip.", required: true },
     sessionId: { type: "string | null", description: "The conversation's id, or `null` to skip.", required: true },
-    refreshKey: { type: "string", description: "Any string that changes when a turn starts or ends   (each run's id with whether it has ended); a change re-reads the list.", required: true },
+    refreshKey: { type: "string", description: "A string that changes when a turn starts or ends:   sessionFilesRefreshKey of the conversation's runs. A change   re-reads the list.", required: true },
   }}
 />
 
@@ -250,13 +250,11 @@ function useSessionFiles(org: string | null, sessionId: string | null, refreshKe
 />
 
 ```tsx
-import type { Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
-
-function RunsWithFiles({ org, sessionId, runs }: { org: string; sessionId: string; runs: readonly Run[] }) {
-  // Refetch as each run ends, so the files it made appear.
-  const refreshKey = runs.map((r) => `${r.metadata?.id}:${isTerminalPhase(r.status?.phase ?? 0)}`).join(",");
-  const { outputsByRun } = useSessionFiles(org, sessionId, refreshKey);
-  return <p>{outputsByRun.size} runs made files</p>;
+function TurnsWithFiles({ org, sessionId }: { org: string; sessionId: string }) {
+  const conversation = useSessionConversation(sessionId, org);
+  // Re-read as each turn starts and ends, so the files it made appear.
+  const { outputsByRun } = useSessionFiles(org, sessionId, sessionFilesRefreshKey(conversation.runs));
+  return <p>{outputsByRun.size} turns made files</p>;
 }
 ```
 
@@ -446,6 +444,28 @@ Fetch one page of the Files of no conversation the caller can view in
 
 ```tsx
 function listLibraryFilesPage(client: FileListClient, org: string, page?: { pageSize?: number; pageToken?: string }): Promise<FilePage>
+```
+
+
+### sessionFilesRefreshKey
+
+The `refreshKey` [`useSessionFiles`](#usesessionfiles) re-reads on: each run's id with
+whether it has ended, so the key moves when a turn starts (the Files sent
+with its message join the conversation) and when it ends (its outputs
+register), and at no other time.
+
+```tsx
+import type { Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
+// ---cut---
+function sessionFilesRefreshKey(runs: readonly Run[]): string
+```
+
+```tsx
+function FileCount({ org, sessionId }: { org: string; sessionId: string }) {
+  const conversation = useSessionConversation(sessionId, org);
+  const { files } = useSessionFiles(org, sessionId, sessionFilesRefreshKey(conversation.runs));
+  return <p>{files.length} files</p>;
+}
 ```
 
 

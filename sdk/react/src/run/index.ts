@@ -83,10 +83,8 @@ export type { DiffStatSummary } from "./write-back-utils.js";
 export { FileChangesView, FileChangeDiff } from "./FileChangesView.js";
 export type { FileChangesViewProps, FileChangeDiffProps } from "./FileChangesView.js";
 
-export {
-  deriveRunFileChanges,
-  toFileDiffEntry,
-} from "./deriveRunFileChanges.js";
+export { deriveRunFileChanges } from "@stigmer/react-core";
+export { toFileDiffEntry } from "./file-diff-entry.js";
 
 export { EmptyChangeNotice } from "./EmptyChangeNotice.js";
 export type { EmptyChangeNoticeProps, EmptyChangeKind } from "./EmptyChangeNotice.js";

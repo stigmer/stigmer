@@ -1,5 +1,9 @@
 "use client";
 
+// Every file a conversation's turns changed, one net change per path: the
+// data a side list of the conversation's changes reads. A memoizing wrapper
+// over `deriveRunFileChanges`, which holds the net-change rules.
+
 import { useMemo } from "react";
 import type { Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 import type { DisplayFileChange } from "@stigmer/client";
@@ -23,10 +27,11 @@ export interface UseSessionFileChangesReturn {
 /**
  * Pure derivation hook that aggregates an agent's file changes across every
  * run in a session into one net change per file. A headless building
- * block for platform builders composing a consolidated session-changes surface
- * (typically paired with {@link FileChangesView}); the Console itself renders
- * file changes in the transcript (stamped edit rows + the per-turn decision
- * bar) and does not consume this hook.
+ * block for a consolidated session-changes surface (a side list of every
+ * file the conversation touched; the React kit draws one as its file
+ * changes view); the Console itself renders file changes in the transcript
+ * (stamped edit rows + the per-turn decision bar) and does not consume this
+ * hook.
  *
  * A thin memoizing wrapper over {@link deriveRunFileChanges} — the
  * execution-domain core. The source (each run's file record, via
@@ -46,10 +51,7 @@ export interface UseSessionFileChangesReturn {
  * }
  * ```
  *
- * @see useSessionWriteBacks — git-mode (PR) counterpart, which does drive the
- *   inspector's Changes tab
  * @see useFileChangeContent — resolves a change's before/after text for diffing
- * @see FileChangesView — component that renders this data
  */
 export function useSessionFileChanges(
   executions: readonly Run[],
