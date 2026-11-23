@@ -12,7 +12,7 @@ Your customers now run the variance report job inside your product, but the chat
 still looks and acts like Stigmer's. On this page you change it, one step at a
 time, until it feels like part of your app:
 
-- it wears your brand's colours and font, in light and dark;
+- it wears your brand's colors and font, in light and dark;
 - when the Agent wants a person to check a flagged account, it calls one of your
   app's own tools, and your app draws its own account card in the chat, with
   **Looks right** and **Needs a look**. The Agent hears which one they picked;
@@ -41,7 +41,7 @@ working that way: everything here happens in the browser.
 ## Wear your brand
 
 The chat's look comes from design tokens, CSS variables named `--stgm-*`. Give
-it your colour and font with a theme class. Create `src/brand.css`:
+it your color and font with a theme class. Create `src/brand.css`:
 
 ```css title="src/brand.css"
 .brand-theme {
@@ -60,10 +60,11 @@ it your colour and font with a theme class. Create `src/brand.css`:
 }
 ```
 
-Every colour you change gets a dark value too, and every fill keeps its
+Every color you change gets a dark value too, and every fill keeps its
 `-foreground` partner, so text on it stays readable. Then, in `src/App.tsx`,
 import the stylesheet and hand the class to `StigmerProvider`:
 
+{/* prettier-ignore */}
 ```tsx no-compile="a run of src/App.tsx, shown whole in the last step"
 import "./brand.css";
 // …
@@ -183,6 +184,7 @@ export function OpenAccountCard({ call, answer }: ToolCardProps) {
 In `src/App.tsx`, register the card for the tool's name, once, on the provider,
 and offer the tool to the conversation:
 
+{/* prettier-ignore */}
 ```tsx no-compile="a run of src/App.tsx, shown whole in the last step"
 import {
   AgentChat,
@@ -195,15 +197,15 @@ import { OPEN_ACCOUNT, OpenAccountCard } from "./open-account";
 const TOOL_CARDS: ToolCards = { open_account: OpenAccountCard };
 const CUSTOM_TOOLS = [OPEN_ACCOUNT];
 // …
-toolCards = { TOOL_CARDS };
+toolCards={TOOL_CARDS}
 // …
-customTools = { CUSTOM_TOOLS };
+customTools={CUSTOM_TOOLS}
 ```
 
-Your card goes inside Stigmer's step for the call. The step's line stays ours
-and keeps saying what is happening, an approval the call needs stays ours, and
-if your card throws, ours draws instead. Define cards at the top level of a
-module, as here, not inside a component.
+Your card goes inside Stigmer's step for the call. The step's line stays
+Stigmer's and keeps saying what is happening, an approval the call needs stays
+Stigmer's, and if your card throws, Stigmer's own draws instead. Define cards at
+the top level of a module, as here, not inside a component.
 
 The same `toolCards` map takes a card for a tool of a server you connected to
 the Agent, keyed by its name as the Agent sees it, `mcp__<server>__<tool>`:
@@ -286,6 +288,7 @@ is the final answer of a finished turn. It returns the actions for that message,
 here one, only on the final answer. In `src/App.tsx`, pass it to the chat and
 show the list beside it:
 
+{/* prettier-ignore */}
 ```tsx no-compile="a run of src/App.tsx, shown whole in the last step"
 import { MonthEndNotes, useMonthEndNotes } from "./month-end-notes";
 // …
@@ -351,10 +354,11 @@ rest. Every other message goes back to `MessageEntry`. Handing back loads that
 part with your page, before the chat draws, where the chat alone loads it with
 the conversation. In `src/App.tsx`:
 
+{/* prettier-ignore */}
 ```tsx no-compile="a run of src/App.tsx, shown whole in the last step"
 import { THREAD_SLOTS } from "./person-bubble";
 // …
-threadSlots = { THREAD_SLOTS };
+threadSlots={THREAD_SLOTS}
 ```
 
 Approvals, to-do lists, plans and the other parts swap the same way;
@@ -397,14 +401,15 @@ at work in the same words the chat uses, such as "Waiting for the app" while
 your card waits for your user. In `src/App.tsx`, keep the conversation's ID that
 `onSessionChange` hands you and put the line in your header:
 
+{/* prettier-ignore */}
 ```tsx no-compile="a run of src/App.tsx, shown whole in the last step"
 import { AgentStatus } from "./agent-status";
 // …
 const [sessionId, setSessionId] = useState<string | null>(null);
 // …
-<AgentStatus sessionId={sessionId} org={org} />;
+<AgentStatus sessionId={sessionId} org={org} />
 // …
-onSessionChange = { setSessionId };
+onSessionChange={setSessionId}
 ```
 
 To draw the whole conversation yourself, from the same hook, see
@@ -508,7 +513,7 @@ VITE_STIGMER_ORG=$STIGMER_ORG npm run dev
 If you gave each customer an Organization, start the app with both, as on the
 last page: this file reads both, as yours did.
 
-Open `http://localhost:5173`. The chat wears your colour, and switches to its
+Open `http://localhost:5173`. The chat wears your color, and switches to its
 dark values when your computer is dark. Attach `ledger.csv`, send "Review this
 quarter's ledger and show me any account that looks off." in your own bubble,
 and watch your header:
@@ -533,7 +538,7 @@ budget.
 The chat became part of your app at five levels, each the smallest one that did
 the job:
 
-- **Tokens** gave it your colour and font.
+- **Tokens** gave it your color and font.
 - **Your app's own tool**, declared with `defineCustomTool`, let the Agent ask
   your app something in the middle of its work. Your **tool card** drew the call
   and answered it.
