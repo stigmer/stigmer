@@ -239,12 +239,14 @@ function Helper({ thread }: { thread: Thread }): ReactElement {
 // ---- files ----
 
 const DECIDED = { kept: "kept", undoing: "undoing", undone: "undone", undo_failed: "couldn't undo" } as const;
+const CAPTION = { fontSize: 13, fontWeight: 600, margin: "8px 0 0" };
 
 /** What the turn changed, kept or undone while undecided, and the files it made. */
 function TurnFiles({ turn, made, onReview }: { turn: Turn; made: readonly StigmerFile[]; onReview: UseSessionConversationReturn["reviewFileChanges"] }): ReactElement {
   const changed = turn.fileReview.flatMap((set) => set.files.map((file) => ({ set, file })));
   return (
     <>
+      {changed.length > 0 && <p aria-hidden style={CAPTION}>Files changed</p>}
       {changed.length > 0 && (
         <ul aria-label="Files changed" style={LIST}>
           {changed.map(({ set, file }) => (
@@ -266,6 +268,7 @@ function TurnFiles({ turn, made, onReview }: { turn: Turn; made: readonly Stigme
           ))}
         </ul>
       )}
+      {made.length > 0 && <p aria-hidden style={CAPTION}>Files made</p>}
       {made.length > 0 && (
         <ul aria-label="Files made" style={LIST}>
           {made.map((file) => (
