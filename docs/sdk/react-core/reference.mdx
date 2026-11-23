@@ -89,6 +89,53 @@ const { results, isLoading, query, setQuery } = useAgentSearch("acme");
 ```
 
 
+### useAgentVersions
+
+Data hook that fetches an agent's version history.
+
+Every apply that changes an agent records a version under its content
+hash; this hook pages the `listVersions` RPC (newest first, `hasMore` /
+`loadMore` for older ones) and maps each entry to the
+generic `VersionEntry` every version timeline draws, keeping
+each version's full spec for `UseAgentVersionsReturn.getSpec`.
+
+An agent last written before agents were versioned has no history until
+its next apply: `versions` is empty and `isEmpty` is `true`.
+
+Pass `null` for `org` or `slug` to skip fetching (stable no-op).
+
+**Returns** — `UseAgentVersionsReturn`
+
+<TypeTable
+  type={{
+    error: { type: "Error | null", description: "Error from the last failed request, or `null`.", required: true },
+    getSpec: { type: "(versionHash: string) => AgentSpec | null", description: "The spec a version stored, by its hash: what a turn recorded on that version runs. `null` for a hash the loaded pages do not hold.", required: true },
+    hasMore: { type: "boolean", description: "`true` while the server holds entries beyond those loaded.", required: true },
+    isEmpty: { type: "boolean", description: "`true` when the agent has no recorded version yet.", required: true },
+    isLoading: { type: "boolean", description: "`true` while the initial fetch is in flight.", required: true },
+    isLoadingMore: { type: "boolean", description: "`true` while a `loadMore` read is in flight.", required: true },
+    loadMore: { type: "() => void", description: "Load the next page. No-op while one is loading or when nothing follows.", required: true },
+    loadMoreError: { type: "Error | null", description: "Error from the last failed `loadMore`, or `null`.", required: true },
+    refetch: { type: "() => void", description: "Discard cached data and re-fetch from the server.", required: true },
+    versions: { type: "readonly VersionEntry[]", description: "Version entries mapped to the generic timeline format (newest first).", required: true },
+  }}
+/>
+
+```tsx
+function AgentHistory() {
+  const { versions, isEmpty } = useAgentVersions("acme", "variance-reporter");
+  if (isEmpty) return <p>No versions yet</p>;
+  return (
+    <ul>
+      {versions.map((v) => (
+        <li key={v.id}>{v.tag ?? v.label}</li>
+      ))}
+    </ul>
+  );
+}
+```
+
+
 ### useAnswerCustomToolUse
 
 Behavior hook that answers the calls of an app's own tools
@@ -1068,6 +1115,23 @@ const myId = account?.metadata?.id;
 
 
 ## Functions
+
+### agentVersionLabel
+
+How a version reads to a person: its tag when it has one, else the
+short hash the Versions tab shows. `versions` is the agent's history as
+`useAgentVersions` returns it; a hash it does not hold (still
+loading, or a history the viewer cannot read) reads as its short hash.
+
+```tsx
+import type { Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
+
+function RunVersion({ run }: { run: Run }) {
+  const { versions } = useAgentVersions("acme", "reviewer");
+  return <span>{agentVersionLabel(versions, run.status?.agentVersionHash ?? "")}</span>; // "v2" or "3f2a9c1e0b7d"
+}
+```
+
 
 ### changeForRowPath
 

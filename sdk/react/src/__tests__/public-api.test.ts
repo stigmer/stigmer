@@ -60,10 +60,13 @@ describe("public API surface", () => {
   });
 
   // A slot draws the cases it changes and hands the rest back to ours, so the
-  // light chat entry carries every slot's built-in, the root's same value.
+  // light chat entry carries every slot's built-in. Each is a thin component
+  // named like the root's, which draws the root's real one, so importing it
+  // does not pull the renderer into the page's first download
+  // (run/lazy-built-ins.tsx; what it draws: run/__tests__/lazy-built-ins.test.tsx).
   // `Required` makes a new slot fail this file's typecheck until its
   // built-in is exported here too.
-  it("every slot's built-in is importable from the chat entry, the root's same value", () => {
+  it("every slot's built-in is importable from the chat entry, a thin one named like the root's", () => {
     const fromChat: Required<Chat.MessageThreadSlots> = {
       MessageEntry: ChatEntry.MessageEntry,
       ApprovalCard: ChatEntry.ApprovalCard,
@@ -78,8 +81,11 @@ describe("public API surface", () => {
       LivenessStatusLine: ChatEntry.LivenessStatusLine,
     };
     for (const [name, builtIn] of Object.entries(fromChat)) {
+      const real = Root[name as keyof typeof Root];
       expect(builtIn, name).toBeDefined();
-      expect(builtIn, name).toBe(Root[name as keyof typeof Root]);
+      expect(real, name).toBeDefined();
+      expect(builtIn, name).not.toBe(real);
+      expect((builtIn as { displayName?: string }).displayName, name).toBe(name);
     }
   });
 

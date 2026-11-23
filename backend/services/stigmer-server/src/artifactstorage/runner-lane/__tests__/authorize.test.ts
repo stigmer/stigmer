@@ -8,15 +8,22 @@
  *     is admitted (a later turn reads an earlier turn's file review);
  *   - one bound to a run of another session, or of another organization,
  *     is refused, and never reaches the identity path;
- *   - a composition's own runner decision admits on yes, and on no leaves
- *     the bearer to the identity path; one that throws refuses, and the
- *     identity path is never asked;
+ *   - a composition's own runner decision admits on `allow`, refuses
+ *     outright on `deny` (the identity path is never asked, though the
+ *     authorizer would allow the account), and on `undecided` leaves the
+ *     bearer to the identity path; one that throws refuses, and one that
+ *     answers outside its contract is an error, never an admission;
  *   - an identity is admitted by the authorizer's allow on the run, with
  *     edit for an upload and view for a download; deny and not-found
  *     refuse, unavailable is unavailable, and an answer outside the
  *     authorizer's contract is an error, never an admission;
  *   - a caller the composed classifier names a visitor, or one it throws
  *     on, is refused before the authorizer is asked;
+ *   - a caller the composed never-runner classifier names, or one it
+ *     throws on, is refused before the authorizer is asked, with the
+ *     caller's class on the log line; a "no" from it admits nobody by
+ *     itself, a visitor stays refused with no such classifier composed,
+ *     and a runner credential never reaches it;
  *   - no credential, or one no verifier claims, is unauthenticated, and a
  *     verifier that throws a non-authentication fault is unavailable.
  */
@@ -34,12 +41,15 @@ import { createLogger } from "../../../boot/logger.js";
 import type { AuthzCheck, AuthzDecision, Authorizer } from "../../../extensions/authorizer.js";
 import type { CallerIdentity, IdentityVerifier } from "../../../extensions/identity.js";
 import type { BoundExecutionStore } from "../../../runnerauth/bound-execution.js";
+import type { RunnerArtifactDecision } from "../../../runnerauth/runner-credential-provider.js";
 import { InvalidTokenError, TOKEN_TYPE_EXECUTION_SCOPED } from "../../../runnerauth/runnerauth.js";
 import { ResourceNotFoundError } from "../../../store/interface.js";
 import { decideArtifactAccess, type RunnerArtifactAccessDeps } from "../authorize.js";
 
 const NOW = Date.parse("2026-11-19T12:00:00Z");
-const logger = createLogger({ level: "error", pretty: false, write: () => {} });
+/** The lane's warnings and errors, as written: a refusal names the caller's class there. */
+const logged: string[] = [];
+const logger = createLogger({ level: "warn", pretty: false, write: (line) => logged.push(line) });
 
 function run(id: string, sessionId: string, opts: { org?: string; ended?: boolean } = {}) {
   return create(RunSchema, {
@@ -74,13 +84,16 @@ function verify(lane: string, token: string): string {
 }
 
 const person: CallerIdentity = { identityId: "ida_person", callerClass: "user", issuer: "test", rawToken: "person" };
+/** An edition's own credential for work the server starts: permitted on its runs, never their runner. */
+const judge: CallerIdentity = { identityId: "ida_judge", callerClass: "machine", issuer: "test", rawToken: "judge" };
 
 function depsOf(opts: {
   rows?: Record<string, unknown>;
   decide?: (check: AuthzCheck) => AuthzDecision;
   verifier?: (token: string) => Promise<CallerIdentity | null>;
-  authorizeRunnerForRun?: (token: string, runId: string) => Promise<boolean>;
+  authorizeRunnerArtifactAccess?: (token: string, runId: string) => Promise<RunnerArtifactDecision>;
   isVisitor?: (caller: CallerIdentity) => boolean;
+  isNeverRunner?: (caller: CallerIdentity) => boolean;
 }): RunnerArtifactAccessDeps & { checks: AuthzCheck[] } {
   const checks: AuthzCheck[] = [];
   const authorizer: Authorizer = {
@@ -91,7 +104,9 @@ function depsOf(opts: {
   };
   const verifier: IdentityVerifier = {
     name: "test",
-    verify: opts.verifier ?? ((token) => Promise.resolve(token === "person" ? person : null)),
+    verify:
+      opts.verifier ??
+      ((token) => Promise.resolve(token === "person" ? person : token === "judge" ? judge : null)),
   } as IdentityVerifier;
   return {
     checks,
@@ -108,11 +123,14 @@ function depsOf(opts: {
     ),
     runnerAuth: {
       verify,
-      ...(opts.authorizeRunnerForRun === undefined ? {} : { authorizeRunnerForRun: opts.authorizeRunnerForRun }),
+      ...(opts.authorizeRunnerArtifactAccess === undefined
+        ? {}
+        : { authorizeRunnerArtifactAccess: opts.authorizeRunnerArtifactAccess }),
     },
     identityVerifiers: [verifier],
     authorizer,
     ...(opts.isVisitor === undefined ? {} : { visitorClassifier: { isVisitor: opts.isVisitor } }),
+    ...(opts.isNeverRunner === undefined ? {} : { neverRunnerClassifier: { isNeverRunner: opts.isNeverRunner } }),
   };
 }
 
@@ -137,21 +155,43 @@ describe("decideArtifactAccess: a runner credential", () => {
     expect(deps.checks).toEqual([]);
   });
 
-  it("follows a composition's own runner decision on yes, and hands a no to the identity path", async () => {
+  it("follows a composition's own runner decision: allow admits, undecided goes to the identity path", async () => {
     const deps = depsOf({
-      authorizeRunnerForRun: (token) => Promise.resolve(token === "sandbox"),
+      authorizeRunnerArtifactAccess: (token) => Promise.resolve(token === "sandbox" ? "allow" : "undecided"),
       decide: () => ({ kind: "allow" }),
     });
     expect(await decideArtifactAccess(deps, "sandbox", "run_3", true)).toEqual({ kind: "allow", by: "runner" });
+    expect(deps.checks).toEqual([]);
     expect(await decideArtifactAccess(deps, "person", "run_3", true)).toEqual({ kind: "allow", by: "ida_person" });
+    expect(deps.checks).toHaveLength(1);
+  });
+
+  it("refuses outright a runner credential its composition denies, though the authorizer would allow its account", async () => {
+    // The composition's one-turn credential acts as a person who may open
+    // both runs; it is a runner's, held to its own conversation.
+    const deps = depsOf({
+      authorizeRunnerArtifactAccess: (_token, runId) => Promise.resolve(runId === "run_1" ? "allow" : "deny"),
+      decide: () => ({ kind: "allow" }),
+    });
+    expect(await decideArtifactAccess(deps, "person", "run_1", false)).toEqual({ kind: "allow", by: "runner" });
+    expect(await decideArtifactAccess(deps, "person", "run_3", false)).toEqual({ kind: "deny" });
+    expect(await decideArtifactAccess(deps, "person", "run_3", true)).toEqual({ kind: "deny" });
+    expect(deps.checks).toEqual([]);
   });
 
   it("refuses when a composition's own runner decision throws, and never asks the identity path", async () => {
     const deps = depsOf({
-      authorizeRunnerForRun: () => Promise.reject(new Error("session store down")),
+      authorizeRunnerArtifactAccess: () => Promise.reject(new Error("session store down")),
       decide: () => ({ kind: "allow" }),
     });
     expect(await decideArtifactAccess(deps, "person", "run_1", false)).toEqual({ kind: "deny" });
+    expect(deps.checks).toEqual([]);
+  });
+
+  it("refuses to answer, never admitting, when a composition's runner decision is outside its contract", async () => {
+    const odd = "maybe" as unknown as RunnerArtifactDecision;
+    const deps = depsOf({ authorizeRunnerArtifactAccess: () => Promise.resolve(odd), decide: () => ({ kind: "allow" }) });
+    await expect(decideArtifactAccess(deps, "person", "run_1", false)).rejects.toThrow("unknown runner artifact decision");
     expect(deps.checks).toEqual([]);
   });
 });
@@ -205,6 +245,62 @@ describe("decideArtifactAccess: an identity", () => {
     expect(broken.checks).toEqual([]);
     const member = depsOf({ decide: () => ({ kind: "allow" }), isVisitor: () => false });
     expect(await decideArtifactAccess(member, "person", "run_1", false)).toEqual({ kind: "allow", by: "ida_person" });
+  });
+
+  it("refuses a caller the composed classifier names never a runner, though the authorizer would allow it, and logs its class", async () => {
+    const isNeverRunner = (caller: CallerIdentity): boolean => caller.identityId === "ida_judge";
+    const deps = depsOf({ decide: () => ({ kind: "allow" }), isNeverRunner });
+    logged.length = 0;
+    expect(await decideArtifactAccess(deps, "judge", "run_1", true)).toEqual({ kind: "deny" });
+    expect(await decideArtifactAccess(deps, "judge", "run_1", false)).toEqual({ kind: "deny" });
+    expect(deps.checks).toEqual([]);
+    expect(logged.map((line) => JSON.parse(line) as Record<string, unknown>)).toEqual([
+      expect.objectContaining({ identityId: "ida_judge", callerClass: "machine", runId: "run_1" }),
+      expect.objectContaining({ identityId: "ida_judge", callerClass: "machine", runId: "run_1" }),
+    ]);
+    // The classifier's "no" admits nobody by itself: the caller still meets the authorizer.
+    expect(await decideArtifactAccess(deps, "person", "run_1", false)).toEqual({ kind: "allow", by: "ida_person" });
+    const refusedAnyway = depsOf({ decide: () => ({ kind: "deny", reason: "no" }), isNeverRunner });
+    expect(await decideArtifactAccess(refusedAnyway, "person", "run_1", false)).toEqual({ kind: "deny" });
+    expect(refusedAnyway.checks).toHaveLength(1);
+  });
+
+  it("admits the same caller with no never-runner classifier composed, which is open source", async () => {
+    const deps = depsOf({ decide: () => ({ kind: "allow" }) });
+    expect(await decideArtifactAccess(deps, "judge", "run_1", true)).toEqual({ kind: "allow", by: "ida_judge" });
+  });
+
+  it("refuses a caller the never-runner classifier cannot classify, without asking the authorizer", async () => {
+    const broken = depsOf({
+      decide: () => ({ kind: "allow" }),
+      isNeverRunner: () => {
+        throw new Error("classifier down");
+      },
+    });
+    logged.length = 0;
+    expect(await decideArtifactAccess(broken, "person", "run_1", true)).toEqual({ kind: "deny" });
+    expect(broken.checks).toEqual([]);
+    expect(logged.join("\n")).toContain("classifier down");
+  });
+
+  it("still refuses a visitor when the never-runner classifier rules nobody out, and with none composed", async () => {
+    const both = depsOf({ decide: () => ({ kind: "allow" }), isVisitor: () => true, isNeverRunner: () => false });
+    expect(await decideArtifactAccess(both, "person", "run_1", false)).toEqual({ kind: "deny" });
+    const visitorOnly = depsOf({ decide: () => ({ kind: "allow" }), isVisitor: () => true });
+    expect(await decideArtifactAccess(visitorOnly, "person", "run_1", false)).toEqual({ kind: "deny" });
+    expect([...both.checks, ...visitorOnly.checks]).toEqual([]);
+  });
+
+  it("never asks the never-runner classifier about a runner credential", async () => {
+    const asked: string[] = [];
+    const deps = depsOf({
+      isNeverRunner: (caller) => {
+        asked.push(caller.identityId);
+        return true;
+      },
+    });
+    expect(await decideArtifactAccess(deps, "run:run_1", "run_1", true)).toEqual({ kind: "allow", by: "runner" });
+    expect(asked).toEqual([]);
   });
 
   it("is unavailable when a verifier cannot answer", async () => {

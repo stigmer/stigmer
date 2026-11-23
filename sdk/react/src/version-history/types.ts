@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import type { DiffHunk } from "@stigmer/react-core";
+import type { DiffHunk, VersionEntry } from "@stigmer/react-core";
 
 // ---------------------------------------------------------------------------
 // Diff types — generic text diff primitives for any versioned resource
@@ -28,45 +28,11 @@ export interface MultiFileDiffResult {
 export type DiffViewMode = "unified";
 
 // ---------------------------------------------------------------------------
-// Generic version entry — presentation-layer type for the timeline component
+// Generic version entry — the timeline's entry, kept in @stigmer/react-core
+// beside the version hooks that produce it
 // ---------------------------------------------------------------------------
 
-/**
- * A single entry in a version timeline.
- *
- * This is a generic presentation type — not tied to any specific resource.
- * Resource-specific hooks (e.g., `useSkillVersions`) map from proto types
- * to this shape, enabling the `VersionTimeline` component to render version
- * history for any resource type.
- */
-export interface VersionEntry {
-  /** Unique identifier for this version (e.g., content hash). */
-  readonly id: string;
-  /** When this version was created/pushed. */
-  readonly timestamp: Date;
-  /** Actor who created this version. */
-  readonly actor?: {
-    readonly id: string;
-    readonly avatar?: string;
-    readonly displayName?: string;
-  };
-  /** Primary display text (e.g., truncated content hash). */
-  readonly label: string;
-  /** Secondary text (e.g., commit message or version description). */
-  readonly sublabel?: string;
-  /** Whether this is the currently active version. */
-  readonly isCurrent?: boolean;
-  /** Version tag (e.g., "stable", "v1.0"). */
-  readonly tag?: string;
-  /** Git provenance for traceability. */
-  readonly gitProvenance?: {
-    readonly remoteUrl: string;
-    readonly ref: string;
-    readonly commit: string;
-  };
-  /** Extensible key-value metadata for display. */
-  readonly metadata?: Readonly<Record<string, string>>;
-}
+export type { VersionEntry } from "@stigmer/react-core";
 
 // ---------------------------------------------------------------------------
 // VersionTimeline props

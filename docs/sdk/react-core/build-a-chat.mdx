@@ -42,8 +42,9 @@ Every hook reads the client from `StigmerContext`. Put it there once, around
 the conversation:
 
 ```tsx title="Chat.tsx" no-compile="a run of sdk/react-core/examples/chat/Chat.tsx, which the package's typecheck compiles whole"
-import { useState, type FormEvent, type ReactElement } from "react";
+import { Fragment, useState, type FormEvent, type ReactElement } from "react";
 import type { File as StigmerFile } from "@stigmer/apis/ai/stigmer/agentic/file/v1/api_pb";
+import type { Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 import {
   defineCustomTool,
   failureWords,
@@ -57,7 +58,9 @@ import {
 } from "@stigmer/client";
 import {
   StigmerContext,
+  agentVersionLabel,
   sessionFilesRefreshKey,
+  useAgentVersions,
   useCreateRun,
   useSessionConversation,
   useSessionFiles,
@@ -125,15 +128,22 @@ Each turn holds the person's message and the agent's `items` in the order the
 agent produced them: messages, thinking, notes, and tool calls. This chat shows
 messages as written, thinking closed until the reader opens it, a note quietly,
 and a marker where earlier messages were summarized to make room. The tool calls
-draw together, where the first one happened (next section):
+draw together, where the first one happened (a later section), and a quiet line
+names the agent version above the turns that ran it (next section):
 
 ```tsx title="Chat.tsx" no-compile="a run of sdk/react-core/examples/chat/Chat.tsx, which the package's typecheck compiles whole"
   return (
     <section aria-label="Conversation" style={{ display: "flex", flexDirection: "column", gap: 12, height: "100%" }}>
       <ol style={{ flex: 1, overflowY: "auto", listStyle: "none", margin: 0, padding: 0 }}>
-        {conversation.turns.map((turn) => (
-          <TurnView key={turn.runId} turn={turn} made={files.outputsByRun.get(turn.runId) ?? []} onReview={(...decision) => settled(conversation.reviewFileChanges(...decision))} />
-        ))}
+        {conversation.turns.map((turn) => {
+          const version = versionLines.get(turn.runId);
+          return (
+            <Fragment key={turn.runId}>
+              {version !== undefined && <li style={STEP}>Agent version {agentVersionLabel(history.versions, version)}</li>}
+              <TurnView turn={turn} made={files.outputsByRun.get(turn.runId) ?? []} onReview={(...decision) => settled(conversation.reviewFileChanges(...decision))} />
+            </Fragment>
+          );
+        })}
       </ol>
 // …
 function TurnView({ turn, made, onReview }: { turn: Turn; made: readonly StigmerFile[]; onReview: UseSessionConversationReturn["reviewFileChanges"] }): ReactElement {
@@ -175,6 +185,50 @@ function Item({ item }: { item: Exclude<TurnItem, ToolUse> }): ReactElement {
 
 Text is shown as written. To render the agent's markdown, pass `item.text` to
 the markdown renderer you already use.
+
+## Name the agent version each turn ran
+
+Every turn records the agent version it ran, in its run's
+`status.agentVersionHash`, because an author can save a new version of the
+agent while a conversation is open. `useAgentVersions` reads the agent's
+history, by the organization and slug of the session's `spec.agentRef`, and
+`agentVersionLabel` words a version the way the agent's page does: its tag, such
+as `v2`, else a short hash. This chat marks each turn that ran another version
+than the turn before it, and only in a conversation that ran more than one, so
+a conversation on one version reads no history and shows no line:
+
+```tsx title="Chat.tsx" no-compile="a run of sdk/react-core/examples/chat/Chat.tsx, which the package's typecheck compiles whole"
+  // The agent version each turn ran, worded from the agent's history ("v2",
+  // else a short hash); read only once the conversation has run two.
+  const ranVersions = versionsRan(conversation.runs);
+  const ranMany = new Set(ranVersions.values()).size > 1;
+  const agentRef = conversation.session?.spec?.agentRef;
+  const history = useAgentVersions(ranMany ? agentRef?.org || null : null, agentRef?.slug || null);
+  const versionLines = ranMany ? versionChanges(conversation.turns, ranVersions) : new Map<string, string>();
+// …
+/** Each run's agent version, by run id; a run that recorded none (the built-in assistant) is left out. */
+function versionsRan(runs: readonly Run[]): Map<string, string> {
+  const ran = new Map<string, string>();
+  for (const run of runs) {
+    const hash = run.status?.agentVersionHash ?? "";
+    if (hash !== "" && run.metadata) ran.set(run.metadata.id, hash);
+  }
+  return ran;
+}
+
+/** The turns that ran another version than the turn before them, with the version they ran. */
+function versionChanges(turns: readonly Turn[], ran: ReadonlyMap<string, string>): Map<string, string> {
+  const lines = new Map<string, string>();
+  let last = "";
+  for (const turn of turns) {
+    const hash = ran.get(turn.runId);
+    if (hash === undefined || hash === last) continue;
+    lines.set(turn.runId, hash);
+    last = hash;
+  }
+  return lines;
+}
+```
 
 ## Show each step, under the agent's plan
 
@@ -602,9 +656,9 @@ export function ConversationFiles({ org, sessionId }: { org: string; sessionId: 
 }
 ```
 
-Everything else a session shows (the agent version a turn ran, the memories it
-recalled, the wait while its sandbox starts) is public too, in
-`useSessionConversation`'s `runs` and each turn's fields. The
+Everything else a session shows (the memories a turn recalled, the wait while
+its sandbox starts) is public too, in `useSessionConversation`'s `runs` and each
+turn's fields. The
 [React core reference](/docs/sdk/react-core/reference) lists every hook and
 what it returns.
 

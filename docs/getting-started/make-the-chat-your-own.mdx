@@ -382,9 +382,9 @@ The bubble reads your brand's own tokens, so it follows light and dark with the
 rest, and it draws only what you give it: here the text, and how many files the
 message carried. It replaces Stigmer's bubble whole, so the person's messages
 lose its Copy and Edit buttons and its file previews; draw the ones you want to
-keep. Every other message goes back to `MessageEntry`. Handing back loads that
-part with your page, before the chat draws, where the chat alone loads it with
-the conversation. In `src/App.tsx`:
+keep. Every other message goes back to `MessageEntry`. Handing back costs your
+page nothing up front: Stigmer's part arrives with the conversation, as it does
+when you change nothing, and draws with it. In `src/App.tsx`:
 
 {/* prettier-ignore */}
 ```tsx no-compile="a run of src/App.tsx, shown whole in the last step"

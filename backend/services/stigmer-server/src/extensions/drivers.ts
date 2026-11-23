@@ -40,6 +40,9 @@
  *   - run lanes (the lanes an edition's visitors' turns come through, with
  *     their saved settings, operator profile and approval mode, read by the
  *     server's one settings resolution) — landed 2026-10-05
+ *   - never-runner classifier (which callers are never runners, whatever
+ *     they are permitted on, so a door that exists only for runners
+ *     refuses them) — landed with stigmer/stigmer#3444
  *
  * Merge rules (enforced by resolveExtensions): the two
  * provider kinds are single-instance points — a second declaring unit is
@@ -84,6 +87,7 @@ import type { QueuedSenderLane } from "./queued-sender-lane.js";
 import type { RoutineFireCaller } from "./routine-fire-caller.js";
 import type { RunLanes } from "./run-lanes.js";
 import type { VisitorClassifier } from "./visitor-classifier.js";
+import type { NeverRunnerClassifier } from "./never-runner-classifier.js";
 
 /** The driver contributions of one extension unit. */
 export interface ExtensionDrivers {
@@ -352,6 +356,15 @@ export interface ExtensionDrivers {
    * visitor — OSS behavior byte-identical.
    */
   readonly visitorClassifier?: VisitorClassifier;
+  /**
+   * The never-runner classifier (single-instance point): which callers are
+   * never runners, whatever they are permitted on
+   * (extensions/never-runner-classifier.ts carries the contract). When
+   * composed, the runner artifact lane refuses such a caller before the
+   * authorizer is asked; when absent, no caller is ruled out — OSS
+   * behavior byte-identical.
+   */
+  readonly neverRunnerClassifier?: NeverRunnerClassifier;
   /**
    * The run lanes (single-instance point): the lanes an edition's visitors'
    * turns come through (extensions/run-lanes.ts carries the contract). When

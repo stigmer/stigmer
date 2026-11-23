@@ -10,6 +10,9 @@
  *   - an upload answers `{url, method, headers}` signed for the declared
  *     content type (the default when none is declared), a download `{url}`
  *     signed for the runner's address;
+ *   - a path that is not one of the two is an empty 404 whatever the
+ *     method, credential or body, and nothing is presigned: the handler is
+ *     handed to listeners whose routing it does not own;
  *   - every refusal has an empty body; a body over the cap is a 413,
  *     whether its length is declared or only counted as it streams; a
  *     method other than POST is a 405 with `Allow`;
@@ -72,7 +75,7 @@ beforeAll(async () => {
       verify: () => {
         throw new Error("unused");
       },
-      authorizeRunnerForRun: (token) => Promise.resolve(token === "runner"),
+      authorizeRunnerArtifactAccess: (token) => Promise.resolve(token === "runner" ? "allow" : "undecided"),
     },
     identityVerifiers: [
       {
@@ -185,6 +188,29 @@ describe("the runner artifact lane", () => {
     const answer = await post(UPLOAD, JSON.stringify({ key: "artifacts/run_1/x", content_type: "not a type" }));
     expect(answer.status).toBe(400);
     expect(answer.text).toBe("");
+  });
+
+  it("answers an empty 404 for any path but its two, whatever the method, and presigns nothing", async () => {
+    // The unified port routes the two paths by exact match; a composition's
+    // own listener may hand the handler anything under a wider prefix.
+    const before = presigned.length;
+    const body = JSON.stringify({ key: "artifacts/run_1/out.txt" });
+    for (const path of [
+      "/v1/proxy/artifacts",
+      "/v1/proxy/artifacts/presigned-upload-url/x",
+      "/v1/proxy/artifacts/presigned-download-urls",
+      "/v1/proxy/models",
+      "/",
+    ]) {
+      const posted = await post(path, body);
+      expect([path, posted.status, posted.text]).toEqual([path, 404, ""]);
+    }
+    const got = await fetch(`${base}/v1/proxy/artifacts`, { headers: { authorization: "Bearer runner" } });
+    expect(got.status).toBe(404);
+    expect(presigned.length).toBe(before);
+    // A query string is not part of the path the lane matches on.
+    const queried = await post(`${DOWNLOAD}?x=1`, body);
+    expect(queried.status).toBe(200);
   });
 
   it("refuses a body over the cap with 413 and another method with 405", async () => {

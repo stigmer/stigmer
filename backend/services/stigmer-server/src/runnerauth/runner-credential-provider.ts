@@ -191,6 +191,19 @@ export interface RunCredentialTurn {
 }
 
 /**
+ * A composition's answer about a bearer at the runner artifact lane
+ * (RunnerCredentialProvider.authorizeRunnerArtifactAccess):
+ *
+ *   - `allow`: a runner credential that may have the URL;
+ *   - `deny`: a runner credential that may not. It is refused outright:
+ *     a runner's credential is never a person's, so the lane's identity
+ *     path never sees it, whatever the account it acts as is permitted on;
+ *   - `undecided`: not a credential the implementation rules on here. The
+ *     lane treats the bearer as an identity and asks the authorizer.
+ */
+export type RunnerArtifactDecision = "allow" | "deny" | "undecided";
+
+/**
  * Mints and verifies runner credentials per lane. Implementations must be
  * stateless-safe for concurrent use (they gate every values fetch and
  * every execution dispatch).
@@ -313,6 +326,25 @@ export interface RunnerCredentialProvider {
    * agent's words or mounting its files.
    */
   authorizeRunnerForRun?(rawToken: string, runId: string): Promise<boolean>;
+
+  /**
+   * The trust decision for the runner artifact lane
+   * (artifactstorage/runner-lane/authorize.ts): whether the bearer is a
+   * runner credential that may have a URL on run `runId`'s folder. When
+   * present, it decides whose credential this is, with three answers
+   * (RunnerArtifactDecision), because the lane serves identities too and
+   * only the implementation can tell its own runner credential from one.
+   * Absent, the lane keeps the OSS decision (execution_scoped verify, the
+   * bound run live, and the run its own or one of its session and
+   * organization). It never throws for an unrecognized or invalid token
+   * (a throw is a composition fault, logged and refused).
+   * Deliberately not the per-run doors' decision (authorizeRunnerForRun):
+   * that one asks whether the bearer is the runner acting for exactly this
+   * run, and a turn's runner also reads what an earlier turn of its
+   * conversation stored under that turn's run, so the reach here is the
+   * implementation's to state.
+   */
+  authorizeRunnerArtifactAccess?(rawToken: string, runId: string): Promise<RunnerArtifactDecision>;
 
   /**
    * The trust decision for the Temporal worker lane

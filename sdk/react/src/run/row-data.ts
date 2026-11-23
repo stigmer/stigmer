@@ -23,11 +23,8 @@ type ToolUseField = `ToolUse.${keyof ToolUse & string}`;
 type CoreName = keyof typeof import("@stigmer/react-core") & string;
 /** A public name of the client, for the words a row reads in. */
 type ClientName = keyof typeof import("@stigmer/client") & string;
-/** A public name of the kit's headless layer; the test allows one kind to read one. */
-type HeadlessName = keyof typeof import("../headless.js") & string;
-
 /** Where a row kind's data is public. */
-export type RowSource = ConversationField | TurnField | ToolUseField | CoreName | HeadlessName;
+export type RowSource = ConversationField | TurnField | ToolUseField | CoreName;
 
 /** A row kind's data, for a host that draws its own screen. */
 export type RowData =
@@ -74,6 +71,6 @@ export const ROW_DATA = {
   },
   "phase-badge": { reads: ["Turn.status", "Turn.ended"] },
   "context-compacted": { reads: ["Turn.items"] },
-  "agent-version": { reads: ["useSessionConversation.runs", "agentVersionLabel"] },
+  "agent-version": { reads: ["useSessionConversation.runs", "useAgentVersions", "agentVersionLabel"] },
   "loaded-versions": { reads: ["useSessionConversation.runs"] },
 } as const satisfies Record<ThreadItem["kind"], RowData>;
