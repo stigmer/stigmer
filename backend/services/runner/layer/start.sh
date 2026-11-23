@@ -33,6 +33,17 @@
 #   warned   - rg (the Stigmer harness's grep falls back to a substring
 #              search): one feature degrades, so the runner starts.
 #
+# A runner that serves only conversations without a computer
+# (STIGMER_RUNNER_SERVES=computerless, src/runner-serves.ts) is asked for the
+# glibc loader and /proc alone. It never starts an agent's side: each turn
+# runs in a locked host, a copy of the runner's own entry under Node's
+# permission model, spawned as the runner's own user (src/agent-host/fence.ts),
+# with no shell, repository or hook. So root, which exists here only so a
+# runner can drop to stigmer-agent, and the agent's tools are not asked of
+# it, and it starts as whatever user its deployment names. Any other value
+# of the setting, unset included, is checked as a runner with a computer;
+# the runner itself refuses a value it does not know.
+#
 # glibc's version is not checked: that needs a fork, and below 2.28 the
 # loader refuses the Node itself with a message that names the version it
 # wants (GLIBC_2.28 not found).
@@ -95,6 +106,11 @@ if [ ! -e /lib64/ld-linux-x86-64.so.2 ] && [ ! -e /lib/ld-linux-aarch64.so.1 ]; 
   add_problem "$libc"
 fi
 
+computerless=""
+if [ "${STIGMER_RUNNER_SERVES-}" = "computerless" ]; then
+  computerless=1
+fi
+
 uid=""
 if [ -r /proc/self/status ]; then
   while read -r key _ effective _; do
@@ -103,7 +119,7 @@ if [ -r /proc/self/status ]; then
       break
     fi
   done </proc/self/status
-  if [ "$uid" != "0" ]; then
+  if [ -z "$computerless" ] && [ "$uid" != "0" ]; then
     add_problem "running as uid ${uid:-unknown}, not root (on Substrate the base image's USER must be root)"
   fi
 else
@@ -111,17 +127,24 @@ else
 fi
 
 missing=""
-for tool in bash git setpriv cat sed grep head cut awk tr base64 dirname; do
-  if ! command -v "$tool" >/dev/null 2>&1; then
-    missing="${missing:+$missing, }$tool"
-  fi
-done
+if [ -z "$computerless" ]; then
+  for tool in bash git setpriv cat sed grep head cut awk tr base64 dirname; do
+    if ! command -v "$tool" >/dev/null 2>&1; then
+      missing="${missing:+$missing, }$tool"
+    fi
+  done
+fi
 if [ -n "$missing" ]; then
   add_problem "missing from PATH: $missing"
 fi
 
 if [ -n "$problems" ]; then
-  printf 'stigmer runner: this base image cannot run the runner layer: %s. The base image needs glibc 2.28 or newer, root, bash, git and standard text tools: %s\n' "$problems" "$GUIDE" >&2
+  if [ -n "$computerless" ]; then
+    needs="The base image of a runner without a computer needs glibc 2.28 or newer and /proc"
+  else
+    needs="The base image needs glibc 2.28 or newer, root, bash, git and standard text tools"
+  fi
+  printf 'stigmer runner: this base image cannot run the runner layer: %s. %s: %s\n' "$problems" "$needs" "$GUIDE" >&2
   exit 78
 fi
 
@@ -146,8 +169,9 @@ fi
 unset NODE_OPTIONS NODE_PATH
 
 # The runner reads this to know it runs in a container shape, where it
-# starts the agent's side as the agent user (src/shared/agent-identity.ts),
-# and never downloads an engine (src/activities/execute-claude/adapter.ts).
+# starts the agent's side as the agent user when it runs as root
+# (src/shared/agent-identity.ts), and never downloads an engine
+# (src/activities/execute-claude/adapter.ts).
 export STIGMER_RUNNER_LAYER=1
 
 # The Claude engine the layer carries: engines beside this file's directory

@@ -29,7 +29,7 @@ import { createLogger } from "../../../boot/logger.js";
 import { SHUTDOWN_DRAIN_TIMEOUT_MS } from "../../constants.js";
 import { createUnifiedPortServer, type UnifiedPortServer } from "../../server.js";
 import { newHeldPolls, type HeldPolls } from "../capacity.js";
-import { createTemporalWorkerDoorLane } from "../lane.js";
+import { createTemporalWorkerDoorLane, type LaneAdmission } from "../lane.js";
 import { newReceiptKeySource } from "../receipt-key.js";
 
 const SERVER_QUEUE = "agent_execution_stigmer";
@@ -97,6 +97,11 @@ function poll(connection: Connection, queue: string, ms = 15_000) {
   );
 }
 
+/** A sandbox credential's admission: its own queue, under the per-sandbox poll limit. */
+function sandbox(queue: string): LaneAdmission {
+  return { queue, pollLimit: "per-sandbox" };
+}
+
 /** The lane's held polls, recording how many were taken, refused, and held at most at once. */
 function recordingHeldPolls(): HeldPolls & { taken(): number; refused(): number; mostHeld(): number } {
   const inner = newHeldPolls();
@@ -108,8 +113,8 @@ function recordingHeldPolls(): HeldPolls & { taken(): number; refused(): number;
     taken: () => taken,
     refused: () => refused,
     mostHeld: () => most,
-    hold(queue) {
-      const slot = inner.hold(queue);
+    hold(queue, limit) {
+      const slot = inner.hold(queue, limit);
       if ("refused" in slot) {
         refused += 1;
         return slot;
@@ -166,7 +171,7 @@ describe("a sandbox reaches Temporal only as itself", () => {
           namespace: NAMESPACE,
           connection: () => temporal,
           queueOf: async (token) =>
-            token === TOKEN_A ? QUEUE_A : token === TOKEN_B ? QUEUE_B : undefined,
+            token === TOKEN_A ? sandbox(QUEUE_A) : token === TOKEN_B ? sandbox(QUEUE_B) : undefined,
           receiptKey: newReceiptKeySource({
             claim: async (key, value) => {
               if (!stored.has(key)) stored.set(key, value);
@@ -389,7 +394,7 @@ describe("a sandbox reaches Temporal only as itself", () => {
         logger: silent,
         namespace: NAMESPACE,
         connection: () => temporal,
-        queueOf: async (token) => (token === TOKEN_A ? QUEUE_A : undefined),
+        queueOf: async (token) => (token === TOKEN_A ? sandbox(QUEUE_A) : undefined),
         receiptKey: newReceiptKeySource({
           claim: async (key, value) => {
             if (!stored.has(key)) stored.set(key, value);

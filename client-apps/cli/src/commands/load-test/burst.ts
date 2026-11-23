@@ -1,10 +1,11 @@
 // The engine of `stigmer load-test`: make one agent of its own, with a
-// computer, start N turns on it at the same moment, watch each until it ends
-// or the watch's time is up, read each run once, then delete everything it
-// made.
+// computer unless the burst asks for none, start N turns on it at the same
+// moment, watch each until it ends or the watch's time is up, read each run
+// once, then delete everything it made.
 //
 // - Every turn is a new conversation (`startTurn` with a `sessionSpec`), so
-//   each asks the fleet for a sandbox of its own. The creates are fired
+//   each asks the fleet for a sandbox of its own; with no computer, each
+//   goes to a shared runner instead, where the server has them. The creates are fired
 //   together (one `Promise.allSettled`, no stagger); a create the server
 //   refuses is kept as its code and the server's own sentence.
 // - Each admitted turn is followed the way `stigmer run` follows one
@@ -78,6 +79,8 @@ export interface BurstOptions {
   readonly message: string;
   /** Each turn's budget, `RunConfig.max_cost_usd`. */
   readonly shareUsd: number;
+  /** The agent's computer: REQUIRED (each turn asks for a sandbox) or NONE (each goes to a shared runner). */
+  readonly computer: Computer;
   /** How long to watch, from the burst, before calling a run still waiting. */
   readonly waitMs: number;
   /** Ctrl-C: stops every watch; the cleanup still runs. */
@@ -120,9 +123,10 @@ export async function runBurst(client: LoadTestClient, options: BurstOptions): P
     org: options.org,
     description: "Made by stigmer load-test and deleted when it ends.",
     instructions: AGENT_INSTRUCTIONS,
-    // A computer, so each turn asks the fleet for a sandbox: an agent that
-    // names nothing needing one starts without, and its turns would ask for none.
-    computer: Computer.REQUIRED,
+    // Said outright either way: an agent that names nothing needing a
+    // computer starts without one, so REQUIRED is what makes each turn ask
+    // the fleet for a sandbox, and NONE sends each to a shared runner.
+    computer: options.computer,
   });
   const agentId = agent.metadata?.id ?? "";
   const agentRef = { org: agent.metadata?.org ?? options.org, slug: agent.metadata?.slug ?? "" };

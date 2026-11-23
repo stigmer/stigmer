@@ -46,6 +46,7 @@ import {
   createTemporalWorkerDoorLane,
   credentialQueueOf,
   currentConnectionOf,
+  type LaneAdmission,
   type TemporalWorkerDoorDeps,
 } from "../lane.js";
 import { issueReceipt, openReceipt } from "../receipts.js";
@@ -101,12 +102,17 @@ let server: Http2Server;
 let session: ClientHttp2Session;
 let origin = "";
 
+/** A sandbox credential's admission: its own queue, under the per-sandbox poll limit. */
+function sandbox(queue: string): LaneAdmission {
+  return { queue, pollLimit: "per-sandbox" };
+}
+
 function lane(overrides: Partial<TemporalWorkerDoorDeps> = {}) {
   deps = {
     logger: silent,
     namespace: "default",
     connection: () => current.connection,
-    queueOf: async (token) => (token === TOKEN ? QUEUE : token === "odd" ? "not-a-sandbox-queue" : undefined),
+    queueOf: async (token) => (token === TOKEN ? sandbox(QUEUE) : token === "odd" ? sandbox("not-a-sandbox-queue") : undefined),
     receiptKey: async () => KEY,
     ...overrides,
   };
@@ -220,8 +226,8 @@ function countingHeldPolls(): HeldPolls & { held(): number } {
   let held = 0;
   return {
     held: () => held,
-    hold(queue) {
-      const slot = inner.hold(queue);
+    hold(queue, limit) {
+      const slot = inner.hold(queue, limit);
       if ("refused" in slot) return slot;
       held += 1;
       return {
@@ -460,6 +466,23 @@ describe("failures and limits", () => {
     expect(decodeURIComponent(full.grpcMessage ?? "")).toBe(WORDS.tooManyForServer);
   });
 
+  it("holds an admission with no per-queue limit past the per-sandbox one, up to the limit in all", async () => {
+    handler = lane({
+      heldPolls: newHeldPolls(1, 2),
+      queueOf: async (token) => (token === TOKEN ? { queue: QUEUE, pollLimit: "in-all-only" } : undefined),
+    });
+    const releases: Array<() => void> = [];
+    current.service.pollActivityTaskQueue.mockImplementation(
+      () => new Promise((resolve) => releases.push(() => resolve(ws.PollActivityTaskQueueResponse.create({})))),
+    );
+    const held = [call("PollActivityTaskQueue", pollRequest()), call("PollActivityTaskQueue", pollRequest())];
+    await vi.waitFor(() => expect(current.service.pollActivityTaskQueue).toHaveBeenCalledTimes(2));
+    const third = await call("PollActivityTaskQueue", pollRequest());
+    expect(decodeURIComponent(third.grpcMessage ?? "")).toBe(WORDS.tooManyForServer);
+    for (const release of releases) release();
+    expect((await Promise.all(held)).map((answer) => answer.grpcStatus)).toEqual(["0", "0"]);
+  });
+
   it("counts each served call once, by method, decision, status and check", async () => {
     counted.mockClear();
     await call("GetSystemInfo", frame(new Uint8Array()), { authorization: "Bearer nobody" });
@@ -475,7 +498,7 @@ describe("failures and limits", () => {
     const heldPolls = countingHeldPolls();
     handler = lane({
       heldPolls,
-      queueOf: async (token) => (await reading.pass(), token === TOKEN ? QUEUE : undefined),
+      queueOf: async (token) => (await reading.pass(), token === TOKEN ? sandbox(QUEUE) : undefined),
     });
     counted.mockClear();
     const leaving = leavingCall("PollActivityTaskQueue", pollRequest());
@@ -549,8 +572,11 @@ describe("failures and limits", () => {
 });
 
 describe("credentialQueueOf", () => {
-  it("asks the provider's capability, refuses without one, and logs a throw as a refusal", async () => {
-    expect(await credentialQueueOf({ temporalTaskQueueOf: async () => "session:s" }, silent)("t")).toBe("session:s");
+  it("asks the provider's capability, admits under the per-sandbox limit, refuses without one, and logs a throw as a refusal", async () => {
+    expect(await credentialQueueOf({ temporalTaskQueueOf: async () => "session:s" }, silent)("t")).toEqual({
+      queue: "session:s",
+      pollLimit: "per-sandbox",
+    });
     expect(await credentialQueueOf({}, silent)("t")).toBeUndefined();
     const warn = vi.spyOn(silent, "warn");
     const throwing = credentialQueueOf({ temporalTaskQueueOf: async () => Promise.reject(new Error("down")) }, silent);

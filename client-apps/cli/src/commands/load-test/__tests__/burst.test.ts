@@ -1,5 +1,6 @@
 // Tests for the load test's engine (burst.ts) over a scripted server: one
-// agent of its own, with a computer so each turn asks for a sandbox, every
+// agent of its own, with a computer so each turn asks for a sandbox unless
+// the burst asks for none, every
 // turn fired together as a new conversation with an even share of the
 // budget; a refused create kept as its code and sentence;
 // the largest wait for a sandbox kept after the liveness that clears it; a
@@ -25,6 +26,7 @@ function options(overrides: Partial<BurstOptions> = {}): BurstOptions {
     model: "",
     message: "Say hello in one word.",
     shareUsd: 0.5,
+    computer: Computer.REQUIRED,
     waitMs: 5_000,
     signal: new AbortController().signal,
     nonce: "abc123",
@@ -96,6 +98,12 @@ describe("runBurst", () => {
       { sent: 2, started: 1, waiting: 1, refused: 0 },
       { sent: 2, started: 2, waiting: 0, refused: 0 },
     ]);
+  });
+
+  it("makes the agent without a computer when asked, so each turn goes to a shared runner", async () => {
+    const server = new LoadTestServer([completes("run_1")]);
+    await runBurst(server, options({ agents: 1, computer: Computer.NONE }));
+    expect(server.agentsMade[0]).toMatchObject({ computer: Computer.NONE });
   });
 
   it("leaves the model to the agent when none is asked for", async () => {

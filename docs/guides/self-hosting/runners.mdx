@@ -422,6 +422,10 @@ run it beside a server you start yourself, set:
 | Runner            | `TEMPORAL_SERVICE_ADDRESS`          | That address's host and port, such as `stigmer-server:7234`.                                               |
 | Runner            | `STIGMER_TURN_MEMORY_MB`            | Optional: the memory one turn may use, in MB.                                                              |
 
+The runner needs no root: it starts no Agent's side, so it runs as any user, and
+its base image needs glibc and `/proc` alone
+([Bring your own base image](#bring-your-own-base-image)).
+
 The runner reads its model keys as any runner does. The server refuses to boot
 with the shared-runner key and no payload key, because each turn's credential is
 sealed under that key. Give the runner no `STIGMER_TEMPORAL_*` settings: it
@@ -522,6 +526,12 @@ can't run it, and says why. The requirements:
 | `git` 2.31 or newer                                                         | cloning a private repository fails, naming the version it needs (Debian 11 ships 2.30); a public one still clones     |
 | `rg` (ripgrep)                                                              | a warning; the Stigmer harness's grep falls back to a plain search                                                    |
 | nothing of your own at `/runner`                                            | the layer replaces it                                                                                                 |
+
+A runner that serves only Agents without a computer
+(`STIGMER_RUNNER_SERVES=computerless`) is asked for glibc and `/proc` alone. It
+never starts an Agent's side, so it needs neither root nor the tools above, and
+starts as whatever user its deployment names; its refusal line ends "The base
+image of a runner without a computer needs glibc 2.28 or newer and /proc".
 
 Debian 10 and newer, Ubuntu 20.04 and newer, and RHEL 8 and its rebuilds meet
 the glibc floor. Alpine and other musl images don't, and can't be made to.

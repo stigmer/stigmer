@@ -13,7 +13,7 @@ import { parse } from "yaml";
 import { runOf } from "../../__test-utils__/load-test-server.js";
 import { type BurstFrame, buildReport, outcomeOf, renderReport, type RunSighting, summaryLines, usd } from "../report.js";
 
-const FRAME: BurstFrame = { server: "https://api.example.com", org: "acme", agent: "load-test-abc123", requested: 6, budgetUsd: 1, shareUsd: 1 / 6 };
+const FRAME: BurstFrame = { server: "https://api.example.com", org: "acme", agent: "load-test-abc123", requested: 6, budgetUsd: 1, shareUsd: 1 / 6, computer: "required" };
 const PLAN = "Your organization is at its plan's number of agents running at once.";
 
 function sighting(index: number, extra: Partial<RunSighting>): RunSighting {
@@ -137,6 +137,9 @@ describe("buildReport", () => {
       "No run reported waiting for a sandbox during the burst.",
       "Spent about $0.0007, by the runs' own estimates.",
     ]);
+    const shared = buildReport({ ...FRAME, requested: 1, computer: "none" }, [STARTED], []);
+    expect(summaryLines(shared)).toContain("Every agent had no computer, so no run asked for a sandbox.");
+    expect(summaryLines(shared)).not.toContain("No run reported waiting for a sandbox during the burst.");
     const one = buildReport({ ...FRAME, requested: 1 }, [REFUSED], []);
     expect(summaryLines(one)[0]).toBe("1 agent: 0 started, 1 refused.");
     expect(one.toStartMs).toEqual({ median: null, p90: null, longest: null, unclear: 0 });
@@ -145,7 +148,7 @@ describe("buildReport", () => {
   it("prints clean JSON and YAML documents", () => {
     const json = JSON.parse(renderReport(report, "json")) as Record<string, unknown>;
     expect(Object.keys(json)).toEqual([
-      "server", "org", "agent", "requested", "budgetUsd", "shareUsd", "counts", "toStartMs", "waitedForRoomMs",
+      "server", "org", "agent", "requested", "budgetUsd", "shareUsd", "computer", "counts", "toStartMs", "waitedForRoomMs",
       "anyWaitReported", "refusals", "spentUsd", "runs", "leftBehind",
     ]);
     expect(parse(renderReport(report, "yaml"))).toEqual(json);

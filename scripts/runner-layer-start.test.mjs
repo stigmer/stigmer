@@ -44,9 +44,9 @@ const GUIDE_URL = "https://stigmer.ai/docs/guides/self-hosting/runners#bring-you
 
 /** The words of the script's `for tool in ...` line that holds `first`. */
 function toolList(first) {
-  const line = SOURCE.split("\n").find((l) => new RegExp(`^for tool in ${first}\\b`).test(l));
+  const line = SOURCE.split("\n").find((l) => new RegExp(`^\\s*for tool in ${first}\\b`).test(l));
   assert.ok(line, `start.sh has no tool list starting with ${first}`);
-  return line.replace(/^for tool in /, "").replace(/; do$/, "").split(/\s+/);
+  return line.trim().replace(/^for tool in /, "").replace(/; do$/, "").split(/\s+/);
 }
 const REQUIRED = toolList("bash");
 /** The tools the script warns about, each checked on its own `if ! command -v <tool>` line. */
@@ -140,6 +140,40 @@ test("an empty PATH names every required tool", () => {
   assert.equal(result.status, 78);
   assert.match(result.stderr, new RegExp(`missing from PATH: ${REQUIRED.join(", ")}\\.`));
   assert.equal(result.stderr.split("\n").length, 2, "one line, then the newline");
+});
+
+/** The problems this machine causes a runner without a computer: the loader and /proc, never root. */
+function computerlessMachineProblems() {
+  const problems = [];
+  if (!hasLoader) problems.push("no glibc dynamic loader (/lib64/ld-linux-x86-64.so.2 or /lib/ld-linux-aarch64.so.1)");
+  if (!hasProc) problems.push("no /proc (cannot read /proc/self/status)");
+  return problems;
+}
+
+test("a runner without a computer is asked for neither root nor the agent's tools, and starts as any user", () => {
+  const bin = layerBin();
+  const result = start(bin, pathWith([]), ["/runner/dist/main.js"], { STIGMER_RUNNER_SERVES: "computerless" });
+  const problems = computerlessMachineProblems();
+  if (problems.length === 0) {
+    assert.equal(result.status, 0, result.stderr);
+    assert.equal(result.stdout, `args=/runner/dist/main.js|NODE_OPTIONS=unset NODE_PATH=unset LAYER=1 ENGINES=${enginesBeside(bin)}\n`);
+    assert.deepEqual(withoutToolWarnings(result.stderr), []);
+  } else {
+    assert.equal(result.status, 78);
+    assert.equal(
+      result.stderr,
+      `stigmer runner: this base image cannot run the runner layer: ${problems.join("; ")}. ` +
+        `The base image of a runner without a computer needs glibc 2.28 or newer and /proc: ${GUIDE_URL}\n`,
+    );
+  }
+});
+
+test("any other STIGMER_RUNNER_SERVES is checked as a runner with a computer", () => {
+  for (const serves of ["all", "", "Computerless", "computerless "]) {
+    const result = start(layerBin(), pathWith([]), [], { STIGMER_RUNNER_SERVES: serves });
+    assert.equal(result.status, 78, serves);
+    assert.match(result.stderr, new RegExp(`missing from PATH: ${REQUIRED.join(", ")}\\. The base image needs glibc 2\\.28 or newer, root,`));
+  }
 });
 
 test("a relative $0 is refused, not resolved", () => {

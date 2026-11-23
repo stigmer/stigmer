@@ -19,6 +19,7 @@ import { UsageError } from "../../../errors/usage-error.js";
 import { setServerAddress } from "../../../runtime.js";
 import { completes, LoadTestServer, runOf, type TurnScript } from "../../__test-utils__/load-test-server.js";
 import { RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
+import { Computer } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
 import { frameOf, phase, user } from "../../../resources/__test-utils__/session-events.js";
 import { cleanupLine, DEFAULT_MESSAGE, parseFlags, progressPrinter, registerLoadTest } from "../index.js";
 
@@ -92,7 +93,8 @@ describe("stigmer load-test", () => {
 
     expect(error).toBeUndefined();
     const report = JSON.parse(stdout) as { org: string; server: string; shareUsd: number; counts: Record<string, number>; agent: string };
-    expect(report).toMatchObject({ org: "acme", server: "https://api.example.com", shareUsd: 0.5, counts: { started: 1, refused: 1 } });
+    expect(report).toMatchObject({ org: "acme", server: "https://api.example.com", shareUsd: 0.5, computer: "required", counts: { started: 1, refused: 1 } });
+    expect(server.agentsMade[0]).toMatchObject({ computer: Computer.REQUIRED });
     expect(report.agent).toMatch(/^load-test-[a-z0-9]+$/);
     expect(server.runsMade[0]).toMatchObject({ message: DEFAULT_MESSAGE, runConfig: { maxCostUsd: 0.5 } });
     expect(stderr.split("\n").slice(0, 2)).toEqual([
@@ -156,6 +158,18 @@ describe("stigmer load-test", () => {
   });
 });
 
+describe("stigmer load-test --computer none", () => {
+  it("makes the agent without a computer, says so first, and names it in the report", async () => {
+    const server = serve([completes("run_1")]);
+    const { stdout, stderr, error } = await run(["load-test", "--agents", "1", "--computer", "none", "-o", "json"]);
+
+    expect(error).toBeUndefined();
+    expect(server.agentsMade[0]).toMatchObject({ computer: Computer.NONE });
+    expect((JSON.parse(stdout) as { computer: string }).computer).toBe("none");
+    expect(stderr.split("\n")[0]).toBe("Starting 1 agent without a computer at once in acme on https://api.example.com.");
+  });
+});
+
 describe("parseFlags", () => {
   it("refuses a count, a budget or a watch it cannot use", () => {
     for (const agents of [undefined, "0", "1.5", "many"]) {
@@ -163,7 +177,9 @@ describe("parseFlags", () => {
     }
     expect(() => parseFlags({ agents: "2", maxUsd: "0" })).toThrow("--max-usd takes an amount above 0, in US dollars");
     expect(() => parseFlags({ agents: "2", waitMinutes: "-1" })).toThrow("--wait-minutes takes a number of minutes above 0");
-    expect(parseFlags({ agents: "25" })).toEqual({ agents: 25, maxUsd: 1, waitMinutes: 20 });
+    expect(() => parseFlags({ agents: "2", computer: "some" })).toThrow("--computer takes none or required");
+    expect(parseFlags({ agents: "25" })).toEqual({ agents: 25, maxUsd: 1, waitMinutes: 20, computer: "required" });
+    expect(parseFlags({ agents: "2", computer: "none" })).toMatchObject({ computer: "none" });
   });
 });
 

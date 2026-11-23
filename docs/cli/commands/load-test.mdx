@@ -42,14 +42,15 @@ stigmer load-test --agents 100 --model claude-haiku-4-5 --max-usd 2 -o json > bu
 
 ## Options
 
-| Flag             | Type     | Default | Description                                                                        |
-| ---------------- | -------- | ------- | ---------------------------------------------------------------------------------- |
-| `--agents`       | `string` |         | how many agents to start at the same moment (required)                             |
-| `--max-usd`      | `string` |         | the whole burst's budget in US dollars, split evenly across the runs (default 1)   |
-| `--message`      | `string` |         | what each agent is asked (default "Say hello in one word.")                        |
-| `--model`        | `string` |         | the model each run uses; the agent's default when unset                            |
-| `--output`, `-o` | `string` |         | output format: table, json, or yaml                                                |
-| `--wait-minutes` | `string` |         | how long to watch for runs to start before calling them still waiting (default 20) |
+| Flag             | Type     | Default | Description                                                                                                                  |
+| ---------------- | -------- | ------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| `--agents`       | `string` |         | how many agents to start at the same moment (required)                                                                       |
+| `--computer`     | `string` |         | whether the agent has a computer: required asks each turn for a sandbox, none sends it to a shared runner (default required) |
+| `--max-usd`      | `string` |         | the whole burst's budget in US dollars, split evenly across the runs (default 1)                                             |
+| `--message`      | `string` |         | what each agent is asked (default "Say hello in one word.")                                                                  |
+| `--model`        | `string` |         | the model each run uses; the agent's default when unset                                                                      |
+| `--output`, `-o` | `string` |         | output format: table, json, or yaml                                                                                          |
+| `--wait-minutes` | `string` |         | how long to watch for runs to start before calling them still waiting (default 20)                                           |
 
 ### Reading the report
 

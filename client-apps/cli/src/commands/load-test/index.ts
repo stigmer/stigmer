@@ -1,6 +1,9 @@
 // `stigmer load-test --agents <n>`: start n agents at the same moment on the
 // connected server and report how many started, how long each waited for a
 // sandbox, and which were refused and why. A top-level verb in "Run agents".
+// `--computer none` makes the agent without a computer, so each turn goes to
+// a shared runner where the server has them; the default, `required`, asks
+// each turn for a sandbox.
 //
 // Thin handler: check the flags, resolve the server and the organization,
 // say the budget before spending it, run the burst (burst.ts), print the
@@ -27,10 +30,13 @@ import { CliExitError, ExitCode, UsageError } from "../../errors/index.js";
 import type { OutputFlags } from "../../output/index.js";
 import { dialedServerAddress } from "../../runtime.js";
 import { globalOrg, readFormat } from "../shared.js";
+import { Computer } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
 import type { BurstProgress } from "./burst.js";
+import type { BurstComputer } from "./report.js";
 
 interface LoadTestFlags extends OutputFlags {
   agents?: string;
+  computer?: string;
   model?: string;
   message?: string;
   maxUsd?: string;
@@ -48,6 +54,7 @@ export function registerLoadTest(program: Command): void {
     .command("load-test")
     .description("start many agents at once and report how many started, how long each waited, and which were refused")
     .option("--agents <n>", "how many agents to start at the same moment (required)")
+    .option("--computer <none|required>", "whether the agent has a computer: required asks each turn for a sandbox, none sends it to a shared runner (default required)")
     .option("--model <id>", "the model each run uses; the agent's default when unset")
     .option("--message <text>", `what each agent is asked (default "${DEFAULT_MESSAGE}")`)
     .option("--max-usd <total>", `the whole burst's budget in US dollars, split evenly across the runs (default ${DEFAULT_MAX_USD})`)
@@ -56,8 +63,13 @@ export function registerLoadTest(program: Command): void {
     .action((options: LoadTestFlags, command: Command) => runLoadTest(options, command));
 }
 
-/** The flags, checked: a count of at least one, a positive budget and watch. */
-export function parseFlags(options: LoadTestFlags): { agents: number; maxUsd: number; waitMinutes: number } {
+/** The flags, checked: a count of at least one, a positive budget and watch, a computer or none. */
+export function parseFlags(options: LoadTestFlags): {
+  agents: number;
+  maxUsd: number;
+  waitMinutes: number;
+  computer: BurstComputer;
+} {
   const agents = Number(options.agents ?? "");
   if (!Number.isInteger(agents) || agents < 1) {
     throw new UsageError("--agents takes a whole number of at least 1");
@@ -70,11 +82,15 @@ export function parseFlags(options: LoadTestFlags): { agents: number; maxUsd: nu
   if (!Number.isFinite(waitMinutes) || waitMinutes <= 0) {
     throw new UsageError("--wait-minutes takes a number of minutes above 0");
   }
-  return { agents, maxUsd, waitMinutes };
+  const computer = options.computer ?? "required";
+  if (computer !== "none" && computer !== "required") {
+    throw new UsageError("--computer takes none or required");
+  }
+  return { agents, maxUsd, waitMinutes, computer };
 }
 
 async function runLoadTest(options: LoadTestFlags, command: Command): Promise<void> {
-  const { agents, maxUsd, waitMinutes } = parseFlags(options);
+  const { agents, maxUsd, waitMinutes, computer } = parseFlags(options);
   const format = readFormat(options);
   const [{ connectBackend }, { runBurst }, report, { formatElapsed }] = await Promise.all([
     import("../../backend.js"),
@@ -90,7 +106,7 @@ async function runLoadTest(options: LoadTestFlags, command: Command): Promise<vo
 
   const where = [org === "" ? "" : ` in ${org}`, server === "" ? "" : ` on ${server}`].join("");
   process.stderr.write(
-    `Starting ${agents} agent${agents === 1 ? "" : "s"} at once${where}.\n` +
+    `Starting ${agents} agent${agents === 1 ? "" : "s"}${computer === "none" ? " without a computer" : ""} at once${where}.\n` +
       `Budget ${report.usd(maxUsd)}, split across the runs: each stops once it has spent ${report.usd(shareUsd)}. One model call can go past a run's share.\n`,
   );
 
@@ -106,6 +122,7 @@ async function runLoadTest(options: LoadTestFlags, command: Command): Promise<vo
       model: options.model ?? "",
       message: options.message ?? DEFAULT_MESSAGE,
       shareUsd,
+      computer: computer === "none" ? Computer.NONE : Computer.REQUIRED,
       waitMs: waitMinutes * 60_000,
       signal: controller.signal,
       onProgress: progress.update,
@@ -113,7 +130,7 @@ async function runLoadTest(options: LoadTestFlags, command: Command): Promise<vo
     progress.stop();
     process.stderr.write(cleanupLine(result.sightings.filter((s) => s.sessionId !== "").length, result.leftBehind));
     const built = report.buildReport(
-      { server, org, agent: result.agent, requested: agents, budgetUsd: maxUsd, shareUsd },
+      { server, org, agent: result.agent, requested: agents, budgetUsd: maxUsd, shareUsd, computer },
       result.sightings,
       result.leftBehind,
     );
