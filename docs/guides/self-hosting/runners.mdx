@@ -407,7 +407,9 @@ server's own address, presenting the shared-runner key. The server admits that
 key to the `stigmer_runner` queue and nothing else. So the runner needs a
 network path to the server alone.
 
-To run it beside a server you start yourself, set:
+The shared runner only works beside a sandbox driver, with per-session routing
+(`STIGMER_ACTIVITY_ROUTING=session`); the server refuses the key without it. To
+run it beside a server you start yourself, set:
 
 | Where             | Setting                             | Value                                                                                                      |
 | ----------------- | ----------------------------------- | ---------------------------------------------------------------------------------------------------------- |

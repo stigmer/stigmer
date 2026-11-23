@@ -620,7 +620,7 @@ describe("EnsureSessionSandbox activity", () => {
     return { ensure, sent, store: temp.store };
   }
 
-  it("skips a conversation without a computer when shared runners are on, asking the driver nothing", async () => {
+  it("wakes the sandbox of a computer-less turn dispatched before shared runners were on: a turn's placement is fixed at its dispatch", async () => {
     const { provisioner, facts } = scriptedProvisioner(["ready"]);
     const temp = tempStore();
     cleanups.push(() => temp.cleanup());
@@ -659,8 +659,8 @@ describe("EnsureSessionSandbox activity", () => {
       ),
       heartbeat: () => undefined,
     })[ENSURE_SESSION_SANDBOX_ACTIVITY_NAME] as Ensure;
-    expect(await ensure({ execution_id: "run_nc", caller_class: "user" })).toBe("skipped");
-    expect(facts).toEqual([]);
+    expect(await ensure({ execution_id: "run_nc", caller_class: "user" })).toBe("ready");
+    expect(facts.map((given) => given.taskQueue)).toEqual(["session:ses_nc"]);
   });
 
   it("runs the turn's sandbox ensure with the caller's facts and answers ready, telling no stream when the turn never waited", async () => {

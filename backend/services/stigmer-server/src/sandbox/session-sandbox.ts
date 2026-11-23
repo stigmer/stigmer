@@ -62,10 +62,10 @@
  * refuse the turn naming it.
  *
  * The ensure and the teardown short-circuit when the lane is disabled,
- * and the ensure whenever no sandbox of this server serves the turn
- * (domain/run/placement.ts: a LOCAL target, or a conversation without a
- * computer that a shared runner serves): the conformance rosters run
- * entirely on those fast paths (byte-identity by construction).
+ * and the ensure when the execution's resolved target is LOCAL: the
+ * conformance rosters run entirely on those fast paths (byte-identity by
+ * construction). A turn a shared runner serves is never asked for: its
+ * workflow asks for a place instead (domain/run/placement.ts).
  *
  * One conversation, one workspace, one runner, acting as the
  * conversation's creator: a session has one sandbox, and its runner
@@ -98,7 +98,9 @@ import { accountForStamp } from "../domain/identityaccount/resolve.js";
 import { createdByOf } from "../pipeline/steps/authorization-facts.js";
 import type { AgentExecutionTemporalConfig } from "../domain/run/temporal/config.js";
 import type { CallerIdentity } from "../extensions/identity.js";
-import { resolveActivityTaskQueue } from "../temporal/agentexecution/dispatch.js";
+import { formatSessionTaskQueue, resolveActivityTaskQueue } from "../temporal/agentexecution/dispatch.js";
+import { ExecutionTarget } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
+import { ROUTING_SESSION } from "../domain/run/temporal/config.js";
 import type { Store } from "../store/interface.js";
 import { mintSandboxToken, type SandboxLane } from "./lane.js";
 import { MAKE_ROOM_RETRY_DELAYS_MS } from "./make-room.js";
@@ -194,12 +196,17 @@ export async function ensureSessionSandboxForExecution(
       deps.logger,
       lane.enabled,
     );
-    if (dispatch.placement !== "sandbox") {
-      // A LOCAL target, or a turn a shared runner serves (a conversation
-      // without a computer, domain/run/placement.ts): no sandbox to start.
-      // CLOUD under global routing lands here too; boot coherence
-      // validation forbids that combination, so this is its
-      // belt-and-braces skip.
+    // The workflow asks only for a turn it was not started as shared
+    // (domain/run/placement.ts), and a turn's placement is fixed when it is
+    // dispatched: a turn parked before shared runners were switched on still
+    // gets its sandbox woken here. So the ask reads the target and the
+    // routing, never the live placement.
+    if (dispatch.executionTarget !== ExecutionTarget.CLOUD) {
+      return "skipped";
+    }
+    if (deps.temporalConfig.activityRouting !== ROUTING_SESSION) {
+      // CLOUD under global routing: boot coherence validation forbids the
+      // combination; this is its belt-and-braces skip.
       return "skipped";
     }
     const environment = await sessionEnvironmentFacts(
@@ -207,7 +214,7 @@ export async function ensureSessionSandboxForExecution(
       await deps.store.getResource(ApiResourceKind.session, sessionId, SessionSchema),
     );
     const facts: SandboxFacts = {
-      taskQueue: dispatch.taskQueue,
+      taskQueue: formatSessionTaskQueue(sessionId),
       stigmerToken: mintSandboxToken(
         lane,
         {

@@ -41,7 +41,10 @@
  *    adapter opens each turn in its host's slot, and a call that presents
  *    another slot's turn key is refused. The locked hosts each hold one
  *    turn at a time (`agent-host/host-pool.ts`), so one host never holds
- *    another organization's key.
+ *    another organization's key. The Anthropic lane is the exception: the
+ *    Claude engine presents its turn key as its bearer, with no host token,
+ *    so that lane checks the key alone; the Claude engine always runs with
+ *    a computer, never in a locked host.
  *  - A forwarded call goes out as its turn: the remote adapter opens the turn
  *    with the run credential its activity entered, and a model, checkpoint or
  *    engine-session call reaches the platform with that turn's credential,

@@ -1121,6 +1121,14 @@ export async function composeServer(
   // key (temporal/agentexecution/engine-client.ts), so shared runners
   // without a key are refused here, never per turn.
   const sealRunCredential = loadServerPayloadSealer();
+  // Shared runners serve conversations without a computer beside per-session
+  // queues; under global routing every turn already goes to the one runner
+  // queue, so the key would admit its holder to every conversation's turns.
+  if (config.sharedRunnerKey !== "" && temporalConfig.activityRouting !== ROUTING_SESSION) {
+    throw new Error(
+      "STIGMER_SHARED_RUNNER_KEY requires per-session routing: under global routing every conversation's turns, those with a computer included, share the one runner queue the key opens; set STIGMER_ACTIVITY_ROUTING=session (beside a sandbox driver), or unset STIGMER_SHARED_RUNNER_KEY",
+    );
+  }
   if (config.sharedRunnerKey !== "" && sealRunCredential === undefined) {
     throw new Error(
       "STIGMER_SHARED_RUNNER_KEY is set and STIGMER_PAYLOAD_ENCRYPTION_KEY is not: a shared runner's turn carries its person's credential sealed with the payload key; set STIGMER_PAYLOAD_ENCRYPTION_KEY and STIGMER_PAYLOAD_ENCRYPTION_KEY_ID (the same values the shared runners get), or unset STIGMER_SHARED_RUNNER_KEY",

@@ -31,8 +31,10 @@
  *
  * The computer is the conversation's stamp (`SessionStatus.computer`), read
  * by the proto's rule (computer.ts `hasComputer`: only COMPUTER_NONE means
- * none); a turn whose session does not exist yet reads its agent's, as the
- * session will be stamped (computer.ts `agentComputer`).
+ * none). Dispatch runs after the run's create made its session, so it
+ * always has the stamp; a caller judging a turn before its session exists
+ * (an edition's gate at the create) passes the agent's
+ * (computer.ts `agentComputer`), as the session will be stamped.
  *
  * Tests: __tests__/placement.test.ts.
  */
