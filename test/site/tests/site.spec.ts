@@ -16,6 +16,10 @@
 // The pages are a sample, one per page shape that has carried a defect or
 // is likely to: a defect on a shape none of them has ships unseen, so a
 // shape that turns one up joins the list.
+//
+// The header's Resources links are also followed from the home page with a
+// real click, at both widths: the desktop menu once opened under the hero,
+// where a click landed on the headline and not on the link.
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test } from "@playwright/test";
 import { AXE_TAGS, describeJudgement, judgeAxe, type KnownViolation } from "@stigmer/test-support/axe-policy";
@@ -90,4 +94,42 @@ test.describe("every sampled page of the built site passes the accessibility aud
     const audited = new Set(PAGES.flatMap(({ path }) => PROJECTS.map((project) => `${path} ${project}`)));
     expect(Object.keys(KNOWN_VIOLATIONS).filter((key) => !audited.has(key))).toEqual([]);
   });
+});
+
+/** The header's Resources links, each with the page it opens (site/src/lib/constants.ts, `NAV_RESOURCES`). */
+const RESOURCES = [
+  { name: "Compare with Managed Agents", path: "/compare/claude-managed-agents" },
+  { name: "Blog", path: "/blog" },
+  { name: "Releases", path: "/releases" },
+  { name: "Why we built Stigmer", path: "/about" },
+  { name: "Download", path: "/download" },
+] as const;
+
+test.describe("the header's Resources links open their pages from the home page", () => {
+  for (const { name, path } of RESOURCES) {
+    test(`${name} opens ${path}`, async ({ page, baseURL }) => {
+      const wide = (test.info().project.name as Project) === "wide";
+      const origin = new URL(baseURL ?? "").origin;
+      await page.route("**/*", (route) => (new URL(route.request().url()).origin === origin ? route.continue() : route.abort()));
+      await page.goto("/", { waitUntil: "load" });
+
+      // The desktop header folds the links under "Resources"; the phone header
+      // lists them in the navigation panel.
+      const opener = page.getByRole("button", { name: wide ? "Resources" : "Open navigation menu" });
+      const link = wide ? page.getByRole("menuitem", { name, exact: true }) : page.locator("#mobile-menu").getByRole("link", { name, exact: true });
+
+      // The button opens nothing until the page's script has taken it over, so
+      // it is pressed until the link shows. Once the link shows it is not
+      // pressed again, which would close the menu.
+      await expect(async () => {
+        if (!(await link.isVisible())) await opener.click();
+        await expect(link).toBeVisible({ timeout: 2_000 });
+      }).toPass({ timeout: 15_000 });
+
+      // A real click: Playwright presses the link only when the link itself is
+      // what a pointer would hit there, and fails when something else is.
+      await link.click({ timeout: 5_000 });
+      await expect.poll(() => new URL(page.url()).pathname, { message: `${name} did not open ${path}` }).toBe(path);
+    });
+  }
 });
