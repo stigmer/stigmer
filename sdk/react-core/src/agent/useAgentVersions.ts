@@ -1,5 +1,18 @@
 "use client";
 
+// An agent's version history and how a version reads to a person. Every
+// apply that changes an agent records a version under its content hash, and
+// each turn of a conversation records the version it ran
+// (`RunStatus.agent_version_hash`); a host that draws its own chat reads the
+// history here and words a turn's version with `agentVersionLabel` ("v2",
+// else a short hash), with no rendering package. The React kit's Versions
+// tab, quality report and session view draw from the same two names.
+//
+// The history is mapped to `VersionEntry`, the timeline shape every
+// versioned resource shares, so the kit's `VersionTimeline` draws it as is;
+// the full spec of each version stays reachable by hash through `getSpec`.
+// Tests: ./__tests__/useAgentVersions.test.tsx.
+
 import { useCallback, useMemo } from "react";
 import { create } from "@bufbuild/protobuf";
 import { timestampDate } from "@bufbuild/protobuf/wkt";
@@ -8,10 +21,9 @@ import {
   ListAgentVersionsInputSchema,
   type AgentVersionEntry as ProtoAgentVersionEntry,
 } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/version_pb";
-import { useStigmer } from "@stigmer/react-core";
-import { useCursorPages } from "@stigmer/react-core/internal";
-import { useFetch } from "@stigmer/react-core/internal";
-import type { VersionEntry } from "../version-history/types.js";
+import { useStigmer } from "../hooks.js";
+import { useCursorPages } from "../internal/useCursorPages.js";
+import type { VersionEntry } from "../version-history/version-entry.js";
 
 /** Return value of {@link useAgentVersions}. */
 export interface UseAgentVersionsReturn {
@@ -46,7 +58,7 @@ export interface UseAgentVersionsReturn {
  * Every apply that changes an agent records a version under its content
  * hash; this hook pages the `listVersions` RPC (newest first, `hasMore` /
  * `loadMore` for older ones) and maps each entry to the
- * generic {@link VersionEntry} the shared `VersionTimeline` renders, keeping
+ * generic {@link VersionEntry} every version timeline draws, keeping
  * each version's full spec for {@link UseAgentVersionsReturn.getSpec}.
  *
  * An agent last written before agents were versioned has no history until
@@ -56,10 +68,16 @@ export interface UseAgentVersionsReturn {
  *
  * @example
  * ```tsx
- * const { versions, isEmpty } = useAgentVersions("acme", "variance-reporter");
- *
- * if (!isEmpty) {
- *   return <VersionTimeline entries={versions} />;
+ * function AgentHistory() {
+ *   const { versions, isEmpty } = useAgentVersions("acme", "variance-reporter");
+ *   if (isEmpty) return <p>No versions yet</p>;
+ *   return (
+ *     <ul>
+ *       {versions.map((v) => (
+ *         <li key={v.id}>{v.tag ?? v.label}</li>
+ *       ))}
+ *     </ul>
+ *   );
  * }
  * ```
  */
@@ -120,51 +138,6 @@ export function useAgentVersions(
     }),
     [versions, isEmpty, hasMore, loadMore, isLoadingMore, loadMoreError, isLoading, error, refetch, getSpec],
   );
-}
-
-/** How many versions an agent has, as far as a count of them reaches. */
-export interface AgentVersionCount {
-  /** The versions on the history's first page; `0` while loading. */
-  readonly count: number;
-  /**
-   * `true` when more versions follow the first page: the history carries
-   * no total, so a badge reads "50+" rather than a number it cannot know.
-   */
-  readonly isLowerBound: boolean;
-}
-
-const NO_VERSION_COUNT: AgentVersionCount = { count: 0, isLowerBound: false };
-
-/**
- * How many versions an agent has, for a count (a tab badge): the length of
- * the history's first page, and whether more follow. `0` while loading,
- * for an agent with no version yet, and when `org` or `slug` is `null`.
- * `currentVersion` (the agent's `status.versionHash`, as the caller holds
- * it) reads the count again when it changes, so a save that made a new
- * version shows in the count at once.
- */
-export function useAgentVersionCount(
-  org: string | null,
-  slug: string | null,
-  currentVersion?: string,
-): AgentVersionCount {
-  const stigmer = useStigmer();
-  const { data } = useFetch(
-    org && slug
-      ? async (): Promise<AgentVersionCount> => {
-          const response = await stigmer.agent.listVersions(
-            create(ListAgentVersionsInputSchema, { org, slug }),
-          );
-          return {
-            count: response.entries.length,
-            isLowerBound: response.nextPageToken !== "",
-          };
-        }
-      : null,
-    [org, slug, stigmer, currentVersion],
-    NO_VERSION_COUNT,
-  );
-  return data;
 }
 
 /** How many hex characters of a version hash a label shows. */

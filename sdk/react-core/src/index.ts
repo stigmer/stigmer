@@ -19,6 +19,8 @@
 
 export { useAgentSearch } from "./agent/useAgentSearch.js";
 export type { UseAgentSearchOptions, UseAgentSearchReturn } from "./agent/useAgentSearch.js";
+export { agentVersionLabel, useAgentVersions } from "./agent/useAgentVersions.js";
+export type { UseAgentVersionsReturn } from "./agent/useAgentVersions.js";
 export type { InteractionModeOption } from "./composer/interaction-mode.js";
 export { StigmerContext } from "./context.js";
 export { DeploymentModeContext, useDeploymentMode, useResourceAvailable } from "./deployment-mode.js";
@@ -138,6 +140,7 @@ export { useUpdateSession } from "./session/useUpdateSession.js";
 export type { UseUpdateSessionReturn } from "./session/useUpdateSession.js";
 export { computeDiff } from "./version-history/computeDiff.js";
 export type { DiffHunk, DiffLine } from "./version-history/diff-types.js";
+export type { VersionEntry } from "./version-history/version-entry.js";
 
 // Types the public hooks' signatures name: exported so a host can type what
 // it passes and receives.

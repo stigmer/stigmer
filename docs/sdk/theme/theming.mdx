@@ -342,9 +342,10 @@ fails) and `LivenessStatusLine` (the line that shows the agent is still
 working between visible steps). Each slot's props type is exported from
 `@stigmer/react-sdk` under the built-in's name plus `Props`, beside the
 built-in itself, and the light chat entry, `@stigmer/react-sdk/chat`, exports
-both too. A slot that hands a case back to a built-in loads it with your page,
-before the chat draws, where the chat alone loads it with the conversation. For
-`MessageEntry` that is the message renderer and its markdown. See the
+both too. Handing a case back costs your page nothing up front from the light
+entry: its built-ins arrive with the conversation, as they do when nothing is
+customized, and draw on its first frame. A page that draws the root's
+`SessionViewer`, as above, already holds them. See the
 [run reference](/docs/sdk/react/run) for each slot's props.
 
 If a slot throws while it draws, ours draws in its place with the same props

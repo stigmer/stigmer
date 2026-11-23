@@ -36,11 +36,12 @@ export type {
   RunErrorNoticeProps,
   LivenessStatusLineProps,
 } from "./run/index.js";
-// Each slot's built-in, the same value the root exports: a slot draws the
-// cases it changes and hands every other one back to ours, so a page on this
-// entry alone can. A page that imports none loads nothing more; one that
-// imports a built-in loads it before the chat draws, where `AgentChat`
-// alone loads it with the conversation.
+// Each slot's built-in: a slot draws the cases it changes and hands every
+// other one back to ours, so a page on this entry alone can. These are thin
+// components that draw the root's real ones (run/lazy-built-ins.tsx): inside
+// the chat from the thread itself, on its first frame, so importing them
+// adds nothing to the page's first download and the part arrives with the
+// conversation, as it does when nothing is customized.
 export {
   MessageEntry,
   ApprovalCard,
@@ -53,4 +54,4 @@ export {
   RecalledMemoriesCard,
   RunErrorNotice,
   LivenessStatusLine,
-} from "./run/index.js";
+} from "./run/lazy-built-ins.js";

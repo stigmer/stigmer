@@ -56,8 +56,10 @@ export type { UseRunAgentSpecReturn } from "./useRunAgentSpec.js";
 export { AgentDetailView } from "./AgentDetailView.js";
 export type { AgentDetailViewProps } from "./AgentDetailView.js";
 
-export { agentVersionLabel, useAgentVersionCount, useAgentVersions } from "./useAgentVersions.js";
-export type { AgentVersionCount, UseAgentVersionsReturn } from "./useAgentVersions.js";
+export { agentVersionLabel, useAgentVersions } from "@stigmer/react-core";
+export type { UseAgentVersionsReturn } from "@stigmer/react-core";
+export { useAgentVersionCount } from "./useAgentVersionCount.js";
+export type { AgentVersionCount } from "./useAgentVersionCount.js";
 
 export { AgentVersionsTab } from "./AgentVersionsTab.js";
 export type { AgentVersionsTabProps } from "./AgentVersionsTab.js";

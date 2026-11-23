@@ -51,6 +51,12 @@
  * message's composer load at once, the conversation view and its thread
  * later, so a change that pulls the conversation back into the first
  * download fails here, naming the module, even while the total fits.
+ * Another KIT-02 case reads the page our tutorial "Make the chat your own"
+ * builds: a slot that hands every other case back to our built-in, imported
+ * from the same light entry. That page downloads what the chat alone does,
+ * within 2 KB (the thin built-ins and the context they read,
+ * sdk/react/src/run/lazy-built-ins.tsx), with every built-in loaded later,
+ * so a built-in that turns eager again fails here, naming it.
  *
  * A third case holds the React kit's `./headless` entry to what its header
  * (sdk/react/src/headless.ts) says: the entry is bundled the same way, and
@@ -105,6 +111,34 @@ const SCRIPT_ENTRIES = [
       'export { Stigmer, createTokenCache } from "@stigmer/client";\nexport { AgentChat, StigmerProvider } from "@stigmer/react-sdk/chat";\n',
   },
 ];
+/**
+ * The tutorial's page: the chat page plus every slot's built-in from the
+ * same light entry, as a slot that hands cases back imports them. Read by
+ * KIT-02 against the chat page; not a budget of its own.
+ */
+const SLOT_PAGE_ENTRY = {
+  name: "react-sdk/chat-with-slots",
+  source:
+    'export { Stigmer, createTokenCache } from "@stigmer/client";\n' +
+    'export { AgentChat, StigmerProvider, MessageEntry, ApprovalCard, TodoCard, TodoRow, PlanFileCard, PlanCompletionCard, PlanStreamingCard, SetupProgress, RecalledMemoriesCard, RunErrorNotice, LivenessStatusLine } from "@stigmer/react-sdk/chat";\n',
+};
+/** The modules of the slots' built-ins, and the map that holds them, all loaded with the conversation. */
+const BUILT_IN_MODULES = [
+  "MessageEntry",
+  "ApprovalCard",
+  "TodoCard",
+  "TodoList",
+  "PlanFileCard",
+  "PlanCompletionCard",
+  "PlanStreamingCard",
+  "SetupProgress",
+  "RecalledMemoriesCard",
+  "RunErrorNotice",
+  "LivenessStatusLine",
+  "slot-guard",
+].map((name) => `sdk/react/src/run/${name}.tsx`);
+/** How much more than the chat alone the tutorial's page may load at once. */
+const SLOT_PAGE_ALLOWANCE = 2 * 1024;
 /** The built files measured as they ship. */
 const FILE_ENTRIES = [
   { name: "react-sdk/styles", path: "sdk/react/dist/styles.css" },
@@ -280,6 +314,30 @@ test("KIT-02 a page with the chat draws its composer before the conversation's r
     if (wrong.length > 0) {
       throw new Error(
         `the chat's page loads the wrong part first (sdk/react/src/agent-chat/LazySessionViewer.tsx loads the conversation as its own chunk):\n${wrong.join("\n")}`,
+      );
+    }
+  } catch (error) {
+    failed = true;
+    throw error;
+  }
+});
+
+test("KIT-02 a page whose slot hands back to a built-in downloads what the chat alone does", () => {
+  try {
+    const chat = bundle(SCRIPT_ENTRIES.find((entry) => entry.name === "react-sdk/chat"));
+    const page = bundle(SLOT_PAGE_ENTRY);
+    log(`${SLOT_PAGE_ENTRY.name}: ${formatBytes(page.eager)} gzip at once, the chat alone ${formatBytes(chat.eager)}`);
+    const where = (module) => {
+      const chunk = page.chunks.find((candidate) => Object.hasOwn(candidate.modules, module));
+      return chunk === undefined ? "absent" : page.eagerChunks.has(chunk.file) ? "at once" : "later";
+    };
+    const problems = BUILT_IN_MODULES.filter((module) => where(module) !== "later").map((module) => `${module}: ${where(module)}, expected later`);
+    if (page.eager - chat.eager > SLOT_PAGE_ALLOWANCE) {
+      problems.push(`${formatBytes(page.eager)} at once is more than ${formatBytes(SLOT_PAGE_ALLOWANCE)} over the chat alone (${formatBytes(chat.eager)})`);
+    }
+    if (problems.length > 0) {
+      throw new Error(
+        `a page handing a slot back to our built-in loads it before the chat draws (the light entry's built-ins are sdk/react/src/run/lazy-built-ins.tsx):\n${problems.join("\n")}`,
       );
     }
   } catch (error) {

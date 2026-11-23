@@ -4,10 +4,10 @@
  * table, naming in backticks exactly the sources and words the map names
  * (a kind with no public data reads "None"), and the table names no kind the
  * map lacks. A source outside the dotted fields is a public name of
- * `@stigmer/react-core`, the package a drawing host installs, except for the
- * one kind whose label is the kit's own (`agent-version`). The compiler holds
- * the rest: a kind with no entry, or a source that is no public name or
- * field, fails typecheck (`row-data.ts`).
+ * `@stigmer/react-core`, the package a drawing host installs, with no
+ * exception: a host drawing every row needs no other package. The compiler
+ * holds the rest: a kind with no entry, or a source that is no public name of
+ * the core or no field, fails typecheck (`row-data.ts`).
  */
 import { readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
@@ -19,9 +19,6 @@ import { ROW_KINDS } from "../row-kinds";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const contractPath = resolve(here, "../../../../../.agents/skills/sdk-console-architecture/references/host-customization.md");
-
-/** The one kind allowed a source outside the core: the agent version's label. */
-const KIT_LABELLED = new Set(["agent-version"]);
 
 /** What a map entry names: its sources and words, or "none". */
 function namesOf(entry: RowData): readonly string[] | "none" {
@@ -55,12 +52,11 @@ describe("the row-data map", () => {
     expect(Object.keys(ROW_DATA).sort()).toEqual(Object.keys(ROW_KINDS).sort());
   });
 
-  it("reads only the core's public names, but for the agent version's label", () => {
+  it("reads only the core's public names", () => {
     const outside = Object.entries(ROW_DATA).flatMap(([kind, entry]) =>
       entry.reads === "none" ? [] : entry.reads.filter((source) => !source.includes(".") && !(source in core)).map((source) => ({ kind, source })),
     );
-    expect(outside.filter(({ kind }) => !KIT_LABELLED.has(kind))).toEqual([]);
-    expect(outside.map(({ kind }) => kind)).toEqual([...KIT_LABELLED]);
+    expect(outside).toEqual([]);
   });
 
   it("agrees with the contract's table, kind by kind", () => {
