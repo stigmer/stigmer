@@ -538,10 +538,12 @@ export const LANES = {
   "ci.e2e-interactive.yaml": {
     paths: [
       "test/e2e/**",
-      // The embedding tutorial runs these pages as a reader would, read by
-      // test/install/lib/doc-steps.mjs, which writes a file without its
-      // hidden setup through site/src/lib/snippet-setup.mjs.
+      // The embedding tutorial, and the page that makes its chat the
+      // reader's own on the same app, run these pages as a reader would,
+      // read by test/install/lib/doc-steps.mjs, which writes a file without
+      // its hidden setup through site/src/lib/snippet-setup.mjs.
       "docs/getting-started/embed-agent.mdx",
+      "docs/getting-started/make-the-chat-your-own.mdx",
       "docs/getting-started/quickstart.mdx",
       "test/install/lib/doc-steps.mjs",
       "site/src/lib/snippet-setup.mjs",

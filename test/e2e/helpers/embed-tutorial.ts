@@ -32,7 +32,7 @@ import { expect, type Page } from "@playwright/test";
 import { create } from "@bufbuild/protobuf";
 import { parseManifest } from "@stigmer/client";
 import { createNodeClient } from "@stigmer/client/node";
-import { CreateServiceAccountInputSchema } from "@stigmer/apis/ai/stigmer/iam/identityaccount/v1/io_pb";
+import { CreateServiceAccountInputSchema, ListServiceAccountsInputSchema } from "@stigmer/apis/ai/stigmer/iam/identityaccount/v1/io_pb";
 import { CreateServiceAccountKeyInputSchema } from "@stigmer/apis/ai/stigmer/iam/apikey/v1/io_pb";
 import {
   ListMyOrganizationsInputSchema,
@@ -317,10 +317,13 @@ async function ownerBearer(page: Page, apiPort: string): Promise<string> {
  * The state the embedding tutorial's earlier pages leave, made through the
  * API as the console's signed-in owner (`page` is a console page): the
  * quickstart's Agent applied from its file, the `report-backend` service
- * account and its key, and account creation turned on in the embedding
- * settings with the member role.
+ * account and a key of its own, and account creation turned on in the
+ * embedding settings with the member role. A second reader in the same run
+ * finds the account the first made (a name is the organization's once) and
+ * gets a key of their own for it, named `keyName` (a key's name is its
+ * owner's once).
  */
-export async function prepareReader(page: Page, apiUrl: string): Promise<Reader> {
+export async function prepareReader(page: Page, apiUrl: string, keyName = "report-backend"): Promise<Reader> {
   const bearer = await ownerBearer(page, new URL(apiUrl).port);
   const owner = createNodeClient({ baseUrl: apiUrl, getAccessToken: () => bearer });
   const [org] = (await owner.organization.listMine(create(ListMyOrganizationsInputSchema, {}))).entries;
@@ -329,11 +332,14 @@ export async function prepareReader(page: Page, apiUrl: string): Promise<Reader>
   for (const document of parseManifest(quickstartFile("variance-reporter.yaml").replace("metadata:\n", `metadata:\n  org: ${orgSlug}\n`))) {
     await owner.manifest.apply(document);
   }
-  const account = await owner.identityAccount.createServiceAccount(
-    create(CreateServiceAccountInputSchema, { org: orgSlug, name: "report-backend", role: IamRole.admin }),
-  );
+  const made = (await owner.identityAccount.listServiceAccounts(create(ListServiceAccountsInputSchema, { org: orgSlug, pageSize: 100 }))).entries;
+  const account =
+    made.find((entry) => entry.metadata?.name === "report-backend") ??
+    (await owner.identityAccount.createServiceAccount(
+      create(CreateServiceAccountInputSchema, { org: orgSlug, name: "report-backend", role: IamRole.admin }),
+    ));
   const key = await owner.apiKey.createForServiceAccount(
-    create(CreateServiceAccountKeyInputSchema, { serviceAccountId: account.metadata?.id ?? "", name: "report-backend", neverExpires: true }),
+    create(CreateServiceAccountKeyInputSchema, { serviceAccountId: account.metadata?.id ?? "", name: keyName, neverExpires: true }),
   );
   await owner.organization.updateEmbedding(
     create(UpdateOrganizationEmbeddingInputSchema, {
