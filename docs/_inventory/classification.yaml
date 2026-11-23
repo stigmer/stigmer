@@ -120,8 +120,8 @@ pages:
     diataxis: tutorial
     teaches:
       Make the embedded chat the reader's own on the embedding tutorial's app,
-      one level at a time: tokens and colour mode, an app tool the Agent calls
-      with a host tool card that answers it, a message action on the final
+      one level at a time, with tokens and color mode, an app tool the Agent
+      calls with a host tool card that answers it, a message action on the final
       answer, a MessageEntry slot that hands back to the built-in, and a header
       status line from useSessionConversation.
     medium: animated-tour

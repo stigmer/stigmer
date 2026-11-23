@@ -75,9 +75,10 @@ import "./brand.css";
 ```
 
 `colorMode="system"` follows your user's computer, so the dark values show when
-it is dark. If your app has its own light and dark switch, pass its value
-instead. [Theming](/docs/sdk/theme/theming) has every token and six ready-made
-presets.
+it is dark. Your own parts inside the provider can read the same tokens: this
+page's card, bubble and page frame do, so they turn dark with the chat. If your
+app has its own light and dark switch, pass its value instead.
+[Theming](/docs/sdk/theme/theming) has every token and six ready-made presets.
 
 </Step>
 <Step>
@@ -112,6 +113,23 @@ export const OPEN_ACCOUNT = defineCustomTool({
     required: ["account"],
   },
 });
+
+const BUTTON = {
+  padding: "6px 14px",
+  borderRadius: 8,
+  border: "1px solid var(--stgm-border)",
+  background: "var(--stgm-background)",
+  color: "var(--stgm-foreground)",
+  font: "inherit",
+  cursor: "pointer",
+} as const;
+
+const PRIMARY_BUTTON = {
+  ...BUTTON,
+  border: "1px solid var(--stgm-primary)",
+  background: "var(--stgm-primary)",
+  color: "var(--stgm-primary-foreground)",
+} as const;
 
 export function OpenAccountCard({ call, answer }: ToolCardProps) {
   const [picked, setPicked] = useState<string | null>(null);
@@ -150,6 +168,7 @@ export function OpenAccountCard({ call, answer }: ToolCardProps) {
         <div style={{ display: "flex", gap: 8 }}>
           <button
             type="button"
+            style={PRIMARY_BUTTON}
             disabled={picked !== null}
             onClick={() => void reply("Looks right")}
           >
@@ -157,6 +176,7 @@ export function OpenAccountCard({ call, answer }: ToolCardProps) {
           </button>
           <button
             type="button"
+            style={BUTTON}
             disabled={picked !== null}
             onClick={() => void reply("Needs a look")}
           >
@@ -475,6 +495,8 @@ export default function App() {
           gridTemplateColumns: "1fr 18rem",
           gridTemplateRows: "auto 1fr",
           height: "100vh",
+          background: "var(--stgm-background)",
+          color: "var(--stgm-foreground)",
         }}
       >
         <header
