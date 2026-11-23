@@ -2,14 +2,15 @@
 // `@stigmer/react-core`, `@stigmer/client` and React. It draws everything a
 // conversation shows: the agent's messages, thinking and notes, each step
 // in the client's words, the agent's plan with each step under its item, a
-// helper's work, the files a turn changed and made, the agent's asks, and
-// calls of the app's own tools. The guide "Build a chat from the hooks"
+// helper's work, the files a turn changed and made, the agent's asks,
+// calls of the app's own tools, and the agent version each turn ran. The guide "Build a chat from the hooks"
 // (docs/sdk/react-core/build-a-chat.mdx) quotes it in runs, the visual
 // suite draws it (its `from-hooks` scenes), and its own tests render it
 // (`__tests__/Chat.test.tsx`), so the guide's code is the code that draws on the page.
 // The package's typecheck compiles it.
-import { useState, type FormEvent, type ReactElement } from "react";
+import { Fragment, useState, type FormEvent, type ReactElement } from "react";
 import type { File as StigmerFile } from "@stigmer/apis/ai/stigmer/agentic/file/v1/api_pb";
+import type { Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 import {
   defineCustomTool,
   failureWords,
@@ -23,7 +24,9 @@ import {
 } from "@stigmer/client";
 import {
   StigmerContext,
+  agentVersionLabel,
   sessionFilesRefreshKey,
+  useAgentVersions,
   useCreateRun,
   useSessionConversation,
   useSessionFiles,
@@ -99,12 +102,26 @@ function Conversation({ org, agent, sessionId: existing }: Omit<ChatProps, "clie
     setSessionId(started.sessionId);
   }
 
+  // The agent version each turn ran, worded from the agent's history ("v2",
+  // else a short hash); read only once the conversation has run two.
+  const ranVersions = versionsRan(conversation.runs);
+  const ranMany = new Set(ranVersions.values()).size > 1;
+  const agentRef = conversation.session?.spec?.agentRef;
+  const history = useAgentVersions(ranMany ? agentRef?.org || null : null, agentRef?.slug || null);
+  const versionLines = ranMany ? versionChanges(conversation.turns, ranVersions) : new Map<string, string>();
+
   return (
     <section aria-label="Conversation" style={{ display: "flex", flexDirection: "column", gap: 12, height: "100%" }}>
       <ol style={{ flex: 1, overflowY: "auto", listStyle: "none", margin: 0, padding: 0 }}>
-        {conversation.turns.map((turn) => (
-          <TurnView key={turn.runId} turn={turn} made={files.outputsByRun.get(turn.runId) ?? []} onReview={(...decision) => settled(conversation.reviewFileChanges(...decision))} />
-        ))}
+        {conversation.turns.map((turn) => {
+          const version = versionLines.get(turn.runId);
+          return (
+            <Fragment key={turn.runId}>
+              {version !== undefined && <li style={STEP}>Agent version {agentVersionLabel(history.versions, version)}</li>}
+              <TurnView turn={turn} made={files.outputsByRun.get(turn.runId) ?? []} onReview={(...decision) => settled(conversation.reviewFileChanges(...decision))} />
+            </Fragment>
+          );
+        })}
       </ol>
       {conversation.asks.map((ask) => (
         <Ask key={ask.id} ask={ask} onAnswer={(answer) => settled(conversation.answerToolUse(ask.id, answer))} />
@@ -137,6 +154,31 @@ function Conversation({ org, agent, sessionId: existing }: Omit<ChatProps, "clie
       />
     </section>
   );
+}
+
+// ---- the agent version ----
+
+/** Each run's agent version, by run id; a run that recorded none (the built-in assistant) is left out. */
+function versionsRan(runs: readonly Run[]): Map<string, string> {
+  const ran = new Map<string, string>();
+  for (const run of runs) {
+    const hash = run.status?.agentVersionHash ?? "";
+    if (hash !== "" && run.metadata) ran.set(run.metadata.id, hash);
+  }
+  return ran;
+}
+
+/** The turns that ran another version than the turn before them, with the version they ran. */
+function versionChanges(turns: readonly Turn[], ran: ReadonlyMap<string, string>): Map<string, string> {
+  const lines = new Map<string, string>();
+  let last = "";
+  for (const turn of turns) {
+    const hash = ran.get(turn.runId);
+    if (hash === undefined || hash === last) continue;
+    lines.set(turn.runId, hash);
+    last = hash;
+  }
+  return lines;
 }
 
 // ---- a turn ----

@@ -67,7 +67,8 @@ import { PlanFileCard, type PlanFileCardProps } from "./PlanFileCard.js";
 import { PlanStreamingCard, type PlanStreamingCardProps } from "./PlanStreamingCard.js";
 import { TodoCard, type TodoCardProps } from "./TodoCard.js";
 import type { TodoRowProps } from "./TodoList.js";
-import { guardSlots } from "./slot-guard.js";
+import { guardSlots, SLOT_BUILT_INS } from "./slot-guard.js";
+import { BuiltInsContext } from "./built-ins-context.js";
 import { findStreamingPlan } from "../library/detect-streaming-plan.js";
 import { extractPrimaryArg, resolveToolCategoryFromCall } from "@stigmer/react-core";
 import { isInternalTool } from "@stigmer/react-core/internal";
@@ -1574,11 +1575,15 @@ export function MessageThread({
   const answerFor = useCustomToolAnswers(onAnswerCustomToolUse, sessionId ?? "");
   const customToolAnswerCtx = useMemo<CustomToolAnswerContextValue>(() => ({ answerFor }), [answerFor]);
 
+  // Our built-ins, for whatever a host draws here to hand a case back to
+  // (built-ins-context.ts).
   const withRunScores = (thread: ReactNode): ReactNode => (
     <ThreadPresentationContext.Provider value={presentation}>
       <BackgroundCommandContext.Provider value={backgroundCtx}>
         <CustomToolAnswerContext.Provider value={customToolAnswerCtx}>
-          {runScores ? <RunScoresProvider runs={runs}>{thread}</RunScoresProvider> : thread}
+          <BuiltInsContext.Provider value={SLOT_BUILT_INS}>
+            {runScores ? <RunScoresProvider runs={runs}>{thread}</RunScoresProvider> : thread}
+          </BuiltInsContext.Provider>
         </CustomToolAnswerContext.Provider>
       </BackgroundCommandContext.Provider>
     </ThreadPresentationContext.Provider>

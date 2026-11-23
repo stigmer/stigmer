@@ -457,10 +457,10 @@ plan with each step under its to-do item is `turnSteps`.
 Where each row kind's data is public is code: `sdk/react/src/run/row-data.ts`
 maps every kind to the fields and names it reads, so a new kind fails to compile
 until it names where a host reads it, and a renamed field or export fails too.
-Only one kind reads a name outside the core, the agent version's label
-(`agentVersionLabel`, from the kit's headless layer); a test
-(`sdk/react/src/run/__tests__/row-data.test.ts`) fails on any other, and when
-this table and the map disagree.
+Every source is a field or a public name of `@stigmer/react-core`: the map's
+type admits no other package's name, and a test
+(`sdk/react/src/run/__tests__/row-data.test.ts`) fails when this table and the
+map disagree.
 
 | Part (row kind)                     | Where a host reads it                                                                                                                                                                                                               |
 | ----------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -482,7 +482,7 @@ this table and the map disagree.
 | `turn-scores`                       | None: the scores are a control a data view cannot express, hidden from end users and guests.                                                                                                                                        |
 | `phase-badge`                       | `Turn.status`, `Turn.ended`                                                                                                                                                                                                         |
 | `context-compacted`                 | `Turn.items`                                                                                                                                                                                                                        |
-| `agent-version`                     | `useSessionConversation.runs`, labelled by `agentVersionLabel` (the kit's headless layer)                                                                                                                                           |
+| `agent-version`                     | `useSessionConversation.runs`; the agent's history: `useAgentVersions`, a version worded by `agentVersionLabel`                                                                                                                     |
 | `loaded-versions`                   | `useSessionConversation.runs`                                                                                                                                                                                                       |
 | Every file the conversation made    | `useSessionOutputs` (one entry per output path, newest turn winning) over the files list                                                                                                                                            |
 | Every file the conversation changed | `useSessionFileChanges` (one net change per path), its text by `useFileChangeContent`                                                                                                                                               |
@@ -509,12 +509,15 @@ per-viewer mechanism is forwarded explicitly.
 
 - **`threadSlots`** stays as it is and covers the ten open row kinds. The light
   chat entry (`sdk/react/src/chat.ts`) exports every slot's props type and every
-  slot's built-in, the root's same values, so an `AgentChat` host on that entry
-  names the types `threadSlots` takes and hands any case back to ours (C5, and
-  one rule for every slot). A slot that hands back loads that built-in with the
-  host's page, before the chat draws; the chat alone loads it with the
-  conversation. Built-ins that load with the conversation are
-  stigmer/stigmer#3438.
+  slot's built-in, so an `AgentChat` host on that entry names the types
+  `threadSlots` takes and hands any case back to ours (C5, and one rule for
+  every slot). Its built-ins are thin components named like the root's
+  (`sdk/react/src/run/lazy-built-ins.tsx`): inside a thread they draw the real
+  one the thread hands down (`sdk/react/src/run/built-ins-context.ts`) on its
+  first frame, so handing back adds nothing to the page's first download and the
+  part arrives with the conversation (stigmer/stigmer#3438); outside a thread
+  they load the built-ins once. A test holds the page's download to the chat's
+  (`test/install/smoke-budgets.mjs`, KIT-02).
 - **`registerToolPresenter`** is kept, unchanged, until a host asks for wording
   per kind: no provider copy, no deprecation. It is a published export
   (`sdk/react/src/headless.ts`) with no caller in this repository outside its

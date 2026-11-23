@@ -8,7 +8,9 @@
  * answer is in the log; a changed file is kept by its digest; and a file a
  * turn made is listed once its turn ends (the files list re-read on the
  * runs' key) and opened in a tab opened inside the click, then sent to its
- * short-lived link. Every query is by role
+ * short-lived link; a conversation that ran two agent versions marks each
+ * change with the version's tag or short hash, and one that ran one draws
+ * no mark and reads no history. Every query is by role
  * and accessible name, so the test also holds the program's names.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -37,6 +39,12 @@ function run(phase: RunPhase): Run {
   return samples.run({ id: RUN, phase, sessionId: SESSION });
 }
 
+/** A run that recorded the agent version it ran. */
+function versioned(r: Run, hash: string): Run {
+  r.status!.agentVersionHash = hash;
+  return r;
+}
+
 /** A tool call and its result. */
 function call(name: string, input: Record<string, unknown>, result: string, id = `${RUN}.tc-${name}`): SessionEvent[] {
   const use = samples.toolUseEvent(name, input as never, { runId: RUN, id });
@@ -46,7 +54,9 @@ function call(name: string, input: Record<string, unknown>, result: string, id =
 let events: SessionEventStream;
 let runs: Run[];
 let files: StigmerFile[];
+let sessionAgent: { org: string; slug: string } | undefined;
 const methods = {
+  listVersions: vi.fn(),
   confirmToolUse: vi.fn(),
   answerCustomToolUse: vi.fn(),
   reviewFileChanges: vi.fn(),
@@ -57,7 +67,7 @@ const methods = {
 function client(): Stigmer {
   return {
     session: {
-      get: vi.fn().mockResolvedValue(create(SessionSchema, { metadata: { id: SESSION, org: "acme" } })),
+      get: vi.fn().mockResolvedValue(create(SessionSchema, { metadata: { id: SESSION, org: "acme" }, spec: { agentRef: sessionAgent } })),
       streamEvents: events.streamEvents,
       confirmToolUse: methods.confirmToolUse,
       answerCustomToolUse: methods.answerCustomToolUse,
@@ -68,6 +78,7 @@ function client(): Stigmer {
       get: vi.fn(async () => runs[0]),
     },
     file: { listAll: methods.listAll, getDownloadUrl: methods.getDownloadUrl },
+    agent: { listVersions: methods.listVersions },
     identityAccount: { whoAmI: vi.fn().mockRejectedValue(new Error("no account")) },
   } as unknown as Stigmer;
 }
@@ -79,6 +90,7 @@ function open(): void {
 beforeEach(() => {
   runs = [run(RunPhase.RUN_IN_PROGRESS)];
   files = [];
+  sessionAgent = undefined;
   for (const method of Object.values(methods)) method.mockReset();
   methods.confirmToolUse.mockResolvedValue({});
   methods.answerCustomToolUse.mockResolvedValue({});
@@ -222,5 +234,48 @@ describe("the hooks guide's chat", () => {
     expect(tab.opener).toBeNull();
     expect(methods.getDownloadUrl).toHaveBeenCalledWith(files[0]!.metadata!.id);
     opened.mockRestore();
+  });
+  it("marks where the agent version changes, worded from the agent's history", async () => {
+    const V1 = "aa11bb22cc33dd44";
+    const V2 = "3f2a9c1e0b7d44aa";
+    sessionAgent = { org: "acme", slug: "billing" };
+    runs = [
+      versioned(samples.run({ id: "run_a", phase: RunPhase.RUN_COMPLETED, sessionId: SESSION }), V1),
+      versioned(samples.run({ id: "run_b", phase: RunPhase.RUN_COMPLETED, sessionId: SESSION }), V1),
+      versioned(samples.run({ id: "run_c", phase: RunPhase.RUN_COMPLETED, sessionId: SESSION }), V2),
+    ];
+    methods.listVersions.mockResolvedValue({
+      entries: [
+        { versionHash: V2, tag: "v2", isCurrent: true, message: "" },
+        { versionHash: V1, tag: "", isCurrent: false, message: "" },
+      ],
+      nextPageToken: "",
+    });
+    events = sessionEventStream([
+      ...samples.turnEvents({ runId: "run_a", message: "First question.", reply: "First answer." }),
+      ...samples.turnEvents({ runId: "run_b", message: "Second question.", reply: "Second answer." }),
+      ...samples.turnEvents({ runId: "run_c", message: "Third question.", reply: "Third answer." }),
+    ]);
+    open();
+
+    await screen.findByText("Agent version v2");
+    expect(methods.listVersions).toHaveBeenCalledWith(expect.objectContaining({ org: "acme", slug: "billing" }));
+    const lines = screen.getAllByText(/^Agent version /).map((line) => line.textContent);
+    expect(lines).toEqual(["Agent version aa11bb22cc33", "Agent version v2"]);
+    // Each mark opens the turns that ran it: before the first turn, then before the third.
+    const marks = screen.getAllByText(/^Agent version /);
+    expect(marks[0]?.nextElementSibling?.textContent).toContain("First question.");
+    expect(marks[1]?.nextElementSibling?.textContent).toContain("Third question.");
+  });
+
+  it("draws no version mark, and reads no history, when every turn ran one version", async () => {
+    sessionAgent = { org: "acme", slug: "billing" };
+    runs = [versioned(run(RunPhase.RUN_COMPLETED), "aa11bb22cc33dd44")];
+    events = sessionEventStream(samples.turnEvents({ runId: RUN, message: "Fix the rounding.", reply: "Fixed." }));
+    open();
+
+    await screen.findByText("Fixed.");
+    expect(screen.queryByText(/^Agent version /)).toBeNull();
+    expect(methods.listVersions).not.toHaveBeenCalled();
   });
 });

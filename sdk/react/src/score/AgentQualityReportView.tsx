@@ -32,7 +32,7 @@ import type { Agent } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb";
 import type { Score } from "@stigmer/apis/ai/stigmer/agentic/score/v1/api_pb";
 import type { AgentQualityReport } from "@stigmer/apis/ai/stigmer/agentic/score/v1/io_pb";
 import { cn } from "@stigmer/design-tokens";
-import { agentVersionLabel, useAgentVersions } from "../agent/useAgentVersions.js";
+import { agentVersionLabel, useAgentVersions } from "@stigmer/react-core";
 import { TrendChart } from "../charts/TrendChart.js";
 import type { TrendMarker } from "../charts/trend-layout.js";
 import { ErrorMessage } from "../error/ErrorMessage.js";

@@ -314,7 +314,7 @@ Data hook that fetches an agent's version history.
 Every apply that changes an agent records a version under its content
 hash; this hook pages the `listVersions` RPC (newest first, `hasMore` /
 `loadMore` for older ones) and maps each entry to the
-generic [`VersionEntry`](/docs/sdk/react/version-history#versionentry) the shared `VersionTimeline` renders, keeping
+generic [`VersionEntry`](/docs/sdk/react/version-history#versionentry) every version timeline draws, keeping
 each version's full spec for `UseAgentVersionsReturn.getSpec`.
 
 An agent last written before agents were versioned has no history until
@@ -353,10 +353,16 @@ function useAgentVersions(org: string | null, slug: string | null): UseAgentVers
 />
 
 ```tsx
-const { versions, isEmpty } = useAgentVersions("acme", "variance-reporter");
-
-if (!isEmpty) {
-  return <VersionTimeline entries={versions} />;
+function AgentHistory() {
+  const { versions, isEmpty } = useAgentVersions("acme", "variance-reporter");
+  if (isEmpty) return <p>No versions yet</p>;
+  return (
+    <ul>
+      {versions.map((v) => (
+        <li key={v.id}>{v.tag ?? v.label}</li>
+      ))}
+    </ul>
+  );
 }
 ```
 

@@ -51,7 +51,7 @@ import { useOrgIdForRef, useOrgSlugForId } from "../organization/useOrgRefs.js";
 import { AgentQualityTab } from "./AgentQualityTab.js";
 import { EvalRunsTab } from "../eval-run/EvalRunsTab.js";
 import { AgentVersionsTab } from "./AgentVersionsTab.js";
-import { useAgentVersionCount } from "./useAgentVersions.js";
+import { useAgentVersionCount } from "./useAgentVersionCount.js";
 import { ResourceSlugField } from "../resource-detail/RenameSlugField.js";
 import { useExportResource } from "../library/useExportResource.js";
 import { EditResourceYamlDialog } from "../manifest/EditResourceYamlDialog.js";
