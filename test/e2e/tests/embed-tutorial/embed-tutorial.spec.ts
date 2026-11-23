@@ -10,9 +10,10 @@
 // and see the Agent's report among what the turn made, in `<AgentChat>`.
 //
 // The page's earlier steps a reader does in the console are done here
-// through the API as the console's signed-in owner: the Agent applied from
-// the quickstart's file, the service account and its key, and account
-// creation turned on in the embedding settings with the member role.
+// through the API as the console's signed-in owner (`prepareReader`): the
+// Agent applied from the quickstart's file, the service account and its key,
+// and account creation turned on in the embedding settings with the member
+// role.
 //
 // Stack shape: STIGMER_E2E_OIDC=1 and STIGMER_E2E_MOCK_LLM=1 (`make
 // test-e2e-console-login`, which runs this project beside console-login).
@@ -21,39 +22,16 @@
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { test, expect, type Page } from "@playwright/test";
-import { create } from "@bufbuild/protobuf";
-import { createNodeClient } from "@stigmer/client/node";
-import { parseManifest } from "@stigmer/client";
-import { CreateServiceAccountInputSchema } from "@stigmer/apis/ai/stigmer/iam/identityaccount/v1/io_pb";
-import { CreateServiceAccountKeyInputSchema } from "@stigmer/apis/ai/stigmer/iam/apikey/v1/io_pb";
-import {
-  ListMyOrganizationsInputSchema,
-  UpdateOrganizationEmbeddingInputSchema,
-} from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/io_pb";
-import { IamRole } from "@stigmer/apis/ai/stigmer/iam/v1/enum_pb";
+import { test, expect } from "@playwright/test";
 import { OIDC_STACK } from "../../fixtures/oidc";
 import { MockControl, getMockControlUrl } from "../../helpers/approval";
 import { anthropicText, anthropicToolUses } from "../../fixtures/mock-llm";
-import { APP_PORT, packKit, quickstartFile, runTutorial, type TutorialRun } from "../../helpers/embed-tutorial";
+import { APP_PORT, packKit, prepareReader, quickstartFile, runTutorial, type TutorialRun } from "../../helpers/embed-tutorial";
 
 const API_PORT = process.env.STIGMER_E2E_API_PORT ?? "7234";
 const API_URL = `http://localhost:${API_PORT}`;
 const mockUrl = getMockControlUrl();
 const REPORT = "variance-report.md";
-
-/** Signs in to the console as the issuer's person and returns the bearer its RPCs carry. */
-async function ownerBearer(page: Page): Promise<string> {
-  let bearer: string | undefined;
-  page.on("request", (request) => {
-    const authorization = request.headers()["authorization"];
-    if (new URL(request.url()).port === API_PORT && authorization?.startsWith("Bearer ")) bearer = authorization.slice(7);
-  });
-  await page.goto("/");
-  await expect(page.getByRole("navigation").first()).toBeVisible({ timeout: 30_000 });
-  await expect.poll(() => bearer, { timeout: 15_000 }).toBeDefined();
-  return bearer!;
-}
 
 test.describe("KIT-02 the embed tutorial, run from its page", () => {
   test.skip(!OIDC_STACK || mockUrl === null, "needs the OIDC stack with the mock model — run `make test-e2e-console-login`");
@@ -69,31 +47,12 @@ test.describe("KIT-02 the embed tutorial, run from its page", () => {
 
   test("a person signed in to the app attaches the ledger in its chat and gets the report", async ({ page, browser }) => {
     // The earlier pages' state, as the console's owner.
-    const bearer = await ownerBearer(page);
-    const owner = createNodeClient({ baseUrl: API_URL, getAccessToken: () => bearer });
-    const [org] = (await owner.organization.listMine(create(ListMyOrganizationsInputSchema, {}))).entries;
-    const orgSlug = org?.metadata?.slug ?? "";
-    expect(orgSlug, "the server made its one organization").not.toBe("");
-    for (const document of parseManifest(quickstartFile("variance-reporter.yaml").replace("metadata:\n", `metadata:\n  org: ${orgSlug}\n`))) {
-      await owner.manifest.apply(document);
-    }
-    const account = await owner.identityAccount.createServiceAccount(
-      create(CreateServiceAccountInputSchema, { org: orgSlug, name: "report-backend", role: IamRole.admin }),
-    );
-    const key = await owner.apiKey.createForServiceAccount(
-      create(CreateServiceAccountKeyInputSchema, { serviceAccountId: account.metadata?.id ?? "", name: "report-backend", neverExpires: true }),
-    );
-    await owner.organization.updateEmbedding(
-      create(UpdateOrganizationEmbeddingInputSchema, {
-        orgId: orgSlug,
-        embedding: { createAccountsOnSignIn: true, signInRole: IamRole.member },
-      }),
-    );
+    const reader = await prepareReader(page, API_URL);
 
     // The page, as written.
     folder = mkdtempSync(join(tmpdir(), "stigmer-embed-tutorial-"));
     const tarballs = packKit(join(folder, "tarballs"));
-    tutorial = await runTutorial(join(folder, "reader"), tarballs, { apiUrl: API_URL, apiKey: key.spec?.keyHash ?? "", org: orgSlug });
+    tutorial = await runTutorial(join(folder, "reader"), tarballs, { apiUrl: API_URL, apiKey: reader.apiKey, org: reader.org });
 
     // The model: the report into the outputs folder, then a closing line.
     const control = new MockControl(mockUrl!);

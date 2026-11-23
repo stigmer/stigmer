@@ -1,0 +1,570 @@
+---
+title: Make the chat your own
+description:
+  Give the chat in your app your brand, your own card when the Agent uses one of
+  your app's tools, your own action on its answer, your own bubble for your
+  users' messages and a status line in your own header.
+---
+
+## What you'll build
+
+Your customers now run the variance report job inside your product, but the chat
+still looks and acts like Stigmer's. On this page you change it, one step at a
+time, until it feels like part of your app:
+
+- it wears your brand's colours and font, in light and dark;
+- when the Agent wants a person to check a flagged account, it calls one of your
+  app's own tools, and your app draws its own account card in the chat, with
+  **Looks right** and **Needs a look**. The Agent hears which one they picked;
+- the Agent's final answer gets your own **Add to month-end notes** button, next
+  to Copy;
+- your users' messages are drawn in your own bubble;
+- a line in your app's header, outside the chat, says what the Agent is doing.
+
+Each step uses the smallest way that does the job, so everything you don't
+change stays Stigmer's: approvals, the order of events, Stop, and keyboard and
+screen-reader access.
+
+The moment to watch for: the Agent stops to ask about an account, your own card
+asks your user, and the Agent carries on with what they picked.
+
+**Time**: about 20 minutes. **Prerequisites**: the app from
+[Put the agent in your app](/docs/getting-started/embed-agent), with its
+`server.ts` and `src/App.tsx`. If you also gave each customer an Organization of
+their own on the
+[last page](/docs/getting-started/one-organization-per-customer), the app keeps
+working that way: everything here happens in the browser.
+
+<Steps>
+<Step>
+
+## Wear your brand
+
+The chat's look comes from design tokens, CSS variables named `--stgm-*`. Give
+it your colour and font with a theme class. Create `src/brand.css`:
+
+```css title="src/brand.css"
+.brand-theme {
+  --stgm-primary: oklch(0.5 0.13 165);
+  --stgm-primary-foreground: oklch(0.985 0 0);
+  --stgm-ring: oklch(0.5 0.1 165);
+  --stgm-font-sans: "Avenir Next", "Segoe UI", system-ui, sans-serif;
+  font-family: var(--stgm-font-sans);
+}
+
+.brand-theme[data-stgm-color-mode="dark"],
+[data-stgm-color-mode="dark"] .brand-theme {
+  --stgm-primary: oklch(0.78 0.13 165);
+  --stgm-primary-foreground: oklch(0.145 0 0);
+  --stgm-ring: oklch(0.78 0.1 165);
+}
+```
+
+Every colour you change gets a dark value too, and every fill keeps its
+`-foreground` partner, so text on it stays readable. Then, in `src/App.tsx`,
+import the stylesheet and hand the class to `StigmerProvider`:
+
+```tsx no-compile="a run of src/App.tsx, shown whole in the last step"
+import "./brand.css";
+// …
+<StigmerProvider
+  client={stigmer}
+  className="brand-theme"
+  colorMode="system"
+```
+
+`colorMode="system"` follows your user's computer, so the dark values show when
+it is dark. If your app has its own light and dark switch, pass its value
+instead. [Theming](/docs/sdk/theme/theming) has every token and six ready-made
+presets.
+
+</Step>
+<Step>
+
+## Draw your own card when the Agent uses your app's tool
+
+Your app can offer the Agent tools of its own. When the Agent calls one, the
+conversation waits for your app's answer, and your own card can draw the call
+and answer it. Create `src/open-account.tsx`:
+
+```tsx title="src/open-account.tsx"
+import { useState } from "react";
+import { defineCustomTool } from "@stigmer/client";
+import type { ToolCardProps } from "@stigmer/react-sdk/chat";
+
+export const OPEN_ACCOUNT = defineCustomTool({
+  name: "open_account",
+  description:
+    "Show the person one ledger account the report flags, for them to check. Returns what they said: Looks right, or Needs a look.",
+  inputSchema: {
+    type: "object",
+    properties: {
+      account: {
+        type: "string",
+        description: "The account's name, as in the ledger.",
+      },
+      variance: {
+        type: "string",
+        description: "How far it is off budget, such as +18%.",
+      },
+    },
+    required: ["account"],
+  },
+});
+
+export function OpenAccountCard({ call, answer }: ToolCardProps) {
+  const [picked, setPicked] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const account =
+    typeof call.input.account === "string" ? call.input.account : "An account";
+  const variance =
+    typeof call.input.variance === "string" ? call.input.variance : null;
+
+  async function reply(verdict: string) {
+    if (answer === undefined) return;
+    setPicked(verdict);
+    setError(null);
+    try {
+      await answer(verdict);
+    } catch (failure) {
+      setPicked(null);
+      setError(
+        failure instanceof Error
+          ? failure.message
+          : "Your answer didn't reach Stigmer.",
+      );
+    }
+  }
+
+  return (
+    <section
+      aria-label={`Account ${account}`}
+      style={{ display: "grid", gap: 8, padding: 12 }}
+    >
+      <strong>{account}</strong>
+      {variance !== null && <span>{variance} against budget</span>}
+      {call.result !== undefined ? (
+        <span>Checked: {call.result.text}</span>
+      ) : answer !== undefined ? (
+        <div style={{ display: "flex", gap: 8 }}>
+          <button
+            type="button"
+            disabled={picked !== null}
+            onClick={() => void reply("Looks right")}
+          >
+            Looks right
+          </button>
+          <button
+            type="button"
+            disabled={picked !== null}
+            onClick={() => void reply("Needs a look")}
+          >
+            Needs a look
+          </button>
+        </div>
+      ) : null}
+      {error !== null && <span role="alert">{error}</span>}
+    </section>
+  );
+}
+```
+
+- `defineCustomTool` declares the tool: its name, what it is for, and the input
+  the Agent must give it. The description is what the Agent reads to decide when
+  to call it.
+- The card reads the call (`call.input`, and `call.result` once it is answered).
+  `answer` sends your user's pick back as the tool's result. It is there while
+  the call waits, and only for the conversation's owner: someone only watching
+  sees the account and no buttons.
+- `answer` can fail, for example when the network drops, so the card holds its
+  buttons while the answer is on its way and shows the error if it doesn't
+  arrive.
+
+In `src/App.tsx`, register the card for the tool's name, once, on the provider,
+and offer the tool to the conversation:
+
+```tsx no-compile="a run of src/App.tsx, shown whole in the last step"
+import {
+  AgentChat,
+  StigmerProvider,
+  type ToolCards,
+} from "@stigmer/react-sdk/chat";
+// …
+import { OPEN_ACCOUNT, OpenAccountCard } from "./open-account";
+// …
+const TOOL_CARDS: ToolCards = { open_account: OpenAccountCard };
+const CUSTOM_TOOLS = [OPEN_ACCOUNT];
+// …
+toolCards = { TOOL_CARDS };
+// …
+customTools = { CUSTOM_TOOLS };
+```
+
+Your card goes inside Stigmer's step for the call. The step's line stays ours
+and keeps saying what is happening, an approval the call needs stays ours, and
+if your card throws, ours draws instead. Define cards at the top level of a
+module, as here, not inside a component.
+
+The same `toolCards` map takes a card for a tool of a server you connected to
+the Agent, keyed by its name as the Agent sees it, `mcp__<server>__<tool>`:
+
+```tsx no-compile="a fragment beside the steps; InvoiceCard is yours"
+const TOOL_CARDS: ToolCards = { mcp__billing__create_invoice: InvoiceCard };
+```
+
+</Step>
+<Step>
+
+## Put your own action on the Agent's answer
+
+Add a button to the Agent's final answer that hands it to the rest of your app.
+Create `src/month-end-notes.tsx`, a small list of notes with the action that
+adds to it:
+
+```tsx title="src/month-end-notes.tsx"
+import { useCallback, useState } from "react";
+import type { MessageAction, MessageInfo } from "@stigmer/react-sdk/chat";
+
+export function useMonthEndNotes() {
+  const [saved, setSaved] = useState<readonly string[]>([]);
+  const actionsFor = useCallback(
+    (message: MessageInfo): readonly MessageAction[] => {
+      if (!message.isFinalAnswer) return [];
+      return [
+        {
+          id: "add-to-notes",
+          label: "Add to month-end notes",
+          icon: <NotesIcon />,
+          onAction: () => setSaved((notes) => [...notes, message.text]),
+        },
+      ];
+    },
+    [],
+  );
+  return { saved, actionsFor };
+}
+
+export function MonthEndNotes({ saved }: { saved: readonly string[] }) {
+  return (
+    <aside
+      aria-label="Month-end notes"
+      style={{ padding: 16, overflow: "auto" }}
+    >
+      <h2 style={{ fontSize: 16 }}>Month-end notes</h2>
+      {saved.length === 0 ? (
+        <p>Nothing added yet.</p>
+      ) : (
+        <ul>
+          {saved.map((note, index) => (
+            <li key={index}>{note}</li>
+          ))}
+        </ul>
+      )}
+    </aside>
+  );
+}
+
+function NotesIcon() {
+  return (
+    <svg
+      viewBox="0 0 16 16"
+      width="16"
+      height="16"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      aria-hidden="true"
+    >
+      <path d="M4 2.5h8v11H4zM6.5 6h3M6.5 8.5h3" />
+    </svg>
+  );
+}
+```
+
+`actionsFor` is told about each message: whose it is, its text, and whether it
+is the final answer of a finished turn. It returns the actions for that message,
+here one, only on the final answer. In `src/App.tsx`, pass it to the chat and
+show the list beside it:
+
+```tsx no-compile="a run of src/App.tsx, shown whole in the last step"
+import { MonthEndNotes, useMonthEndNotes } from "./month-end-notes";
+// …
+const notes = useMonthEndNotes();
+// …
+messageActions={notes.actionsFor}
+// …
+<MonthEndNotes saved={notes.saved} />
+```
+
+An action with an icon sits beside Copy, named by its label. Up to two do; any
+more go into one **More actions** menu. Every action is reachable by keyboard,
+and none takes a key from your page.
+
+</Step>
+<Step>
+
+## Draw your users' messages your way
+
+To change a part of the conversation itself, swap it for your own component. A
+swap draws the cases it changes and hands every other case back to Stigmer's.
+Create `src/person-bubble.tsx`:
+
+```tsx title="src/person-bubble.tsx"
+import {
+  MessageEntry,
+  type MessageEntryProps,
+  type MessageThreadSlots,
+} from "@stigmer/react-sdk/chat";
+
+function PersonBubble(props: MessageEntryProps) {
+  if (props.message.kind !== "user") return <MessageEntry {...props} />;
+  return (
+    <div
+      className="person-bubble"
+      style={{
+        marginLeft: "auto",
+        maxWidth: "75%",
+        padding: "8px 14px",
+        borderRadius: 18,
+        background: "var(--stgm-primary)",
+        color: "var(--stgm-primary-foreground)",
+      }}
+    >
+      {props.files?.map((file) => (
+        <small
+          key={file.fileId ?? file.filename}
+          style={{ display: "block", opacity: 0.85 }}
+        >
+          {file.filename ?? "Attached file"}
+        </small>
+      ))}
+      {props.message.text}
+    </div>
+  );
+}
+
+export const THREAD_SLOTS: MessageThreadSlots = { MessageEntry: PersonBubble };
+```
+
+The bubble reads your brand's own tokens, so it follows light and dark with the
+rest. Every other message goes back to `MessageEntry`. Handing back loads that
+part with your page, before the chat draws, where the chat alone loads it with
+the conversation. In `src/App.tsx`:
+
+```tsx no-compile="a run of src/App.tsx, shown whole in the last step"
+import { THREAD_SLOTS } from "./person-bubble";
+// …
+threadSlots = { THREAD_SLOTS };
+```
+
+Approvals, to-do lists, plans and the other parts swap the same way;
+[Theming](/docs/sdk/theme/theming) lists them. Define the swaps at the top level
+of a module, as here.
+
+</Step>
+<Step>
+
+## Show what the Agent is doing in your own header
+
+The chat says what the Agent is doing above its message box. Your app can say it
+anywhere else too, read from the same conversation. Create
+`src/agent-status.tsx`:
+
+```tsx title="src/agent-status.tsx"
+import { activityPhrase, describeTurnActivity } from "@stigmer/client";
+import { useSessionConversation } from "@stigmer/react-sdk/headless";
+
+export function AgentStatus({
+  sessionId,
+  org,
+}: {
+  sessionId: string | null;
+  org: string;
+}) {
+  const { activeTurn } = useSessionConversation(sessionId, org);
+  if (activeTurn === null) return <span>Ready</span>;
+  return (
+    <span>
+      {activityPhrase(describeTurnActivity(activeTurn, Date.now()).activity)}
+    </span>
+  );
+}
+```
+
+`useSessionConversation` reads the conversation the chat shows: its turns, the
+one at work, its files. `describeTurnActivity` and `activityPhrase` put the turn
+at work in the same words the chat uses, such as "Waiting for the app" while
+your card waits for your user. In `src/App.tsx`, keep the conversation's ID that
+`onSessionChange` hands you and put the line in your header:
+
+```tsx no-compile="a run of src/App.tsx, shown whole in the last step"
+import { AgentStatus } from "./agent-status";
+// …
+const [sessionId, setSessionId] = useState<string | null>(null);
+// …
+<AgentStatus sessionId={sessionId} org={org} />;
+// …
+onSessionChange = { setSessionId };
+```
+
+To draw the whole conversation yourself, from the same hook, see
+[Build a chat from the hooks](/docs/sdk/react-core/build-a-chat).
+
+</Step>
+<Step>
+
+## Run it
+
+Here is `src/App.tsx` with every step in place. Replace yours with it:
+
+```tsx title="src/App.tsx" no-compile="imports this page's own files; the embedding tutorial's test builds the whole app, strict"
+import { useState } from "react";
+import { Stigmer, createTokenCache } from "@stigmer/client";
+import {
+  AgentChat,
+  StigmerProvider,
+  type ToolCards,
+} from "@stigmer/react-sdk/chat";
+import "@stigmer/react-sdk/styles.css";
+import "./brand.css";
+import { AgentStatus } from "./agent-status";
+import { MonthEndNotes, useMonthEndNotes } from "./month-end-notes";
+import { OPEN_ACCOUNT, OpenAccountCard } from "./open-account";
+import { THREAD_SLOTS } from "./person-bubble";
+
+const org = import.meta.env.VITE_STIGMER_ORG;
+// Set when each customer has an Organization of their own; otherwise the Agent is in yours.
+const agentOrg = import.meta.env.VITE_STIGMER_AGENT_ORG ?? org;
+
+const tokens = createTokenCache(async () => {
+  const res = await fetch("/api/stigmer-token");
+  return res.json();
+});
+
+const stigmer = new Stigmer({
+  baseUrl: import.meta.env.VITE_STIGMER_URL ?? "https://api.stigmer.ai",
+  getAccessToken: tokens.getAccessToken,
+});
+
+const TOOL_CARDS: ToolCards = { open_account: OpenAccountCard };
+const CUSTOM_TOOLS = [OPEN_ACCOUNT];
+
+export default function App() {
+  const [sessionId, setSessionId] = useState<string | null>(null);
+  const notes = useMonthEndNotes();
+  return (
+    <StigmerProvider
+      client={stigmer}
+      className="brand-theme"
+      colorMode="system"
+      toolCards={TOOL_CARDS}
+    >
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "1fr 18rem",
+          gridTemplateRows: "auto 1fr",
+          height: "100vh",
+        }}
+      >
+        <header
+          style={{
+            gridColumn: "1 / -1",
+            display: "flex",
+            justifyContent: "space-between",
+            padding: "12px 16px",
+          }}
+        >
+          <strong>Month-end close</strong>
+          <AgentStatus sessionId={sessionId} org={org} />
+        </header>
+        <main style={{ minHeight: 0 }}>
+          <AgentChat
+            agent={`${agentOrg}/variance-reporter`}
+            org={org}
+            customTools={CUSTOM_TOOLS}
+            messageActions={notes.actionsFor}
+            threadSlots={THREAD_SLOTS}
+            onSessionChange={setSessionId}
+          />
+        </main>
+        <MonthEndNotes saved={notes.saved} />
+      </div>
+    </StigmerProvider>
+  );
+}
+```
+
+Start your backend, then the app, in two terminals:
+
+```bash
+npx tsx server.ts
+```
+
+```bash
+VITE_STIGMER_ORG=$STIGMER_ORG npm run dev
+```
+
+If you gave each customer an Organization, start the app with both, as on the
+last page: this file reads both, as yours did.
+
+Open `http://localhost:5173`. The chat wears your colour, and switches to its
+dark values when your computer is dark. Attach `ledger.csv`, send "Review this
+quarter's ledger and show me any account that looks off." in your own bubble,
+and watch your header:
+
+1. The Agent reads the ledger and calls `open_account` for an account off
+   budget. Your card shows the account under Stigmer's step, and your header
+   says **Waiting for the app**.
+2. Pick **Looks right** or **Needs a look**. The card says what you picked, and
+   the Agent carries on with it.
+3. When the Agent's answer arrives, choose **Add to month-end notes** next to
+   Copy. The answer appears in your notes.
+
+The Agent decides when to call your tool from its description and your message,
+so if it doesn't call it, ask it to show you the account that is furthest off
+budget.
+
+</Step>
+</Steps>
+
+## What just happened
+
+The chat became part of your app at five levels, each the smallest one that did
+the job:
+
+- **Tokens** gave it your colour and font.
+- **Your app's own tool**, declared with `defineCustomTool`, let the Agent ask
+  your app something in the middle of its work. Your **tool card** drew the call
+  and answered it.
+- **Your action** put your app's next step on the Agent's answer.
+- **A swapped part** drew your users' messages your way and handed the rest back
+  to Stigmer's.
+- **The conversation hook** let your header read what the chat shows.
+
+Your app can also answer from somewhere else than a card: hear the call with
+`onCustomToolUse` on `AgentChat` and answer from your own panel
+([Embed an Agent](/docs/guides/channels/embed-an-agent#the-apps-own-tools)), or
+answer from your backend with the TypeScript SDK's `answerCustomToolUse`
+([Answer a call of your app's own tool](/docs/sdk/streaming#answer-a-call-of-your-apps-own-tool)).
+
+## What stays Stigmer's, and why
+
+Some things look the way you want but work the same in every app, so your users
+can trust them:
+
+- **What an approval shows and records.** You can draw the approval card your
+  way, but what it shows the person and the decision it records are Stigmer's.
+- **The order of events.** The conversation shows what happened in the order it
+  happened, in every app and when it is opened again later.
+- **Stop.** Your user can always stop the Agent.
+- **Keyboard and screen-reader access.** Stigmer's parts are reached and named
+  the same way in every app. Your parts sit inside them, so give your buttons
+  names, as the card and the action here do.
+
+## Everything your own
+
+When none of this goes far enough, draw the whole screen from the hooks
+([Build a chat from the hooks](/docs/sdk/react-core/build-a-chat)), or skip
+React altogether with the [TypeScript SDK](/docs/sdk/typescript), the same SDK
+your backend already uses to sign your users in.

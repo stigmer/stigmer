@@ -115,6 +115,21 @@ pages:
       customer, and mint each customer's users into their own.
     medium: none
 
+  getting-started/make-the-chat-your-own:
+    fate: keep
+    diataxis: tutorial
+    teaches:
+      Make the embedded chat the reader's own on the embedding tutorial's app,
+      one level at a time: tokens and colour mode, an app tool the Agent calls
+      with a host tool card that answers it, a message action on the final
+      answer, a MessageEntry slot that hands back to the built-in, and a header
+      status line from useSessionConversation.
+    medium: animated-tour
+    why:
+      The payoff is the reader's own card and action working inside the chat in
+      their product; the motion is the demonstration, as on the embedding
+      tutorial it builds on.
+
   concepts/coming-from-claude-managed-agents:
     fate: keep
     diataxis: explanation

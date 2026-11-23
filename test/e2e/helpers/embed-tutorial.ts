@@ -1,7 +1,9 @@
-// The reader's side of docs/getting-started/embed-agent.mdx: its steps run as
-// the page shows them, in a fresh folder, read from the page itself through
-// test/install/lib/doc-steps.mjs, so there is no copy of the page here to
-// keep in step.
+// The reader's side of docs/getting-started/embed-agent.mdx, and of the pages
+// that build on its app (make-the-chat-your-own.mdx): their steps run as the
+// pages show them, in one fresh folder, read from the pages themselves through
+// test/install/lib/doc-steps.mjs, so there is no copy of a page here to keep
+// in step. A reader who does two pages starts the servers once, from the last
+// page's run step, so the strict build covers every page's files.
 //
 // The lines the page names as the install's (doc-steps.mjs HARNESS_LINES)
 // the harness performs its own way:
@@ -14,7 +16,7 @@
 //     (`registryPackagesOf`), as the reader's npm would;
 //   - "backend" and "dev-server": the page's two long-running commands,
 //     started in the background with the page's environment, and stopped
-//     when the run ends.
+//     when the run ends; from the last page of a run only.
 // Every other line runs in bash as written, `cd` carried to the next.
 //
 // The same Vite app and processes serve a second reader: a builder who copies
@@ -26,12 +28,25 @@
 import { spawn, spawnSync, type ChildProcess } from "node:child_process";
 import { mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
-import type { Page } from "@playwright/test";
+import { expect, type Page } from "@playwright/test";
+import { create } from "@bufbuild/protobuf";
+import { parseManifest } from "@stigmer/client";
+import { createNodeClient } from "@stigmer/client/node";
+import { CreateServiceAccountInputSchema } from "@stigmer/apis/ai/stigmer/iam/identityaccount/v1/io_pb";
+import { CreateServiceAccountKeyInputSchema } from "@stigmer/apis/ai/stigmer/iam/apikey/v1/io_pb";
+import {
+  ListMyOrganizationsInputSchema,
+  UpdateOrganizationEmbeddingInputSchema,
+} from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/io_pb";
+import { IamRole } from "@stigmer/apis/ai/stigmer/iam/v1/enum_pb";
 // @ts-expect-error -- plain Node module without types, shared with the getting-started smoke
 import { docSteps, registryPackagesOf } from "../../install/lib/doc-steps.mjs";
 
 const REPO_ROOT = resolve(import.meta.dirname, "../../..");
-const PAGE = join(REPO_ROOT, "docs/getting-started/embed-agent.mdx");
+/** The embedding tutorial, the page every run starts from. */
+export const EMBED_PAGE = join(REPO_ROOT, "docs/getting-started/embed-agent.mdx");
+/** The page that makes the tutorial's chat the reader's own, on the same app. */
+export const MAKE_IT_YOURS_PAGE = join(REPO_ROOT, "docs/getting-started/make-the-chat-your-own.mdx");
 /** The ports the page's backend and Vite listen on. */
 export const BACKEND_PORT = 3001;
 export const APP_PORT = 5173;
@@ -45,10 +60,13 @@ type Step =
   | { readonly kind: "command"; readonly line: string }
   | { readonly kind: "harness"; readonly line: string; readonly performs: string };
 
-/** The page's steps, in order. */
-export function tutorialSteps(): readonly Step[] {
-  return docSteps(readFileSync(PAGE, "utf8")) as Step[];
+/** A page's steps, in order. */
+export function tutorialSteps(page = EMBED_PAGE): readonly Step[] {
+  return docSteps(readFileSync(page, "utf8")) as Step[];
 }
+
+/** The page's lines that start a server the reader leaves running. */
+const LONG_RUNNING = new Set(["backend", "dev-server"]);
 
 /** A file the page's agent and ledger come from: the quickstart's own. */
 export function quickstartFile(name: string): string {
@@ -217,11 +235,18 @@ async function background(line: string, cwd: string, env: NodeJS.ProcessEnv, por
 }
 
 /**
- * Runs the page in `folder` against the stack in `env`, up to its two
- * servers running, and checks the app the page made builds and typechecks
- * (strict) as written.
+ * Runs `pages` in order in `folder` against the stack in `env`, up to the
+ * last page's two servers running, and checks the app the pages made builds
+ * and typechecks (strict) as written. `cd` carries from page to page, and an
+ * earlier page's servers are not started: the reader starts them once, as
+ * the last page says, so the build sees every page's files.
  */
-export async function runTutorial(folder: string, tarballs: readonly string[], env: TutorialEnv): Promise<TutorialRun> {
+export async function runTutorial(
+  folder: string,
+  tarballs: readonly string[],
+  env: TutorialEnv,
+  pages: readonly string[] = [EMBED_PAGE],
+): Promise<TutorialRun> {
   const shellEnv: NodeJS.ProcessEnv = {
     ...process.env,
     STIGMER_API_KEY: env.apiKey,
@@ -237,7 +262,10 @@ export async function runTutorial(folder: string, tarballs: readonly string[], e
   };
   let cwd = folder;
   try {
-    for (const step of tutorialSteps()) {
+    const steps = pages.flatMap((page, at) =>
+      tutorialSteps(page).filter((step) => at === pages.length - 1 || step.kind !== "harness" || !LONG_RUNNING.has(step.performs)),
+    );
+    for (const step of steps) {
       if (step.kind === "file") {
         mkdirSync(dirname(join(cwd, step.path)), { recursive: true });
         writeFileSync(join(cwd, step.path), step.content);
@@ -264,6 +292,56 @@ export async function runTutorial(folder: string, tarballs: readonly string[], e
     throw error;
   }
   return { appDir: cwd, stop };
+}
+
+/** What the earlier pages left a reader of the embedding tutorial: their Organization and the service account's key. */
+export interface Reader {
+  readonly org: string;
+  readonly apiKey: string;
+}
+
+/** Signs in to the console as the issuer's person and returns the bearer its RPCs carry to `apiPort`. */
+async function ownerBearer(page: Page, apiPort: string): Promise<string> {
+  let bearer: string | undefined;
+  page.on("request", (request) => {
+    const authorization = request.headers()["authorization"];
+    if (new URL(request.url()).port === apiPort && authorization?.startsWith("Bearer ")) bearer = authorization.slice(7);
+  });
+  await page.goto("/");
+  await expect(page.getByRole("navigation").first()).toBeVisible({ timeout: 30_000 });
+  await expect.poll(() => bearer, { timeout: 15_000 }).toBeDefined();
+  return bearer!;
+}
+
+/**
+ * The state the embedding tutorial's earlier pages leave, made through the
+ * API as the console's signed-in owner (`page` is a console page): the
+ * quickstart's Agent applied from its file, the `report-backend` service
+ * account and its key, and account creation turned on in the embedding
+ * settings with the member role.
+ */
+export async function prepareReader(page: Page, apiUrl: string): Promise<Reader> {
+  const bearer = await ownerBearer(page, new URL(apiUrl).port);
+  const owner = createNodeClient({ baseUrl: apiUrl, getAccessToken: () => bearer });
+  const [org] = (await owner.organization.listMine(create(ListMyOrganizationsInputSchema, {}))).entries;
+  const orgSlug = org?.metadata?.slug ?? "";
+  expect(orgSlug, "the server made its one organization").not.toBe("");
+  for (const document of parseManifest(quickstartFile("variance-reporter.yaml").replace("metadata:\n", `metadata:\n  org: ${orgSlug}\n`))) {
+    await owner.manifest.apply(document);
+  }
+  const account = await owner.identityAccount.createServiceAccount(
+    create(CreateServiceAccountInputSchema, { org: orgSlug, name: "report-backend", role: IamRole.admin }),
+  );
+  const key = await owner.apiKey.createForServiceAccount(
+    create(CreateServiceAccountKeyInputSchema, { serviceAccountId: account.metadata?.id ?? "", name: "report-backend", neverExpires: true }),
+  );
+  await owner.organization.updateEmbedding(
+    create(UpdateOrganizationEmbeddingInputSchema, {
+      orgId: orgSlug,
+      embedding: { createAccountsOnSignIn: true, signInRole: IamRole.member },
+    }),
+  );
+  return { org: orgSlug, apiKey: key.spec?.keyHash ?? "" };
 }
 
 /** What the console's "In your app" tab handed over, as read from its code blocks. */
