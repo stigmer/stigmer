@@ -44,6 +44,12 @@ test("a folder the catalogue doesn't list is caught", () => {
   assert.ok(broken((t) => t.folders.push("stray")).includes("stray: a folder catalogue.json doesn't list"));
 });
 
+test("apps/, the runnable apps, is a folder of the package, never an example the catalogue lists", () => {
+  assert.ok(statSync(join(ROOT, "apps")).isDirectory(), "examples/apps exists");
+  assert.ok(!tree.folders.includes("apps"), "apps is read as no example");
+  assert.ok(!tree.catalogue.examples.some((example) => example.id === "apps"));
+});
+
 test("a listed sample missing from its folder is caught", () => {
   const found = broken((t) => t.catalogue.examples[0].samples.push("missing.csv"));
   assert.ok(found.includes(`${first.id}: sample missing.csv is not in its folder`), found.join("\n"));

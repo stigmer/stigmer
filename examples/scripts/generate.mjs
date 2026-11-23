@@ -36,8 +36,12 @@ import { parse } from "yaml";
 /** The examples folder: the package root, beside this script's folder. */
 export const ROOT = fileURLToPath(new URL("../", import.meta.url));
 
-/** Folders of the package itself, never an example; `skills` holds the ready-made skills. */
-const PACKAGE_DIRS = new Set(["scripts", "src", "dist", "node_modules", "skills"]);
+/**
+ * Folders of the package itself, never an example: `skills` holds the
+ * ready-made skills, and `apps` the runnable apps (each its own workspace
+ * package, with no samples and no output file, so never a first question).
+ */
+const PACKAGE_DIRS = new Set(["scripts", "src", "dist", "node_modules", "skills", "apps"]);
 
 /** The generated module's path, relative to the package root. */
 export const GENERATED = "src/catalogue.gen.ts";

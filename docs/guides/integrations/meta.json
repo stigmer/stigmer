@@ -3,6 +3,7 @@
   "pages": [
     "overview",
     "connect-an-mcp-server",
+    "tools-on-your-own-server",
     "oauth-for-tools",
     "bring-your-own-oauth",
     "oauth-architecture",

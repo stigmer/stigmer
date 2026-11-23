@@ -1,10 +1,13 @@
 /**
  * Hold every copy of a measured figure equal to brand/measurements.ts.
  *
- * Code reads the figures from SANDBOX_WAKE; prose cannot import, so the docs'
- * paragraph about a sleeping Session's wake (docs/guides/self-hosting/
- * runners.mdx) is read here and must carry the date, the environment, the
- * number of wakes and each printed figure in formatSeconds's form. The
+ * Code reads the figures from SANDBOX_WAKE and FIRST_WORD; prose cannot
+ * import, so the docs' paragraph about a sleeping Session's wake
+ * (docs/guides/self-hosting/runners.mdx) is read here and must carry the
+ * date, the environment, the number of wakes and each printed figure in
+ * formatSeconds's form, and the Agents page's paragraph on how much sooner
+ * an Agent without a computer answers (docs/concepts/agents.mdx) the date
+ * and each path's medians. The
  * figures themselves are held to what a measurement can produce: enough
  * wakes, ordered percentiles, and the sandbox's resume inside the wait it is
  * part of. No site source, and no brand file whose words the site renders,
@@ -16,7 +19,7 @@ import { readFileSync, readdirSync } from "node:fs";
 import { extname, join } from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
-import { SANDBOX_WAKE, WAKE_PATHS, formatSeconds } from "../measurements";
+import { FIRST_WORD, FIRST_WORD_PATHS, SANDBOX_WAKE, WAKE_PATHS, formatSeconds, type FirstWordPath } from "../measurements";
 
 const ROOT = fileURLToPath(new URL("../../", import.meta.url));
 
@@ -65,6 +68,53 @@ test("the runners page states the measurement and every figure it prints", () =>
     expect(`${path}: the resume's median`, formatSeconds(resume.p50));
   }
   assert.deepEqual(missing, [], `${RUNNERS} disagrees with brand/measurements.ts`);
+});
+
+const AGENTS = "docs/concepts/agents.mdx";
+
+/** Every arm and path of FIRST_WORD, with its figures. */
+function firstWordPaths(): Array<{ arm: string; path: string; row: FirstWordPath }> {
+  const rows: Array<{ arm: string; path: string; row: FirstWordPath }> = [];
+  for (const path of FIRST_WORD_PATHS.sandbox) rows.push({ arm: "sandbox", path, row: FIRST_WORD.arms.sandbox[path] });
+  for (const path of FIRST_WORD_PATHS.shared) rows.push({ arm: "shared", path, row: FIRST_WORD.arms.shared[path] });
+  return rows;
+}
+
+test("every first-word path holds enough turns, ordered figures, and the model's wait inside the first word", () => {
+  assert.match(FIRST_WORD.measuredOn, /^\d{4}-\d{2}-\d{2}$/, "measuredOn is an ISO day");
+  assert.equal(FIRST_WORD.environment, "Stigmer Cloud, preprod");
+  for (const { arm, path, row } of firstWordPaths()) {
+    assert.ok(row.n >= 30, `${arm} ${path}: ${row.n} turns; a p95 needs at least 30`);
+    for (const [clock, f] of [["firstWord", row.firstWord], ["model", row.model], ["platform", row.platform]] as const) {
+      assert.ok(f.p50 <= f.p95 && f.p95 <= f.max, `${arm} ${path} ${clock}: p50 ≤ p95 ≤ max`);
+      assert.ok(f.p50 > 0, `${arm} ${path} ${clock}: a positive median`);
+    }
+    assert.ok(row.model.p50 <= row.firstWord.p50, `${arm} ${path}: the model's wait is part of the first word`);
+    assert.ok(row.platform.p50 <= row.firstWord.p50, `${arm} ${path}: Stigmer's part is part of the first word`);
+  }
+});
+
+/** The paragraph of the Agents page that names the environment the first-word figures were measured on. */
+function firstWordParagraph(): string {
+  const paragraph = read(AGENTS)
+    .split(/\n\s*\n/)
+    .find((block) => collapse(block).includes(FIRST_WORD.environment));
+  assert.ok(paragraph !== undefined, `${AGENTS}: no paragraph names "${FIRST_WORD.environment}"`);
+  return collapse(paragraph);
+}
+
+test("the Agents page states the first-word measurement and every figure it prints", () => {
+  const paragraph = firstWordParagraph();
+  const missing: string[] = [];
+  const expect = (what: string, text: string) => {
+    if (!paragraph.includes(text)) missing.push(`${what}: "${text}"`);
+  };
+  expect("the date", FIRST_WORD.measuredOn);
+  for (const { arm, path, row } of firstWordPaths()) {
+    expect(`${arm} ${path}: the first word's median`, formatSeconds(row.firstWord.p50));
+    expect(`${arm} ${path}: Stigmer's part's median`, formatSeconds(row.platform.p50));
+  }
+  assert.deepEqual(missing, [], `${AGENTS} disagrees with brand/measurements.ts`);
 });
 
 test("the runners page no longer carries the single laptop measurement it replaced", () => {
