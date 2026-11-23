@@ -13,11 +13,7 @@ import {
   type CapturedFileChange,
 } from "@stigmer/apis/ai/stigmer/agentic/run/v1/filereview_pb";
 import { FileChangeKind } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
-import type { DisplayFileChange, DisplayFileChangeType } from "@stigmer/client";
-import {
-  deriveRunFileChanges,
-  toFileDiffEntry,
-} from "../deriveRunFileChanges";
+import { deriveRunFileChanges } from "../deriveRunFileChanges";
 
 // ---------------------------------------------------------------------------
 // Fixtures: CapturedFileChange only, in each run's file record (see the
@@ -58,18 +54,6 @@ function execWith(id: string, changes: CapturedFileChange[]): Run {
     fileChanges: [create(FileChangeSetSchema, { id: `${id}:0`, changes })],
   });
   return exec;
-}
-
-function display(init: Partial<DisplayFileChange> & { path: string }): DisplayFileChange {
-  return {
-    changeType: "modified",
-    before: undefined,
-    after: undefined,
-    linesAdded: 0,
-    linesRemoved: 0,
-    renameFrom: "",
-    ...init,
-  };
 }
 
 function inlineText(side: { body: { case?: string; value?: unknown } } | undefined) {
@@ -151,51 +135,5 @@ describe("deriveRunFileChanges", () => {
       ]),
     ]);
     expect(r).toHaveLength(2);
-  });
-});
-
-// ---------------------------------------------------------------------------
-// toFileDiffEntry — the DisplayFileChange → FileDiffEntry projection
-// ---------------------------------------------------------------------------
-
-describe("toFileDiffEntry", () => {
-  it("maps change types to the file-list vocabulary", () => {
-    const of = (changeType: DisplayFileChangeType) =>
-      toFileDiffEntry(display({ path: "p", changeType }));
-    expect(of("added").changeType).toBe("added");
-    expect(of("deleted").changeType).toBe("removed");
-    expect(of("modified").changeType).toBe("modified");
-    expect(of("renamed").changeType).toBe("modified");
-  });
-
-  it("derives counts from inline whole-file content", () => {
-    const entry = toFileDiffEntry(
-      display({
-        path: "src/a.ts",
-        before: inlineSide("line1\nline2\n"),
-        after: inlineSide("line1\nline2 changed\nline3\n"),
-      }),
-    );
-    expect(entry.additions).toBe(2);
-    expect(entry.deletions).toBe(1);
-  });
-
-  it("falls back to capture-time counts when a side is offloaded", () => {
-    const entry = toFileDiffEntry(
-      display({
-        path: "src/big.ts",
-        before: create(FileContentSchema, {
-          body: {
-            case: "ref",
-            value: { storageKey: "artifacts/run_1/before", contentHash: "h1" },
-          },
-        }),
-        after: inlineSide("new"),
-        linesAdded: 10,
-        linesRemoved: 4,
-      }),
-    );
-    expect(entry.additions).toBe(10);
-    expect(entry.deletions).toBe(4);
   });
 });

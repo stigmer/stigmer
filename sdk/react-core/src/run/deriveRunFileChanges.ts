@@ -1,5 +1,5 @@
 // Pure derivation of net file changes across a chronological list of agent
-// runs, plus the DisplayFileChange → FileDiffEntry projection for file lists.
+// runs.
 // Domain: run (the session's Changes surface collapses per-execution
 // captures into one net change per path; the non-trivial net-diff semantics
 // below live in this one core).
@@ -14,8 +14,6 @@ import {
   type DisplayFileChange,
   type DisplayFileChangeType,
 } from "@stigmer/client";
-import { computeDiff } from "@stigmer/react-core";
-import type { DiffHunk, FileDiffEntry } from "../version-history/types.js";
 
 /**
  * Collapses the file changes captured across `executions` into one *net*
@@ -134,64 +132,4 @@ function fileChangeComparator(a: DisplayFileChange, b: DisplayFileChange): numbe
   const order = CHANGE_TYPE_ORDER[a.changeType] - CHANGE_TYPE_ORDER[b.changeType];
   if (order !== 0) return order;
   return a.path.localeCompare(b.path, undefined, { sensitivity: "base" });
-}
-
-// ---------------------------------------------------------------------------
-// DisplayFileChange → FileDiffEntry projection (file lists)
-// ---------------------------------------------------------------------------
-
-/**
- * Projects a {@link DisplayFileChange} into a {@link FileDiffEntry} for a file
- * list (`DiffFileList`).
- *
- * Counts: inline content is derived from the content (identical to the runner's capture-time counts by
- * construction — same diff algorithm). A whole-file side with no synchronous
- * content (offloaded / binary) falls back to the runner's capture-time
- * `linesAdded`/`linesRemoved` — zero when no count exists, which the list
- * renders as no stat.
- */
-export function toFileDiffEntry(change: DisplayFileChange): FileDiffEntry {
-  const changeType =
-    change.changeType === "added"
-      ? "added"
-      : change.changeType === "deleted"
-        ? "removed"
-        : "modified";
-
-  const before = inlineSide(change.before);
-  const after = inlineSide(change.after);
-  if (before !== null && after !== null) {
-    const { additions, deletions } = countHunks(computeDiff(before, after));
-    return { path: change.path, changeType, additions, deletions };
-  }
-
-  return {
-    path: change.path,
-    changeType,
-    additions: change.linesAdded,
-    deletions: change.linesRemoved,
-  };
-}
-
-/** Sums added/removed line counts across rendered diff hunks. */
-export function countHunks(hunks: readonly DiffHunk[]): {
-  additions: number;
-  deletions: number;
-} {
-  let additions = 0;
-  let deletions = 0;
-  for (const hunk of hunks) {
-    for (const line of hunk.lines) {
-      if (line.type === "added") additions++;
-      else if (line.type === "removed") deletions++;
-    }
-  }
-  return { additions, deletions };
-}
-
-/** Inline text of a side, or null when absent/offloaded/binary. */
-function inlineSide(side: DisplayFileChange["before"]): string | null {
-  if (!side) return "";
-  if (side.isBinary) return null;
-  return side.body.case === "inline" ? side.body.value : null;
 }
