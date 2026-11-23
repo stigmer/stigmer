@@ -1233,7 +1233,7 @@ rows:
     lane: >-
       artifact
     behavior: >-
-      presigned-upload-url for artifacts/<execution_id>/... needs can_edit on that execution; presigned-download-url needs can_view; a foreign execution's key answers 403. No key outside a run is signed: a file enters a session as a File, whose links the server mints.
+      A URL for artifacts/<execution_id>/... goes to that execution's runner: a runner credential is admitted for the runs of its own session. Any other identity needs can_edit on the execution for presigned-upload-url and can_view for presigned-download-url, and one the edition names a visitor or never a runner is refused before that check; a foreign execution's key answers 403. No key outside a run is signed: a file enters a session as a File, whose links the server mints.
     class: behavior
     disposition: conformance
     observability: launcher

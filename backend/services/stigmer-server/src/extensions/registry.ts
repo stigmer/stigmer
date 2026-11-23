@@ -77,6 +77,7 @@ import type { EvalRunCallerMint } from "./eval-run-caller.js";
 import type { QueuedSenderLane } from "./queued-sender-lane.js";
 import type { RoutineFireCaller } from "./routine-fire-caller.js";
 import type { VisitorClassifier } from "./visitor-classifier.js";
+import type { NeverRunnerClassifier } from "./never-runner-classifier.js";
 import type { RunLanes } from "./run-lanes.js";
 import { BUILT_IN_SANDBOX_PROVISIONER_TYPES } from "../sandbox/provisioner.js";
 import type { WorkerFactory } from "../temporal/manager.js";
@@ -488,6 +489,11 @@ export interface ResolvedExtensionDrivers {
    */
   readonly visitorClassifier: VisitorClassifier | undefined;
   /**
+   * The never-runner classifier — undefined = no caller is ruled out, so
+   * a runner's door admits whoever the authorizer allows on the run.
+   */
+  readonly neverRunnerClassifier: NeverRunnerClassifier | undefined;
+  /**
    * The run lanes — undefined = no edition lanes, so every turn is placed
    * on a core lane (schedule, interactive).
    */
@@ -589,6 +595,8 @@ export function resolveExtensions(
   let guestTokenMintingDeclaredBy: string | undefined;
   let visitorClassifier: VisitorClassifier | undefined;
   let visitorClassifierDeclaredBy: string | undefined;
+  let neverRunnerClassifier: NeverRunnerClassifier | undefined;
+  let neverRunnerClassifierDeclaredBy: string | undefined;
   let runLanes: RunLanes | undefined;
   let runLanesDeclaredBy: string | undefined;
   const artifactStorageDrivers = new Map<
@@ -959,6 +967,16 @@ export function resolveExtensions(
       visitorClassifierDeclaredBy = unit.name;
     }
 
+    if (unit.drivers?.neverRunnerClassifier !== undefined) {
+      if (neverRunnerClassifierDeclaredBy !== undefined) {
+        throw new Error(
+          `extension '${unit.name}' registers a NeverRunnerClassifier, but '${neverRunnerClassifierDeclaredBy}' already did — exactly one may be composed`,
+        );
+      }
+      neverRunnerClassifier = unit.drivers.neverRunnerClassifier;
+      neverRunnerClassifierDeclaredBy = unit.name;
+    }
+
     if (unit.drivers?.runLanes !== undefined) {
       if (runLanesDeclaredBy !== undefined) {
         throw new Error(
@@ -1197,6 +1215,7 @@ export function resolveExtensions(
       platformTokenKeys,
       guestTokenMinting,
       visitorClassifier,
+      neverRunnerClassifier,
       runLanes,
       resourceRowReaders,
     },

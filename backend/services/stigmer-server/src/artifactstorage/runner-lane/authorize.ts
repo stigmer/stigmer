@@ -26,7 +26,12 @@
  *    and a visitor is never a runner, though its own lane account may own
  *    the runs it started. The folder holds what the run's tools returned in
  *    full, which a visitor's conversation never shows it. A classifier that
- *    throws counts as a visitor (extensions/visitor-classifier.ts).
+ *    throws counts as a visitor (extensions/visitor-classifier.ts). A caller
+ *    the composed never-runner classifier names is refused the same way,
+ *    and for the same reason: an edition's own credential for work the
+ *    server starts (a judge run's system account, say) may be permitted on
+ *    its runs and is still no runner. That classifier can only refuse, and
+ *    one that throws refuses (extensions/never-runner-classifier.ts).
  *
  * The answer separates a missing or unrecognized credential (401) from a
  * refusal (403) and from an authorization or identity backend that could
@@ -43,6 +48,7 @@ import { IamPermission } from "@stigmer/apis/ai/stigmer/iam/v1/enum_pb";
 import type { Logger } from "../../boot/logger.js";
 import type { Authorizer } from "../../extensions/authorizer.js";
 import type { CallerIdentity, IdentityVerifier } from "../../extensions/identity.js";
+import type { NeverRunnerClassifier } from "../../extensions/never-runner-classifier.js";
 import type { VisitorClassifier } from "../../extensions/visitor-classifier.js";
 import { authenticateBearerToken } from "../../pipeline/interceptors/auth.js";
 import {
@@ -61,6 +67,8 @@ export interface RunnerArtifactAccessDeps {
   readonly authorizer: Authorizer;
   /** Which callers are visitors; absent, nobody is (open source). */
   readonly visitorClassifier?: VisitorClassifier;
+  /** Which callers are never runners; absent, no caller is ruled out (open source). */
+  readonly neverRunnerClassifier?: NeverRunnerClassifier;
   /** Unix milliseconds; the wall clock when absent. */
   readonly now?: () => number;
 }
@@ -160,7 +168,19 @@ async function identityDecision(
     return { kind: "unauthenticated" };
   }
   if (isVisitor(deps, caller)) {
-    deps.logger.warn("A visitor asked for an artifact URL; refusing", { identityId: caller.identityId, runId });
+    deps.logger.warn("A visitor asked for an artifact URL; refusing", {
+      identityId: caller.identityId,
+      callerClass: caller.callerClass,
+      runId,
+    });
+    return { kind: "deny" };
+  }
+  if (isNeverRunner(deps, caller)) {
+    deps.logger.warn("A caller that is never a runner asked for an artifact URL; refusing", {
+      identityId: caller.identityId,
+      callerClass: caller.callerClass,
+      runId,
+    });
     return { kind: "deny" };
   }
   const decision = await deps.authorizer.authorize(caller, {
@@ -193,6 +213,23 @@ function isVisitor(deps: RunnerArtifactAccessDeps, caller: CallerIdentity): bool
   } catch (error) {
     deps.logger.error("Visitor classifier failed; refusing the artifact URL (fail-closed contract)", {
       identityId: caller.identityId,
+      error: errorText(error),
+    });
+    return true;
+  }
+}
+
+/** Whether the composed classifier names `caller` never a runner; a throw counts as one. */
+function isNeverRunner(deps: RunnerArtifactAccessDeps, caller: CallerIdentity): boolean {
+  if (deps.neverRunnerClassifier === undefined) {
+    return false;
+  }
+  try {
+    return deps.neverRunnerClassifier.isNeverRunner(caller);
+  } catch (error) {
+    deps.logger.error("Never-runner classifier failed; refusing the artifact URL (fail-closed contract)", {
+      identityId: caller.identityId,
+      callerClass: caller.callerClass,
       error: errorText(error),
     });
     return true;

@@ -60,6 +60,10 @@ export type {
   ComposeOptions,
   ComposedServer,
 } from "./boot/compose.js";
+// The shape of a lane the composed server hands out for a composition's
+// own HTTP listener (`ComposedServer.runnerArtifactLane`): a handler over
+// Node's HTTP/1.1 or HTTP/2 request and response.
+export type { LaneHandler, LaneRequest, LaneResponse } from "./transport/lanes.js";
 export { loadConfig } from "./boot/config.js";
 export type { ServerConfig } from "./boot/config.js";
 export { createLogger } from "./boot/logger.js";
@@ -520,6 +524,10 @@ export { createErrorBoundaryInterceptor } from "./pipeline/interceptors/error-bo
 // organization's agents without belonging to it, so their runs never carry
 // the organization's standing context (stigmer/stigmer#1401).
 export type { VisitorClassifier } from "./extensions/visitor-classifier.js";
+// Which callers are never runners (drivers.neverRunnerClassifier), whatever
+// they are permitted on: the runner artifact lane refuses them before the
+// authorizer is asked (stigmer/stigmer#3444).
+export type { NeverRunnerClassifier } from "./extensions/never-runner-classifier.js";
 // The meter's token counts per run (drivers.meteredUsageProvider): the usage
 // reports count a run it answers for from them, any other run from its
 // runner's own report, marked estimated.

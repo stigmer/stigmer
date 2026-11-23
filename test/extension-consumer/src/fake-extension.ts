@@ -127,6 +127,7 @@ import {
 } from "@stigmer/server";
 import type { BindingVerdict, CredentialBinding } from "@stigmer/server";
 import type { RunLane, RunLanes } from "@stigmer/server";
+import type { LaneHandler, NeverRunnerClassifier } from "@stigmer/server";
 import type {
   RunResponseDecorator,
   AgentExecutionTemporalConfig,
@@ -1079,6 +1080,17 @@ const consumerRunLanes: RunLanes = {
 };
 
 /**
+ * A consumer-shaped never-runner classifier (registered below as
+ * `drivers.neverRunnerClassifier`): a caller class this edition mints for
+ * work its server starts is permitted on its runs and is still never
+ * their runner, so the runner artifact lane refuses it. Keyed on the
+ * verified caller alone.
+ */
+const consumerNeverRunnerClassifier: NeverRunnerClassifier = {
+  isNeverRunner: (caller) => caller.callerClass === "machine",
+};
+
+/**
  * The secret-convergence sweep's exact shape: page
  * raw documents through the blessed maintenance verbs, reseal through the
  * facade's one upgrade door, and persist only when nothing interleaved —
@@ -1512,6 +1524,9 @@ export const fakeExtension: ServerExtension = {
     // The run-lanes seam: which lane a visitor's turn comes through, and
     // that lane's settings, operator profile and approval mode.
     runLanes: consumerRunLanes,
+    // The never-runner seam: which callers a runner's door refuses
+    // whatever they are permitted on.
+    neverRunnerClassifier: consumerNeverRunnerClassifier,
     // The identity-account seams: the identity-account domain served over the
     // consumer's own store, and the federated arms only it can serve.
     identityAccountStore: consumerIdentityAccountStore,
@@ -1552,6 +1567,17 @@ export async function composeFakeCloud(): Promise<ComposedServer> {
     // set for it; it states the release of the package it installed.
     version: "0.0.0-consumer",
   });
+}
+
+/**
+ * An edition that serves `/v1/proxy` on a listener of its own mounts the
+ * composed runner artifact lane there: the handler the server hands out,
+ * never a second instance. Undefined when the store cannot presign.
+ */
+export function consumerRunnerArtifactMount(
+  server: ComposedServer,
+): LaneHandler | undefined {
+  return server.runnerArtifactLane;
 }
 
 /**

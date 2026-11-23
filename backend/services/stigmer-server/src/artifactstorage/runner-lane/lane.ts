@@ -9,8 +9,9 @@
  *
  * The wire is the runner's (`runner/src/shared/artifact-storage.ts`, its
  * `proxy` arm) and is pinned by the `proxy.artifact.*` conformance rows. A
- * request is evaluated in a fixed order: the body (400), the key rules
- * (400, key-rules.ts), who may act on the run the key names (401 or 403,
+ * request is evaluated in a fixed order: the path (404 for any but the
+ * two), the method (405), the body (400), the key rules (400,
+ * key-rules.ts), who may act on the run the key names (401 or 403,
  * authorize.ts), on an upload the content type (400), then the presign.
  * Every refusal has an empty body: the runner branches on the status alone
  * and retries 408, 429 and 5xx only, so an authorization backend that could
@@ -19,7 +20,12 @@
  * Served only when the composed artifact store can presign a runner's
  * upload (`ArtifactStorage.presignRunnerUpload`); a server on the local
  * store has no such lane, and every `/v1/proxy/*` path but the model
- * registry stays a 404 there. An upload URL is signed for the content type
+ * registry stays a 404 there. The unified port routes the two paths to
+ * the handler, and the composed server hands the same handler out
+ * (`ComposedServer.runnerArtifactLane`) for an edition that serves
+ * `/v1/proxy` on a listener of its own; the handler guards its own paths
+ * because that listener's routing is not this module's to trust. An upload
+ * URL is signed for the content type
  * and no length (the store's capability says why) and lives 30 minutes; a
  * download URL lives an hour. Both are signed for the address runners dial
  * the store at.
@@ -84,13 +90,12 @@ export function isRunnerArtifactPath(path: string): boolean {
 /** A refusal or an answer: the status, and a JSON body for a 200 only. */
 type Answer =
   | { readonly status: 200; readonly body: PresignedRunnerUpload | { readonly url: string } }
-  | { readonly status: 400 | 401 | 403 | 405 | 413 | 503; readonly reason: string };
+  | { readonly status: 400 | 401 | 403 | 404 | 405 | 413 | 503; readonly reason: string };
 
 export function createRunnerArtifactLane(options: RunnerArtifactLaneOptions): LaneHandler {
   return (request: LaneRequest, response: LaneResponse): void => {
     const path = (request.url ?? "").split("?", 1)[0] ?? "";
-    const upload = path === RUNNER_ARTIFACT_UPLOAD_PATH;
-    void serve(options, request, upload)
+    void serve(options, request, path)
       .then((answer) => write(options.logger, response, path, answer))
       .catch((error: unknown) => {
         options.logger.error("runner artifact lane failed", {
@@ -108,8 +113,12 @@ export function createRunnerArtifactLane(options: RunnerArtifactLaneOptions): La
 async function serve(
   options: RunnerArtifactLaneOptions,
   request: LaneRequest,
-  upload: boolean,
+  path: string,
 ): Promise<Answer & { readonly key?: string; readonly by?: string }> {
+  if (!isRunnerArtifactPath(path)) {
+    return { status: 404, reason: "not a runner artifact path" };
+  }
+  const upload = path === RUNNER_ARTIFACT_UPLOAD_PATH;
   if (request.method !== "POST") {
     return { status: 405, reason: "method" };
   }
