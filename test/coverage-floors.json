@@ -16,64 +16,64 @@
       "cases": 87
     },
     "backend/libs/ts/outbound": {
-      "lines": 93.1,
-      "branches": 88.6,
-      "cases": 121
+      "lines": 93.3,
+      "branches": 89,
+      "cases": 143
     },
     "backend/libs/ts/plugin-package": {
       "lines": 95.9,
       "branches": 90.9,
-      "cases": 640
+      "cases": 644
     },
     "backend/libs/ts/session-log": {
       "lines": 100,
       "branches": 94.8,
-      "cases": 202
+      "cases": 210
     },
     "backend/libs/ts/temporal-codecs": {
-      "lines": 97.3,
-      "branches": 86.8,
-      "cases": 37
+      "lines": 98.2,
+      "branches": 91.2,
+      "cases": 46
     },
     "backend/libs/ts/tool-vocabulary": {
       "lines": 100,
       "branches": 100,
-      "cases": 25
+      "cases": 44
     },
     "backend/libs/ts/zip-structure": {
-      "lines": 97.2,
-      "branches": 90.6,
-      "cases": 10
+      "lines": 97.3,
+      "branches": 91.8,
+      "cases": 14
     },
     "backend/services/runner": {
-      "lines": 96.9,
-      "branches": 91.7,
-      "cases": 6346
+      "lines": 97.3,
+      "branches": 91.9,
+      "cases": 6678
     },
     "backend/services/stigmer-server": {
-      "lines": 96.9,
-      "branches": 86.7,
-      "cases": 8838
+      "lines": 97.2,
+      "branches": 86.9,
+      "cases": 9414
     },
     "client-apps/cli": {
-      "lines": 93.3,
-      "branches": 84.5,
-      "cases": 2581
+      "lines": 93.4,
+      "branches": 84.7,
+      "cases": 2762
     },
     "client-apps/desktop": {
-      "lines": 90.9,
-      "branches": 77.2,
-      "cases": 364
+      "lines": 91.1,
+      "branches": 79,
+      "cases": 379
     },
     "client-apps/web": {
-      "lines": 82.9,
-      "branches": 70.9,
-      "cases": 414
+      "lines": 86.3,
+      "branches": 74.8,
+      "cases": 474
     },
     "coding-agents": {
       "lines": 100,
-      "branches": 87.5,
-      "cases": 11
+      "branches": 97.2,
+      "cases": 118
     },
     "ee/server": {
       "lines": 97,
@@ -81,9 +81,9 @@
       "cases": 823
     },
     "mcp-server": {
-      "lines": 92.6,
-      "branches": 79.8,
-      "cases": 201
+      "lines": 95.1,
+      "branches": 82.9,
+      "cases": 318
     },
     "plugins": {
       "lines": 72.3,
@@ -97,18 +97,18 @@
     },
     "sdk/ink": {
       "lines": 97.3,
-      "branches": 90.8,
-      "cases": 416
+      "branches": 90.9,
+      "cases": 419
     },
     "sdk/react": {
-      "lines": 91.2,
-      "branches": 83.3,
-      "cases": 5850
+      "lines": 92.2,
+      "branches": 84.6,
+      "cases": 6465
     },
     "sdk/react-core": {
-      "lines": 82.5,
-      "branches": 66.9,
-      "cases": 408
+      "lines": 85.3,
+      "branches": 70.8,
+      "cases": 480
     },
     "sdk/theme": {
       "lines": 96.1,
@@ -117,23 +117,23 @@
     },
     "sdk/typescript": {
       "lines": 93,
-      "branches": 87.9,
-      "cases": 866
+      "branches": 88,
+      "cases": 920
     },
     "site": {
-      "lines": 82,
-      "branches": 75.6,
-      "cases": 555
+      "lines": 82.7,
+      "branches": 76.5,
+      "cases": 648
     },
     "test/conformance": {
       "lines": 84.6,
       "branches": 83.6,
-      "cases": 641
+      "cases": 642
     },
     "tools/codegen": {
-      "lines": 90.6,
-      "branches": 79.1,
-      "cases": 239
+      "lines": 91.5,
+      "branches": 80.3,
+      "cases": 271
     }
   }
 }
