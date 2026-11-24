@@ -9403,12 +9403,12 @@ __metadata:
   linkType: hard
 
 "react-medium-image-zoom@npm:^5.4.0":
-  version: 5.4.3
-  resolution: "react-medium-image-zoom@npm:5.4.3"
+  version: 5.4.9
+  resolution: "react-medium-image-zoom@npm:5.4.9"
   peerDependencies:
     react: ^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0
     react-dom: ^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0
-  checksum: 10c0/a7c3e12ce71a3daffdea447fea8741195b83b51322eab4f4d99f8c955fa83df30992fd83ce69d1af5d5e45ff4a5968586dd675ee2f6220575ed98af5c0e1cafa
+  checksum: 10c0/3b4015d30b73318f6c774a7f67cc471a574e046b5e74b0347e22fe315a5ba8e3702e75a67714e44b7e3c0a2ab183fb4e2106b49f4573056f62eda7ed753c615e
   languageName: node
   linkType: hard
 
