@@ -107,6 +107,13 @@ waiting for and names the object; a declaration it cannot carry out is `Refused`
 with the field and the next step. `kubectl -n stigmer describe stigmer` shows
 every component's standing.
 
+A CloudNativePG someone else installed is used as it is, while its controller
+runs. Uninstalling CloudNativePG's Helm chart keeps its definitions, and a
+cluster can hold them with nothing running them; the database is then `Refused`
+with `PrerequisiteNotRunning`, naming the release that left them. Reinstall
+CloudNativePG, or delete its leftover definitions and the operator installs its
+own. The backup plugin and agent-sandbox are treated the same way.
+
 The owner is the person who runs this install: everything you create is
 attributed to them, and once sign-in is on they own the Organization.
 

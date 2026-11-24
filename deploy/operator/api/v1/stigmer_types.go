@@ -96,7 +96,9 @@ type StigmerSpec struct {
 	Sandboxes *SandboxesSpec `json:"sandboxes,omitempty"`
 
 	// Prerequisites says which cluster-level operators this operator may
-	// install when they are missing.
+	// install when they are missing. Under auto, one someone else installed
+	// is trusted while a controller of theirs runs (a Deployment running its
+	// controller's image, from any registry); skip trusts it without looking.
 	// +optional
 	Prerequisites PrerequisitesSpec `json:"prerequisites,omitempty"`
 }
@@ -823,8 +825,9 @@ type SandboxEgressSpec struct {
 type PrerequisiteMode string
 
 const (
-	// PrerequisiteAuto installs the prerequisite when it is missing and leaves
-	// one someone else installed alone.
+	// PrerequisiteAuto installs the prerequisite when it is missing, and
+	// leaves one someone else installed alone, trusting it while a
+	// controller of theirs runs.
 	PrerequisiteAuto PrerequisiteMode = "auto"
 	// PrerequisiteSkip trusts that it is installed and never touches it.
 	PrerequisiteSkip PrerequisiteMode = "skip"

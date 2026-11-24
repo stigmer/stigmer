@@ -165,6 +165,17 @@ func WorkerImage() (string, error) {
 	return r.image(workerImage)
 }
 
+// ControllerImage is the pinned image of Substrate's controller, the one
+// that serves WorkerPools: an install someone else made is trusted while a
+// Deployment runs an image of that name.
+func ControllerImage() (string, error) {
+	r, err := embedded()
+	if err != nil {
+		return "", err
+	}
+	return r.image(controllerImage)
+}
+
 // Detect reports whether the cluster has Substrate, and whether this
 // operator installed it.
 func Detect(ctx context.Context, r client.Reader) (present, ours bool, err error) {

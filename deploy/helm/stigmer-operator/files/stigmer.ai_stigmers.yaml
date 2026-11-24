@@ -638,7 +638,9 @@ spec:
               prerequisites:
                 description: |-
                   Prerequisites says which cluster-level operators this operator may
-                  install when they are missing.
+                  install when they are missing. Under auto, one someone else installed
+                  is trusted while a controller of theirs runs (a Deployment running its
+                  controller's image, from any registry); skip trusts it without looking.
                 properties:
                   agentSandbox:
                     default: auto

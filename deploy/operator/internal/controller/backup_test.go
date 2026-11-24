@@ -58,12 +58,13 @@ func TestADatabaseWithABucketIsBornArchiving(t *testing.T) {
 	deleteStigmersElsewhere(t)
 	ctx := context.Background()
 	ns := namespace(t)
-	// CloudNativePG as someone else's install: trusted, never touched.
+	// CloudNativePG as someone else's running install: trusted, never touched.
 	for _, plural := range []string{"clusters", "databases", "backups", "scheduledbackups"} {
 		kind := map[string]string{"clusters": "Cluster", "databases": "Database", "backups": "Backup", "scheduledbackups": "ScheduledBackup"}[plural]
 		createIgnoringExisting(t, stubCRD("postgresql.cnpg.io", plural, kind, map[string]string{render.ManagedByLabel: "Helm"}))
 	}
 	createIgnoringExisting(t, &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: manifests.CloudNativePGNamespace}})
+	runningController(t, manifests.CloudNativePGNamespace, "ghcr.io/cloudnative-pg/cloudnative-pg:1.27.0", true)
 	createIgnoringExisting(t, &corev1.Secret{ObjectMeta: metav1.ObjectMeta{Namespace: ns, Name: "bucket"},
 		Data: map[string][]byte{render.ObjectStoreAccessKeyID: []byte("id"), render.ObjectStoreSecretAccessKey: []byte("secret")}})
 

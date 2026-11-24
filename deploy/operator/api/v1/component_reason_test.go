@@ -31,7 +31,7 @@ func TestHealthyAndWaitingAreNotFailures(t *testing.T) {
 			t.Errorf("%s reads as a failure; it is a wait", r)
 		}
 	}
-	for _, r := range []ComponentReason{ReasonCrashLooping, ReasonSecretMissing, ReasonAnotherStigmer} {
+	for _, r := range []ComponentReason{ReasonCrashLooping, ReasonSecretMissing, ReasonAnotherStigmer, ReasonPrerequisiteNotRunning} {
 		if !r.IsFailure() {
 			t.Errorf("%s does not read as a failure", r)
 		}

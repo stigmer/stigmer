@@ -7,8 +7,10 @@
 // waits, in words, for its credentials Secret and both keys; one pass
 // writes status once and a pass that changes nothing writes nothing; and a
 // prerequisite is installed when absent, waited on while its controller is
-// not ready, trusted when someone else installed it, and refused under skip
-// when it is missing.
+// not ready, refused under skip when it is missing, and, when someone else
+// installed it, trusted only while a Deployment of theirs runs its
+// controller's image (from any registry, in any namespace, never through an
+// init container or a Deployment of the operator's own).
 
 package controller
 
@@ -20,6 +22,7 @@ import (
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -439,6 +442,11 @@ func TestPrerequisites(t *testing.T) {
 	s.UID = types.UID("u")
 	env := &component.Env{Client: k8s, Reader: k8s, Stigmer: s}
 
+	// Each group's release runs a controller image of its own, so a
+	// Deployment one case leaves behind never vouches for another case.
+	image := func(group string) string {
+		return "registry.example.com/widgets/" + strings.Split(group, ".")[0] + "-controller:1.0"
+	}
 	release := func(group string) func() ([]*unstructured.Unstructured, error) {
 		return func() ([]*unstructured.Unstructured, error) {
 			deploy := &unstructured.Unstructured{Object: map[string]any{
@@ -448,7 +456,7 @@ func TestPrerequisites(t *testing.T) {
 					"selector": map[string]any{"matchLabels": map[string]any{"app": "c"}},
 					"template": map[string]any{
 						"metadata": map[string]any{"labels": map[string]any{"app": "c"}},
-						"spec":     map[string]any{"containers": []any{map[string]any{"name": "c", "image": "c"}}},
+						"spec":     map[string]any{"containers": []any{map[string]any{"name": "c", "image": image(group)}}},
 					},
 				},
 			}}
@@ -495,10 +503,91 @@ func TestPrerequisites(t *testing.T) {
 		t.Errorf("ours, controller ready: %+v", res)
 	}
 
-	if err := k8s.Create(ctx, stubCRD("theirs.example.com", "widgets", "Widget", map[string]string{render.ManagedByLabel: "Helm"})); err != nil {
+	// Someone else's definitions, left by a Helm release that runs nothing:
+	// refused, naming the release and every way out.
+	theirs := stubCRD("theirs.example.com", "widgets", "Widget", map[string]string{render.ManagedByLabel: "Helm"})
+	theirs.SetAnnotations(map[string]string{"meta.helm.sh/release-name": "widgets", "meta.helm.sh/release-namespace": "widgets-system"})
+	if err := k8s.Create(ctx, theirs); err != nil {
 		t.Fatal(err)
 	}
-	if ready, res, _ = component.EnsurePrerequisite(ctx, env, p("theirs.example.com", stigmerv1.PrerequisiteAuto)); !ready {
-		t.Errorf("someone else's install was not trusted: %+v", res)
+	ready, res, err = component.EnsurePrerequisite(ctx, env, p("theirs.example.com", stigmerv1.PrerequisiteAuto))
+	if err != nil || ready || res.Phase != stigmerv1.PhaseRefused || res.Reason != stigmerv1.ReasonPrerequisiteNotRunning {
+		t.Fatalf("someone else's definitions with nothing running them: %v %+v %v", ready, res, err)
 	}
+	for _, want := range []string{"widgets.theirs.example.com", "theirs-controller", "the Helm release widgets in namespace widgets-system", "reinstall Widgets", "theirs.example.com", "set spec.prerequisites.widgets to skip"} {
+		if !strings.Contains(res.Message, want) {
+			t.Errorf("the refusal does not say %q: %s", want, res.Message)
+		}
+	}
+
+	// A Deployment of the operator's own never vouches for theirs, and a
+	// match only in an init container is not their controller.
+	own := runningController(t, namespace(t), image("theirs.example.com"), false)
+	own.Labels = map[string]string{render.ManagedByLabel: render.ManagedByValue}
+	if err := k8s.Update(ctx, own); err != nil {
+		t.Fatal(err)
+	}
+	initOnly := controllerDeployment(namespace(t), "pooler", "pgbouncer:1")
+	initOnly.Spec.Template.Spec.InitContainers = []corev1.Container{{Name: "bootstrap", Image: image("theirs.example.com")}}
+	if err := k8s.Create(ctx, initOnly); err != nil {
+		t.Fatal(err)
+	}
+	if ready, res, _ = component.EnsurePrerequisite(ctx, env, p("theirs.example.com", stigmerv1.PrerequisiteAuto)); ready || res.Phase != stigmerv1.PhaseRefused {
+		t.Errorf("trusted on the operator's own Deployment or an init container: %+v", res)
+	}
+
+	// Their controller, from a mirror, in a namespace of their choosing:
+	// waited on while it has no available replica, then trusted.
+	mirrored := "mirror.example.com:5000/team/theirs-controller@sha256:" + strings.Repeat("b", 64)
+	theirsNS := namespace(t)
+	runningController(t, theirsNS, mirrored, false)
+	ready, res, _ = component.EnsurePrerequisite(ctx, env, p("theirs.example.com", stigmerv1.PrerequisiteAuto))
+	if ready || res.Phase != stigmerv1.PhasePending || res.Reason != stigmerv1.ReasonPrerequisiteNotRunning || !strings.Contains(res.Message, theirsNS+"/theirs-controller") {
+		t.Errorf("their controller with no available replica: %v %+v", ready, res)
+	}
+	runningController(t, theirsNS, mirrored, true)
+	if ready, res, _ = component.EnsurePrerequisite(ctx, env, p("theirs.example.com", stigmerv1.PrerequisiteAuto)); !ready {
+		t.Errorf("someone else's running install was not trusted: %+v", res)
+	}
+}
+
+// controllerDeployment is a one-container Deployment named after its image.
+func controllerDeployment(namespace, name, image string) *appsv1.Deployment {
+	labels := map[string]string{"app": name}
+	return &appsv1.Deployment{
+		ObjectMeta: metav1.ObjectMeta{Namespace: namespace, Name: name},
+		Spec: appsv1.DeploymentSpec{
+			Selector: &metav1.LabelSelector{MatchLabels: labels},
+			Template: corev1.PodTemplateSpec{
+				ObjectMeta: metav1.ObjectMeta{Labels: labels},
+				Spec:       corev1.PodSpec{Containers: []corev1.Container{{Name: name, Image: image}}},
+			},
+		},
+	}
+}
+
+// runningController plants someone else's controller for a prerequisite: a
+// Deployment running image, with an available replica when available is
+// true. The API server runs no Deployment controller, so its status is set
+// here. Planting it again updates it in place.
+func runningController(t *testing.T, namespace, image string, available bool) *appsv1.Deployment {
+	t.Helper()
+	ctx := context.Background()
+	name := image[strings.LastIndex(image, "/")+1:]
+	name = strings.FieldsFunc(name, func(r rune) bool { return r == ':' || r == '@' })[0]
+	d := controllerDeployment(namespace, name, image)
+	if err := k8s.Create(ctx, d); err != nil && !apierrors.IsAlreadyExists(err) {
+		t.Fatal(err)
+	}
+	if err := k8s.Get(ctx, client.ObjectKeyFromObject(d), d); err != nil {
+		t.Fatal(err)
+	}
+	d.Status.Replicas, d.Status.AvailableReplicas, d.Status.ReadyReplicas = 1, 0, 0
+	if available {
+		d.Status.AvailableReplicas, d.Status.ReadyReplicas = 1, 1
+	}
+	if err := k8s.Status().Update(ctx, d); err != nil {
+		t.Fatal(err)
+	}
+	return d
 }

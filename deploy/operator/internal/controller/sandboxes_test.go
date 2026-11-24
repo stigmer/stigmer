@@ -50,6 +50,7 @@ func TestAgentSandboxGivesTheServerItsNamespace(t *testing.T) {
 	ctx := context.Background()
 	ns := namespace(t)
 	createIgnoringExisting(t, sandboxCRD(map[string]string{render.ManagedByLabel: "Helm"}))
+	runningController(t, ns, "registry.k8s.io/agent-sandbox/agent-sandbox-controller:v0.1.0", true)
 	s := stigmer(ns, "stigmer")
 	s.UID = types.UID("u")
 	s.Spec.ObjectStore = &stigmerv1.ObjectStoreSpec{S3: stigmerv1.S3Spec{Bucket: "acme", CredentialsSecret: corev1.LocalObjectReference{Name: "bucket"}}}
@@ -89,6 +90,7 @@ func TestASandboxNamespaceSomeoneElseMadeIsNeverTakenOver(t *testing.T) {
 	ctx := context.Background()
 	ns := namespace(t)
 	createIgnoringExisting(t, sandboxCRD(map[string]string{render.ManagedByLabel: "Helm"}))
+	runningController(t, ns, "registry.k8s.io/agent-sandbox/agent-sandbox-controller:v0.1.0", true)
 	s := stigmer(ns, "stigmer")
 	s.UID = types.UID("u")
 	s.Spec.ObjectStore = &stigmerv1.ObjectStoreSpec{S3: stigmerv1.S3Spec{Bucket: "acme", CredentialsSecret: corev1.LocalObjectReference{Name: "bucket"}}}
