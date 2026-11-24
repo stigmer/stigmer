@@ -34,14 +34,14 @@ pages:
     fate: keep
     diataxis: landing
     teaches:
-      The first agent job, run from the terminal and from your own code, and
-      the path from it to putting it in your product or running it on your
-      servers.
-    medium: animated-tour
+      The one prompt that sets Stigmer up in your app through your coding
+      agent, what it does, and the path on to making the agent yours or
+      running it on your servers.
+    medium: still
     why:
-      The hero exists to show the product working. The quickstart's job is the
-      first thing a reader does, so the hero plays it, as the terminal kit
-      records it and as the next page's code runs it.
+      The reader should see where the prompt ends before pasting it, so the
+      page shows the agent's panel inside a product, as the visual suite draws
+      it.
 
   # ── Get Started ────────────────────────────────────────────────────────
   concepts/what-is-stigmer:
@@ -52,11 +52,13 @@ pages:
       what each customer's agent has, one job told through the pieces in the
       sidebar's order, and how it differs from a model API, an agent framework
       and Claude Managed Agents.
-    medium: diagram
+    medium: still
     why:
-      Where Stigmer sits between your app and your model provider is structure;
-      one drawing of what each customer's agent has and one diagram of the
-      job's path carry it.
+      What Stigmer adds to a product is easiest to believe when seen, so the
+      page shows the agent's panel beside a customer's ledger, handing back a
+      file, as the visual suite draws it. Where Stigmer sits between your app
+      and your model provider stays a three-box graph, since no screen shows
+      that.
 
   getting-started/quickstart:
     fate: keep
@@ -65,7 +67,11 @@ pages:
       Start Stigmer on your machine or on Stigmer Cloud with your model key,
       apply an Agent, give it a customer's ledger and get its variance report
       back as a file.
-    medium: none
+    medium: animated-tour
+    why:
+      What stigmer run draws while the Agent works on the ledger is a turn
+      unfolding, ending on the report saved to your folder; the terminal kit's
+      own recording shows it before the reader runs it.
 
   getting-started/coding-agent:
     fate: keep

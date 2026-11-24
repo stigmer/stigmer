@@ -169,6 +169,12 @@ page's demonstration centerpiece, if it has one. Pick it with this rule, first
 5. Is the timing or sequence itself the lesson? → `animated-tour`
 6. Otherwise → `none`
 
+Show the product as a real screen wherever a screen can show it. A reader knows
+a screen at a glance, and has to learn a drawing before it says anything. A
+drawing is for structure no screen shows (where Stigmer sits between your app
+and your model provider, how work reaches a runner), and it stays to a few
+boxes.
+
 Reserve `animated-tour` for genuine demonstrations — a capability that must be
 seen working. Getting-started journeys and console procedures are
 `screenshot-journey`: the reader compares their own screen against the depicted
@@ -386,23 +392,19 @@ block. The build fails on a name the list does not hold or on blank alt text.
 />
 ```
 
-### FirstJob
+### SetupPrompt
 
-The docs front page's first agent job, played in one box with two tabs.
-**Terminal** plays the terminal kit's `first-job` recording: the quickstart's
-`stigmer run`, as the terminal draws it. **Your app** shows the next page's
-`variance-report.ts` whole, lights each of its three calls in turn, and draws
-beside it what the customer sees as each call runs. The footer holds the install
-line and both step-by-step pages. The site's tests hold every word to its
-source: the program and what it prints to "Do the same job from your app", the
-report and the install line to the quickstart, the clock to the recording's last
-frame. It takes no attributes and belongs in the front page's `<Hero>` alone. In
-the markdown exports the tag becomes both tabs in words (the recording's alt
-text and last frame, then what the program does), the install line and the two
-links.
+The docs front page's one thing to do: the prompt that sets Stigmer up in the
+reader's app through their coding agent, in a block, with a button that copies
+it and one line saying where to paste it. The prompt is
+`brand/coding-agent-prompt.ts`'s, and that file's test holds the setup page's,
+the console's and the plugin README's copies to it, so the front page cannot say
+it another way. Nothing in it moves. It takes no attributes and belongs in the
+front page's `<Hero>` alone. In the markdown exports the tag becomes the prompt
+as a text block, then the line.
 
 ```mdx
-<FirstJob />
+<SetupPrompt />
 ```
 
 ### Diagram

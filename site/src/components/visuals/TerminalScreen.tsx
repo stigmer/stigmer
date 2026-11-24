@@ -2,8 +2,8 @@
  * One frame of a terminal recording, drawn: a `<pre>` the terminal's size,
  * its last rows showing, through the status hues and text styles alone
  * (src/lib/sgr.ts), labelled for a reader who cannot see it.
- * `<TerminalRecording>` and the first-job block's Terminal tab both draw
- * their frames with it; the playing is theirs (./playback.ts).
+ * `<TerminalRecording>` draws its frames with it; the playing is that
+ * component's (./playback.ts).
  */
 import { useMemo } from "react";
 import { cn } from "@/lib/utils";

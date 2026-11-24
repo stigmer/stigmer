@@ -30,8 +30,7 @@ import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import matter from "gray-matter";
 import { diagram } from "../components/visuals/diagrams";
-import { INSTALL, RECORDING, STEP_BY_STEP, TERMINAL_ALT } from "../components/visuals/first-job";
-import { CAPTION as FIRST_JOB_APP_TEXT } from "../components/visuals/first-job-app";
+import { PROMPT as SETUP_PROMPT, THEN as SETUP_PROMPT_THEN } from "../components/visuals/setup-prompt";
 import { LIVE_CAPTION, liveUrl } from "./live";
 import { recordingAsText } from "./recordings";
 import { SHOWN_SCALE, screenPath, shownScreen } from "./screens";
@@ -207,11 +206,9 @@ interface PictureTag {
  * - `<TerminalRecording name="…" alt="…" />` becomes its alt text, then the
  *   recording's last frame as a `text` block, as its own paragraph; blank alt
  *   text, or a recording the terminal kit does not hold, throws.
- * - `<FirstJob />` becomes its two tabs in words, as its own paragraphs: the
- *   Terminal tab as its recording's alt text and last frame, then what the
- *   Your-app tab shows (src/components/visuals/first-job-app.ts's `CAPTION`),
- *   then the install line as a `bash` block and the two step-by-step pages
- *   linked on `siteUrl`.
+ * - `<SetupPrompt />` becomes the setup prompt as a `text` block, then the
+ *   line that says where to paste it, as its own paragraphs
+ *   (src/components/visuals/setup-prompt.ts).
  */
 const PICTURES: readonly PictureTag[] = [
   {
@@ -254,18 +251,10 @@ const PICTURES: readonly PictureTag[] = [
     },
   },
   {
-    name: "FirstJob",
+    name: "SetupPrompt",
     needs: [],
     block: true,
-    rewrite: (_attributes, siteUrl) =>
-      [
-        "",
-        `**Terminal.** ${recordingAsText(RECORDING, TERMINAL_ALT)}`,
-        `**Your app.** ${FIRST_JOB_APP_TEXT}`,
-        `Install the CLI:\n\n\`\`\`bash\n${INSTALL}\n\`\`\``,
-        `Step by step: ${STEP_BY_STEP.map((page) => `[${page.title}](${siteUrl}${page.href})`).join(" · ")}`,
-        "",
-      ].join("\n\n"),
+    rewrite: () => `\n\n\`\`\`text\n${SETUP_PROMPT}\n\`\`\`\n\n${SETUP_PROMPT_THEN}\n\n`,
   },
   {
     name: "ThemePlayground",

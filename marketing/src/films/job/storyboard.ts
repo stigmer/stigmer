@@ -2,13 +2,12 @@
  * The job film's storyboard: when each part of the picture shows and lights,
  * and the words on screen, frame by frame.
  *
- * The story is the job picture's (the docs front page's), taken from the data
- * that picture reads rather than copied: the job's names, the steps in order, the parts and the rule
- * that says which layer of which part is on at each moment all come from
- * brand/job-story.ts, the headline and the one sentence from
- * brand/positioning.ts, and the titles from brand/agent-gets.ts. Only the
- * clock is the film's own: the picture loops, the film opens on the headline,
- * plays the job once and ends on the one sentence.
+ * The story is the brand's, read and not copied: the job's names, the steps in
+ * order, the parts and the rule that says which layer of which part is on at
+ * each moment all come from brand/job-story.ts, the headline and the one
+ * sentence from brand/positioning.ts, and the titles from brand/agent-gets.ts.
+ * Only the clock is the film's own: it opens on the headline, plays the job
+ * once and ends on the one sentence.
  *
  * Pure data and arithmetic, with no React or Remotion import, so its test
  * loads it in Node alone. The drawing (JobFilm.tsx) asks it for an opacity

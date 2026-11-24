@@ -51,7 +51,7 @@ export function lastFrameText(name: string): string {
 /**
  * A recording as the markdown exports carry it: what it shows, then its last
  * frame as a `text` block, as its own paragraph. The `<TerminalRecording>`
- * tag and the first-job block's Terminal tab both export through it.
+ * tag exports through it.
  */
 export function recordingAsText(name: string, alt: string): string {
   return `${alt.replace(/\s+/g, " ").trim().replace(/\.$/, "")}. The recording ends on this frame:\n\n\`\`\`text\n${lastFrameText(name)}\n\`\`\``;

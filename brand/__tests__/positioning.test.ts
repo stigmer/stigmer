@@ -6,8 +6,8 @@
  * assistant's Skill and the root README) are read here and must match it, and
  * no text source in the site or the console may carry the words, or a retired
  * tagline, as a literal of its own. A failure names the copy that drifted.
- * The docs' front page is not a home: it opens on the first agent job, in its
- * own words, and is held to them.
+ * The docs' front page is not a home: it opens on the one prompt that puts an
+ * agent in the reader's app, in its own words, and is held to them.
  *
  * The one-line descriptions a developer picks Stigmer by (each entry point's
  * manifest, README opening, chart, image label, root help and the Homebrew
@@ -68,14 +68,14 @@ test("docs/vocabulary.md states the words POSITIONING holds", () => {
 const carries = (text: string, words: string) =>
   collapse(text).toLowerCase().includes(words.toLowerCase());
 
-test("docs/index.mdx opens on the first agent job in its own words, not the homepage's", () => {
+test("docs/index.mdx opens on putting an agent in the reader's app, in its own words, not the homepage's", () => {
   const page = read("docs/index.mdx");
   const frontmatter = /^---\n([\s\S]*?)\n---/.exec(page)?.[1] ?? "";
   const hero = /<Hero\b([^>]*)>/.exec(page)?.[1] ?? "";
   const attribute = (name: string) =>
     new RegExp(`\\b${name}="([^"]*)"`).exec(hero)?.[1];
   const description = /^description:([\s\S]*?)(?=^\S|$(?![\s\S]))/m.exec(frontmatter)?.[1] ?? "";
-  assert.equal(attribute("title"), "Run your first agent job.", "docs/index.mdx: <Hero title>");
+  assert.equal(attribute("title"), "Put an agent in your app.", "docs/index.mdx: <Hero title>");
   assert.equal(
     collapse(description),
     attribute("description"),

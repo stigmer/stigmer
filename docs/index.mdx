@@ -1,8 +1,8 @@
 ---
 title: Stigmer Docs
 description:
-  Hand an Agent a customer's ledger and get a variance report back. Run it from
-  your terminal first, then from your own code.
+  Paste one prompt into Claude Code, Cursor or Codex, in your app's folder. It
+  sets Stigmer up with you, from signing in to your agent's chat in your app.
 full: true
 hero: true
 ---
@@ -19,13 +19,34 @@ import {
 
 <Hero
   eyebrow="Get started"
-  title="Run your first agent job."
-  description="Hand an Agent a customer's ledger and get a variance report back. Run it from your terminal first, then from your own code."
+  title="Put an agent in your app."
+  description="Paste one prompt into Claude Code, Cursor or Codex, in your app's folder. It sets Stigmer up with you, from signing in to your agent's chat in your app."
 >
-  <FirstJob />
+  <SetupPrompt />
 </Hero>
 
-## Put it in your product
+No app yet, or want to do it by hand?
+[Run the quickstart](/docs/getting-started/quickstart).
+
+## What happens
+
+1. **You paste.** Your coding agent installs Stigmer's command line and signs
+   you in.
+2. **It asks, you choose.** It reads your app and suggests the agent that fits
+   your users. Your model key never passes through the chat.
+3. **It's in your app.** It runs the agent once, then adds the token route and
+   the chat, and opens the page.
+
+<Screen
+  name="own-computer"
+  alt="A bookkeeping product showing Northwind Books' ledger. Docked beside it, the agent has finished the job Review this quarter's ledger and handed back the file variance-report.md."
+/>
+
+Where it ends: your product on the left, and beside it the agent Stigmer runs
+for your customer, here Northwind Books, handing back `variance-report.md`.
+[Every step it takes](/docs/getting-started/coding-agent).
+
+## Once it's in your app
 
 {/* Viewport (not container) variant on purpose: Cards is itself the */}
 {/* @container, and a container query cannot respond to its own size. */}
@@ -34,7 +55,7 @@ import {
   <Card
     icon={<MessageSquare />}
     title="Put the agent in your app"
-    description="Sign your users in from your backend and give them the job inside your React app."
+    description="What the token route and the chat do, in detail, if you'd rather read it or do it by hand."
     href="/docs/getting-started/embed-agent"
   />
   <Card

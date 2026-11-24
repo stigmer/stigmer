@@ -14,16 +14,35 @@
  * label such as "Name" printed anywhere else on the page does not hold it.
  * The scene's act reaches the control by the same value, so a renamed control
  * fails whichever side moved.
+ *
+ * A picture of the job story (test/visual/src/scenes/story.tsx) draws its
+ * names from brand/job-story.ts, not from the examples file, so a page that
+ * shows one is held to that file: the customer and the report its caption
+ * names are the ones the picture shows.
  */
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
+import { JOB } from "../../../../brand/job-story";
 import { DOCS_EXAMPLES, type DocsExample } from "../../../../test/visual/src/docs-examples";
 
 const DOCS = join(dirname(fileURLToPath(import.meta.url)), "../../../../docs");
 
 const collapsed = (text: string): string => text.replace(/\s+/g, " ").trim();
+
+/** Each picture of the job story the docs show, with the names it draws that a page showing it must print. */
+const STORY_PICTURES: Readonly<Record<string, readonly string[]>> = {
+  "own-computer": [JOB.customer, JOB.report],
+};
+
+/** Every docs page that shows `picture`, by its path under docs/. */
+function pagesShowing(picture: string): string[] {
+  const tag = new RegExp(`<Screen\\s+name="${picture}"`);
+  return (readdirSync(DOCS, { recursive: true }) as string[])
+    .filter((file) => file.endsWith(".mdx") && tag.test(readFileSync(join(DOCS, file), "utf8")))
+    .sort();
+}
 
 /** The page's bold spans, each whole and each step of a path (`Settings → Vaults`, `Settings > Service accounts`). */
 function boldSpans(page: string): Set<string> {
@@ -57,6 +76,17 @@ describe("the docs' pictures say what their pages say", () => {
       expect(missingValues(example, source), `docs/${example.page}.mdx no longer prints these; change the page and test/visual/src/docs-examples.ts together`).toEqual([]);
     });
   }
+
+  it("names the customer and the report a picture of the job story draws, on every page that shows one", () => {
+    expect(pagesShowing("own-computer")).toEqual(expect.arrayContaining(["concepts/what-is-stigmer.mdx", "index.mdx"]));
+    const missing = Object.entries(STORY_PICTURES).flatMap(([picture, names]) =>
+      pagesShowing(picture).flatMap((page) => {
+        const source = collapsed(readFileSync(join(DOCS, page), "utf8"));
+        return names.filter((name) => !source.includes(name)).map((name) => `docs/${page}: ${name} (<Screen name="${picture}">)`);
+      }),
+    );
+    expect(missing, "a page that shows the job story names its customer and its report as brand/job-story.ts spells them").toEqual([]);
+  });
 
   it("finds a value its page does not print, across the page's line breaks", () => {
     const example = { page: "p", name: "daily-variance-report", message: "save the report as variances.csv." };

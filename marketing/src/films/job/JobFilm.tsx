@@ -1,16 +1,14 @@
 /**
- * The job film: the docs front page's picture of a customer's agent at work
- * (site/src/components/visuals/JobPath.tsx),
- * played once, silent, with its words on screen.
+ * The job film: a picture of a customer's agent at work, played once, silent,
+ * with its words on screen.
  *
  * It opens on the headline, sets out the stage, plays the job's six steps
  * with a line under the picture for each, holds the finished picture and
  * ends on the one sentence and the address. Every frame is a pure function of
  * the frame number: what is shown and lit comes from storyboard.ts, which
- * takes it from the job's data and rule the picture reads too, so the film
- * lights exactly what the picture lights, step by step.
+ * takes it from the job's data and rule (brand/job-story.ts).
  *
- * The picture is that picture's compact arrangement (the customer and the
+ * The picture is a compact arrangement (the customer and the
  * computer side by side, the wall and the other customers below), drawn at
  * film scale with no word under 28px, so the square cut stays readable in a
  * phone's feed. The landscape cut sets the headline beside it; the square
