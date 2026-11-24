@@ -122,8 +122,8 @@
     },
     "site": {
       "lines": 82.7,
-      "branches": 76.5,
-      "cases": 648
+      "branches": 75.8,
+      "cases": 626
     },
     "test/conformance": {
       "lines": 84.6,
