@@ -17,14 +17,17 @@
  *
  * A picture of the job story (test/visual/src/scenes/story.tsx) draws its
  * names from brand/job-story.ts, not from the examples file, so a page that
- * shows one is held to that file: the customer and the report its caption
- * names are the ones the picture shows.
+ * shows one is held to that file: the customer, the report or the agent its
+ * page names are the ones the picture shows. Which names each picture draws
+ * is listed here, and a docs page that shows a story picture the list does
+ * not name fails until its names are added.
  */
 import { readFileSync, readdirSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { JOB } from "../../../../brand/job-story";
+import { SHOWN } from "../screens";
 import { DOCS_EXAMPLES, type DocsExample } from "../../../../test/visual/src/docs-examples";
 
 const DOCS = join(dirname(fileURLToPath(import.meta.url)), "../../../../docs");
@@ -33,6 +36,7 @@ const collapsed = (text: string): string => text.replace(/\s+/g, " ").trim();
 
 /** Each picture of the job story the docs show, with the names it draws that a page showing it must print. */
 const STORY_PICTURES: Readonly<Record<string, readonly string[]>> = {
+  "embed-widget": [JOB.agent],
   "own-computer": [JOB.customer, JOB.report],
 };
 
@@ -77,7 +81,14 @@ describe("the docs' pictures say what their pages say", () => {
     });
   }
 
-  it("names the customer and the report a picture of the job story draws, on every page that shows one", () => {
+  it("lists the names of every job-story picture a docs page shows", () => {
+    const story = SHOWN.filter((shown) => shown.scene.startsWith("story-")).map((shown) => shown.name);
+    expect(story).toContain("own-computer");
+    const unlisted = story.filter((name) => !(name in STORY_PICTURES) && pagesShowing(name).length > 0);
+    expect(unlisted, "add each picture's names to STORY_PICTURES, as brand/job-story.ts spells them").toEqual([]);
+  });
+
+  it("names what a picture of the job story draws, on every page that shows one", () => {
     expect(pagesShowing("own-computer")).toEqual(expect.arrayContaining(["concepts/what-is-stigmer.mdx", "index.mdx"]));
     const missing = Object.entries(STORY_PICTURES).flatMap(([picture, names]) =>
       pagesShowing(picture).flatMap((page) => {
@@ -85,7 +96,7 @@ describe("the docs' pictures say what their pages say", () => {
         return names.filter((name) => !source.includes(name)).map((name) => `docs/${page}: ${name} (<Screen name="${picture}">)`);
       }),
     );
-    expect(missing, "a page that shows the job story names its customer and its report as brand/job-story.ts spells them").toEqual([]);
+    expect(missing, "a page that shows the job story names what it draws as brand/job-story.ts spells it").toEqual([]);
   });
 
   it("finds a value its page does not print, across the page's line breaks", () => {
