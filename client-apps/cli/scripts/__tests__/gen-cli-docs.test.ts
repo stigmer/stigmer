@@ -6,7 +6,7 @@ import { Command } from "commander";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { buildProgram } from "../../src/program.js";
 import { examples } from "../../src/command-tree.js";
-import { checkEnrichment, checkPageExamples, generate, renderDefaultPage, renderEnrichedPage } from "../gen-cli-docs.js";
+import { checkEnrichment, checkPageExamples, generate, renderDefaultPage, renderEnrichedPage, renderIndexPage } from "../gen-cli-docs.js";
 
 const enrichmentsDir = join(dirname(fileURLToPath(import.meta.url)), "../../docs/commands");
 
@@ -197,6 +197,15 @@ describe("renderDefaultPage", () => {
     expect(page).toContain("## Options");
     expect(page).toContain("`--name`");
     expect(page).toContain("## See also");
-    expect(page).toContain("[Command Reference](./)");
+    expect(page).toContain("[Command Reference](/docs/cli/commands)");
+  });
+});
+
+describe("renderIndexPage", () => {
+  it("links each command by its whole address, since the index is served at the folder's own address", () => {
+    const page = renderIndexPage(new Map([["Account and access", [new Command("auth").description("sign in")]]]), []);
+
+    expect(page).toContain("](/docs/cli/commands/auth)");
+    expect(page).not.toContain("](./");
   });
 });

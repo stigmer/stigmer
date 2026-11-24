@@ -10,77 +10,77 @@ Complete reference for all `stigmer` CLI commands, organized by category.
 
 ## Run agents
 
-| Command                                  | Description                                                                                         |
-| ---------------------------------------- | --------------------------------------------------------------------------------------------------- |
-| [`stigmer app-handover`](./app-handover) | print or write the token route and chat that put an agent's chat in your own app                    |
-| [`stigmer coding-agent`](./coding-agent) | print the guide a coding agent follows to set Stigmer up for your project                           |
-| [`stigmer load-test`](./load-test)       | start many agents at once and report how many started, how long each waited, and which were refused |
-| [`stigmer resume`](./resume)             | resume an existing session by ID                                                                    |
-| [`stigmer run`](./run)                   | run an agent by reference                                                                           |
-| [`stigmer runs`](./runs)                 | manage run lifecycle and observability (run IDs: run\_)                                             |
+| Command                                                   | Description                                                                                         |
+| --------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
+| [`stigmer app-handover`](/docs/cli/commands/app-handover) | print or write the token route and chat that put an agent's chat in your own app                    |
+| [`stigmer coding-agent`](/docs/cli/commands/coding-agent) | print the guide a coding agent follows to set Stigmer up for your project                           |
+| [`stigmer load-test`](/docs/cli/commands/load-test)       | start many agents at once and report how many started, how long each waited, and which were refused |
+| [`stigmer resume`](/docs/cli/commands/resume)             | resume an existing session by ID                                                                    |
+| [`stigmer run`](/docs/cli/commands/run)                   | run an agent by reference                                                                           |
+| [`stigmer runs`](/docs/cli/commands/runs)                 | manage run lifecycle and observability (run IDs: run\_)                                             |
 
 ## Your library
 
-| Command                          | Description                                                          |
-| -------------------------------- | -------------------------------------------------------------------- |
-| [`stigmer agent`](./agent)       | read how an agent's runs are graded                                  |
-| [`stigmer apply`](./apply)       | apply resources from files or a plugin directory                     |
-| [`stigmer channel`](./channel)   | operate on channels: chat links, and switching a channel on or off   |
-| [`stigmer connect`](./connect)   | connect to external services and discover capabilities               |
-| [`stigmer delete`](./delete)     | delete a resource by type and reference (slug, org/slug, or ID)      |
-| [`stigmer example`](./example)   | the example agents and skills, written into your repository as files |
-| [`stigmer file`](./file)         | upload files to name in conversations and routines                   |
-| [`stigmer get`](./get)           | get a resource by type and reference (slug, org/slug, or ID)         |
-| [`stigmer list`](./list)         | list resources of a type (or 'list types' for available types)       |
-| [`stigmer routine`](./routine)   | operate on routines                                                  |
-| [`stigmer search`](./search)     | search resources by text query (supported types: agent)              |
-| [`stigmer tag`](./tag)           | assign a tag to a resource version (supported types: agent)          |
-| [`stigmer validate`](./validate) | validate resource YAML files or a plugin directory offline           |
-| [`stigmer vault`](./vault)       | manage the logins and secrets your runs use (values are never shown) |
+| Command                                           | Description                                                          |
+| ------------------------------------------------- | -------------------------------------------------------------------- |
+| [`stigmer agent`](/docs/cli/commands/agent)       | read how an agent's runs are graded                                  |
+| [`stigmer apply`](/docs/cli/commands/apply)       | apply resources from files or a plugin directory                     |
+| [`stigmer channel`](/docs/cli/commands/channel)   | operate on channels: chat links, and switching a channel on or off   |
+| [`stigmer connect`](/docs/cli/commands/connect)   | connect to external services and discover capabilities               |
+| [`stigmer delete`](/docs/cli/commands/delete)     | delete a resource by type and reference (slug, org/slug, or ID)      |
+| [`stigmer example`](/docs/cli/commands/example)   | the example agents and skills, written into your repository as files |
+| [`stigmer file`](/docs/cli/commands/file)         | upload files to name in conversations and routines                   |
+| [`stigmer get`](/docs/cli/commands/get)           | get a resource by type and reference (slug, org/slug, or ID)         |
+| [`stigmer list`](/docs/cli/commands/list)         | list resources of a type (or 'list types' for available types)       |
+| [`stigmer routine`](/docs/cli/commands/routine)   | operate on routines                                                  |
+| [`stigmer search`](/docs/cli/commands/search)     | search resources by text query (supported types: agent)              |
+| [`stigmer tag`](/docs/cli/commands/tag)           | assign a tag to a resource version (supported types: agent)          |
+| [`stigmer validate`](/docs/cli/commands/validate) | validate resource YAML files or a plugin directory offline           |
+| [`stigmer vault`](/docs/cli/commands/vault)       | manage the logins and secrets your runs use (values are never shown) |
 
 ## Packages
 
-| Command                                | Description                                                                                                       |
-| -------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
-| [`stigmer download`](./download)       | download a run's or a session's outputs, a file, or an eval's folder at a version (eval `<ref>`[@\<digest\|tag>]) |
-| [`stigmer eval`](./eval)               | run test cases on an agent or a plugin, with and without a plugin, and score them                                 |
-| [`stigmer install`](./install)         | install a plugin from a source by name: [source/]name[@version]                                                   |
-| [`stigmer marketplace`](./marketplace) | manage the sources the Marketplace installs from: the official catalogue and the ones you add                     |
-| [`stigmer mcp`](./mcp)                 | install an MCP server as a plugin of its own                                                                      |
-| [`stigmer push`](./push)               | push a package to the registry (supported types: skill, plugin, eval)                                             |
+| Command                                                 | Description                                                                                                       |
+| ------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| [`stigmer download`](/docs/cli/commands/download)       | download a run's or a session's outputs, a file, or an eval's folder at a version (eval `<ref>`[@\<digest\|tag>]) |
+| [`stigmer eval`](/docs/cli/commands/eval)               | run test cases on an agent or a plugin, with and without a plugin, and score them                                 |
+| [`stigmer install`](/docs/cli/commands/install)         | install a plugin from a source by name: [source/]name[@version]                                                   |
+| [`stigmer marketplace`](/docs/cli/commands/marketplace) | manage the sources the Marketplace installs from: the official catalogue and the ones you add                     |
+| [`stigmer mcp`](/docs/cli/commands/mcp)                 | install an MCP server as a plugin of its own                                                                      |
+| [`stigmer push`](/docs/cli/commands/push)               | push a package to the registry (supported types: skill, plugin, eval)                                             |
 
 ## Local stack
 
-| Command                              | Description                                                                 |
-| ------------------------------------ | --------------------------------------------------------------------------- |
-| [`stigmer down`](./down)             | stop the local Stigmer stack                                                |
-| [`stigmer logs`](./logs)             | view logs from the local Stigmer stack                                      |
-| [`stigmer mcp-server`](./mcp-server) | start the MCP server that exposes Stigmer resources to AI coding assistants |
-| [`stigmer reset`](./reset)           | stop the stack and remove all local state, then restart fresh               |
-| [`stigmer setup`](./setup)           | configure the LLM provider and operator identity for local execution        |
-| [`stigmer status`](./status)         | show which server the CLI uses and the local stack's health                 |
-| [`stigmer up`](./up)                 | start the local Stigmer stack (server, runner, Temporal)                    |
+| Command                                               | Description                                                                 |
+| ----------------------------------------------------- | --------------------------------------------------------------------------- |
+| [`stigmer down`](/docs/cli/commands/down)             | stop the local Stigmer stack                                                |
+| [`stigmer logs`](/docs/cli/commands/logs)             | view logs from the local Stigmer stack                                      |
+| [`stigmer mcp-server`](/docs/cli/commands/mcp-server) | start the MCP server that exposes Stigmer resources to AI coding assistants |
+| [`stigmer reset`](/docs/cli/commands/reset)           | stop the stack and remove all local state, then restart fresh               |
+| [`stigmer setup`](/docs/cli/commands/setup)           | configure the LLM provider and operator identity for local execution        |
+| [`stigmer status`](/docs/cli/commands/status)         | show which server the CLI uses and the local stack's health                 |
+| [`stigmer up`](/docs/cli/commands/up)                 | start the local Stigmer stack (server, runner, Temporal)                    |
 
 ## Account and access
 
-| Command                                        | Description                                                                                    |
-| ---------------------------------------------- | ---------------------------------------------------------------------------------------------- |
-| [`stigmer access-history`](./access-history)   | read and export who gave whom access to what in the organization (owners and admins)           |
-| [`stigmer apikey`](./apikey)                   | manage API keys for Stigmer Cloud authentication                                               |
-| [`stigmer auth`](./auth)                       | sign in to the server the CLI points at                                                        |
-| [`stigmer embedding`](./embedding)             | how people sign in to the organization from your own app: account creation and their role      |
-| [`stigmer provider-key`](./provider-key)       | see which model providers serve the organization, and manage its provider keys (Stigmer Cloud) |
-| [`stigmer service-account`](./service-account) | manage the organization's service accounts, the accounts its automation acts as                |
-| [`stigmer usage`](./usage)                     | view token and working-time usage reports                                                      |
+| Command                                                         | Description                                                                                    |
+| --------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| [`stigmer access-history`](/docs/cli/commands/access-history)   | read and export who gave whom access to what in the organization (owners and admins)           |
+| [`stigmer apikey`](/docs/cli/commands/apikey)                   | manage API keys for Stigmer Cloud authentication                                               |
+| [`stigmer auth`](/docs/cli/commands/auth)                       | sign in to the server the CLI points at                                                        |
+| [`stigmer embedding`](/docs/cli/commands/embedding)             | how people sign in to the organization from your own app: account creation and their role      |
+| [`stigmer provider-key`](/docs/cli/commands/provider-key)       | see which model providers serve the organization, and manage its provider keys (Stigmer Cloud) |
+| [`stigmer service-account`](/docs/cli/commands/service-account) | manage the organization's service accounts, the accounts its automation acts as                |
+| [`stigmer usage`](/docs/cli/commands/usage)                     | view token and working-time usage reports                                                      |
 
 ## Configuration
 
-| Command                              | Description                                                      |
-| ------------------------------------ | ---------------------------------------------------------------- |
-| [`stigmer completion`](./completion) | generate a shell completion script (bash, zsh, fish, powershell) |
-| [`stigmer config`](./config)         | manage CLI configuration                                         |
-| [`stigmer docs`](./docs)             | search and read Stigmer's documentation at stigmer.ai/docs       |
-| [`stigmer version`](./version)       | print the CLI version                                            |
+| Command                                               | Description                                                      |
+| ----------------------------------------------------- | ---------------------------------------------------------------- |
+| [`stigmer completion`](/docs/cli/commands/completion) | generate a shell completion script (bash, zsh, fish, powershell) |
+| [`stigmer config`](/docs/cli/commands/config)         | manage CLI configuration                                         |
+| [`stigmer docs`](/docs/cli/commands/docs)             | search and read Stigmer's documentation at stigmer.ai/docs       |
+| [`stigmer version`](/docs/cli/commands/version)       | print the CLI version                                            |
 
 ## Global Flags
 
