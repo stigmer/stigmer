@@ -327,7 +327,7 @@ describe("the scripted turn the docs play", () => {
   });
 });
 
-describe("the ledger turn the docs' front page plays", () => {
+describe("the ledger turn the quickstart plays", () => {
   it("reads the ledger from its uploads, writes the report to its outputs, names the flagged accounts and completes at 38 s", () => {
     const story = ledgerStory();
     const turn = story.fold.turns[0]!;

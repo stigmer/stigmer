@@ -96,7 +96,6 @@ describe("Hero", () => {
     expect(img.getAttribute("fetchpriority")).toBe("high");
     expect(img.closest("[data-reveal]")).toBeNull();
     expect(img.closest("[data-hero-moments-picture]")).toBeNull();
-    expect(container.querySelector('[data-diagram="job-path"]')).toBeNull();
   });
 
   it("loads the other four after it, lazily and at no priority, each in a layer that fades", () => {

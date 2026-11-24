@@ -3,9 +3,14 @@
  * (../recordings.ts): the codes the terminal kit may write become styled
  * runs, any other code is refused, and every frame of every recording draws
  * through it, so a recording that starts carrying another code fails here.
- * The site holds a file for exactly the recordings the kit lists.
+ * The site holds a file for exactly the recordings the kit lists, and the
+ * recording the quickstart plays types that page's own command.
  */
+import { readFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
+import { docSteps } from "../../../../test/install/lib/doc-steps.mjs";
 import { HELD_RECORDINGS, RECORDINGS, lastFrameText, recording } from "../recordings";
 import { plainText, styledLines } from "../sgr";
 
@@ -56,6 +61,12 @@ describe("the recordings the docs play", () => {
     expect(text).toContain("Two changes this week");
     expect(text).not.toContain("\u001b[");
     expect(text.split("\n").length).toBeLessThanOrEqual(recording("run-approval").rows);
+  });
+
+  it("types the quickstart's own stigmer run in the recording that page plays", () => {
+    const quickstart = readFileSync(join(dirname(fileURLToPath(import.meta.url)), "../../../../docs/getting-started/quickstart.mdx"), "utf8");
+    expect(quickstart).toMatch(/<TerminalRecording\s+name="first-job"/);
+    expect(docSteps(quickstart)).toContainEqual({ kind: "command", line: recording("first-job").command });
   });
 
   it("refuses a name the kit does not record", () => {

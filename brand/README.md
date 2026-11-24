@@ -72,19 +72,26 @@ section of `docs/vocabulary.md`. To change the words, change that section and
 this file together; `__tests__/positioning.test.ts` fails, naming the copy,
 while the vocabulary or "What is Stigmer?" disagrees, or while a site or
 console source spells the words out instead of importing them. The docs front
-page opens on the first agent job in its own words, and the same test holds it
-to them. The covers are
-uploads, which no test can read: after a words change, run
-`npm run generate:brand` and upload both covers again by hand.
+page opens on putting an agent in the reader's app, in its own words, and the
+same test holds it to them. The covers are uploads, which no test can read:
+after a words change, run `npm run generate:brand` and upload both covers again
+by hand.
+
+`coding-agent-prompt.ts` holds the prompt a person pastes into their coding
+agent to set Stigmer up in their app. The docs front page imports it. The setup
+page (`docs/getting-started/coding-agent.mdx`), the console's first question and
+the coding-agent plugin's README each spell it out, because none of them can
+import this folder; `__tests__/coding-agent-prompt.test.ts` fails, naming the
+copy, while one of them differs. To change the prompt, change this file and
+those three together.
 
 `agent-gets.ts` holds the five titles of what each customer's agent gets ("Its
 own computer" to "Your keys, your servers"), the order every list says them in,
 each one said as the visitor's worry with what a team would build, what Stigmer
 gives and its proofs, and the three more things the homepage says we built. The
 homepage's "hard parts" section and its "also built" strip render the claims,
-the job picture on "What is Stigmer?" reads the titles through
-`site/src/lib/agent-gets.ts`, and
-the job film in `marketing/` reads the titles here. A proof (`proof.ts`) is a
+the homepage's pictures read the titles through `site/src/lib/agent-gets.ts`,
+and the job film in `marketing/` reads the titles here. A proof (`proof.ts`) is a
 measured figure, a picture the visual suite draws, a public test quoted in its
 own words, or a file or page; `__tests__/proofs.test.ts` fails, naming the
 proof, when the test, the case, the picture or the page it names is gone, or
@@ -102,11 +109,9 @@ time; the sleep panel links to the hard parts' sandbox row, which reads
 
 `job-story.ts` holds the job those pictures tell: a customer's names for it
 (Northwind Books, `ledger.csv`, `variance-report.md`), its steps, the parts of
-the picture and the rule for when each is shown and lit. The loop on "What is
-Stigmer?" (`site/src/components/visuals/job-path.ts`) and the job film both read
-it, so they light the same parts at the same steps. The docs front page's
-first-job block (`site/src/components/visuals/first-job.ts`) names the job with
-it too.
+the picture and the rule for when each is shown and lit. The job film reads the
+steps and the rule; the visual suite's story scenes, the pictures the homepage
+and the docs show of the job, draw the names from it.
 
 The film is an upload, like the covers: after a change to these titles, to the
 job or to the words above, render it again (`marketing/README.md`) and replace

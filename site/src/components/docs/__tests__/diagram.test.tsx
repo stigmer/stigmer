@@ -34,15 +34,15 @@ describe("Diagram", () => {
   it("refuses a name the docs do not hold, naming the ones they do", () => {
     expect(isDiagramName("nope")).toBe(false);
     expect(isDiagramName("toString")).toBe(false);
-    expect(() => render(<Diagram name="nope" />)).toThrow(/no diagram named "nope"; the docs draw "job-path", "runner-queue", "session-log"/);
+    expect(() => render(<Diagram name="nope" />)).toThrow(/no diagram named "nope"; the docs draw "runner-queue", "session-log"/);
   });
 });
 
 describe("a diagram's export text", () => {
-  it.each(["job-path", "runner-queue"] as const)("is %s's caption, word for word", (name) => {
-    const { figure } = drawn(name);
+  it("is runner-queue's caption, word for word", () => {
+    const { figure } = drawn("runner-queue");
 
-    expect(figure.querySelector("figcaption")?.textContent).toBe(diagram(name).text);
+    expect(figure.querySelector("figcaption")?.textContent).toBe(diagram("runner-queue").text);
   });
 
   it("carries every event, every writer and every phase the session log shows", () => {

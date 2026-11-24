@@ -2,9 +2,9 @@
   "pages": [
     "---Get Started---",
     "[Welcome](/docs)",
+    "getting-started/coding-agent",
     "concepts/what-is-stigmer",
     "getting-started/quickstart",
-    "getting-started/coding-agent",
     "getting-started/make-it-yours",
     "getting-started/call-from-your-app",
     "getting-started/embed-agent",

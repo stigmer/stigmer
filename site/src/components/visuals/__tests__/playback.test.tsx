@@ -1,9 +1,9 @@
 /**
  * `usePlayback`, the docs' playback engine: it steps on its own gaps once in
- * view, or only once replayed when told not to start in view; it pauses and
- * plays on; once ended a toggle replays; and under reduced motion it holds
- * the last step and does nothing when asked to play. `<TerminalRecording>`'s
- * and `<FirstJob>`'s tests prove it as their players.
+ * view; a toggle pauses it and plays it on; once ended a toggle replays from
+ * the first step; and under reduced motion it holds the last step and does
+ * nothing when asked to play. `<TerminalRecording>`'s tests prove it as its
+ * player.
  */
 import { act, cleanup, renderHook } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -39,10 +39,10 @@ afterEach(() => {
 });
 
 /** The hook with its box mounted, as a player's figure mounts it. */
-function played(startInView?: boolean) {
+function played() {
   const box = document.createElement("figure");
   return renderHook(() => {
-    const playback = usePlayback(TIMES, startInView === undefined ? undefined : { startInView });
+    const playback = usePlayback(TIMES);
     playback.box.current = box;
     return playback;
   });
@@ -60,15 +60,18 @@ describe("usePlayback", () => {
     expect(result.current).toMatchObject({ index: 2, done: true, playing: false });
   });
 
-  it("waits for replay when it does not start in view, then pauses and plays on", () => {
-    const { result } = played(false);
-    expect(observed).toBeUndefined();
-    act(() => result.current.replay());
+  it("waits out of view, pauses and plays on from a toggle, and replays from the first step once ended", () => {
+    const { result } = played();
+    act(() => vi.advanceTimersByTime(1_000));
+    expect(result.current).toMatchObject({ index: 0, playing: false });
+    act(() => observed?.([{ isIntersecting: false }]));
+    expect(result.current.playing).toBe(false);
+    act(() => observed?.([{ isIntersecting: true }]));
     act(() => vi.advanceTimersByTime(100));
     expect(result.current.index).toBe(1);
-    act(() => result.current.pause());
+    act(() => result.current.toggle());
     act(() => vi.advanceTimersByTime(1_000));
-    expect(result.current.index).toBe(1);
+    expect(result.current).toMatchObject({ index: 1, playing: false });
     act(() => result.current.toggle());
     act(() => vi.advanceTimersByTime(200));
     expect(result.current.index).toBe(2);
@@ -78,9 +81,9 @@ describe("usePlayback", () => {
 
   it("holds the last step under reduced motion, and plays nothing when asked", () => {
     reduced = true;
-    const { result } = played(false);
+    const { result } = played();
     expect(result.current).toMatchObject({ index: 2, reduced: true, done: true });
-    act(() => result.current.replay());
+    expect(observed).toBeUndefined();
     act(() => result.current.toggle());
     act(() => vi.advanceTimersByTime(1_000));
     expect(result.current).toMatchObject({ index: 2, playing: false });

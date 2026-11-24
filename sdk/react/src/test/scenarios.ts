@@ -865,7 +865,7 @@ export function upTo(scenario: Scenario, n: number): Scenario {
 }
 
 // ---------------------------------------------------------------------------
-// The ledger turn: the Getting Started job, as the docs' front page plays it
+// The ledger turn: the Getting Started job, as the quickstart plays it
 // ---------------------------------------------------------------------------
 
 /** What the quickstart's `stigmer run` sends with the customer's ledger (docs/getting-started/quickstart.mdx). */
@@ -914,8 +914,7 @@ export function ledgerTurn(runId: string = RUN_ID): SessionEvent[] {
 /**
  * The ledger turn as a story, whole, with the report it returned among the
  * session's Files. The terminal kit's `first-job` recording draws it event
- * by event ({@link upTo}), so the docs' front page plays the quickstart's
- * own job.
+ * by event ({@link upTo}), so the quickstart plays its own job.
  */
 export function ledgerStory(): Scenario {
   return loaded("ledger-turn", "the first agent job: the ledger read, the report written, the flagged accounts named", ledgerTurn(), {

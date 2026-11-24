@@ -13,13 +13,11 @@
  * the first or last thing in its slot.
  */
 import type { ComponentType } from "react";
-import { JobPath } from "@/components/visuals/JobPath";
 import { SessionLog } from "@/components/visuals/SessionLog";
 import { WorkReachesARunner } from "@/components/visuals/WorkReachesARunner";
 import { diagram, type DiagramName } from "@/components/visuals/diagrams";
 
 const DRAWN: Record<DiagramName, ComponentType> = {
-  "job-path": JobPath,
   "runner-queue": WorkReachesARunner,
   "session-log": SessionLog,
 };
