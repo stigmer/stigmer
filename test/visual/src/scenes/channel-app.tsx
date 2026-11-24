@@ -1,5 +1,5 @@
 // The bring-your-own-Slack-app page's screens
-// (docs/guides/channels/bring-your-own-slack-app.mdx), framed as the
+// (docs/channels/bring-your-own-slack-app.mdx), framed as the
 // console's Settings frames a page: Channel Apps with the register form
 // filled with the page's bot name, and the registered app's detail panel
 // with its Finish setup in Slack.

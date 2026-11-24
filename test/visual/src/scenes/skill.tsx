@@ -1,4 +1,4 @@
-// The skills page's Skill (docs/concepts/skills.mdx) on its page in the
+// The skills page's Skill (docs/skills.mdx) on its page in the
 // console, framed as the Library frames a detail page: the page says the
 // description sits at the top as its own section and the rendered body
 // below it, so the scene draws that very SKILL.md (docs-fixtures.ts).

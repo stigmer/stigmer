@@ -349,7 +349,7 @@ describe("ChatAnthropic createClient -> AnthropicBedrock seam", () => {
   it("cannot serve countTokens: the request is never adapted to a Bedrock route", async () => {
     // Bedrock supports neither token counting nor prompt caching — a
     // documented limitation of the bedrock backend (operator doc,
-    // docs/guides/runners/model-backends.mdx). The installed 0.32.x still
+    // docs/runners/model-backends.mdx). The installed 0.32.x still
     // EXPOSES messages.countTokens (newer SDK source deletes the resource
     // at construction), but its request bypasses the /model/… rewrite —
     // MODEL_ENDPOINTS covers only /v1/complete and /v1/messages — so it

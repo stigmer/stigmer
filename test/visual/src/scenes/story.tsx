@@ -5,7 +5,7 @@
 // `asksFirstScene` is the moment the agent asks: Northwind Books' ledger
 // agent has read the quarter's ledger, found a miscoded expense, and stops
 // before `post_adjustment`, the tool the `ledger` server marks destructive
-// (docs/concepts/approval-flows.mdx), showing the account, the amount and the
+// (docs/approval-flows.mdx), showing the account, the amount and the
 // reason. It is drawn as the customer sees it inside the integrator's
 // product: the end user's session view, whose approval card they answer and
 // whose console pickers they never see. The session is built from the kit's

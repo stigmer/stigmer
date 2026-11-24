@@ -75,7 +75,7 @@ tool server runs on this machine (`stigmer mcp-server`) and the file is
 inside a folder you have open; when `run_agent` refuses a file, use the
 command line above.
 
-Docs: https://stigmer.ai/docs/cli/commands/run, https://stigmer.ai/docs/concepts/files.
+Docs: https://stigmer.ai/docs/cli/commands/run, https://stigmer.ai/docs/files.
 
 ## Find an agent's last run
 
@@ -93,7 +93,7 @@ each run's id, phase and start. The first finished one is "the last run".
 With the Stigmer tools: `list_runs` with `agent` (each run with its phase and
 its error in one line), then `get_run` for one of them.
 
-Docs: https://stigmer.ai/docs/cli/commands/list, https://stigmer.ai/docs/concepts/sessions.
+Docs: https://stigmer.ai/docs/cli/commands/list, https://stigmer.ai/docs/sessions.
 
 ## Read what a run made, and save it
 
@@ -117,7 +117,7 @@ disk: to save the files, run the download command above.
 The run's answer in the chat (what the agent said, not a file) is in
 `stigmer runs logs <run-id>`, or `get_run`'s `turn.answer`.
 
-Docs: https://stigmer.ai/docs/cli/commands/download, https://stigmer.ai/docs/concepts/files.
+Docs: https://stigmer.ai/docs/cli/commands/download, https://stigmer.ai/docs/files.
 
 ## Why a run failed
 
@@ -151,7 +151,7 @@ The failures people meet most:
   budget): the error says which; a follow-up in the same conversation
   carries on.
 
-Docs: https://stigmer.ai/docs/cli/commands/runs, https://stigmer.ai/docs/cli/commands/logs, https://stigmer.ai/docs/concepts/scores.
+Docs: https://stigmer.ai/docs/cli/commands/runs, https://stigmer.ai/docs/cli/commands/logs, https://stigmer.ai/docs/scores.
 
 ## A run waiting for approval
 
@@ -176,7 +176,7 @@ for a person's answer, as long as it takes.
   tool call before it asks. Say what either skips: the agent will act
   without asking anyone.
 
-Docs: https://stigmer.ai/docs/concepts/approval-flows, https://stigmer.ai/docs/cli/commands/runs, https://stigmer.ai/docs/cli/commands/run.
+Docs: https://stigmer.ai/docs/approval-flows, https://stigmer.ai/docs/cli/commands/runs, https://stigmer.ai/docs/cli/commands/run.
 
 ## A follow-up in the same conversation
 
@@ -197,7 +197,7 @@ nothing starts fresh. `stigmer run <agent>` again starts a new conversation.
 - `stigmer runs resume <run-id>` is something else: it continues a paused
   run.
 
-Docs: https://stigmer.ai/docs/cli/commands/resume, https://stigmer.ai/docs/concepts/sessions.
+Docs: https://stigmer.ai/docs/cli/commands/resume, https://stigmer.ai/docs/sessions.
 
 ## How a run was graded
 
@@ -221,7 +221,7 @@ tries, each with its verdict and reason. With the tools: `get_run_scores`.
 - Never switch AI grading on, create a scoring rule or rate a run for the
   person unless they asked: grading spends their model tokens.
 
-Docs: https://stigmer.ai/docs/concepts/scores, https://stigmer.ai/docs/cli/commands/runs, https://stigmer.ai/docs/cli/commands/agent.
+Docs: https://stigmer.ai/docs/scores, https://stigmer.ai/docs/cli/commands/runs, https://stigmer.ai/docs/cli/commands/agent.
 
 ## Turn a bad conversation into a test
 

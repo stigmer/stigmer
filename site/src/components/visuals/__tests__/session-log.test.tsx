@@ -6,7 +6,7 @@
  * The order the server keeps is asserted by the conformance suite
  * (test/conformance/src/suites-execution/session-events-managed-agents.conformance.test.ts),
  * which a site test may not read, so this holds the rows to the rules that
- * suite and docs/concepts/approval-flows.mdx both state: a run opens with the
+ * suite and docs/approval-flows.mdx both state: a run opens with the
  * person's message and the Session starting to work, and ends idle at
  * `end_turn`; a call that asks is followed by the Session stopping with
  * `requires_action`, then the person's answer. Who writes what follows the
@@ -44,10 +44,10 @@ function docs(file: string): string {
 
 /** The job's words the log uses, and the docs page that tells them. */
 const TOLD_IN: [string, string][] = [
-  ["post_adjustment", "concepts/approval-flows.mdx"],
-  ["ledger.csv", "concepts/what-is-stigmer.mdx"],
-  ["variance-report.md", "concepts/what-is-stigmer.mdx"],
-  ["flagged accounts", "concepts/sessions.mdx"],
+  ["post_adjustment", "approval-flows.mdx"],
+  ["ledger.csv", "what-is-stigmer.mdx"],
+  ["variance-report.md", "what-is-stigmer.mdx"],
+  ["flagged accounts", "sessions.mdx"],
 ];
 
 const types = (events: readonly LogEvent[]) => events.map((event) => event.type);
@@ -137,7 +137,7 @@ describe("the Session's log", () => {
 
 describe("its words", () => {
   it("spells each event type and stop reason as the docs do", () => {
-    const spelled = `${docs("sdk/streaming.mdx")}\n${docs("concepts/approval-flows.mdx")}`;
+    const spelled = `${docs("sdk/streaming.mdx")}\n${docs("approval-flows.mdx")}`;
     const words = new Set(RUNS.flatMap((run) => run.events.flatMap((event) => [event.type, event.stopReason, event.permission])));
     for (const word of words) if (word) expect(spelled, word).toContain(`\`${word}\``);
     expect(docs("sdk/streaming.mdx")).toMatch(/^\| `session\.status_running` \|/m);
@@ -148,7 +148,7 @@ describe("its words", () => {
   });
 
   it("says who writes what where the Sessions page does", () => {
-    const sessions = docs("concepts/sessions.mdx");
+    const sessions = docs("sessions.mdx");
     const sentence = "Stigmer's server writes the messages, the answers and the Session's status; the runner writes what the Agent did.";
     expect(sessions.replace(/\s+/g, " ")).toContain(sentence);
   });

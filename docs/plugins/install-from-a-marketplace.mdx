@@ -1,0 +1,219 @@
+---
+title: Install from a marketplace
+description:
+  Install a plugin from Stigmer's official catalogue, or add your own plugin
+  marketplace and install any plugin it offers by name.
+---
+
+A marketplace is a catalogue of plugins: a directory tree with a marketplace
+file at its root that lists the plugins it offers and where each one lives in
+the tree. Cursor, Claude Code and Codex publish theirs in this shape, and
+Stigmer reads all three dialects unchanged, plus its own. You install any plugin
+a source offers by name, and the plugin lands exactly as if you had
+[pushed its folder](/docs/plugins/install-a-plugin) yourself.
+
+Stigmer's official catalogue is the one source built in. It is published with
+each release and curated: every plugin in it is one Stigmer may ship and one
+whose tools Stigmer can connect to, either copied from a vendor's public set
+under its licence or written by Stigmer for a vendor's public MCP endpoint.
+Nothing in it is installed unasked: a new install answers with the built-in
+assistant, and you install the plugins you want.
+
+## Install from the official catalogue
+
+```bash
+stigmer marketplace show stigmer
+```
+
+```text
+✓ Marketplace 'stigmer' offers 79 plugins
+
+Marketplace
+  Name      stigmer
+  Source    built in
+  Format    marketplace.json
+
+Plugins
+  - linear@1.0.0     Linear's hosted MCP server: issues, projects, cycles and comments in your Linear workspace. Sign in with your Linear account.
+  - notion@1.0.0     Notion's hosted MCP server: search, read and write the pages and databases your account can reach. Sign in with your Notion account.
+  ...
+```
+
+```bash
+stigmer install linear
+```
+
+```text
+✓ Installed plugin 'linear' (1 MCP server)
+
+Plugin
+  ID           plg_01j9...
+  Slug         linear
+  Version      1.0.0
+  Digest       9c41e7b2
+  Format       Agent Plugins 1.0
+  Size         1.1 KB
+  Marketplace  stigmer (built in)
+
+Installed
+  MCP servers  linear (http)
+
+Next
+  - Sign in to linear:  stigmer connect plugin linear
+  - Use it in a conversation:  stigmer run --plugin linear
+  - Give it to an agent: add '- slug: linear' under spec.plugins in the agent's YAML, or from the plugin's page in the console
+```
+
+Most of the catalogue is tools: an MCP server that a vendor hosts, in a plugin
+your chats and Agents list. The `Next` section says what stands before its first
+tool call. A server that signs in with OAuth names the command that runs the
+sign-in (`stigmer connect plugin <plugin>` opens the login page in your browser,
+waits for it, then lists the server's tools); each person signs in once for
+themselves. A server that wants an API key names the variables and the vault
+command that saves them. Then `Next` names the two ways to use the plugin: in a
+conversation with `--plugin`, or on an Agent under `spec.plugins`.
+
+## Add your own marketplace
+
+Point `stigmer marketplace add` at a public GitHub repository your company
+publishes, as `owner/repo` or as the URL a browser shows:
+
+```bash
+stigmer marketplace add acme/agent-plugins
+```
+
+```text
+✓ Added source 'acme-plugins' (github.com/acme/agent-plugins), offering 12 plugins
+
+  See what it offers with: stigmer marketplace show acme-plugins
+  Install from it with:     stigmer install acme-plugins/<plugin>
+```
+
+`acme/agent-plugins` stands for a repository of your own. The CLI reads the
+marketplace once before recording it, so a repository that is not a marketplace
+is refused now rather than on your first install. The name it is recorded under
+is the one the marketplace file gives itself; pass `--name <name>` to choose
+your own. Pin a branch, tag or commit with `owner/repo@ref`; without one, the
+repository's default branch is read.
+
+A marketplace on your own machine is a directory:
+
+```bash
+stigmer marketplace add ./my-plugins
+```
+
+## See what it offers
+
+```bash
+stigmer marketplace show acme-plugins
+```
+
+```text
+✓ Marketplace 'acme-plugins' offers 12 plugins
+
+Marketplace
+  Name         acme-plugins
+  Source       github.com/acme/agent-plugins
+  Description  Acme's agent plugins
+  Owner        Acme
+  Format       .cursor-plugin/marketplace.json
+
+Plugins
+  - thermos@1.0.0  Keeps long-running agent sessions warm
+  - ledger@1.0.0   Reads a customer's ledger and proposes entries
+  ...
+```
+
+`show` reads the marketplace's source every time (nothing is cached), so what it
+lists is what the tree holds now. `stigmer marketplace list` is offline and
+shows the sources you have configured.
+
+## Install from it
+
+```bash
+stigmer install acme-plugins/thermos
+```
+
+```text
+✓ Installed plugin 'thermos' (2 skills, 1 agent)
+
+Plugin
+  ID           plg_01j9...
+  Slug         thermos
+  Version      1.0.0
+  Digest       3f9a2c1e
+  Format       Cursor plugin
+  Size         12.4 KB
+  Marketplace  acme-plugins (github.com/acme/agent-plugins)
+
+Installed
+  Skills   thermos-warmup, thermos-checkin
+  Agents   thermos
+```
+
+The plugin's folder is read from the marketplace's tree and pushed as one
+archive, so `stigmer install acme-plugins/thermos` and
+`stigmer push plugin ./plugins/thermos` from a checkout of the same repository
+produce the same plugin with the same digest. From here on, the plugin behaves
+as [Install a plugin](/docs/plugins/install-a-plugin) describes: the Agent is
+`thermos`, its members are the plugin's to redefine, and
+`stigmer delete plugin thermos` removes everything it installed.
+
+A few forms of the ref:
+
+```bash
+# A bare name is searched across every configured source;
+# exactly one must offer it.
+stigmer install thermos
+
+# Pin the version the source must offer; a different one refuses.
+stigmer install acme-plugins/thermos@1.0.0
+
+# See what would install without pushing anything.
+stigmer install acme-plugins/thermos --dry-run
+
+# Into another Organization, visible to the whole org.
+stigmer --org my-org install acme-plugins/thermos --visibility org
+```
+
+When two sources offer the same name, the bare form refuses and names both, so
+the answer never depends on the order you added them in. A path (`./thermos`) is
+not a ref; install a folder with `stigmer push plugin`.
+
+## What the server knows
+
+Nothing. A source is configuration on your machine, kept under `marketplaces` in
+`~/.stigmer/config.yaml`; the server only ever receives the plugin archive the
+CLI pushes from it. Two consequences follow:
+
+- Nothing records which source a plugin came from. A plugin is identified by its
+  name in your Organization, so installing `thermos` from a second source
+  upgrades the `thermos` you installed from the first.
+- Removing a source (`stigmer marketplace remove acme-plugins`) changes nothing
+  on the server. The plugins you installed from it stay until you
+  `stigmer delete plugin` them.
+
+## Where the official catalogue comes from
+
+The official catalogue ships with each release: the `plugins/` tree of the
+Stigmer repository when you run the CLI from a checkout, and the
+`@stigmer/plugins` package at the CLI's own version otherwise, fetched the first
+time an install needs it, so what you install matches the server that installs
+it. The console reads the same package at the server's version.
+`stigmer marketplace show stigmer` lists what the official catalogue offers;
+`stigmer install stigmer/<name>` installs one of them into your own
+Organization.
+
+## Limits, stated
+
+- A GitHub marketplace is read at the repository root, where the marketplace
+  file lives in every dialect; private repositories are not supported.
+- Entries whose `source` is a remote (a URL, another repository, an npm package)
+  are listed under "Not offered" by `show` and cannot be installed; Stigmer
+  installs from the tree it fetched.
+- A marketplace is fetched on every `show` and `install`; a marketplace that is
+  a whole repository is as large as that repository.
+- The vendors' own public catalogues can be added like any repository, but the
+  official catalogue already carries the plugins Stigmer can offer from them;
+  what a vendor's catalogue adds is mostly what the official one left out, for a
+  reason `show` reports per entry.

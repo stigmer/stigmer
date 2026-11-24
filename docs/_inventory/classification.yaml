@@ -44,7 +44,7 @@ pages:
       it.
 
   # ── Get Started ────────────────────────────────────────────────────────
-  concepts/what-is-stigmer:
+  what-is-stigmer:
     fate: keep
     diataxis: explanation
     teaches:
@@ -136,7 +136,7 @@ pages:
       their product; the motion is the demonstration, as on the embedding
       tutorial it builds on.
 
-  concepts/coming-from-claude-managed-agents:
+  coming-from-claude-managed-agents:
     fate: keep
     diataxis: explanation
     teaches:
@@ -146,7 +146,7 @@ pages:
     medium: none
 
   # ── How it works ───────────────────────────────────────────────────────
-  concepts/agents:
+  agents:
     fate: keep
     diataxis: explanation
     teaches:
@@ -157,7 +157,7 @@ pages:
       The prose says "here's how this Agent looks in the console" — one frame
       answers that; nothing needs to move.
 
-  concepts/environments:
+  environments:
     fate: keep
     diataxis: explanation
     teaches:
@@ -169,7 +169,7 @@ pages:
       with Claude Managed Agents' environments.
     medium: none
 
-  guides/environments/set-up-an-environment:
+  environments/set-up-an-environment:
     fate: keep
     diataxis: how-to
     teaches:
@@ -181,7 +181,7 @@ pages:
       A console procedure from the Environments list to a conversation's Setup
       tab.
 
-  concepts/sessions:
+  sessions:
     fate: keep
     diataxis: explanation
     teaches:
@@ -196,7 +196,7 @@ pages:
       who writes each event); the session-log diagram draws it, and its text
       carries it into the exports.
 
-  concepts/files:
+  files:
     fate: keep
     diataxis: explanation
     teaches:
@@ -207,7 +207,7 @@ pages:
       and how it compares with Claude's Files API and Managed Agents.
     medium: none
 
-  concepts/vaults:
+  vaults:
     fate: keep
     diataxis: explanation
     teaches:
@@ -218,7 +218,7 @@ pages:
     medium: none
 
   # ── What an agent can do ───────────────────────────────────────────────
-  concepts/skills:
+  skills:
     fate: keep
     diataxis: explanation
     teaches:
@@ -230,7 +230,7 @@ pages:
       The Skill detail page shown next to its source makes the split visible; a
       single frame is the honest medium for a static screen.
 
-  concepts/plugins:
+  plugins:
     fate: keep
     diataxis: explanation
     teaches:
@@ -239,7 +239,7 @@ pages:
       for one chat or listed on an Agent, and the three places Stigmer differs.
     medium: none
 
-  guides/plugins/install-a-plugin:
+  plugins/install-a-plugin:
     fate: keep
     diataxis: how-to
     teaches:
@@ -248,7 +248,7 @@ pages:
       `plugins`, and upgrade it by pushing again.
     medium: none
 
-  guides/plugins/install-from-a-marketplace:
+  plugins/install-from-a-marketplace:
     fate: keep
     diataxis: how-to
     teaches:
@@ -258,7 +258,7 @@ pages:
       record about where a plugin came from.
     medium: none
 
-  guides/plugins/install-from-the-console:
+  plugins/install-from-the-console:
     fate: keep
     diataxis: how-to
     teaches:
@@ -274,7 +274,7 @@ pages:
       Marketplace and the upload path have settled, and the words here already
       match the CLI's.
 
-  guides/plugins/use-hooks:
+  plugins/use-hooks:
     fate: keep
     diataxis: how-to
     teaches:
@@ -284,7 +284,7 @@ pages:
       a plugin an agent uses, and what differs from Claude Code.
     medium: none
 
-  guides/plugins/marketplace-file:
+  plugins/marketplace-file:
     fate: keep
     diataxis: reference
     teaches:
@@ -292,7 +292,7 @@ pages:
       reduce to, what makes an entry installable, and the two error postures.
     medium: none
 
-  concepts/tools:
+  tools:
     fate: split
     diataxis: explanation
     teaches:
@@ -399,7 +399,7 @@ pages:
       in a header.
     medium: none
 
-  concepts/approval-flows:
+  approval-flows:
     fate: keep
     diataxis: explanation
     teaches:
@@ -410,7 +410,7 @@ pages:
       The pause-then-resume beat IS the concept — the agent stops mid-run and a
       human decision resumes it; motion carries the cause-and-effect.
 
-  concepts/scores:
+  scores:
     fate: keep
     diataxis: explanation
     teaches:
@@ -435,7 +435,7 @@ pages:
     medium: none
 
   # ── Reach an agent ─────────────────────────────────────────────────────
-  concepts/channels:
+  channels:
     fate: keep
     diataxis: explanation
     teaches:
@@ -445,7 +445,7 @@ pages:
       Azure Bot Service.
     medium: none
 
-  guides/channels/create-a-chat-link:
+  channels/create-a-chat-link:
     fate: keep
     diataxis: how-to
     teaches:
@@ -454,7 +454,7 @@ pages:
     medium: screenshot-journey
     why: A console procedure across the chat link dialog's tabs.
 
-  guides/channels/embed-an-agent:
+  channels/embed-an-agent:
     fate: keep
     diataxis: how-to
     teaches:
@@ -465,7 +465,7 @@ pages:
       The page documents a rendered widget; one frame of the widget on a host
       page shows the outcome, beside the Embed tab the snippet comes from.
 
-  guides/channels/connect-slack:
+  channels/connect-slack:
     fate: keep
     diataxis: how-to
     teaches:
@@ -476,7 +476,7 @@ pages:
       A multi-screen console procedure (channel wizard, consent, channel card)
       the reader performs step by step.
 
-  guides/channels/connect-whatsapp:
+  channels/connect-whatsapp:
     fate: keep
     diataxis: how-to
     teaches:
@@ -487,7 +487,7 @@ pages:
       Same procedural shape as the Slack twin — console screens the reader
       follows at their own pace.
 
-  guides/channels/bring-your-own-slack-app:
+  channels/bring-your-own-slack-app:
     fate: keep
     diataxis: how-to
     teaches:
@@ -499,7 +499,7 @@ pages:
       depictable stills; Slack's own screens stay prose — we depict only our
       product.
 
-  guides/channels/send-proactive-messages-with-templates:
+  channels/send-proactive-messages-with-templates:
     fate: keep
     diataxis: how-to
     teaches:
@@ -508,7 +508,7 @@ pages:
       invoices with it.
     medium: none
 
-  guides/channels/set-up-your-meta-app:
+  channels/set-up-your-meta-app:
     fate: keep
     diataxis: how-to
     teaches:
@@ -516,7 +516,7 @@ pages:
       registration, webhook verification.
     medium: none
 
-  guides/channels/take-over-conversations:
+  channels/take-over-conversations:
     fate: keep
     diataxis: how-to
     teaches:
@@ -529,7 +529,7 @@ pages:
       Conversations inbox, timeline, and banners are depictable stills (the
       connect-guide precedent).
 
-  concepts/routines:
+  routines:
     fate: keep
     diataxis: explanation
     teaches:
@@ -540,7 +540,7 @@ pages:
       and Managed Agents' scheduled deployments.
     medium: none
 
-  guides/routines/run-an-agent-on-a-schedule:
+  routines/run-an-agent-on-a-schedule:
     fate: keep
     diataxis: how-to
     teaches:
@@ -550,7 +550,7 @@ pages:
     medium: screenshot-journey
     why: A console procedure from the routine list to the routine's history.
 
-  guides/routines/start-a-routine-from-another-system:
+  routines/start-a-routine-from-another-system:
     fate: keep
     diataxis: how-to
     teaches:
@@ -560,7 +560,7 @@ pages:
     medium: none
 
   # ── Access and organizations ───────────────────────────────────────────
-  concepts/sharing-and-access:
+  sharing-and-access:
     fate: keep
     diataxis: explanation
     teaches:
@@ -571,7 +571,7 @@ pages:
       with general access, and what each edition grants.
     medium: none
 
-  concepts/organizations:
+  organizations:
     fate: keep
     diataxis: explanation
     teaches:
@@ -581,7 +581,7 @@ pages:
     medium: diagram
     why: Tenancy fan-out is structure; the two existing mermaids carry it.
 
-  concepts/identity:
+  identity:
     fate: keep
     diataxis: explanation
     teaches:
@@ -697,7 +697,7 @@ pages:
       check where a run's values came from.
     medium: none
 
-  concepts/resources:
+  resources:
     fate: keep
     diataxis: explanation
     teaches:
@@ -707,7 +707,7 @@ pages:
     medium: none
 
   # ── Editions and running it ────────────────────────────────────────────
-  concepts/billing:
+  billing:
     fate: keep
     diataxis: explanation
     teaches:
@@ -717,7 +717,7 @@ pages:
       catalog's list prices are for, and what reduces model spend.
     medium: none
 
-  concepts/runners:
+  runners:
     fate: keep
     diataxis: explanation
     teaches:
@@ -730,15 +730,7 @@ pages:
       runner that polls it); the runner-queue diagram draws it, and its text
       carries it into the exports.
 
-  guides/runners/overview:
-    fate: keep
-    diataxis: landing
-    teaches:
-      Whether the reader needs the runner-embedding guides at all, and which
-      sub-guide to open.
-    medium: none
-
-  guides/runners/claude-harness:
+  runners/claude-harness:
     fate: keep
     diataxis: how-to
     teaches:
@@ -747,7 +739,7 @@ pages:
       download it.
     medium: none
 
-  guides/runners/model-backends:
+  runners/model-backends:
     fate: keep
     diataxis: how-to
     teaches:
@@ -755,7 +747,7 @@ pages:
       Claude) by setting backend env vars on a direct-mode runner.
     medium: none
 
-  guides/runners/payload-encryption:
+  runners/payload-encryption:
     fate: keep
     diataxis: how-to
     teaches:
@@ -764,7 +756,7 @@ pages:
       both the runner and the server.
     medium: none
 
-  guides/runners/ipc-protocol:
+  runners/ipc-protocol:
     fate: keep
     diataxis: reference
     teaches:
@@ -772,7 +764,7 @@ pages:
       subprocess.
     medium: none
 
-  guides/runners/embedding:
+  runners/embedding:
     fate: split
     diataxis: how-to
     teaches:
@@ -784,7 +776,7 @@ pages:
       Split because 540 lines mix a decision matrix, an infra explainer, an SDK
       tutorial, an interface contract, and a Tauri worked example.
 
-  concepts/harnesses:
+  harnesses:
     fate: keep
     diataxis: explanation
     teaches:

@@ -222,7 +222,7 @@ export function generateRolesDocPage(
   buf.push("Every kind of resource that can be shared declares, in the API contract, the roles that\n");
   buf.push("can be granted on it and what each role allows there. This page is generated from those\n");
   buf.push("declarations, so it says what the server enforces.\n");
-  buf.push("[Sharing and access](/docs/concepts/sharing-and-access) explains the model.\n\n");
+  buf.push("[Sharing and access](/docs/sharing-and-access) explains the model.\n\n");
   buf.push("- **General access** decides who in the organization reaches a resource without being\n");
   buf.push("  added to it: Private, Organization or Child organizations, where the kind offers them.\n");
   buf.push("- **A role** decides what one person, or one team, may do with it.\n");

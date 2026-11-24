@@ -15,7 +15,7 @@ import { registerDocsTools } from "../tools";
 
 const reader: DocsReader = {
   async searchDocs(query) {
-    return query === "none" ? [] : [{ title: "Runners", url: "https://stigmer.ai/docs/concepts/runners", description: "Where a run executes." }];
+    return query === "none" ? [] : [{ title: "Runners", url: "https://stigmer.ai/docs/runners", description: "Where a run executes." }];
   },
   async readDocPage(page) {
     if (page.startsWith("http://")) throw new DocsError("refused", `Only pages under https://stigmer.ai/docs are read; "${page}" is not one.`);
@@ -37,22 +37,22 @@ async function call(name: string, args: Record<string, string>) {
 describe("the docs tools", () => {
   it("search_docs answers with the matching pages", async () => {
     expect(await call("search_docs", { query: "runner" })).toEqual({
-      text: "1. Runners: https://stigmer.ai/docs/concepts/runners\n   Where a run executes.",
+      text: "1. Runners: https://stigmer.ai/docs/runners\n   Where a run executes.",
       isError: false,
     });
     expect((await call("search_docs", { query: "none" })).text).toContain('No docs page matches "none"');
   });
 
   it("read_doc answers with the page whole", async () => {
-    expect(await call("read_doc", { page: "concepts/runners" })).toEqual({
-      text: "Source: https://stigmer.ai/docs/concepts/runners\n\nWhole page.\n",
+    expect(await call("read_doc", { page: "runners" })).toEqual({
+      text: "Source: https://stigmer.ai/docs/runners\n\nWhole page.\n",
       isError: false,
     });
   });
 
   it.each([
     ["search_docs", { query: "runner" }],
-    ["read_doc", { page: "concepts/runners" }],
+    ["read_doc", { page: "runners" }],
   ])("%s refuses an undeclared argument and names it", async (name, args) => {
     const refused = await call(name, { ...args, sluggg: "typo" });
     expect(refused.isError).toBe(true);

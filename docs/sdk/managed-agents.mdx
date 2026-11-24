@@ -270,7 +270,7 @@ Stigmer never writes these Managed Agents events, so don't wait for one:
 - **`user.define_outcome`, `system.message` and the `span.outcome_evaluation_start`,
   `span.outcome_evaluation_ongoing` and `span.outcome_evaluation_end` events.**
   A session has no outcome to grade against a rubric; how good a finished run
-  was is its [Scores](/docs/concepts/scores), on Stigmer's API.
+  was is its [Scores](/docs/scores), on Stigmer's API.
 - **`session.status_rescheduled`, `session.status_terminated`,
   `session.thread_status_rescheduled`, `session.thread_status_terminated`,
   `session.updated` and `session.deleted`.** A Session has no terminated state:
@@ -284,7 +284,7 @@ Stigmer never writes these Managed Agents events, so don't wait for one:
 - **Creating, reading, listing or deleting Sessions.** Use Stigmer's own API
   for the Session, then these calls for its events.
 - **Environments (`/v1/environments`).** A Stigmer
-  [Environment](/docs/concepts/environments) takes Managed Agents' `networking`
+  [Environment](/docs/environments) takes Managed Agents' `networking`
   and `packages` fields as they are, and is made through Stigmer's own API, with
   `stigmer apply` or in the console.
 - **`user.tool_result`, `user.define_outcome` and `system.message`.** Sending one

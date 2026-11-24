@@ -460,16 +460,16 @@ runner is the Deployment `stigmer-runner`, one replica, with its state on the
 ### Bring your own base image
 
 The runner layer is everything Stigmer adds to an image: the runner, the Node it
-runs on, and the [Claude Agent SDK](/docs/guides/runners/claude-harness)
-(Anthropic's package and its `claude` program for the image's architecture,
-unmodified, at `/runner/engines`), under `/runner` and nowhere else. Stigmer
-publishes it on its own as `ghcr.io/stigmer/runner-layer`, for `linux/amd64` and
-`linux/arm64`, tagged with the release it belongs to. Add it to the image your
-Agents should work in, the one your engineers already use, and name the result
-in `STIGMER_SANDBOX_RUNNER_IMAGE`. Your tools stay yours; nothing has to be
-copied out of Stigmer's own Dockerfile. The preceding warning still holds for
-the shipped stacks: this is how a driver's image is made, ready for when they
-can select one.
+runs on, and the [Claude Agent SDK](/docs/runners/claude-harness) (Anthropic's
+package and its `claude` program for the image's architecture, unmodified, at
+`/runner/engines`), under `/runner` and nowhere else. Stigmer publishes it on
+its own as `ghcr.io/stigmer/runner-layer`, for `linux/amd64` and `linux/arm64`,
+tagged with the release it belongs to. Add it to the image your Agents should
+work in, the one your engineers already use, and name the result in
+`STIGMER_SANDBOX_RUNNER_IMAGE`. Your tools stay yours; nothing has to be copied
+out of Stigmer's own Dockerfile. The preceding warning still holds for the
+shipped stacks: this is how a driver's image is made, ready for when they can
+select one.
 
 The join is one file, `deploy/runner-layer/Dockerfile` in the Stigmer
 repository:
@@ -656,10 +656,10 @@ runner layer changes.
 
 ### Environments on your sandboxes
 
-An [Environment](/docs/concepts/environments) names the packages a Session's
-sandbox installs and the websites it may reach. What a server can do with one
-depends on its driver, and the server says so to every client, so the console
-greys what can't apply before anyone tries:
+An [Environment](/docs/environments) names the packages a Session's sandbox
+installs and the websites it may reach. What a server can do with one depends on
+its driver, and the server says so to every client, so the console greys what
+can't apply before anyone tries:
 
 | Driver                 | Installs packages        | Limits networking                                         |
 | ---------------------- | ------------------------ | --------------------------------------------------------- |
@@ -1007,8 +1007,8 @@ it. An Environment with `apt` packages also reaches the Debian and Ubuntu
 archives over plain HTTP on port 80, in every networking mode, because `apt`
 fetches them that way and Substrate's gateway passes plain HTTP only to a host
 named for it.
-[Environments](/docs/concepts/environments#the-package-registries-and-code-hosts)
-lists them.
+[Environments](/docs/environments#the-package-registries-and-code-hosts) lists
+them.
 
 <Callout type="warn">
   **Two things Substrate leaves to you.** Its router reaches every actor by a

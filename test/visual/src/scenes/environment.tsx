@@ -1,4 +1,4 @@
-// The environments page's screens (docs/guides/environments/set-up-an-environment.mdx):
+// The environments page's screens (docs/environments/set-up-an-environment.mdx):
 // the New environment form filled by the scene's acts with the page's own
 // data-science Environment; the data team's Agent after its Environment
 // section names it; and a conversation on that Agent with its run settings

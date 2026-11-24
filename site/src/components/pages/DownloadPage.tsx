@@ -246,7 +246,7 @@ function DownloadPage() {
                   </li>
                   <li>
                     <Link
-                      href="/docs/concepts/runners"
+                      href="/docs/runners"
                       className="group flex items-start gap-3"
                     >
                       <Icon

@@ -7,7 +7,7 @@
  * is allowed, and writes the report. The second asks for the flagged accounts
  * only, and never names the ledger again: the run reads the first one's
  * messages, and a message's Files stay with the conversation
- * (docs/concepts/files.mdx).
+ * (docs/files.mdx).
  *
  * Each run's events are exactly the order the server keeps on the Claude
  * Managed Agents format, which the conformance suite asserts in

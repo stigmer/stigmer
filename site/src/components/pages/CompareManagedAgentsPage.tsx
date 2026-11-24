@@ -56,7 +56,7 @@ const ROWS: readonly {
       <>
         A sandbox on your servers (a local process, Docker or Kubernetes), or a managed sandbox
         on Stigmer Cloud.{" "}
-        <Link href="/docs/concepts/environments" className={inlineLink}>
+        <Link href="/docs/environments" className={inlineLink}>
           Environments
         </Link>
       </>
@@ -89,7 +89,7 @@ const ROWS: readonly {
       <>
         Approval flows: it asks before shell commands, file writes and deletes, and the MCP
         tools their server marks destructive; hooks change that call by call.{" "}
-        <Link href="/docs/concepts/approval-flows" className={inlineLink}>
+        <Link href="/docs/approval-flows" className={inlineLink}>
           Approval flows
         </Link>
       </>
@@ -133,7 +133,7 @@ const FURTHER: readonly { text: string; cta: string; href: string; external?: bo
   {
     text: "A choice of harness for each session: Stigmer's own, or Anthropic's Claude Agent SDK.",
     cta: "Harnesses",
-    href: "/docs/concepts/harnesses",
+    href: "/docs/harnesses",
   },
 ];
 
@@ -289,7 +289,7 @@ function CompareManagedAgentsPage() {
                 Already on Managed Agents?
               </h2>
               <p className="text-muted-foreground leading-relaxed mb-8">
-                <Link href="/docs/concepts/coming-from-claude-managed-agents" className={inlineLink}>
+                <Link href="/docs/coming-from-claude-managed-agents" className={inlineLink}>
                   Coming from Claude Managed Agents
                 </Link>{" "}
                 maps each Managed Agents idea to its Stigmer counterpart, and says where there is

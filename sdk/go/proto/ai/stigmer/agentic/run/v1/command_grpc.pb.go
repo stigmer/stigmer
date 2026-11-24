@@ -127,7 +127,7 @@ type RunCommandControllerClient interface {
 	// Resume a paused run.
 	//
 	// Continues the run from where it was paused. How a turn's state is saved
-	// is the harness's ([Harnesses](/docs/concepts/harnesses)).
+	// is the harness's ([Harnesses](/docs/harnesses)).
 	Resume(ctx context.Context, in *ResumeRunInput, opts ...grpc.CallOption) (*Run, error)
 }
 
@@ -325,7 +325,7 @@ type RunCommandControllerServer interface {
 	// Resume a paused run.
 	//
 	// Continues the run from where it was paused. How a turn's state is saved
-	// is the harness's ([Harnesses](/docs/concepts/harnesses)).
+	// is the harness's ([Harnesses](/docs/harnesses)).
 	Resume(context.Context, *ResumeRunInput) (*Run, error)
 }
 

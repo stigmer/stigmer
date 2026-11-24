@@ -41,7 +41,7 @@ export const SANDBOX_SCOPE: {
 };
 
 /** The docs page whose first YAML block is the Environment the section shows. */
-export const SANDBOX_ENVIRONMENT_SOURCE = "docs/concepts/environments.mdx";
+export const SANDBOX_ENVIRONMENT_SOURCE = "docs/environments/index.mdx";
 
 /**
  * The docs' worked Environment, a data team's: the file exactly as the docs
@@ -157,7 +157,7 @@ export const SANDBOX_PANELS: Readonly<Record<SandboxPanelId, SandboxPanel>> = {
       {
         kind: "source",
         label: "Waiting is never an agent hour",
-        href: "/docs/concepts/billing#agent-hours",
+        href: "/docs/billing#agent-hours",
       },
     ],
   },

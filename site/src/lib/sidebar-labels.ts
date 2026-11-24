@@ -1,17 +1,20 @@
 /**
  * No two neighbours in the docs sidebar share a name.
  *
- * A concept page and the folder of guides listed right under it once carried
- * the same title, so the sidebar read "Environments", "Plugins", "Channels"
- * and "Routines" twice in a row and nothing said which entry was which
- * (#3457). `repeatedSidebarLabels` walks the tree the sidebar is built from,
+ * An explanation page and the folder of guides listed right under it once
+ * carried the same title, so the sidebar read "Environments", "Plugins",
+ * "Channels" and "Routines" twice in a row and nothing said which entry was
+ * which (#3457); each such topic is now one folder whose `index.mdx` is the
+ * explanation. `repeatedSidebarLabels` walks the tree the sidebar is built from,
  * from the root `meta.json` down through every folder's, and returns each
  * label two neighbours share.
  *
  * Neighbours are the entries of one group at the top level (what sits between
  * two `---Group---` separators) and the entries of one folder below it. An
  * entry's label is what the sidebar prints for it: a page's frontmatter title,
- * a folder's `meta.json` title, a link entry's own text.
+ * a folder's `meta.json` title or, with none, its `index.mdx` title (the docs
+ * framework names a folder from its index page the same way), a link entry's
+ * own text.
  *
  * The walk reads the entry forms the docs use: a separator, a link, a page,
  * and a folder with a `meta.json` that lists its `pages`. It throws, naming
@@ -40,6 +43,14 @@ type Neighbours = Map<string, string[]>;
 function titleOf(value: unknown, file: string): string {
   if (typeof value !== "string" || value.trim() === "") throw new Error(`docs/${file}: no title, so its sidebar entry has no label to check`);
   return value.trim();
+}
+
+/** A folder's label: its `meta.json` title, else its index page's, else a refusal naming the folder. */
+function folderLabel(docsDir: string, folder: string, meta: SectionMeta): string {
+  if (meta.title !== undefined) return titleOf(meta.title, join(folder, "meta.json"));
+  const index = join(folder, "index.mdx");
+  if (existsSync(join(docsDir, index))) return titleOf(matter(readFileSync(join(docsDir, index), "utf8")).data.title, index);
+  throw new Error(`docs/${folder}: no title in its meta.json and no index.mdx, so its sidebar entry has no label to check`);
 }
 
 function repeatsIn(neighbours: Neighbours, where: string): RepeatedSidebarLabel[] {
@@ -91,7 +102,7 @@ function walk(docsDir: string, dir: string, meta: SectionMeta & { pages: string[
       continue;
     }
     const folderMeta = readMeta(docsDir, folder);
-    add(titleOf(folderMeta.title, join(folder, "meta.json")), entry);
+    add(folderLabel(docsDir, folder, folderMeta), entry);
     below.push(...walk(docsDir, folder, folderMeta));
   }
   return [...repeated, ...repeatsIn(neighbours, where), ...below];

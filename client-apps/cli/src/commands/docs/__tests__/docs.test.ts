@@ -12,7 +12,7 @@ import { CliExitError } from "../../../errors/cli-exit-error.js";
 import { UsageError } from "../../../errors/usage-error.js";
 import { asCliError, registerDocs } from "../index.js";
 
-const PAGE = "Source: https://stigmer.ai/docs/concepts/runners\n\nWhole page.\n";
+const PAGE = "Source: https://stigmer.ai/docs/runners\n\nWhole page.\n";
 
 vi.mock("@stigmer/mcp-server/docs", () => ({
   formatHits: (query: string, hits: Array<{ title: string; url: string }>) =>
@@ -52,9 +52,9 @@ describe("stigmer docs", () => {
   });
 
   it("read prints the page whole, or its address and text as JSON", async () => {
-    expect(await run("docs", "read", "concepts/runners")).toBe(PAGE);
-    expect(JSON.parse(await run("docs", "read", "concepts/runners", "--json"))).toEqual({
-      url: "https://stigmer.ai/docs/concepts/runners",
+    expect(await run("docs", "read", "runners")).toBe(PAGE);
+    expect(JSON.parse(await run("docs", "read", "runners", "--json"))).toEqual({
+      url: "https://stigmer.ai/docs/runners",
       markdown: PAGE,
     });
   });

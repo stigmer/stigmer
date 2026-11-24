@@ -30,9 +30,9 @@ const INDEX = [
   "",
   "## How it works",
   "",
-  "- [Runners](https://stigmer.ai/docs/concepts/runners): Where a run executes, and the port a local runner listens on.",
+  "- [Runners](https://stigmer.ai/docs/runners): Where a run executes, and the port a local runner listens on.",
   "- [Editions](https://stigmer.ai/docs/guides/self-hosting/cloud-vs-self-hosted): Open source, Enterprise and Cloud compared.",
-  "- [Billing](https://stigmer.ai/docs/concepts/billing): Who pays the model bill, and what each edition costs.",
+  "- [Billing](https://stigmer.ai/docs/billing): Who pays the model bill, and what each edition costs.",
   "- [Vault](https://stigmer.ai/docs/sdk/resources/vault)",
   "",
   "## Optional",
@@ -41,7 +41,7 @@ const INDEX = [
   "",
 ].join("\n");
 
-const PAGE = "Source: https://stigmer.ai/docs/concepts/runners\n\n> Where a run executes.\n\nA runner listens on port 7234.\n";
+const PAGE = "Source: https://stigmer.ai/docs/runners\n\n> Where a run executes.\n\nA runner listens on port 7234.\n";
 
 function respond(body: string, init: ResponseInit = {}): Response {
   return new Response(body, init);
@@ -61,9 +61,9 @@ describe("parseIndex", () => {
     const hits = parseIndex(INDEX);
     expect(hits.map((h) => h.url)).toEqual([
       "https://stigmer.ai/docs",
-      "https://stigmer.ai/docs/concepts/runners",
+      "https://stigmer.ai/docs/runners",
       "https://stigmer.ai/docs/guides/self-hosting/cloud-vs-self-hosted",
-      "https://stigmer.ai/docs/concepts/billing",
+      "https://stigmer.ai/docs/billing",
       "https://stigmer.ai/docs/sdk/resources/vault",
       "https://stigmer.ai/docs/cli/commands/up",
     ]);
@@ -109,7 +109,7 @@ describe("rankDocs", () => {
       [
         "- [Reports](https://stigmer.ai/docs/a): the variance report and its support",
         "- [Upload](https://stigmer.ai/docs/b): hooks for uploads",
-        "- [Harnesses](https://stigmer.ai/docs/concepts/harnesses): the loop",
+        "- [Harnesses](https://stigmer.ai/docs/harnesses): the loop",
         "- [Authentication](https://stigmer.ai/docs/guides/authentication/overview): sign-in",
         "- [stigmer up](https://stigmer.ai/docs/cli/commands/up): start the local stack",
       ].join("\n"),
@@ -139,28 +139,28 @@ describe("rankDocs", () => {
 
 describe("docPageUrl", () => {
   it.each([
-    ["concepts/tools", "https://stigmer.ai/docs/concepts/tools"],
-    ["/docs/concepts/tools", "https://stigmer.ai/docs/concepts/tools"],
-    ["docs/concepts/tools.md", "https://stigmer.ai/docs/concepts/tools"],
-    ["/concepts/tools/", "https://stigmer.ai/docs/concepts/tools"],
-    ["https://stigmer.ai/docs/concepts/tools.md", "https://stigmer.ai/docs/concepts/tools"],
-    ["https://stigmer.ai/docs/concepts/tools#how-it-works", "https://stigmer.ai/docs/concepts/tools"],
-    ["concepts/tools?x=1#y", "https://stigmer.ai/docs/concepts/tools"],
+    ["tools", "https://stigmer.ai/docs/tools"],
+    ["/docs/tools", "https://stigmer.ai/docs/tools"],
+    ["docs/tools.md", "https://stigmer.ai/docs/tools"],
+    ["/tools/", "https://stigmer.ai/docs/tools"],
+    ["https://stigmer.ai/docs/tools.md", "https://stigmer.ai/docs/tools"],
+    ["https://stigmer.ai/docs/tools#how-it-works", "https://stigmer.ai/docs/tools"],
+    ["tools?x=1#y", "https://stigmer.ai/docs/tools"],
   ])("reads %s as %s", (page, url) => {
     expect(docPageUrl(page)).toBe(url);
   });
 
   it("reads hostile arguments in linear time", () => {
     const started = performance.now();
-    expect(docPageUrl(`concepts/tools${"/".repeat(50_000)}`)).toBe("https://stigmer.ai/docs/concepts/tools");
-    expect(docPageUrl(`concepts/tools${"#".repeat(50_000)}\n`)).toBe("https://stigmer.ai/docs/concepts/tools");
-    expect(() => docPageUrl(`concepts/tools${"/".repeat(50_000)}x`)).toThrow(DocsError);
+    expect(docPageUrl(`tools${"/".repeat(50_000)}`)).toBe("https://stigmer.ai/docs/tools");
+    expect(docPageUrl(`tools${"#".repeat(50_000)}\n`)).toBe("https://stigmer.ai/docs/tools");
+    expect(() => docPageUrl(`tools${"/".repeat(50_000)}x`)).toThrow(DocsError);
     expect(performance.now() - started).toBeLessThan(1_000);
   });
 
   it.each([
     "https://evil.example/x",
-    "http://stigmer.ai/docs/concepts/tools",
+    "http://stigmer.ai/docs/tools",
     "https://stigmer.ai.evil.example/docs/x",
     "https://stigmer.ai/pricing",
     "//evil.example/docs/x",
@@ -190,7 +190,7 @@ describe("formatHits", () => {
   it("numbers each page with its URL and description, and says what to do when none match", () => {
     const hits = parseIndex(INDEX).slice(1, 2);
     expect(formatHits("port", hits)).toBe(
-      "1. Runners: https://stigmer.ai/docs/concepts/runners\n   Where a run executes, and the port a local runner listens on.",
+      "1. Runners: https://stigmer.ai/docs/runners\n   Where a run executes, and the port a local runner listens on.",
     );
     expect(formatHits("x", [{ title: "Vault", url: "u", description: "" }])).toBe("1. Vault: u");
     expect(formatHits("kubernetes", [])).toContain('No docs page matches "kubernetes"');
@@ -211,9 +211,9 @@ describe("createDocsReader", () => {
   });
 
   it("reads a page's .md export whole, Source line and all", async () => {
-    const doFetch = fakeFetch({ "https://stigmer.ai/docs/concepts/runners.md": () => respond(PAGE) });
-    const page = await createDocsReader({ fetch: doFetch }).readDocPage("concepts/runners");
-    expect(page).toEqual({ url: "https://stigmer.ai/docs/concepts/runners", markdown: PAGE });
+    const doFetch = fakeFetch({ "https://stigmer.ai/docs/runners.md": () => respond(PAGE) });
+    const page = await createDocsReader({ fetch: doFetch }).readDocPage("runners");
+    expect(page).toEqual({ url: "https://stigmer.ai/docs/runners", markdown: PAGE });
     expect(doFetch.mock.calls[0]?.[1]).toMatchObject({ redirect: "manual" });
   });
 
@@ -224,8 +224,8 @@ describe("createDocsReader", () => {
 
   it("follows a redirect that stays in the docs", async () => {
     const doFetch = fakeFetch({
-      "https://stigmer.ai/docs/old.md": () => respond("", { status: 308, headers: { location: "/docs/concepts/runners.md" } }),
-      "https://stigmer.ai/docs/concepts/runners.md": () => respond(PAGE),
+      "https://stigmer.ai/docs/old.md": () => respond("", { status: 308, headers: { location: "/docs/runners.md" } }),
+      "https://stigmer.ai/docs/runners.md": () => respond(PAGE),
     });
     expect((await createDocsReader({ fetch: doFetch }).readDocPage("old")).markdown).toBe(PAGE);
   });

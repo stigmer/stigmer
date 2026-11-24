@@ -161,7 +161,7 @@ export const SHOWN: readonly Shown[] = [
   // The docs' pictures: each the part of a console screen one step of a
   // docs page acts on, drawn at the console's desktop width so it lays out as
   // on the reader's screen, cropped so it shows near 1:1 in the docs column.
-  // The routines page (docs/guides/routines/run-an-agent-on-a-schedule.mdx).
+  // The routines page (docs/routines/run-an-agent-on-a-schedule.mdx).
   {
     name: "routine-new",
     scene: "routine-new",
@@ -191,7 +191,7 @@ export const SHOWN: readonly Shown[] = [
     // the column spans x 216 to 1064, the history's table ends at y 284.
     clip: { x: 200, y: 40, width: 880, height: 260 },
   },
-  // The agents page (docs/concepts/agents.mdx).
+  // The agents page (docs/agents.mdx).
   {
     name: "agent",
     scene: "agent-profile-variance-reporter",
@@ -202,7 +202,7 @@ export const SHOWN: readonly Shown[] = [
     // Instructions ends at y 781.
     clip: { x: 200, y: 40, width: 880, height: 757 },
   },
-  // The skills page (docs/concepts/skills.mdx).
+  // The skills page (docs/skills.mdx).
   {
     name: "skill",
     scene: "skill-detail",
@@ -212,7 +212,7 @@ export const SHOWN: readonly Shown[] = [
     // screen: the column spans x 216 to 1064, Skill content ends at y 825.
     clip: { x: 200, y: 40, width: 880, height: 801 },
   },
-  // The environments page (docs/guides/environments/set-up-an-environment.mdx).
+  // The environments page (docs/environments/set-up-an-environment.mdx).
   {
     name: "environment-new",
     scene: "environment-new",
@@ -242,7 +242,7 @@ export const SHOWN: readonly Shown[] = [
     // the composer ends at y 764.
     clip: { x: 860, y: 502, width: 400, height: 278 },
   },
-  // The channel pages (docs/guides/channels/). A dialog is drawn in a window
+  // The channel pages (docs/channels/). A dialog is drawn in a window
   // tall enough to hold it whole, and kept with 8 px of the dimmed page
   // around its ring, measured from the drawn screen.
   {

@@ -1,4 +1,4 @@
-// The take-over page's screens (docs/guides/channels/take-over-conversations.mdx):
+// The take-over page's screens (docs/channels/take-over-conversations.mdx):
 // the console's Conversations area over the variance reporter's WhatsApp
 // number, as an admin sees it.
 //

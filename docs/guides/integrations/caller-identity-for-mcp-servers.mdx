@@ -31,13 +31,12 @@ on a server without sign-in, and `anonymous` when none exists.
 
 ## Routines
 
-A [routine](/docs/concepts/routines)'s run presents its owner: the person or
-service account that created the routine. That holds in every edition with
-sign-in, on its schedule or started by hand, and whoever started it: a
-Participant pressing **Run now**, or an alerting tool calling it with a note,
-does not change the identity your server sees. The run is the owner's
-conversation, acting with the owner's access, as Claude Code's routines run as
-the person who made them.
+A [routine](/docs/routines)'s run presents its owner: the person or service
+account that created the routine. That holds in every edition with sign-in, on
+its schedule or started by hand, and whoever started it: a Participant pressing
+**Run now**, or an alerting tool calling it with a note, does not change the
+identity your server sees. The run is the owner's conversation, acting with the
+owner's access, as Claude Code's routines run as the person who made them.
 
 - **A routine a person created** presents kind `stigmer_user` with that person's
   email, the same value their own console and CLI Sessions present. A grant you

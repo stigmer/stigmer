@@ -309,7 +309,7 @@ A Session has no terminal phase, so its worker is tied to whether the session is
 
 The SDK does not invoke these methods on its own in a non-React host — you wire the adapter to your own open/close code paths. In React apps, `@stigmer/react-sdk` does this wiring automatically: pass `executionTarget` and `runnerAdapter` to `StigmerProvider` and the SDK hooks invoke the adapter at the right lifecycle points.
 
-See the [`@stigmer/react-sdk` local execution docs](../react/README.md#local-execution) and the [runner embedding guide](https://stigmer.ai/docs/guides/runners/embedding) for the full desktop (local) and web (cloud) walkthrough.
+See the [`@stigmer/react-sdk` local execution docs](../react/README.md#local-execution) and the [runner embedding guide](https://stigmer.ai/docs/runners/embedding) for the full desktop (local) and web (cloud) walkthrough.
 
 ## Code Generation
 

@@ -1,5 +1,5 @@
 ---
 type: regex
-pattern: stigmer\.ai/docs/(guides/channels/take-over-conversations|concepts/channels)
+pattern: stigmer\.ai/docs/(channels/take-over-conversations|channels)
 flags: i
 ---

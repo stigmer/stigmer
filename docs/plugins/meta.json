@@ -1,0 +1,9 @@
+{
+  "pages": [
+    "install-a-plugin",
+    "install-from-a-marketplace",
+    "install-from-the-console",
+    "use-hooks",
+    "marketplace-file"
+  ]
+}

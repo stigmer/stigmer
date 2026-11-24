@@ -1,5 +1,5 @@
 ---
 type: regex
-pattern: stigmer\.ai/docs/(guides/channels/connect-slack|guides/channels/bring-your-own-slack-app|concepts/channels)
+pattern: stigmer\.ai/docs/(channels/connect-slack|channels/bring-your-own-slack-app|channels)
 flags: i
 ---

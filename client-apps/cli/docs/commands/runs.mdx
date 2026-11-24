@@ -17,7 +17,7 @@ The subcommands fall into three areas:
   `trace` shows its tool calls and how each ended, or lists its events as JSON
   or YAML; `scores` shows how good a finished run was: each person's thumbs, the
   run-health checks, the AI judge and, on an eval run's try, each check of its
-  case ([Scores](/docs/concepts/scores)); `to-eval-case` turns a run into a test
+  case ([Scores](/docs/scores)); `to-eval-case` turns a run into a test
   case, written into a local `evals/` folder or added to an eval.
 - **Approval** — `approve` answers a tool call the run waits on: allow it, deny
   it with a reason the agent reads, or allow it and every waiting call of its
@@ -122,7 +122,7 @@ The failures met most often:
 | The error says | What it means | Where it is fixed |
 | -------------- | ------------- | ----------------- |
 | The provider refused the call: a credit balance too low, an invalid key, a model the key cannot use, a rate limit | The model provider refused the key the run used: your organization's own key, or on your own machine the runner's | In that provider account, or with a new key ([Model provider keys](/docs/guides/integrations/model-provider-keys)); then run it again |
-| The run ended without a step it needed: a tool call denied, or skipped because no one could answer | A call that needed approval was refused, or the run had no one to ask | [Approval flows](/docs/concepts/approval-flows); a script answers with `stigmer run --approve-default` |
+| The run ended without a step it needed: a tool call denied, or skipped because no one could answer | A call that needed approval was refused, or the run had no one to ask | [Approval flows](/docs/approval-flows); a script answers with `stigmer run --approve-default` |
 | Terminated: the agent stalled, or used its tool-call budget | The platform stopped the turn | Send a follow-up in the same conversation (`stigmer resume <session-id>`) |
 
 A failure on your key is never retried on another key: fix the account or the

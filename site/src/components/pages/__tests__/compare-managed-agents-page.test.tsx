@@ -60,6 +60,6 @@ describe("CompareManagedAgentsPage", () => {
     const section = screen.getByRole("heading", { name: "Already on Managed Agents?" }).closest("section");
 
     const first = section?.querySelector("p a");
-    expect(first?.getAttribute("href")).toBe("/docs/concepts/coming-from-claude-managed-agents");
+    expect(first?.getAttribute("href")).toBe("/docs/coming-from-claude-managed-agents");
   });
 });

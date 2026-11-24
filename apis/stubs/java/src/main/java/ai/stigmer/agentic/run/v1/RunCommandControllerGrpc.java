@@ -503,7 +503,7 @@ public final class RunCommandControllerGrpc {
      * <pre>
      * Resume a paused run.
      * Continues the run from where it was paused. How a turn's state is saved
-     * is the harness's ([Harnesses](/docs/concepts/harnesses)).
+     * is the harness's ([Harnesses](/docs/harnesses)).
      * </pre>
      */
     default void resume(ai.stigmer.agentic.run.v1.ResumeRunInput request,
@@ -696,7 +696,7 @@ public final class RunCommandControllerGrpc {
      * <pre>
      * Resume a paused run.
      * Continues the run from where it was paused. How a turn's state is saved
-     * is the harness's ([Harnesses](/docs/concepts/harnesses)).
+     * is the harness's ([Harnesses](/docs/harnesses)).
      * </pre>
      */
     public void resume(ai.stigmer.agentic.run.v1.ResumeRunInput request,
@@ -867,7 +867,7 @@ public final class RunCommandControllerGrpc {
      * <pre>
      * Resume a paused run.
      * Continues the run from where it was paused. How a turn's state is saved
-     * is the harness's ([Harnesses](/docs/concepts/harnesses)).
+     * is the harness's ([Harnesses](/docs/harnesses)).
      * </pre>
      */
     public ai.stigmer.agentic.run.v1.Run resume(ai.stigmer.agentic.run.v1.ResumeRunInput request) throws io.grpc.StatusException {
@@ -1037,7 +1037,7 @@ public final class RunCommandControllerGrpc {
      * <pre>
      * Resume a paused run.
      * Continues the run from where it was paused. How a turn's state is saved
-     * is the harness's ([Harnesses](/docs/concepts/harnesses)).
+     * is the harness's ([Harnesses](/docs/harnesses)).
      * </pre>
      */
     public ai.stigmer.agentic.run.v1.Run resume(ai.stigmer.agentic.run.v1.ResumeRunInput request) {
@@ -1215,7 +1215,7 @@ public final class RunCommandControllerGrpc {
      * <pre>
      * Resume a paused run.
      * Continues the run from where it was paused. How a turn's state is saved
-     * is the harness's ([Harnesses](/docs/concepts/harnesses)).
+     * is the harness's ([Harnesses](/docs/harnesses)).
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.run.v1.Run> resume(

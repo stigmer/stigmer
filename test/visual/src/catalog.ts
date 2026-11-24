@@ -840,7 +840,7 @@ const SETTINGS_SCENES = [
 }[];
 
 /**
- * The routines page's screens (docs/guides/routines/run-an-agent-on-a-schedule.mdx),
+ * The routines page's screens (docs/routines/run-an-agent-on-a-schedule.mdx),
  * each a step the page's reader takes: the New routine form filled with the
  * page's example, the routine as made (switched off, offering Enable & run
  * now), and its History tab after that first run.
@@ -1088,7 +1088,7 @@ const CONVERSATIONS_SCENES = [
 ] as const satisfies readonly { readonly id: `conversations-${string}`; readonly title: string; readonly widths: readonly WidthName[] }[];
 
 /**
- * The environments page's screens (docs/guides/environments/set-up-an-environment.mdx):
+ * The environments page's screens (docs/environments/set-up-an-environment.mdx):
  * the New environment form filled with the page's data-science, the data
  * team's Agent once its Environment section names it, and a conversation's
  * run settings naming the Environment it got and why.
@@ -1135,7 +1135,7 @@ const ENVIRONMENT_SCENES = [
 ] as const satisfies readonly { readonly id: `environment-${string}`; readonly title: string; readonly widths: readonly WidthName[]; readonly opens?: readonly Act[] }[];
 
 /**
- * The channel pages' screens (docs/guides/channels/): the variance reporter's
+ * The channel pages' screens (docs/channels/): the variance reporter's
  * Channels tab and the dialogs the pages open from it.
  */
 export type ChannelSceneName = (typeof CHANNEL_SCENES)[number]["id"] extends `channel-${infer Name}` ? Name : never;

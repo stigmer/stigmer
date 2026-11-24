@@ -311,7 +311,7 @@ SDK hooks call these methods at the matching lifecycle points — but only when 
 
 > Implement `onSessionOpened` / `onSessionClosed` **idempotently** — `onSessionOpened` can be called again for an already-open session (e.g. on re-open), and the reference desktop adapter maps them to `addSession` / `removeSession`, which already de-duplicate. Adapter errors are swallowed for the session view so a transient runner hiccup never crashes an open conversation.
 
-If your runner backend already exposes `addSession` / `removeSession` (a `RunnerWorkerHost`), build the adapter in one call with `createRunnerAdapter(host)` instead of hand-writing the two methods — this is how the reference Tauri implementation wires itself. See the [runner embedding guide](https://stigmer.ai/docs/guides/runners/embedding) for the full desktop (local) and web (cloud) walkthrough.
+If your runner backend already exposes `addSession` / `removeSession` (a `RunnerWorkerHost`), build the adapter in one call with `createRunnerAdapter(host)` instead of hand-writing the two methods — this is how the reference Tauri implementation wires itself. See the [runner embedding guide](https://stigmer.ai/docs/runners/embedding) for the full desktop (local) and web (cloud) walkthrough.
 
 ## Exports
 

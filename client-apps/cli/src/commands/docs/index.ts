@@ -37,7 +37,7 @@ export function registerDocs(program: Command): void {
   const read = docs
     .command("read")
     .description("print one documentation page whole, as Markdown")
-    .argument("<page>", "the page's path after /docs/ (concepts/tools) or its full URL")
+    .argument("<page>", "the page's path after /docs/ (tools) or its full URL")
     .action(async (page: string, options: OutputFlags) => {
       const { sharedDocsReader } = await import("@stigmer/mcp-server/docs");
       const { url, markdown } = await asCliError(() => sharedDocsReader().readDocPage(page));

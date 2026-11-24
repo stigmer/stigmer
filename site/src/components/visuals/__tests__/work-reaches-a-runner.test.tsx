@@ -46,17 +46,17 @@ const DOCS = resolve(dirname(fileURLToPath(import.meta.url)), "../../../../../do
 
 /** Each word the picture draws, and the docs page that spells it. */
 const SPELLED_IN: [string, string][] = [
-  ["your app", "concepts/what-is-stigmer.mdx"],
-  ["your model provider", "concepts/what-is-stigmer.mdx"],
-  ["Session", "concepts/sessions.mdx"],
-  ["server", "concepts/runners.mdx"],
-  ["Temporal", "concepts/runners.mdx"],
-  ["task queue", "concepts/runners.mdx"],
-  ["stigmer_runner", "concepts/runners.mdx"],
-  ["polls", "concepts/runners.mdx"],
-  ["Harness", "concepts/runners.mdx"],
-  ["credential", "concepts/runners.mdx"],
-  ["runner", "concepts/runners.mdx"],
+  ["your app", "what-is-stigmer.mdx"],
+  ["your model provider", "what-is-stigmer.mdx"],
+  ["Session", "sessions.mdx"],
+  ["server", "runners/index.mdx"],
+  ["Temporal", "runners/index.mdx"],
+  ["task queue", "runners/index.mdx"],
+  ["stigmer_runner", "runners/index.mdx"],
+  ["polls", "runners/index.mdx"],
+  ["Harness", "runners/index.mdx"],
+  ["credential", "runners/index.mdx"],
+  ["runner", "runners/index.mdx"],
   ["agent", "vocabulary.md"],
 ];
 

@@ -1,0 +1,203 @@
+---
+title: Set Up Your Meta App
+description:
+  Register your Meta app in Stigmer so an Agent can serve a WhatsApp number.
+  Every WhatsApp channel connects through an app you own — this setup comes
+  first.
+---
+
+WhatsApp channels always connect through your own Meta app. Unlike Slack, there
+is no shared platform app to fall back on: Meta's WhatsApp Cloud API ties every
+number to the business that owns it, so Stigmer serves your number through your
+app's credentials. You register those credentials once as a **Channel App** —
+then any Agent in your Organization can connect a WhatsApp number through it.
+
+<Callout type="info">
+  This is a prerequisite for [Connect an Agent to
+  WhatsApp](/docs/channels/connect-whatsapp). The connect flow requires a
+  registered Meta app — with none in your Organization, it asks you to register
+  one first.
+</Callout>
+
+## What you need
+
+- A [Meta Business portfolio](https://business.facebook.com/) with **complete
+  business information** — legal name, address, phone, website, and a
+  **confirmed** business email. A freshly created portfolio starts empty and
+  Meta refuses to create a WhatsApp Business account until these are filled in
+  (the error mentions "policy requirements"). Fill them under **Business
+  settings → Business info** and confirm the verification email before you
+  start.
+- A phone number for the Agent that is **not registered on any WhatsApp mobile
+  app** (personal or business). A number on the Cloud API cannot also live on a
+  phone's WhatsApp.
+- A **live privacy policy URL** on your website. Meta requires it to publish the
+  app, and an unpublished app does not receive production webhooks.
+- Permission to manage Channel Apps in your Stigmer Organization.
+
+Two different Meta sites are involved, and it helps to know which is which:
+**business.facebook.com** (Business settings) owns your WhatsApp Business
+account — the WABA — with its phone number, and your system users;
+**developers.facebook.com** owns the Meta _app_, which has the App ID, App
+secret, and webhook configuration. Stigmer talks to WhatsApp through the app;
+the app is attached to your WABA.
+
+## Step 1 — Create the WhatsApp Business account and number
+
+In [Business settings](https://business.facebook.com/settings), under **Accounts
+→ WhatsApp accounts**, click **Add → Create a new WhatsApp Business account**
+(not "Link" — that option is for accounts tied to the WhatsApp mobile app). Pick
+a display name — this is the name people see when the Agent replies — and any
+business category; both are cosmetic and changeable later.
+
+Add your phone number to the account and verify it with the SMS or voice code
+Meta sends. If the creation wizard skips the number step, add it afterwards from
+the account's **Phone numbers** tab.
+
+## Step 2 — Create the Meta app and attach the account
+
+1. On [developers.facebook.com](https://developers.facebook.com/apps), create an
+   app. When the wizard asks what your app does, pick the use case that mentions
+   **WhatsApp** ("Connect with customers through WhatsApp"), and link the app to
+   your business portfolio when prompted.
+2. Meta's app dashboard changes often. In the current use-case layout, the
+   WhatsApp configuration lives under **Use cases → Customize → Integrate with
+   API**. Ignore "Become a Partner" / "Become a Tech Provider" — that track is
+   for companies serving other businesses and drags you into App Review.
+3. Open **Step 2 — Production setup** in that flow and make sure your real
+   WhatsApp Business account and number are the ones attached (not the test
+   account Meta creates automatically). Skip the webhook section for now — the
+   webhook address comes from Stigmer later. Add a payment method to the
+   WhatsApp Business account. Meta bills every
+   [template message](/docs/channels/send-proactive-messages-with-templates),
+   and the Agent's replies too once a number passes Meta's monthly free tier;
+   with no payment method on file, Meta stops delivering replies past that tier.
+   [Meta's pricing page](https://developers.facebook.com/docs/whatsapp/pricing)
+   has the current rules and prices.
+4. From **App settings → Basic**, copy the **App ID** and **App secret**.
+
+## Step 3 — Publish the app
+
+While the app is unpublished, Meta delivers only test webhooks — real messages
+are silently dropped, even for app admins. Publish before wiring anything to
+Stigmer:
+
+1. In **App settings → Basic**, set the **Privacy Policy URL** to a live page on
+   your site and save.
+2. Open **Publish** in the left sidebar and publish the app. For an app serving
+   your own business's WhatsApp account, no App Review is involved.
+
+<Callout type="warn">
+  This is the easiest step to miss, and the failure is invisible: the webhook
+  verifies, outbound sends work, but incoming messages never arrive. If your
+  Agent stays silent later, check the app's publish state first.
+</Callout>
+
+## Step 4 — Create a permanent access token
+
+Create the token from a system user in Meta
+[Business settings](https://business.facebook.com/settings) — under **Users →
+System users**:
+
+1. Add a system user (any name, for example `stigmer-runner`), role **Admin**.
+2. On the system user, **Add assets** twice: your **app** (full control) and
+   your **WhatsApp account** (full control).
+3. Click **Generate new token**: select your app, set token expiration to
+   **Never**, and grant at least **whatsapp_business_messaging** and
+   **whatsapp_business_management**. The exact permission list Meta offers
+   depends on the app's use case — `business_management` may not appear at all,
+   and extras like `whatsapp_business_manage_events` are harmless.
+4. Copy the token — Meta shows it once.
+
+<Callout type="warn">
+  Do not use the temporary access token from the app dashboard's setup pages. It
+  expires within a day, and WhatsApp gives no revocation signal — the channel
+  keeps looking healthy until a reply fails to send. The system-user token does
+  not expire.
+</Callout>
+
+## Step 5 — Register the app in Stigmer
+
+1. In the web console, open **Settings → Channel apps** and click **New channel
+   app**.
+2. Under **Provider**, pick **WhatsApp**.
+3. Enter the **Name**. It identifies the app inside Stigmer — for example
+   `Acme WhatsApp`.
+4. Paste the **App ID**, **App secret**, and **Access token** from steps 2
+   and 4. Stigmer encrypts the secrets at rest and never shows them again.
+5. Keep the generated **Verify token** — a strong random value Meta will echo
+   back when it verifies your webhook. Replace it only if your Meta app already
+   has one configured.
+6. Click **Register channel app**.
+
+## Step 6 — Finish setup in Meta
+
+The saved Channel App now has its own webhook address — the URL Meta delivers
+this app's messages to. The app's detail panel shows it under **Finish setup in
+Meta**, together with the verify token from registration.
+
+<Callout>
+  The verify token is visible on this screen only once, right after
+  registration. Complete this step before leaving the page — if you lose the
+  token, paste a new one into the app's credentials and use that in Meta
+  instead.
+</Callout>
+
+1. Copy the **Callback URL** and **Verify token** from the detail panel.
+2. In the Meta app's webhook configuration (currently under **Use cases →
+   Customize → Production setup → Configure Webhooks**), paste them into the
+   **Callback URL** and **Verify token** fields. Leave **Attach a client
+   certificate** switched off — with it on, the form refuses to save until a
+   certificate is uploaded. Click **Verify and save**. Meta verifies immediately
+   — verification passes because Stigmer checks the echoed token against the one
+   you registered.
+3. Subscribe to the **messages** webhook field (the field list is linked from
+   the same webhook configuration area). This is the only field Stigmer needs —
+   it carries the incoming messages your Agent answers.
+4. Confirm the app is subscribed to your WhatsApp Business account. Verifying
+   the callback URL does not always do this by itself, and without the
+   subscription no messages are delivered. Check with the Graph API — the
+   response should list your app:
+
+```bash
+curl "https://graph.facebook.com/v23.0/<WABA_ID>/subscribed_apps?access_token=<TOKEN>"
+```
+
+If the list is empty, subscribe with the same URL as a POST:
+
+```bash
+curl -X POST "https://graph.facebook.com/v23.0/<WABA_ID>/subscribed_apps?access_token=<TOKEN>"
+```
+
+Your WABA ID is shown under **Business settings → Accounts → WhatsApp
+accounts**.
+
+## Connect an Agent through the app
+
+Registration done, the connect flow picks it up automatically: open the Agent
+under **Library → Agents**, go to the **Channels** tab, and click **Add channel
+→ WhatsApp** (on a tab with no channels yet, **Connect to WhatsApp**). The
+dialog offers your app under **Connect as** — with a single registered app, it
+is already selected. Continue with
+[Connect an Agent to WhatsApp](/docs/channels/connect-whatsapp).
+
+## Rotate credentials or remove the app
+
+Back in **Settings → Channel apps**, the app's detail panel manages its
+lifecycle:
+
+- **Rotate a secret** — stored secrets display as `***REDACTED***`. Leave a
+  field untouched to keep its value, or paste a new one to rotate it. If you
+  rotate the verify token, update Meta's webhook configuration to the same
+  value.
+- **Delete the app** — Stigmer refuses the deletion while any channel still
+  connects through the app. Disconnect those channels first, then delete.
+
+## What's next
+
+Your Meta app is registered and its webhook is verified. Put an Agent behind
+your WhatsApp number. →
+[Connect an Agent to WhatsApp](/docs/channels/connect-whatsapp)
+
+For every field on the resource, see the
+[ChannelApp reference](/docs/sdk/resources/channel-app).

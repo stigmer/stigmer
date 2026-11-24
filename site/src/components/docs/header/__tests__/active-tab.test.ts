@@ -19,7 +19,7 @@ describe("selectActiveTab", () => {
   });
 
   it("marks Docs active on pages outside any root folder", () => {
-    expect(selectActiveTab(tabs, "/docs/concepts/agents")?.url).toBe("/docs");
+    expect(selectActiveTab(tabs, "/docs/agents")?.url).toBe("/docs");
   });
 
   it("marks a root tab active on its landing page", () => {

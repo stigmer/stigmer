@@ -209,5 +209,5 @@ shares one tool list and turn cap. A question no page answers is a docs
 gap: write the case anyway, and fix the docs. `__tests__/bank.test.ts` holds
 the bank's shape in the gate: Stigmer reads it with no finding, every judge
 grader holds one point, every case has two to four Must points, every cited
-page exists, every concept page, getting-started page and guide group has a
-question, and every job has at least four.
+page exists, every explanation page, getting-started page and group of how-tos
+has a question, and every job has at least four.

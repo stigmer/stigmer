@@ -208,7 +208,7 @@ class RunCommandControllerServicer(object):
         """Resume a paused run.
 
         Continues the run from where it was paused. How a turn's state is saved
-        is the harness's ([Harnesses](/docs/concepts/harnesses)).
+        is the harness's ([Harnesses](/docs/harnesses)).
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')

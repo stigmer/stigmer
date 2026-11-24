@@ -16,9 +16,8 @@ it to work. When one Agent needs a server, or you create Agents from code,
 [give the Agent its own MCP server](#give-an-agent-its-own-mcp-server) instead.
 
 <Callout type="info">
-  New to tools in Stigmer? Start with the [Tools concept
-  page](/docs/concepts/tools) for the foundational model before following this
-  guide.
+  New to tools in Stigmer? Start with the [Tools concept page](/docs/tools) for
+  the foundational model before following this guide.
 </Callout>
 
 ## Connect an MCP server
@@ -55,10 +54,10 @@ page. The [`stigmer mcp`](/docs/cli/commands/mcp) reference has every flag.
 
 A server that runs as a local program (through `npx`, `uvx` or a binary) has no
 address to add. Write it into a plugin folder's MCP configuration and install
-the folder ([Install a plugin](/docs/guides/plugins/install-a-plugin)). It runs
-only where a person's own runner runs, the desktop app or the CLI; a
-conversation hosted in a cloud sandbox is refused when one of its plugins
-carries a local program.
+the folder ([Install a plugin](/docs/plugins/install-a-plugin)). It runs only
+where a person's own runner runs, the desktop app or the CLI; a conversation
+hosted in a cloud sandbox is refused when one of its plugins carries a local
+program.
 
 ## Sign in
 
@@ -70,9 +69,9 @@ named `<SERVER>_ACCESS_TOKEN` and the `Authorization` header that carries it.
 On the plugin's page the server's row then carries **Sign in**. Choose it, grant
 access in the window that opens, and the row reads **Signed in**. From the CLI,
 `stigmer connect plugin linear` opens the login page in your browser and waits
-until the sign-in is saved. The login is kept in your own
-[vault](/docs/concepts/vaults) as a connection at the server's address, so each
-person signs in once for themselves, and it is refreshed before each run.
+until the sign-in is saved. The login is kept in your own [vault](/docs/vaults)
+as a connection at the server's address, so each person signs in once for
+themselves, and it is refreshed before each run.
 
 A server recorded this way accepts **only** a sign-in: a personal API token
 pasted for it is refused by the vendor, so Stigmer offers only the sign-in. How
@@ -102,9 +101,9 @@ server follows it. Every other tool runs without asking. The annotation is read
 from the server again at the start of every turn, and a server whose tools
 cannot be listed then asks before every one of its tools. Hooks can refuse, ask
 about or allow any tool
-([Guard an agent's tools with hooks](/docs/guides/plugins/use-hooks)), and to
-keep an Agent away from a tool such as `run_sql`, leave it out with the Agent's
-tool lists, below.
+([Guard an agent's tools with hooks](/docs/plugins/use-hooks)), and to keep an
+Agent away from a tool such as `run_sql`, leave it out with the Agent's tool
+lists, below.
 
 ## Use it
 
@@ -138,8 +137,8 @@ letters, digits and `_`, such as a dot, is written as `_`: a server added as
 `ledger-api` is `mcp__plugin_ledger-api_ledger-api`, and one added as
 `ledger.v2` is `mcp__plugin_ledger_v2_ledger_v2`. This Agent can read files and
 use the Neon server, but never `run_sql`, and cannot run shell commands or write
-files. See [Approval Flows](/docs/concepts/approval-flows) for everything the
-lists cover.
+files. See [Approval Flows](/docs/approval-flows) for everything the lists
+cover.
 
 For a first Agent to give these tools to, see
 [Your first agent job](/docs/getting-started/quickstart).

@@ -26,9 +26,9 @@ export interface DocsExample {
   readonly [value: string]: string | readonly string[];
 }
 
-/** `docs/guides/routines/run-an-agent-on-a-schedule.mdx`: the routine it makes, in the console and as a file. */
+/** `docs/routines/run-an-agent-on-a-schedule.mdx`: the routine it makes, in the console and as a file. */
 export const ROUTINE_EXAMPLE = {
-  page: "guides/routines/run-an-agent-on-a-schedule",
+  page: "routines/run-an-agent-on-a-schedule",
   org: "acme",
   name: "daily-variance-report",
   agent: "variance-reporter",
@@ -40,9 +40,9 @@ export const ROUTINE_EXAMPLE = {
   timeZoneLabel: "Time zone",
 } as const satisfies DocsExample;
 
-/** `docs/concepts/agents.mdx`: the Agent its YAML prints, which its detail page renders field by field. */
+/** `docs/agents.mdx`: the Agent its YAML prints, which its detail page renders field by field. */
 export const AGENT_EXAMPLE = {
-  page: "concepts/agents",
+  page: "agents",
   name: "variance-reporter",
   description: "Turns a customer's ledger into a variance report.",
   instructions: [
@@ -57,9 +57,9 @@ export const AGENT_EXAMPLE = {
   envDescriptions: ["Base URL of the ledger API", "API key for the ledger API"],
 } as const satisfies DocsExample;
 
-/** `docs/concepts/skills.mdx`: the Skill it prints as one SKILL.md, whose page shows the description over the body. */
+/** `docs/skills.mdx`: the Skill it prints as one SKILL.md, whose page shows the description over the body. */
 export const SKILL_EXAMPLE = {
-  page: "concepts/skills",
+  page: "skills",
   name: "variance-report",
   description:
     "How to lay out a variance report and which variances to flag. Use when a customer asks for a variance report, or hands over a ledger to review against its budget.",
@@ -67,12 +67,12 @@ export const SKILL_EXAMPLE = {
 } as const satisfies DocsExample;
 
 /**
- * `docs/guides/environments/set-up-an-environment.mdx`: the Environment it
+ * `docs/environments/set-up-an-environment.mdx`: the Environment it
  * makes, in the console and as a file, the data team's Agent it becomes the
  * default of, and how a conversation names it.
  */
 export const ENVIRONMENT_EXAMPLE = {
-  page: "guides/environments/set-up-an-environment",
+  page: "environments/set-up-an-environment",
   name: "Data science",
   slug: "data-science",
   description: "pandas and poppler, GitHub and our API only",
@@ -90,9 +90,9 @@ export const ENVIRONMENT_EXAMPLE = {
   runSettingsLabel: "Run settings",
 } as const satisfies DocsExample;
 
-/** `docs/guides/channels/create-a-chat-link.mdx`: the chat link it makes, by its permanent ID. */
+/** `docs/channels/create-a-chat-link.mdx`: the chat link it makes, by its permanent ID. */
 export const CHAT_LINK_EXAMPLE = {
-  page: "guides/channels/create-a-chat-link",
+  page: "channels/create-a-chat-link",
   channelId: "chn_01j9z3k8f2q4m6n7p8r9s0t1v2",
   link: "https://app.stigmer.ai/chat/chn_01j9z3k8f2q4m6n7p8r9s0t1v2",
   origin: "https://acme.com",
@@ -100,9 +100,9 @@ export const CHAT_LINK_EXAMPLE = {
   editLabel: "Edit",
 } as const satisfies DocsExample;
 
-/** `docs/guides/channels/embed-an-agent.mdx`: the snippet it pastes and the site it lets embed. */
+/** `docs/channels/embed-an-agent.mdx`: the snippet it pastes and the site it lets embed. */
 export const EMBED_EXAMPLE = {
-  page: "guides/channels/embed-an-agent",
+  page: "channels/embed-an-agent",
   script: '<script src="https://app.stigmer.ai/embed.js" async></script>',
   element: '<stigmer-agent channel="chn_01j9z3k8f2q4m6n7p8r9s0t1v2"></stigmer-agent>',
   origin: "https://acme.com",
@@ -110,9 +110,9 @@ export const EMBED_EXAMPLE = {
   embedLabel: "Embed",
 } as const satisfies DocsExample;
 
-/** `docs/guides/channels/connect-slack.mdx`: the variance reporter's Slack channel and the vault its tools use, as its manifest prints them. */
+/** `docs/channels/connect-slack.mdx`: the variance reporter's Slack channel and the vault its tools use, as its manifest prints them. */
 export const SLACK_EXAMPLE = {
-  page: "guides/channels/connect-slack",
+  page: "channels/connect-slack",
   agent: "variance-reporter",
   channel: "variance-reporter-slack",
   vault: "ledger-keys",
@@ -120,9 +120,9 @@ export const SLACK_EXAMPLE = {
   slackLabel: "Slack",
 } as const satisfies DocsExample;
 
-/** `docs/guides/channels/connect-whatsapp.mdx`: the WhatsApp channel, its number's ID and the Meta app it answers through. */
+/** `docs/channels/connect-whatsapp.mdx`: the WhatsApp channel, its number's ID and the Meta app it answers through. */
 export const WHATSAPP_EXAMPLE = {
-  page: "guides/channels/connect-whatsapp",
+  page: "channels/connect-whatsapp",
   agent: "variance-reporter",
   channel: "variance-reporter-whatsapp",
   phoneNumberId: "106540352242922",
@@ -134,17 +134,17 @@ export const WHATSAPP_EXAMPLE = {
   connectAsLabel: "Connect as",
 } as const satisfies DocsExample;
 
-/** `docs/guides/channels/bring-your-own-slack-app.mdx`: the Slack app it registers, by the bot name the workspace mentions. */
+/** `docs/channels/bring-your-own-slack-app.mdx`: the Slack app it registers, by the bot name the workspace mentions. */
 export const SLACK_APP_EXAMPLE = {
-  page: "guides/channels/bring-your-own-slack-app",
+  page: "channels/bring-your-own-slack-app",
   name: "Acme Books",
   newLabel: "New channel app",
   nameLabel: "Name",
 } as const satisfies DocsExample;
 
-/** `docs/guides/channels/take-over-conversations.mdx`: what its pictures show the platform and the controls saying. */
+/** `docs/channels/take-over-conversations.mdx`: what its pictures show the platform and the controls saying. */
 export const TAKE_OVER_EXAMPLE = {
-  page: "guides/channels/take-over-conversations",
+  page: "channels/take-over-conversations",
   acknowledgment: "Someone from our team is looking at this and will reply here.",
   takeOverLabel: "Take over",
   handBackLabel: "Hand back to the agent",

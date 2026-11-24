@@ -188,7 +188,7 @@ describe("checkBedrockPrerequisites", () => {
       const message = checkBedrockPrerequisites({ AWS_REGION: region });
       expect(message).toContain("AWS_REGION");
       expect(message).toContain("us-east-1");
-      expect(message).toContain("https://stigmer.ai/docs/guides/runners/model-backends");
+      expect(message).toContain("https://stigmer.ai/docs/runners/model-backends");
     },
   );
 
@@ -233,7 +233,7 @@ describe("checkFoundryPrerequisites", () => {
       const message = checkFoundryPrerequisites(env);
       expect(message).toContain("ANTHROPIC_FOUNDRY_RESOURCE");
       expect(message).toContain("ANTHROPIC_FOUNDRY_BASE_URL");
-      expect(message).toContain("https://stigmer.ai/docs/guides/runners/model-backends");
+      expect(message).toContain("https://stigmer.ai/docs/runners/model-backends");
     },
   );
 
@@ -454,7 +454,7 @@ describe("checkDirectCredentials", () => {
         const message = checkDirectCredentials("anthropic", { ANTHROPIC_API_KEY: key });
         expect(message).toContain("ANTHROPIC_API_KEY");
         expect(message).toContain("STIGMER_ANTHROPIC_BACKEND=vertex");
-        expect(message).toContain("https://stigmer.ai/docs/guides/runners/model-backends");
+        expect(message).toContain("https://stigmer.ai/docs/runners/model-backends");
       },
     );
 
@@ -507,7 +507,7 @@ describe("checkDirectCredentials", () => {
       (key) => {
         const message = checkDirectCredentials("openai", { OPENAI_API_KEY: key });
         expect(message).toContain("OPENAI_API_KEY");
-        expect(message).toContain("https://stigmer.ai/docs/guides/runners/model-backends");
+        expect(message).toContain("https://stigmer.ai/docs/runners/model-backends");
       },
     );
 

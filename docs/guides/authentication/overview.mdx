@@ -118,7 +118,7 @@ The difference is where the JWT comes from:
 A federated token, a minted user token and a limited API key each name one
 Organization. They work in that Organization and, when it is a parent, in each
 of its
-[child organizations](/docs/concepts/organizations#parent-and-child-organizations),
+[child organizations](/docs/organizations#parent-and-child-organizations),
 exactly as the account behind them would there: a parent's admins are admins in
 every child, so a key limited to the parent, or its admin service account's key,
 reads and writes in each child, and a viewer service account's key only reads. A

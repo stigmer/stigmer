@@ -875,14 +875,14 @@
     },
     {
       "name": "read_doc",
-      "description": "Read one page of Stigmer's documentation whole, as Markdown, exactly as published today. The text opens with the page's Source URL: cite it in the answer. Pass the page's path (e.g. concepts/tools) or its full https://stigmer.ai/docs/... URL. Only stigmer.ai/docs is read.",
+      "description": "Read one page of Stigmer's documentation whole, as Markdown, exactly as published today. The text opens with the page's Source URL: cite it in the answer. Pass the page's path (e.g. tools) or its full https://stigmer.ai/docs/... URL. Only stigmer.ai/docs is read.",
       "inputSchema": {
         "type": "object",
         "properties": {
           "page": {
             "type": "string",
             "minLength": 1,
-            "description": "The page's path after /docs/ (e.g. concepts/tools), or its full URL."
+            "description": "The page's path after /docs/ (e.g. tools), or its full URL."
           }
         },
         "required": [

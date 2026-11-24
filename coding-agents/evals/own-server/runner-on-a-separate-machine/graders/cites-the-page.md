@@ -1,5 +1,5 @@
 ---
 type: regex
-pattern: stigmer\.ai/docs/(concepts/runners|guides/self-hosting/runners|guides/runners/overview|guides/runners/embedding)
+pattern: stigmer\.ai/docs/(runners|guides/self-hosting/runners|runners/embedding)
 flags: i
 ---

@@ -436,8 +436,8 @@ try (StigmerClient asUser = StigmerClient.builder().tokenProvider(tokens).build(
 - **Upload and read with the same client.** Files the run reads go up through
   the person's client, so they are the person's too. Read the answer and the
   files the run hands back through it as well: a conversation is
-  [private to the person who started it](/docs/concepts/sharing-and-access), so
-  your service account's client is refused it.
+  [private to the person who started it](/docs/sharing-and-access), so your
+  service account's client is refused it.
 - **The person's role decides what the run may do.** Their token carries the
   role their account holds, so the embedding settings' sign-in role must let
   them run the Agent (Member), and the Agent must be theirs to run: in your
@@ -449,9 +449,9 @@ try (StigmerClient asUser = StigmerClient.builder().tokenProvider(tokens).build(
 
 An embedded assistant often calls MCP servers that need a credential of your
 own, such as a shared API secret. Put that credential in a shared
-[vault](/docs/concepts/vaults) and list the vault in your Organization's
-embedding settings. Every run a user signed in this way starts then uses the
-vault, and so does a recovery of that run. The Agent stays as it is.
+[vault](/docs/vaults) and list the vault in your Organization's embedding
+settings. Every run a user signed in this way starts then uses the vault, and so
+does a recovery of that run. The Agent stays as it is.
 
 - **No vault of their own.** The runs of a user signed in from your product read
   no vault of that user's own: they use the vaults their Session names and the
@@ -626,5 +626,4 @@ and policies. To remove a user, see [Removing a user](#removing-a-user).
   account and its key.
 - [Identity federation](/docs/guides/authentication/federation/overview): trust
   your OIDC provider instead.
-- [Embed an agent](/docs/guides/channels/embed-an-agent): put an agent in your
-  product.
+- [Embed an agent](/docs/channels/embed-an-agent): put an agent in your product.

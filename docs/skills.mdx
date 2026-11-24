@@ -1,0 +1,211 @@
+---
+title: Skills
+description:
+  A Skill is a folder of instructions an Agent reads when a job calls for it.
+  Learn how Skills are structured, how they attach to Agents, and how they
+  differ from retrieval.
+---
+
+A Skill is a folder of instructions an Agent reads when a job calls for it, the
+way a new hire reads the team's handbook for the task in front of them. The
+model already knows accounting; a Skill tells it how _your_ product does it: how
+a variance report is laid out, which variances get flagged, what your customers'
+accounts are called. Stigmer keeps every version of it.
+
+To add a Skill to an Agent, see
+[Install a plugin](/docs/plugins/install-a-plugin). This page explains how
+Skills work under the hood.
+
+## What a Skill looks like
+
+A Skill is a directory with a required `SKILL.md` file and optional supporting
+resources:
+
+<Files>
+  <Folder name="variance-report" defaultOpen>
+    <File name="SKILL.md" />
+    <Folder name="references">
+      <File name="report-template.md" />
+    </Folder>
+  </Folder>
+</Files>
+
+The `SKILL.md` file has two parts: YAML frontmatter that tells Stigmer _when_ to
+use the Skill, and a markdown body that provides the actual knowledge.
+
+```md
+---
+name: variance-report
+description: >
+  How to lay out a variance report and which variances to flag. Use when a
+  customer asks for a variance report, or hands over a ledger to review against
+  its budget.
+---
+
+# Variance report
+
+## What to flag
+
+- Flag every account more than 10% over or under its budget.
+- Flag any account more than 5,000 over or under, whatever its percentage.
+- Revenue under budget is always flagged, even by 1%.
+
+## Layout
+
+Save the report as `variance-report.md`, laid out like
+`references/report-template.md`:
+
+- a two-sentence summary of the quarter;
+- one table of every account (budget, actual, variance in money and as a
+  percentage), flagged accounts first;
+- one line under the table for each flagged account, saying what could explain
+  it.
+
+## When the ledger doesn't add up
+
+- An account with no budget is listed but not flagged; say so in its line.
+- If the totals don't match the ledger's own total row, stop and say which rows
+  differ instead of writing the report.
+```
+
+That two-part split isn't just a file convention — the platform keeps the parts
+separate everywhere. The Stigmer web console renders them as two distinct
+sections of a Skill's detail page: the description sits at the top as its own
+section — the trigger condition the Agent always sees — while the rendered body
+below it (What to flag, Layout, When the ledger doesn't add up) is what the
+Agent loads only when that trigger matches. The next two sections cover how to
+write each part.
+
+<Screen
+  name="skill"
+  alt="The variance-report Skill's page in the console: the Description section with its trigger sentence, and below it the Skill content rendered, with What to flag, Layout and When the ledger doesn't add up"
+/>
+
+### YAML header
+
+The frontmatter contains two required fields:
+
+| Field         | Purpose                                                                                                                                                               |
+| ------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `name`        | A kebab-case identifier for the Skill, optionally scoped with dot-separated namespaces (e.g. `platform.planton-architecture`); dots become hyphens in the slug        |
+| `description` | Tells the Agent _when_ to use this Skill. Write it like a trigger condition — "Use when a customer asks for a variance report" is better than "Contains report rules" |
+
+The `description` is critical. It's always present in the Agent's context, so
+the Agent can decide whether to consult this Skill's content for a given
+question. A vague description means the Agent won't know when to reach for this
+knowledge.
+
+### Body
+
+The markdown body is the knowledge itself. When the Agent determines that a
+Skill is relevant (based on the description), it loads the body into context.
+Write it as you would onboard a new team member:
+
+- Lead with the most important rules
+- Use headings to structure by topic
+- Include concrete numbers, thresholds, and edge cases
+- Keep it focused — one Skill, one domain
+
+### Supporting resources
+
+For larger knowledge packages, you can include additional files:
+
+| Directory     | Purpose                                                |
+| ------------- | ------------------------------------------------------ |
+| `references/` | Additional documentation the Agent loads on demand     |
+| `scripts/`    | Executable code for deterministic tasks                |
+| `assets/`     | Templates, images, or files used in the Agent's output |
+
+The `SKILL.md` body should reference these files so the Agent knows they exist.
+The Agent loads them as needed rather than all at once — this keeps the context
+window efficient.
+
+### Size limits
+
+A Skill's archive (the ZIP the CLI or SDK uploads) can be up to **100 MB
+compressed** (500 MB uncompressed) and contain up to **10,000 files**.
+`SKILL.md` itself is capped at 1 MB.
+
+You don't need to think about how the archive travels: pushes and downloads over
+~10 MB automatically move through an HTTP transfer lane instead of the gRPC
+message channel, and the CLI and SDKs handle the switch transparently. If your
+server sits behind a proxy or serves remote clients, see the
+`SKILL_TRANSFER_BASE_URL` setting on the server.
+
+## How an Agent reads a Skill
+
+An Agent opens a Skill's files one at a time, as it needs them. It reads
+`SKILL.md` first, then only the references the job calls for, and each file is
+fetched alone and checked against the version you pushed. An Agent without a
+[computer](/docs/agents#a-computer-or-none) keeps no copy of its Skills at all,
+so if its 50 MB Skill's job needs one 4 KB reference, it moves about 4 KB, not
+the whole archive. It can read a Skill's `scripts/` but not run them, and saving
+it with a Skill that has scripts says so.
+
+An Agent with a computer, which every Agent on the Claude harness has, also gets
+each Skill as files its commands can run, such as the Skill's `scripts/`, so it
+still downloads the whole archive once. Every message starts from the Skill as
+it was pushed: on Stigmer's runners a command that tries to change a Skill's
+file is refused, and on your own machine, where the Agent's commands run as you,
+a changed file is put back before the next message. A plugin's hooks get their
+own writable folder for anything they need to keep.
+
+## Attaching Skills to Agents
+
+Skills connect to [Agents](/docs/agents) through `skill_refs` in the Agent
+definition:
+
+```yaml validate-as="Agent"
+spec:
+  skill_refs:
+    - kind: skill
+      slug: variance-report
+    - kind: skill
+      slug: chart-of-accounts
+```
+
+You write each reference by the Skill's slug, and Stigmer stores the Skill's ID,
+so a renamed Skill stays attached
+([Resources](/docs/resources#what-a-reference-holds)). A reference with no
+`version` follows the latest: every turn loads the Skill's newest version at its
+start, and the run records the version each turn used. Name a tag or a version
+hash in `version` to hold a Skill at one version.
+
+You can also attach Skills at the [Session](/docs/sessions) level. Session-level
+Skills are merged with the Agent's Skills — this lets you customize what an
+Agent knows for one customer's job without changing the Agent definition.
+
+## Skills that come from a plugin
+
+The Skills you push yourself are versioned on their own and appear in your Skill
+list. A [plugin's](/docs/plugins) Skills are different: they ride in the plugin
+and are not in the Skill list. A turn names each one `<plugin>:<skill>`, as in
+`thermos:code-review`, so two plugins may both ship a Skill called `review`.
+They change when the plugin is pushed again, and an Agent gets them by listing
+the plugin in `plugins`, not in `skill_refs`.
+
+## How Skills differ from RAG
+
+If you've used retrieval-augmented generation (RAG), Skills might look familiar
+— both add knowledge to an AI. But they work differently:
+
+|                    | RAG                                                        | Skills                                  |
+| ------------------ | ---------------------------------------------------------- | --------------------------------------- |
+| **Format**         | Embed documents, configure vector database, tune retrieval | Write markdown, upload                  |
+| **Versioning**     | You manage it                                              | Stigmer versions automatically          |
+| **Context**        | Retrieves relevant chunks from a corpus                    | Loads the full Skill body when relevant |
+| **Scope**          | Good for large document collections                        | Good for focused domain knowledge       |
+| **Infrastructure** | Embedding pipeline, vector database, retrieval tuning      | None — Skills are just files            |
+
+Skills are not a replacement for RAG on every use case. For searching across
+millions of documents, retrieval-based approaches have advantages. But for the
+kind of knowledge a job needs — how a report is laid out, which thresholds
+matter, what to do when the numbers don't add up — Skills are simpler and more
+predictable.
+
+## What's next
+
+Your Agent knows how your product does the job through Skills. But knowledge
+alone doesn't let it _act_: it can't read a customer's books or post an
+adjustment. The next page explains [Plugins](/docs/plugins) — the packages that
+bring an Agent its tools, beside their own Skills, hooks and subagents.

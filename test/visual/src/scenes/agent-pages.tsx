@@ -1,4 +1,4 @@
-// The agents page's Agent (docs/concepts/agents.mdx), as its owner sees its
+// The agents page's Agent (docs/agents.mdx), as its owner sees its
 // page in the console: the page says each section of the detail page is one
 // of the YAML fields it prints, so the scene draws that very Agent
 // (docs-fixtures.ts), framed and answered as the gallery's own agent page

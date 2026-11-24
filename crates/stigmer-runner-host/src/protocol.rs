@@ -4,7 +4,7 @@
 //! the `tests` module below, which asserts every message against the golden fixtures
 //! generated from that file (vendored at `../fixtures/ipc-protocol.generated.json`). The
 //! canonical human contract and the rule for keeping mirrors in sync live at
-//! <https://stigmer.ai/docs/guides/runners/ipc-protocol>. The wire-level `camelCase`
+//! <https://stigmer.ai/docs/runners/ipc-protocol>. The wire-level `camelCase`
 //! rename below is the protocol's on-the-wire shape (the runner emits camelCase), not a
 //! JS-host concern — so it belongs here in the core, unlike the Tauri-only shapes that
 //! live in the `tauri` binding module.

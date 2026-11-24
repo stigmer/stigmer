@@ -35,8 +35,8 @@
 //     also match, and every page it cites exists, by the site's own URL rule
 //     (site/src/lib/llms-pages.ts: `docs/<path>.mdx` or
 //     `docs/<path>/index.mdx`), so a moved page reds here;
-//   - every concept page, getting-started page and guide group is cited by a
-//     case, so a page added to the docs adds its question to the bank;
+//   - every explanation page, getting-started page and group of how-tos is
+//     cited by a case, so a page added to the docs adds its question to the bank;
 //   - every case that acts puts the bank's fixture back before each try
 //     (test/install/lib/bank-fixture.mjs), since a failed try may have
 //     deleted or changed what the next one reads, and a sample a scaffold
@@ -237,7 +237,7 @@ describe("the question bank", () => {
     }
   });
 
-  it("cites every concept page, getting-started page and guide group in the docs", () => {
+  it("cites every explanation page, getting-started page and group of how-tos in the docs", () => {
     const cited = new Set(
       cases.flatMap((c) => {
         const check = grader(c, "cites-the-page")?.check;
@@ -247,10 +247,16 @@ describe("the question bank", () => {
     const pagesIn = (section: string): string[] =>
       readdirSync(join(docs, section))
         .filter((name) => name.endsWith(".mdx") && name !== "index.mdx")
-        .map((name) => `${section}/${name.replace(/\.mdx$/, "")}`);
-    const uncited = [...pagesIn("concepts"), ...pagesIn("getting-started")].filter((page) => !cited.has(page));
-    const groups = readdirSync(join(docs, "guides")).filter((name) => statSync(join(docs, "guides", name)).isDirectory());
-    const uncitedGroups = groups.filter((group) => ![...cited].some((page) => page.startsWith(`guides/${group}/`))).map((group) => `guides/${group}/`);
+        .map((name) => join(section, name.replace(/\.mdx$/, "")));
+    const foldersIn = (section: string): string[] =>
+      readdirSync(join(docs, section)).filter((name) => statSync(join(docs, section, name)).isDirectory());
+    // An explanation page sits at the top of docs/, or heads its topic's
+    // folder as its index.mdx, its how-tos beside it (docs/CONTRIBUTING.md).
+    const topics = foldersIn("").filter((name) => !["getting-started", "guides", "sdk", "cli"].includes(name) && existsSync(join(docs, name, "index.mdx")));
+    const explanations = [...pagesIn(""), ...topics];
+    const uncited = [...explanations, ...pagesIn("getting-started")].filter((page) => !cited.has(page));
+    const groups = [...foldersIn("guides").map((group) => `guides/${group}/`), ...topics.map((topic) => `${topic}/`)];
+    const uncitedGroups = groups.filter((group) => ![...cited].some((page) => page.startsWith(group)));
     expect([...uncited, ...uncitedGroups], "a docs page with no question in the bank: add the question a person brings to it").toEqual([]);
   });
 
@@ -261,12 +267,12 @@ describe("the question bank", () => {
 
 describe("citedPages", () => {
   it("reads one page or a list of pages, and nothing else", () => {
-    expect(citedPages("stigmer\\.ai/docs/concepts/vaults")).toEqual(["concepts/vaults"]);
-    expect(citedPages("stigmer\\.ai/docs/(concepts/vaults|guides/integrations/model-provider-keys)")).toEqual(["concepts/vaults", "guides/integrations/model-provider-keys"]);
-    expect(citedPages("docs/concepts/vaults"), "a bare docs/ path also matches a link to the source on GitHub").toBeUndefined();
-    expect(citedPages("stigmer.ai/docs/concepts/vaults"), "an unescaped dot matches any character").toBeUndefined();
-    expect(citedPages("stigmer\\.ai/docs/concepts/vaults.mdx")).toBeUndefined();
-    expect(citedPages("stigmer\\.ai/docs/(concepts/vaults|)")).toBeUndefined();
+    expect(citedPages("stigmer\\.ai/docs/vaults")).toEqual(["vaults"]);
+    expect(citedPages("stigmer\\.ai/docs/(vaults|guides/integrations/model-provider-keys)")).toEqual(["vaults", "guides/integrations/model-provider-keys"]);
+    expect(citedPages("docs/vaults"), "a bare docs/ path also matches a link to the source on GitHub").toBeUndefined();
+    expect(citedPages("stigmer.ai/docs/vaults"), "an unescaped dot matches any character").toBeUndefined();
+    expect(citedPages("stigmer\\.ai/docs/vaults.mdx")).toBeUndefined();
+    expect(citedPages("stigmer\\.ai/docs/(vaults|)")).toBeUndefined();
   });
 });
 

@@ -38,7 +38,7 @@ spec:
          documentation page with a one-line description. Fetch it when you
          are not sure which page answers the question.
        - Every docs page has a Markdown export at its URL plus `.md` (for
-         example `https://stigmer.ai/docs/concepts/tools.md`). Prefer it —
+         example `https://stigmer.ai/docs/tools.md`). Prefer it —
          it is clean Markdown. If it returns 404, fetch the page URL itself
          without `.md`; fetched HTML is converted to Markdown for you.
 

@@ -37,9 +37,9 @@ export function registerDocsTools(server: McpServer, reader: DocsReader = shared
       description:
         "Read one page of Stigmer's documentation whole, as Markdown, exactly as published today. " +
         "The text opens with the page's Source URL: cite it in the answer. Pass the page's path " +
-        "(e.g. concepts/tools) or its full https://stigmer.ai/docs/... URL. Only stigmer.ai/docs is read.",
+        "(e.g. tools) or its full https://stigmer.ai/docs/... URL. Only stigmer.ai/docs is read.",
       inputSchema: z.strictObject({
-        page: z.string().min(1).describe("The page's path after /docs/ (e.g. concepts/tools), or its full URL."),
+        page: z.string().min(1).describe("The page's path after /docs/ (e.g. tools), or its full URL."),
       }),
     },
     (args) => textOrError(async () => (await reader.readDocPage(args.page)).markdown),

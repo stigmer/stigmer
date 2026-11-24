@@ -1,5 +1,5 @@
 ---
 type: regex
-pattern: stigmer\.ai/docs/(guides/channels/send-proactive-messages-with-templates|guides/channels/connect-whatsapp|guides/channels/set-up-your-meta-app|concepts/channels)
+pattern: stigmer\.ai/docs/(channels/send-proactive-messages-with-templates|channels/connect-whatsapp|channels/set-up-your-meta-app|channels)
 flags: i
 ---

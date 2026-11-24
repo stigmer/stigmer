@@ -189,7 +189,7 @@ const FAQ_ITEMS: readonly FaqItem[] = [
     q: "Do you charge for tokens?",
     a: "No. A plan's price is its monthly fee, plus the agent hours past its allowance on a paid plan, and Stigmer never adds anything to a model call. Your token usage is still counted, so you can see it per run, session, agent and organization in the console and the CLI.",
     link: {
-      href: "/docs/concepts/billing#see-your-usage",
+      href: "/docs/billing#see-your-usage",
       label: "See your usage",
     },
   },
@@ -209,7 +209,7 @@ const FAQ_ITEMS: readonly FaqItem[] = [
     q: "What is an agent hour?",
     a: "The time an agent spends working on a task. It is counted only while the agent works: time spent waiting for a person to reply is never counted. Each plan includes agent hours every month. On Free, new work pauses once the month's hours are used, until the next month starts; a plan with an hourly price never pauses and bills the hours past its allowance on its invoice.",
     link: {
-      href: "/docs/concepts/billing#agent-hours",
+      href: "/docs/billing#agent-hours",
       label: "Agent hours",
     },
   },
@@ -217,7 +217,7 @@ const FAQ_ITEMS: readonly FaqItem[] = [
     q: 'What does "agents at once" mean?',
     a: "How many of your organization's conversations can have an agent awake at the same time. An agent stays awake while it works and for a short while after, then sleeps until the next message. At the limit, a new conversation, or a message to one whose agent is asleep, waits for room: it can start once another conversation goes idle or is deleted. A message to a conversation whose agent is awake is never held back by this number. A child organization shares its parent's number.",
     link: {
-      href: "/docs/concepts/billing#agents-at-once",
+      href: "/docs/billing#agents-at-once",
       label: "Agents at once",
     },
   },
@@ -367,7 +367,7 @@ function PricingPage() {
                   <p className="text-sm text-muted-foreground leading-relaxed">
                     See the{" "}
                     <Link
-                      href="/docs/concepts/billing"
+                      href="/docs/billing"
                       className="text-foreground underline underline-offset-4 hover:text-foreground/80"
                     >
                       billing documentation

@@ -24,17 +24,17 @@ export const AGENT_GETS: Readonly<Record<AgentGetId, AgentGet>> = {
   "own-computer": {
     title: AGENT_GET_TITLES["own-computer"],
     cta: "Environments",
-    href: "/docs/concepts/environments",
+    href: "/docs/environments",
   },
   hours: {
     title: AGENT_GET_TITLES.hours,
     cta: "A job that runs for hours",
-    href: "/docs/concepts/sessions#a-job-that-runs-for-hours",
+    href: "/docs/sessions#a-job-that-runs-for-hours",
   },
   "asks-first": {
     title: AGENT_GET_TITLES["asks-first"],
     cta: "Approval flows",
-    href: "/docs/concepts/approval-flows",
+    href: "/docs/approval-flows",
   },
   walls: {
     title: AGENT_GET_TITLES.walls,

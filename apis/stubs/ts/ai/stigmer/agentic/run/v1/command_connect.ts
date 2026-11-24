@@ -179,7 +179,7 @@ export const RunCommandController = {
      * Resume a paused run.
      *
      * Continues the run from where it was paused. How a turn's state is saved
-     * is the harness's ([Harnesses](/docs/concepts/harnesses)).
+     * is the harness's ([Harnesses](/docs/harnesses)).
      *
      * @generated from rpc ai.stigmer.agentic.run.v1.RunCommandController.resume
      */

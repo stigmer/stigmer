@@ -212,8 +212,8 @@ request. A vendored folder that cannot ship whole is struck with that reason.
 
 ## Reading it
 
-- The format: `docs/guides/plugins/marketplace-file.mdx`.
-- Installing from it: `docs/guides/plugins/install-from-a-marketplace.mdx`.
+- The format: `docs/plugins/marketplace-file.mdx`.
+- Installing from it: `docs/plugins/install-from-a-marketplace.mdx`.
 - The reader: `backend/libs/ts/plugin-package` (`readMarketplace`).
 - The rule that says an endpoint wants OAuth, and the request that asks:
   `backend/libs/ts/outbound` (`@stigmer/outbound/mcp-oauth`).
