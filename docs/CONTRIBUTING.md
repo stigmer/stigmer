@@ -80,7 +80,7 @@ A folder's `meta.json` gives its sidebar title and the order of its pages, as
 
 ```json
 {
-  "title": "Channels",
+  "title": "Channel guides",
   "pages": [
     "create-a-chat-link",
     "embed-an-agent",
@@ -97,6 +97,11 @@ A folder's `meta.json` gives its sidebar title and the order of its pages, as
 `pages` is an allowlist, not an ordering hint: a page it leaves out is not in
 the sidebar. A folder's `index` page is the one exception and is included either
 way.
+
+A folder of guides takes a title that differs from its concept page's, as
+"Channel guides" does beside the "Channels" page: the two sit next to each other
+in the sidebar, and `site/src/lib/__tests__/sidebar-labels.test.ts` fails while
+two neighbours share a name.
 
 The root `docs/meta.json` orders the top level. Its `pages` array mixes four
 kinds of entry:
