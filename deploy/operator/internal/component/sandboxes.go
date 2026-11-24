@@ -26,6 +26,7 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -179,8 +180,15 @@ func reconcileSubstrate(ctx context.Context, env *Env) (Result, error) {
 		return Refused(stigmerv1.ReasonConfigurationRefused, crdRef,
 			fmt.Sprintf("spec.prerequisites.substrate is skip, but Agent Substrate is not installed (no definition %s): install it, or set spec.prerequisites.substrate to auto",
 				substrate.WorkerPoolCRD)), nil
-	case st.Spec.Prerequisites.Substrate == stigmerv1.PrerequisiteSkip, foreign:
-		// Someone else's install: theirs to run and upgrade.
+	case st.Spec.Prerequisites.Substrate == stigmerv1.PrerequisiteSkip:
+		// Declared someone else's: trusted without looking.
+	case foreign:
+		// Someone else's install: theirs to run and upgrade, trusted while
+		// their controller runs.
+		ok, res, err := substrateRuns(ctx, env)
+		if err != nil || !ok {
+			return res, err
+		}
 	default:
 		settings, err := substrateSettings(ctx, env)
 		if err != nil {
@@ -242,6 +250,20 @@ func reconcileSubstrate(ctx context.Context, env *Env) (Result, error) {
 			render.ServerPrincipal(st), render.ServerSPIFFEID(st))
 	}
 	return Ready(message), nil
+}
+
+// substrateRuns is theirsRuns for an Agent Substrate someone else installed.
+func substrateRuns(ctx context.Context, env *Env) (bool, Result, error) {
+	image, err := install.ControllerImage()
+	if err != nil {
+		return false, Result{}, err
+	}
+	crd := &metav1.PartialObjectMetadata{}
+	crd.SetGroupVersionKind(crdKind)
+	if err := env.Reader.Get(ctx, client.ObjectKey{Name: substrate.WorkerPoolCRD}, crd); err != nil {
+		return false, Result{}, fmt.Errorf("reading Agent Substrate's definition %s: %w", substrate.WorkerPoolCRD, err)
+	}
+	return theirsRuns(ctx, env, theirs{Name: "Agent Substrate", Definition: crd, Image: image, Home: install.Namespace, ModeField: "spec.prerequisites.substrate"})
 }
 
 // substrateSettings derives Substrate's install settings from the Stigmer:

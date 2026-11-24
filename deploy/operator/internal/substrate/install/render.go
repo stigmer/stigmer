@@ -62,6 +62,7 @@ const (
 	envoyImagePlaceholder  = "${ENVOY_DATAPLANE_IMAGE}"
 	envoyImage             = "envoy-dataplane"
 	workerImage            = "ateworker-gvisor"
+	controllerImage        = "atecontroller"
 	postgresClaim          = "10Gi"
 	postgresSetupConfigMap = "postgres-setup"
 	postgresSetupMount     = "/etc/postgresql-setup"

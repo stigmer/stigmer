@@ -86,8 +86,11 @@ Each is checked when the resource is applied:
   when it is off (the server's STIGMER_OPERATOR_EMAIL and
   STIGMER_OPERATOR_NAME). Its fields are under [`spec.owner`](#specowner).
 - **`prerequisites`** (object): `prerequisites` says which cluster-level
-  operators this operator may install when they are missing. Its fields are
-  under [`spec.prerequisites`](#specprerequisites).
+  operators this operator may install when they are missing. Under auto, one
+  someone else installed is trusted while a controller of theirs runs (a
+  Deployment running its controller's image, from any registry); skip trusts it
+  without looking. Its fields are under
+  [`spec.prerequisites`](#specprerequisites).
 - **`runner`** (object): `runner` sizes and tunes the shared runner, the worker
   that runs agents beside the server. Its fields are under
   [`spec.runner`](#specrunner).
@@ -472,7 +475,9 @@ server's STIGMER_OPERATOR_EMAIL and STIGMER_OPERATOR_NAME).
 ### `spec.prerequisites`
 
 `prerequisites` says which cluster-level operators this operator may install
-when they are missing.
+when they are missing. Under auto, one someone else installed is trusted while a
+controller of theirs runs (a Deployment running its controller's image, from any
+registry); skip trusts it without looking.
 
 - **`agentSandbox`** (string): `agentSandbox` is agent-sandbox's controller,
   which runs the agentSandbox driver's pods. Default: `"auto"`. One of `auto`,

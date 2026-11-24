@@ -84,6 +84,10 @@ const (
 	// ReasonPrerequisiteMissing: a cluster-level piece the declaration needs
 	// is not installed, and the operator never installs it (cert-manager).
 	ReasonPrerequisiteMissing ComponentReason = "PrerequisiteMissing"
+	// ReasonPrerequisiteNotRunning: a cluster-level operator someone else
+	// installed has no controller running it, so nothing built on it would
+	// ever be served.
+	ReasonPrerequisiteNotRunning ComponentReason = "PrerequisiteNotRunning"
 	// ReasonWaitingForBackupPlugin: a new database waits for the backup
 	// plugin so it is born archiving.
 	ReasonWaitingForBackupPlugin ComponentReason = "WaitingForBackupPlugin"
@@ -132,6 +136,7 @@ func AllComponentReasons() []ComponentReason {
 		ReasonWaitingForWorkers,
 		ReasonPreparingSandboxImage,
 		ReasonPrerequisiteMissing,
+		ReasonPrerequisiteNotRunning,
 		ReasonWaitingForBackupPlugin,
 		ReasonBackingUpBeforeUpgrade,
 		ReasonUpgradeBackupFailed,
@@ -173,6 +178,7 @@ var ReasonMessages = map[ComponentReason]string{
 	ReasonWaitingForWorkers:      "waiting for the sandbox pool's first worker",
 	ReasonPreparingSandboxImage:  "the server is preparing the image every new sandbox starts from",
 	ReasonPrerequisiteMissing:    "a cluster-level piece it needs is not installed: install it",
+	ReasonPrerequisiteNotRunning: "a cluster-level operator someone else installed has no controller running: reinstall it, or remove its leftover definitions",
 	ReasonWaitingForBackupPlugin: "waiting for the backup plugin, so the database is born archiving",
 	ReasonBackingUpBeforeUpgrade: "taking a backup before the server migrates its database forward",
 	ReasonUpgradeBackupFailed:    "the backup before the upgrade failed, so the upgrade is held",
@@ -187,7 +193,7 @@ func (r ComponentReason) IsFailure() bool {
 		ReasonOutOfMemory, ReasonCrashLooping, ReasonUnschedulable, ReasonVolumeMountFailed,
 		ReasonRolloutStalled, ReasonCreateRefused, ReasonJobFailed, ReasonSecretMissing,
 		ReasonConfigurationRefused, ReasonSizingRefused, ReasonAnotherStigmer,
-		ReasonModelKeyMissing, ReasonReconcileFailed, ReasonPrerequisiteMissing, ReasonUpgradeBackupFailed,
+		ReasonModelKeyMissing, ReasonReconcileFailed, ReasonPrerequisiteMissing, ReasonPrerequisiteNotRunning, ReasonUpgradeBackupFailed,
 		ReasonGatewayNotAccepted:
 		return true
 	}

@@ -7,7 +7,9 @@
 //
 //   - a build with no runner digest, a bucket the sandboxes cannot name, and
 //     skip with no Substrate are each refused in words;
-//   - with someone else's Substrate, the component makes the privileged
+//   - someone else's Substrate with no Deployment running its controller's
+//     image is refused in words naming skip;
+//   - with someone else's running Substrate, the component makes the privileged
 //     sandbox namespace and a WorkerPool of the declared size whose label
 //     the server's worker selector names, admits the server's namespace to
 //     Substrate's API, waits in words for the first worker, and once one is
@@ -111,7 +113,16 @@ func TestSomeoneElsesSubstrateGetsAPoolAndAnAdmittedServer(t *testing.T) {
 	s := substrateStigmer(t, "http://minio.storage.svc.cluster.local:9000")
 	env := &component.Env{Client: k8s, Reader: k8s, Stigmer: s}
 
+	// Until a controller of theirs runs, their definition is refused, not
+	// waited on forever.
 	res, err := component.Sandboxes{}.Reconcile(ctx, env)
+	if err != nil || res.Phase != stigmerv1.PhaseRefused || res.Reason != stigmerv1.ReasonPrerequisiteNotRunning ||
+		!strings.Contains(res.Message, "set spec.prerequisites.substrate to skip") {
+		t.Fatalf("someone else's Substrate with nothing running it: %+v %v", res, err)
+	}
+	runningController(t, s.Namespace, "ghcr.io/agent-substrate/substrate/atecontroller:v1.0.0", true)
+
+	res, err = component.Sandboxes{}.Reconcile(ctx, env)
 	if err != nil || res.Phase != stigmerv1.PhaseDeploying || res.Reason != stigmerv1.ReasonWaitingForWorkers {
 		t.Fatalf("before any worker: %+v %v", res, err)
 	}

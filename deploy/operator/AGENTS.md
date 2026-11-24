@@ -46,6 +46,10 @@ it names are the truth.
   through `component.Apply`, except the keys Secret, which must outlive it.
   Cluster-level prerequisites go through `component.ApplyShared` and are never
   owned.
+- A prerequisite someone else installed is trusted only while a controller of
+  theirs runs, recognised by the image name of the controller in the release the
+  operator carries (`internal/component/prerequisite.go`); `skip` trusts it
+  without looking.
 - A server or runner setting a self-hoster sets reaches the `Stigmer` resource
   (or `extraEnv`). `docker-compose.yml` is the canonical topology: a setting
   added there and not rendered here fails `internal/render/parity_test.go`.
