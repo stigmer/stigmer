@@ -21,7 +21,7 @@ const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 export const HOSTS_MODULE = "backend/services/stigmer-server/src/domain/environment/package-manager-hosts.ts";
 
 /** The page that publishes it. */
-export const HOSTS_PAGE = "docs/concepts/environments.mdx";
+export const HOSTS_PAGE = "docs/environments/index.mdx";
 
 /** The heading of the page section that holds the table. */
 export const HOSTS_HEADING = "## The package registries and code hosts";

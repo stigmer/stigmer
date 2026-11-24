@@ -622,7 +622,7 @@ function emitNpmPackages() {
       `Spawn \`node node_modules/@stigmer/runner-slim/main.js\` (or the \`stigmer-runner\` bin) ` +
       `exactly as you would the full package's \`dist/main.js\` — same modes, same IPC protocol, ` +
       `same environment variables. See the embedding guide: ` +
-      `https://stigmer.ai/docs/guides/runners/embedding\n`,
+      `https://stigmer.ai/docs/runners/embedding\n`,
   );
 
   for (const platform of Object.keys(CORE_BRIDGE_TRIPLES)) {

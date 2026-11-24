@@ -1,5 +1,5 @@
 ---
 type: regex
-pattern: stigmer\.ai/docs/(concepts/resources|concepts/agents|cli/commands/apply|concepts/billing)
+pattern: stigmer\.ai/docs/(resources|agents|cli/commands/apply|billing)
 flags: i
 ---

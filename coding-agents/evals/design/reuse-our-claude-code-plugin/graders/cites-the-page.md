@@ -1,5 +1,5 @@
 ---
 type: regex
-pattern: stigmer\.ai/docs/(concepts/plugins|guides/plugins/install-a-plugin|guides/plugins/use-hooks|concepts/skills|guides/plugins/install-from-the-console)
+pattern: stigmer\.ai/docs/(plugins|plugins/install-a-plugin|plugins/use-hooks|skills|plugins/install-from-the-console)
 flags: i
 ---

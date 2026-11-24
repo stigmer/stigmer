@@ -6,7 +6,7 @@
 // dispatches to. Manager mode is a different lifecycle: the host spawns the
 // runner with STIGMER_RUNNER_MODE=manager, the runner connects to Temporal and
 // then writes one `ready` line (its protocol version) to stdout, and from there
-// the host drives it with line-delimited JSON commands (docs/guides/runners/
+// the host drives it with line-delimited JSON commands (docs/runners/
 // ipc-protocol.mdx). The Rust host crate (crates/stigmer-runner-host) is the
 // production host; this module is the harness's minimal one, enough to prove
 // end to end that the real runner process advertises the version the hosts

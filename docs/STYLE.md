@@ -243,10 +243,10 @@ Link card grids for navigation hubs and landing pages.
 
 ```mdx
 <Cards>
-  <Card href="/docs/concepts" title="Core Concepts">
-    Understand Agents, Sessions, Skills, and how they fit together.
+  <Card href="/docs/agents" title="Agents">
+    What an Agent is, and the parts it is made of.
   </Card>
-  <Card href="/docs/getting-started" title="Getting Started">
+  <Card href="/docs/getting-started/quickstart" title="Quickstart">
     Install Stigmer and run your first Agent in under five minutes.
   </Card>
 </Cards>
@@ -306,8 +306,10 @@ Visualize directory structures with interactive expand/collapse.
 <Files>
   <Folder name="docs" defaultOpen>
     <File name="index.mdx" />
-    <Folder name="concepts">
-      <File name="agents.mdx" />
+    <File name="agents.mdx" />
+    <Folder name="channels">
+      <File name="index.mdx" />
+      <File name="connect-slack.mdx" />
     </Folder>
   </Folder>
 </Files>
@@ -494,7 +496,12 @@ Supported diagram types include `flowchart`, `sequenceDiagram`,
 
 ## Links
 
-- Use relative paths for internal links: `[Agents](../concepts/agents.mdx)`.
+- Link a docs page by its whole address: `[Agents](/docs/agents)`, never a
+  relative path. A topic's own page is its folder's `index.mdx`, served at the
+  folder's address (`/docs/channels`), so a relative link written there resolves
+  one folder higher than its file suggests.
+  `site/src/lib/__tests__/docs-links.test.ts` fails on a link to an address no
+  page serves.
 - Use descriptive link text. Avoid "click here" or bare URLs.
 - The `check-links` Make target validates all links before CI.
 

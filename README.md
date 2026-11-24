@@ -73,22 +73,22 @@ systems. Agents discover the tools and Stigmer handles execution sandboxing.
 
 ## Core concepts
 
-- [Agent](https://stigmer.ai/docs/concepts/agents): the definition of a job,
+- [Agent](https://stigmer.ai/docs/agents): the definition of a job,
   what it does and how, written as YAML.
-- [Environment](https://stigmer.ai/docs/concepts/environments): the agent's
+- [Environment](https://stigmer.ai/docs/environments): the agent's
   computer, what is installed on it and what it may reach.
-- [Session](https://stigmer.ai/docs/concepts/sessions): one job, with its
-  conversation, its events and the [files](https://stigmer.ai/docs/concepts/files)
+- [Session](https://stigmer.ai/docs/sessions): one job, with its
+  conversation, its events and the [files](https://stigmer.ai/docs/files)
   that go in and come back.
-- [Vaults](https://stigmer.ai/docs/concepts/vaults) and
+- [Vaults](https://stigmer.ai/docs/vaults) and
   [model keys](https://stigmer.ai/docs/guides/integrations/model-provider-keys):
   where your keys and your customers' keys live.
-- Ways to reach an agent: [channels](https://stigmer.ai/docs/concepts/channels),
-  [routines](https://stigmer.ai/docs/concepts/routines),
+- Ways to reach an agent: [channels](https://stigmer.ai/docs/channels),
+  [routines](https://stigmer.ai/docs/routines),
   [the API](https://stigmer.ai/docs/getting-started/call-from-your-app) and
   [your app's UI](https://stigmer.ai/docs/getting-started/embed-agent).
-- [Access](https://stigmer.ai/docs/concepts/sharing-and-access) and
-  [organizations](https://stigmer.ai/docs/concepts/organizations): who may use
+- [Access](https://stigmer.ai/docs/sharing-and-access) and
+  [organizations](https://stigmer.ai/docs/organizations): who may use
   what, and how each customer is kept apart.
 
 Stigmer also ships its own MCP server, which exposes Stigmer's resources to
@@ -174,7 +174,7 @@ profile images. Use `brand/avatar.png` for GitHub and other profile uploads.
 - [Kubernetes](https://stigmer.ai/docs/guides/self-hosting/kubernetes) — The same stack on a cluster, run by the Stigmer operator (`oci://ghcr.io/stigmer/charts/stigmer-operator`) from one `Stigmer` resource
 - [CLI Reference](https://stigmer.ai/docs/cli) — Commands, flags, and examples
 - [SDK Reference](https://stigmer.ai/docs/sdk) — Go, TypeScript, Python, Java, React, and Ink
-- [What is Stigmer?](https://stigmer.ai/docs/concepts/what-is-stigmer) — What each customer's agent has, and how one job runs end to end
+- [What is Stigmer?](https://stigmer.ai/docs/what-is-stigmer) — What each customer's agent has, and how one job runs end to end
 - [Examples](examples/) — The variance report job, as files to run
 
 ## Development

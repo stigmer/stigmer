@@ -6,7 +6,7 @@
  * (docs/guides/self-hosting/runners.mdx) is read here and must carry the
  * date, the environment, the number of wakes and each printed figure in
  * formatSeconds's form, and the Agents page's paragraph on how much sooner
- * an Agent without a computer answers (docs/concepts/agents.mdx) the date
+ * an Agent without a computer answers (docs/agents.mdx) the date
  * and each path's medians. The
  * figures themselves are held to what a measurement can produce: enough
  * wakes, ordered percentiles, and the sandbox's resume inside the wait it is
@@ -70,7 +70,7 @@ test("the runners page states the measurement and every figure it prints", () =>
   assert.deepEqual(missing, [], `${RUNNERS} disagrees with brand/measurements.ts`);
 });
 
-const AGENTS = "docs/concepts/agents.mdx";
+const AGENTS = "docs/agents.mdx";
 
 /** Every arm and path of FIRST_WORD, with its figures. */
 function firstWordPaths(): Array<{ arm: string; path: string; row: FirstWordPath }> {

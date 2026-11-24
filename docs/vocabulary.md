@@ -181,9 +181,9 @@ A reusable definition of what an AI assistant knows and can do.
   when this Agent is saved, one level deep), and `spec.run_config` with
   `spec.harness`: the model and harness a conversation on the Agent starts on, a
   default that a message, a channel or a routine may override (see
-  [Run settings](/docs/concepts/agents#run-settings)), and
-  `spec.environment_ref`: the [Environment](#environment) its conversations run
-  in when nothing else names one.
+  [Run settings](/docs/agents#run-settings)), and `spec.environment_ref`: the
+  [Environment](#environment) its conversations run in when nothing else names
+  one.
 
 **Good examples**:
 
@@ -221,7 +221,7 @@ A piece of knowledge you attach to an Agent so it has domain expertise.
 - **Skills from a plugin**: a plugin's skills live in the plugin and are not in
   the Skill list. A turn names each one `<plugin>:<skill>` (`thermos:review`),
   so two plugins may both ship `review`; they change when the plugin is pushed
-  again (see [Plugins](/docs/concepts/plugins)).
+  again (see [Plugins](/docs/plugins)).
 
 **Good examples**:
 
@@ -285,8 +285,8 @@ that lists it in `plugins` gets all of it.
 - **What it is not**: a plugin does not run on its own. An Agent or a
   conversation that lists it runs, in a Session, on a Runner; the plugin's
   skills, agents, hooks and servers join that run.
-- **Concept page**: [Plugins](/docs/concepts/plugins), with how Stigmer's plugin
-  compares with Claude Code's, Cursor's and Codex's and where it differs.
+- **Concept page**: [Plugins](/docs/plugins), with how Stigmer's plugin compares
+  with Claude Code's, Cursor's and Codex's and where it differs.
 
 **Good examples**:
 
@@ -552,7 +552,7 @@ message, or saved by the Agent in its outputs folder.
   saved is "an output" or "a File the Agent saved". The verb "attach" stays for
   the act, and the `--attach` flag keeps its name. An operator's storage
   settings keep their names in code spans (`ARTIFACT_STORAGE_TYPE`); a Skill's
-  or plugin's package is an "archive". See [Files](/docs/concepts/files).
+  or plugin's package is an "archive". See [Files](/docs/files).
 
 <!-- vale Stigmer.FileWords = YES -->
 
@@ -613,8 +613,8 @@ number. Each Channel has one type, and an Agent can have several.
   customers as the business; its **Viewer** reads them and cannot reply.
   Creating a channel is an Organization admin's act, because it runs the Agent
   on the Organization's provider keys for everyone who reaches it. See
-  [Channels](/docs/concepts/channels) and
-  [Create a chat link](/docs/guides/channels/create-a-chat-link).
+  [Channels](/docs/channels) and
+  [Create a chat link](/docs/channels/create-a-chat-link).
 - **Do not say**: `Agent Share` for a chat link or `Agent Channel` for a Slack
   or WhatsApp connection; write chat link and channel.
 
@@ -697,7 +697,7 @@ runs it, or when another system calls it with a note.
 - **Do not say**: `Schedule` for the resource, `ScheduleFire` for its fire
   record, or `trigger` for starting one; write Routine, fire and start. No
   schedule account exists: every run acts as the routine's owner. See
-  [Routines](/docs/concepts/routines).
+  [Routines](/docs/routines).
 
 **Good examples**:
 
@@ -741,7 +741,7 @@ A process that connects to Stigmer and executes your Agents.
   (`stigmer_runner` by default) and whichever runner polls that queue takes the
   work. Nothing selects a runner; the queue is the contract. A run carries the
   Session's Harness and a credential minted for that run alone. See the
-  [Runners concept page](/docs/concepts/runners).
+  [Runners concept page](/docs/runners).
 - **Two postures**: One shared runner (the laptop, the all-in-one, Compose,
   Kubernetes) or a runner per Session started by the server's sandbox
   provisioner (Stigmer Cloud; described, not taught, on the
@@ -1257,7 +1257,7 @@ its routine's, else its Agent's default, else its Organization's.
   Never call a place where keys are saved an Environment: say vault. A file that
   used `kind: Environment` for variables and secrets, from before the kind meant
   this, now fails validation: its secrets go in a vault, its plain settings in
-  the Agent's `env`. See [Environments](/docs/concepts/environments).
+  the Agent's `env`. See [Environments](/docs/environments).
 
 **Good examples**:
 
@@ -1539,7 +1539,7 @@ organizations** (everyone in every child organization).
   work reaches yours as a Plugin you install.
 - **Note**: General access widens who sees and uses a resource, never who may
   spend: starting a conversation also needs the Organization's Member role. See
-  [Sharing and access](/docs/concepts/sharing-and-access).
+  [Sharing and access](/docs/sharing-and-access).
 
 ---
 

@@ -87,11 +87,11 @@ test("docs/index.mdx opens on putting an agent in the reader's app, in its own w
 });
 
 test("What is Stigmer? opens with the one sentence and where it runs", () => {
-  const page = read("docs/concepts/what-is-stigmer.mdx");
+  const page = read("docs/what-is-stigmer.mdx");
   const [, frontmatter = "", body = ""] = /^---\n([\s\S]*?)\n---\n([\s\S]*)$/.exec(page) ?? [];
   const description = /^description:([\s\S]*?)(?=^\S|$(?![\s\S]))/m.exec(frontmatter)?.[1] ?? "";
   const opening = body.trim().split(/\n\s*\n/)[0] ?? "";
-  const path = "docs/concepts/what-is-stigmer.mdx";
+  const path = "docs/what-is-stigmer.mdx";
   assert.ok(carries(description, POSITIONING.oneSentence), `${path}: frontmatter description`);
   assert.ok(carries(opening, POSITIONING.oneSentence), `${path}: opening paragraph, the one sentence`);
   assert.ok(carries(opening, POSITIONING.whereItRuns), `${path}: opening paragraph, where it runs`);
@@ -148,7 +148,7 @@ const AGENT_HAS_HOMES: ReadonlyArray<readonly [path: string, list: (text: string
     (text) => text.split(/\n\s*\n/).find((block) => block.startsWith("**What each customer's agent has**")),
   ],
   [
-    "docs/concepts/what-is-stigmer.mdx",
+    "docs/what-is-stigmer.mdx",
     (text) => /^## What each customer's agent has\n([\s\S]*?)(?=^## |$(?![\s\S]))/m.exec(text)?.[1],
   ],
   ["docs-agent/skills/stigmer-docs/SKILL.md", (text) => boldLabelledBlock(text, "What each customer's agent has")],
@@ -481,5 +481,5 @@ test("no page, reference source, console or SDK README shows a retired example j
       if (text.includes(name.toLowerCase())) shown.push(`${path}: "${name}"`);
     }
   }
-  assert.deepEqual(shown, [], "show the ledger job instead: docs/concepts/agents.mdx holds its names");
+  assert.deepEqual(shown, [], "show the ledger job instead: docs/agents.mdx holds its names");
 });

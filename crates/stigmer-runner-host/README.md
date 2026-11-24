@@ -52,7 +52,7 @@ runner's JavaScript (`runner_entry`, the slim `@stigmer/runner-slim` build is ma
 packaging) and the Node that runs it (`node_binary`). A bare name in `node_binary` is
 looked up on the host process's PATH, which suits a host started from a shell; a desktop
 app ships a pinned Node runtime and passes its absolute path. The runner embedding guide
-(`docs/guides/runners/embedding.mdx`, "Ship the runner and its Node runtime") has the recipe, and
+(`docs/runners/embedding.mdx`, "Ship the runner and its Node runtime") has the recipe, and
 the Stigmer desktop app (`client-apps/desktop/scripts/stage-node-runtime.sh`) is the
 reference implementation. A missing engine fails with `NodeBinaryNotFound`, which names the
 PATH a bare name was looked up on.
@@ -117,7 +117,7 @@ it, so equal or lower runner versions are accepted.
 
 This crate is a hand-maintained mirror of
 `backend/services/runner/src/ipc-protocol.ts`. The canonical contract is the
-[manager-mode IPC protocol reference](https://stigmer.ai/docs/guides/runners/ipc-protocol).
+[manager-mode IPC protocol reference](https://stigmer.ai/docs/runners/ipc-protocol).
 The mirror is kept honest by golden fixtures generated from that file: the conformance
 tests in `src/protocol.rs` assert against the vendored
 `fixtures/ipc-protocol.generated.json`, so a contract change that is not mirrored here

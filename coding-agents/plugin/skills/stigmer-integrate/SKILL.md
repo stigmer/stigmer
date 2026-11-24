@@ -110,7 +110,7 @@ what it made. Upload the file, send the message with its id and wait for the
 turn (`sendAndWait` and its counterpart in each SDK), then list the run's
 output files by run id and download each. Pages: https://stigmer.ai/docs/getting-started/call-from-your-app
 (TypeScript, start to finish), then https://stigmer.ai/docs/sdk/typescript, https://stigmer.ai/docs/sdk/python,
-https://stigmer.ai/docs/sdk/go or https://stigmer.ai/docs/sdk/java, and https://stigmer.ai/docs/concepts/files.
+https://stigmer.ai/docs/sdk/go or https://stigmer.ai/docs/sdk/java, and https://stigmer.ai/docs/files.
 
 - The report is a File the run made: fetch it from the run's outputs. Never
   parse it out of the agent's chat text.
@@ -159,7 +159,7 @@ https://stigmer.ai/docs/getting-started/embed-agent, https://stigmer.ai/docs/gui
 Climb only as far as the ask needs; each level keeps everything below it
 Stigmer's. Pages: https://stigmer.ai/docs/getting-started/make-the-chat-your-own,
 https://stigmer.ai/docs/sdk/theme/theming,
-https://stigmer.ai/docs/guides/channels/embed-an-agent,
+https://stigmer.ai/docs/channels/embed-an-agent,
 https://stigmer.ai/docs/sdk/react-core/build-a-chat,
 https://stigmer.ai/docs/sdk/streaming.
 
@@ -212,7 +212,7 @@ people land in it by a token the backend mints into that child, or by
 federation routing each token to the child whose external id matches.
 Pages: https://stigmer.ai/docs/getting-started/one-organization-per-customer,
 https://stigmer.ai/docs/guides/authentication/federation/child-organizations,
-https://stigmer.ai/docs/concepts/organizations.
+https://stigmer.ai/docs/organizations.
 
 - Labels, naming conventions or their own filtering inside one organization
   do not wall customers off.
@@ -228,7 +228,7 @@ instructions alone never guarantee a person's yes. The backend learns a call
 is waiting from the turn's outcome (`sendAndWait` or `waitForTurn` returning
 `waiting` with its asks) or the attention stream, shows it in their own
 screen, and answers with the tool use's id (`confirmToolUse`, allow or deny);
-the run then carries on. Pages: https://stigmer.ai/docs/concepts/approval-flows, https://stigmer.ai/docs/sdk/streaming
+the run then carries on. Pages: https://stigmer.ai/docs/approval-flows, https://stigmer.ai/docs/sdk/streaming
 ("Answer a call that waits", "Know when a conversation needs you").
 
 - There is no approval webhook and no approval callback: the backend reads
@@ -239,7 +239,7 @@ the run then carries on. Pages: https://stigmer.ai/docs/concepts/approval-flows,
 ### Moving from Claude Managed Agents
 
 Say what carries over and what doesn't, from the pages. Pages:
-https://stigmer.ai/docs/concepts/coming-from-claude-managed-agents, https://stigmer.ai/docs/sdk/managed-agents.
+https://stigmer.ai/docs/coming-from-claude-managed-agents, https://stigmer.ai/docs/sdk/managed-agents.
 
 - Their event code carries over: Anthropic's SDK pointed at Stigmer's
   address with a Stigmer key lists, streams and answers a Session's events,

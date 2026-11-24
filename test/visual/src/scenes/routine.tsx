@@ -1,4 +1,4 @@
-// The routines page's screens (docs/guides/routines/run-an-agent-on-a-schedule.mdx),
+// The routines page's screens (docs/routines/run-an-agent-on-a-schedule.mdx),
 // framed as the console's Library frames a page (a centred column): the New
 // routine form, filled by the scene's acts with the page's own example; the
 // routine it makes, switched off, offering Enable & run now; and its History

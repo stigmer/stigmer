@@ -34,7 +34,7 @@ The plain `dist/` resolves its dependencies from `node_modules` at runtime — ~
 make build-runner-slim          # or: npm run build:slim
 ```
 
-This produces `dist-slim/`: a tree-shaken esbuild bundle of the whole runner (`main.js`), and a staged `node_modules` containing only the packages that genuinely cannot be bundled (the platform-pruned Temporal native bridge and the few packages that ship native code). `node dist-slim/main.js` accepts the same modes, environment variables, and IPC protocol as `dist/main.js`. It also holds `attach/main.js`, the attach entry (below) bundled on its own, which starts the `main.js` beside it with the same Node. See `scripts/bundle-slim.mjs` for the full layout, `scripts/verify-slim-artifact.mjs` for the boot verification that gates releases, and the [embedding guide](https://stigmer.ai/docs/guides/runners/embedding) for how apps stage it.
+This produces `dist-slim/`: a tree-shaken esbuild bundle of the whole runner (`main.js`), and a staged `node_modules` containing only the packages that genuinely cannot be bundled (the platform-pruned Temporal native bridge and the few packages that ship native code). `node dist-slim/main.js` accepts the same modes, environment variables, and IPC protocol as `dist/main.js`. It also holds `attach/main.js`, the attach entry (below) bundled on its own, which starts the `main.js` beside it with the same Node. See `scripts/bundle-slim.mjs` for the full layout, `scripts/verify-slim-artifact.mjs` for the boot verification that gates releases, and the [embedding guide](https://stigmer.ai/docs/runners/embedding) for how apps stage it.
 
 > **Why the slim bundle is CommonJS, not ESM.** The runner loads its heavy modules lazily (`@connectrpc/connect-node`, LangChain, the activity factories, via dynamic `import()`) after the harnesses boot. An **ESM** esbuild bundle hoists every external `import` to the top of the output and evaluates them before any code runs; a **CJS** bundle preserves the source's lazy evaluation order (the module-order regression of [#170](https://github.com/stigmer/stigmer/issues/170) was an ESM bundle). The meta `package.json` deliberately omits `"type": "module"` so `node main.js` runs as CommonJS — do **not** add it back, and do not flip `format` to `"esm"` in `bundle-slim.mjs` (see its header). The authenticated boot check in `verify-slim-artifact.mjs` boots the artifact as a release would.
 
@@ -265,7 +265,7 @@ Keys come from two sources with strict precedence: the env vars below (the opera
 
 ### Model backends
 
-Where the Stigmer harness's models are served when the runner talks to providers directly. Under `STIGMER_PROXY_ENDPOINT` the proxy owns provider routing, and the runner warns that a non-`public` backend is ignored. The [model backends guide](https://stigmer.ai/docs/guides/runners/model-backends) is the one explanation of each backend, its credentials and its errors; the rows below index what the runner reads.
+Where the Stigmer harness's models are served when the runner talks to providers directly. Under `STIGMER_PROXY_ENDPOINT` the proxy owns provider routing, and the runner warns that a non-`public` backend is ignored. The [model backends guide](https://stigmer.ai/docs/runners/model-backends) is the one explanation of each backend, its credentials and its errors; the rows below index what the runner reads.
 
 | Variable | Applies to | Required | Default | Purpose |
 |----------|-----------|----------|---------|---------|
@@ -319,8 +319,8 @@ These tune internal behavior or support testing. Most operators never set them.
 
 ## Related documentation
 
-- **[Manager-mode IPC protocol](https://stigmer.ai/docs/guides/runners/ipc-protocol)** — the line-delimited JSON command/response contract and its versioned handshake (current protocol version `1`). A short pointer also lives at [`docs/ipc-protocol.md`](docs/ipc-protocol.md); the code definition is [`src/ipc-protocol.ts`](src/ipc-protocol.ts).
-- **[Embedding integration guide](https://stigmer.ai/docs/guides/runners/embedding)** — building a desktop client (local execution) and a web client (cloud execution), including the per-audience configuration each one passes.
-- **SDK `RunnerAdapter` and `executionTarget`** — the local-execution surfaces in `@stigmer/react-sdk` and `@stigmer/client`. The [embedding guide](https://stigmer.ai/docs/guides/runners/embedding) covers them today; a dedicated SDK reference is forthcoming.
+- **[Manager-mode IPC protocol](https://stigmer.ai/docs/runners/ipc-protocol)** — the line-delimited JSON command/response contract and its versioned handshake (current protocol version `1`). A short pointer also lives at [`docs/ipc-protocol.md`](docs/ipc-protocol.md); the code definition is [`src/ipc-protocol.ts`](src/ipc-protocol.ts).
+- **[Embedding integration guide](https://stigmer.ai/docs/runners/embedding)** — building a desktop client (local execution) and a web client (cloud execution), including the per-audience configuration each one passes.
+- **SDK `RunnerAdapter` and `executionTarget`** — the local-execution surfaces in `@stigmer/react-sdk` and `@stigmer/client`. The [embedding guide](https://stigmer.ai/docs/runners/embedding) covers them today; a dedicated SDK reference is forthcoming.
 - **Public API** — `src/index.ts` exports `createStigmerRunner` and `createStigmerRunnerManager` with typed options and inline examples.
 - **[Adding a harness](src/harness/README.md)** — the turn runtime, the adapter contract, the contract kit, and the checklist of files inside and outside the runner a new harness touches.

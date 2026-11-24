@@ -43,14 +43,30 @@ configures Husky pre-commit hooks.
 Documentation lives in `docs/` at the repo root. Fumadocs renders it at `/docs/`
 on the site. The sections, in sidebar order, are:
 
-| Directory          | Purpose                                            |
-| ------------------ | -------------------------------------------------- |
-| `getting-started/` | Cloud quickstart, local quickstart, first Skill    |
-| `concepts/`        | Core concepts (Agents, Skills, Sessions, etc.)     |
-| `tutorials/`       | Progressive tutorials (tools, approvals, Routines) |
-| `sdks/`            | Per-language SDK guides                            |
-| `cli/`             | CLI overview and command reference                 |
-| `reference/`       | API reference                                      |
+| Path               | Purpose                                                                                                    |
+| ------------------ | ---------------------------------------------------------------------------------------------------------- |
+| `index.mdx`        | The welcome page                                                                                           |
+| `getting-started/` | The Get Started journey, from the coding-agent setup to an agent in your app                               |
+| `<topic>.mdx`      | A topic's explanation page, when the topic has no how-tos (Agents, Sessions, Billing)                      |
+| `<topic>/`         | A topic with how-tos: `index.mdx` explains it, its how-tos sit beside it (Environments, Channels, Runners) |
+| `guides/`          | Folders of how-tos with no explanation page of their own (Integrations, Authentication, Self-hosting)      |
+| `sdk/`             | The SDK tab                                                                                                |
+| `cli/`             | The CLI tab: its overview and the command reference, generated from `client-apps/cli/docs/commands/`       |
+
+A page's address is its path under `docs/`: `docs/agents.mdx` is `/docs/agents`,
+`docs/channels/index.mdx` is `/docs/channels`, and
+`docs/channels/connect-slack.mdx` is `/docs/channels/connect-slack`. So where a
+file sits is what its address says, and the folders follow the sidebar: an
+explanation page sits at the top of `docs/`; when a topic gains how-tos, it
+becomes a folder whose `index.mdx` is its explanation, shown as the folder's own
+sidebar entry; `guides/` holds only folders of how-tos with no explanation page.
+
+Moving a page changes its address, so the same change adds three lines to
+`site/public/_redirects` (the page, its trailing slash and its `.md` twin, each
+to the new address) and links the new address everywhere.
+`site/src/lib/__tests__/docs-links.test.ts` fails on a link to an address no
+page serves, on a redirect to one, and on a moved page missing one of its three
+lines.
 
 Non-rendered files that remain in `docs/` but are excluded from the sidebar:
 `vocabulary.md`, `STYLE.md`, `CONTRIBUTING.md`, `README.md`.
@@ -68,19 +84,18 @@ Non-rendered files that remain in `docs/` but are excluded from the sidebar:
    ```
 
 3. List the page in the sidebar: add it to the `pages` array of the `meta.json`
-   in its directory or, for a folder without one (such as `concepts/` or
-   `getting-started/`), to the root `docs/meta.json` by its path. A page listed
-   nowhere fails the build (see below).
+   in its directory or, for a page at the top of `docs/` or in a folder without
+   one (such as `getting-started/`), to the root `docs/meta.json` by its path. A
+   page listed nowhere fails the build (see below).
 4. Follow the conventions in [STYLE.md](STYLE.md).
 
 ## Sidebar ordering with `meta.json`
 
-A folder's `meta.json` gives its sidebar title and the order of its pages, as
-`docs/guides/channels/meta.json` does:
+A folder's `meta.json` gives the order of its pages, as
+`docs/channels/meta.json` does:
 
 ```json
 {
-  "title": "Channel guides",
   "pages": [
     "create-a-chat-link",
     "embed-an-agent",
@@ -98,20 +113,22 @@ A folder's `meta.json` gives its sidebar title and the order of its pages, as
 the sidebar. A folder's `index` page is the one exception and is included either
 way.
 
-A folder of guides takes a title that differs from its concept page's, as
-"Channel guides" does beside the "Channels" page: the two sit next to each other
-in the sidebar, and `site/src/lib/__tests__/sidebar-labels.test.ts` fails while
-two neighbours share a name.
+A topic's folder has no `title`: its sidebar entry takes the title of its
+`index.mdx`, so the topic's name is written once, in the page's frontmatter, and
+the entry opens that page with its how-tos listed under it. A folder with no
+index page (each one under `guides/`) gives its sidebar name as `title`. No two
+neighbours in the sidebar share a name:
+`site/src/lib/__tests__/sidebar-labels.test.ts` fails while two do.
 
 The root `docs/meta.json` orders the top level. Its `pages` array mixes four
 kinds of entry:
 
 - `"---Get Started---"`: a separator that starts a sidebar group with that
   label;
-- `"concepts/agents"`: one page, by its path under `docs/`, for folders that
-  have no `meta.json` of their own (`concepts/`, `getting-started/`);
-- `"guides/channels"`: a folder, listed with the order its own `meta.json`
-  gives;
+- `"agents"`: one page, by its path under `docs/`: a page at the top, or one in
+  a folder with no `meta.json` of its own (`"getting-started/quickstart"`);
+- `"channels"`: a folder, listed with the order its own `meta.json` gives; its
+  `index.mdx` is the entry itself;
 - `"[Run it on your servers](/docs/guides/self-hosting/overview)"`: a link
   entry: an item with its own label that opens that page, so a page can also
   appear in a group its folder is not in.

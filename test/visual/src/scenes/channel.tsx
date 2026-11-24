@@ -1,4 +1,4 @@
-// The channel pages' screens (docs/guides/channels/): the variance
+// The channel pages' screens (docs/channels/): the variance
 // reporter's Channels tab holding its chat link, its Slack workspace and its
 // WhatsApp number, as the console's agent page draws it, and the dialogs the
 // pages' steps open from it. The acts in the catalogue open each dialog the

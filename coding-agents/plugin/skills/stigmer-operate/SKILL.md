@@ -57,12 +57,12 @@ this table, then read its page.
 | Stigmer on their own machines | The single image for evaluation; Docker Compose for a team on one machine; the Stigmer operator and one `Stigmer` resource on a cluster | the single image for a team's daily use; hand-written Kubernetes manifests; editing the objects the operator creates | https://stigmer.ai/docs/guides/self-hosting/overview |
 | People signing in | Their own OIDC provider, set with the four `STIGMER_OIDC_` settings on Compose or `spec.identity.oidc` on the operator; or the operator's bundled sign-in | Stigmer's hosted login on their server; editing `docker-compose.yml` or the objects the operator creates | https://stigmer.ai/docs/guides/self-hosting/authentication |
 | A machine calling Stigmer (CI, a script) | A service account's API key, with the smallest role | a person's key | https://stigmer.ai/docs/guides/authentication/service-accounts |
-| Who may run or change what | The Organization's roles; one Agent's Editor on Enterprise and Cloud only | a per-Agent permission on open source; Viewers running Agents | https://stigmer.ai/docs/concepts/sharing-and-access |
-| More room for the agents' work | The runner (one shared runner per stack), or a runner per Session through a provisioner | registering a runner; a second shared runner; a runner on another host while files are on the local store | https://stigmer.ai/docs/guides/self-hosting/runners, https://stigmer.ai/docs/concepts/runners |
+| Who may run or change what | The Organization's roles; one Agent's Editor on Enterprise and Cloud only | a per-Agent permission on open source; Viewers running Agents | https://stigmer.ai/docs/sharing-and-access |
+| More room for the agents' work | The runner (one shared runner per stack), or a runner per Session through a provisioner | registering a runner; a second shared runner; a runner on another host while files are on the local store | https://stigmer.ai/docs/guides/self-hosting/runners, https://stigmer.ai/docs/runners |
 | Runs in their tracing tool | The runner's `OTEL_` variables, the login from a Secret | a server setting; a `Stigmer` field that turns it on | https://stigmer.ai/docs/guides/self-hosting/tracing |
 | A newer release, a backup | The version pin, a backup first; back is a restore | downgrading; editing the objects the operator creates | https://stigmer.ai/docs/guides/self-hosting/operations |
 | Who gave whom access, and when | The access history and its export | calling it a log of everything people did | https://stigmer.ai/docs/guides/authentication/access-history |
-| Hours used, the plan's limits | Agent hours against the plan's allowance | a model bill from Stigmer | https://stigmer.ai/docs/concepts/billing |
+| Hours used, the plan's limits | Agent hours against the plan's allowance | a model bill from Stigmer | https://stigmer.ai/docs/billing |
 
 ## Their own server
 
@@ -130,7 +130,7 @@ back as a saved file you can't open, save the page and read it in parts:
 `stigmer docs read guides/self-hosting/runners > "$TMPDIR/runners.md"`,
 then read that file through to its end. Pages:
 https://stigmer.ai/docs/guides/self-hosting/runners,
-https://stigmer.ai/docs/concepts/runners.
+https://stigmer.ai/docs/runners.
 
 - Present only what the page presents as working on their shape.
 
@@ -170,7 +170,7 @@ shared with them and changes only their own; **Viewer** sees and starts no
 conversation; **Admin** manages every Agent, people and settings. Granting
 **Editor** on one Agent is Enterprise and Cloud; open source grants roles
 on the Organization only. Read the page and say which edition each step
-needs. Page: https://stigmer.ai/docs/concepts/sharing-and-access.
+needs. Page: https://stigmer.ai/docs/sharing-and-access.
 
 - When their edition can't do what they asked, say so, and give the
   choices the page leaves (a wider role, or the edition that has it).
@@ -207,7 +207,7 @@ Agent hours against the plan's allowance, what happens at it, and where to
 see both (`stigmer usage hours` on Stigmer Cloud, or **Settings >
 Billing**). Model calls run on the Organization's own provider keys:
 Stigmer never bills or prices them, so their spend is on their provider's
-account. Page: https://stigmer.ai/docs/concepts/billing,
+account. Page: https://stigmer.ai/docs/billing,
 https://stigmer.ai/docs/cli/commands/usage.
 
 - Say what happens at the allowance on their plan, in the page's words:

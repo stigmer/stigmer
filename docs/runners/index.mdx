@@ -1,0 +1,113 @@
+---
+title: Runners
+description:
+  A Runner is the process that executes your Agents. Learn where it sits in the
+  resource model, where one comes from in each way of running Stigmer, and how
+  work reaches it.
+---
+
+Every [Agent](/docs/agents) needs somewhere to run. An Agent definition
+describes _what_ the Agent does — its instructions, Skills, and tools. A Runner
+is _where_ it runs. It is the process that picks up work, calls the LLM,
+executes tool calls, and reports results back to the server.
+
+Without a runner, an Agent is a blueprint sitting idle. With one, it can handle
+requests.
+
+## Runners in the platform
+
+Runners sit at the execution layer of the resource model. When you send a
+message to a [Session](/docs/sessions), Stigmer creates a
+[run](/docs/agents#blueprint-vs-runtime) and hands it to a runner. The runner
+processes the run — calling the LLM, running tools, pausing for
+[approval](/docs/approval-flows) — and streams the result back.
+
+| Resource    | What it represents             | Analogy                         |
+| ----------- | ------------------------------ | ------------------------------- |
+| **Agent**   | Instructions, Skills, tools    | A recipe                        |
+| **Session** | Conversation with memory       | An order cooked from the recipe |
+| **Run**     | One request-response cycle     | Preparing one dish              |
+| **Runner**  | The process that does the work | The cook                        |
+
+Unlike Agents and Skills, a Runner is not a resource. You don't write one in
+YAML, you can't `apply` one, and the server keeps no record of which runners
+exist. A runner is a process that connects to the server and to Temporal and
+does the work that appears on its queue.
+
+A single runner serves both [Harnesses](/docs/harnesses). The Harness is a
+property of the Session, and it travels with each run to whichever runner takes
+it; there is no separate runner, process, or queue per Harness.
+
+## Where a runner comes from
+
+Every way of running Stigmer starts exactly one runner beside the server, and
+the server never calls it: the runner takes its work from a queue.
+
+- **Your laptop.** `stigmer up` starts the server, a managed Temporal, and a
+  runner as its own process. `stigmer up server` starts the server alone,
+  without one.
+- **The all-in-one container.** The same composition as `stigmer up`, inside one
+  container.
+- **The Docker Compose stack and Kubernetes.** One runner service beside the
+  server, or one runner container in the server's pod, which the Stigmer
+  operator runs; on Kubernetes a sandbox driver can give each Session a runner
+  of its own instead. The
+  [self-hosting runner page](/docs/guides/self-hosting/runners) explains what it
+  is given, what happens when it is gone, and why it is one trust domain.
+- **Stigmer Cloud.** The platform provides the runner, in a sandbox it starts
+  and cleans up for you. You never see it. The mechanism behind it exists in the
+  open source server as a sandbox provisioner that starts a runner per Session;
+  the self-hosting runner page says what it does and does not do today. What a
+  Session's sandbox installs and which websites it may reach is its
+  [Environment](/docs/environments).
+
+## How work reaches a runner
+
+The server never picks a runner. It puts each run on a Temporal task queue,
+`stigmer_runner` by default, and whichever runner polls that queue takes the
+work. A run carries two things with it: the Session's Harness, and a credential
+the server mints for that run alone, so that everything the runner does for the
+run is recorded as the person who started it.
+
+<Diagram name="runner-queue" />
+
+A runner that is absent is noticed only when a run has nobody to take it. A run
+waits five minutes for a runner and then fails with a message that names the
+runner as the likely cause. A runner that stops in the middle of an Agent turn
+is detected through the heartbeat it sends Temporal every 30 seconds, and the
+turn resumes from the runner's checkpoint once a runner is back.
+
+## What's next
+
+You understand what runners are and how they fit the platform. The next step
+depends on what you want to do. The guides for embedding the runner are for
+platform builders and assume Node.js and the Stigmer SDK; to only _run_ Agents
+you need none of them: use `stigmer up`, or let Stigmer Cloud provision a runner
+for you.
+
+- **Run Stigmer for a team** — the
+  [self-hosting runner page](/docs/guides/self-hosting/runners) covers the
+  runner on the Docker Compose stack and on Kubernetes: its keys and addresses,
+  its failure modes, and the per-Session sandbox mechanism.
+- **Embed the runner in your app** — The
+  [embedding guide](/docs/runners/embedding) covers hosting the runner in a
+  desktop or web app: local versus cloud execution, the `RunnerAdapter`, and the
+  configuration each kind of integrator passes.
+- **Drive the manager-mode protocol** — The
+  [manager-mode IPC protocol reference](/docs/runners/ipc-protocol) specifies
+  the subprocess command and response contract and its versioned handshake.
+- **Use the Claude harness** — The
+  [Claude harness guide](/docs/runners/claude-harness) covers where each edition
+  gets the Claude Agent SDK and how a local runner installs it.
+- **Run models in your own cloud** — The
+  [model backends guide](/docs/runners/model-backends) serves Claude from GCP
+  Vertex AI, AWS Bedrock or Microsoft Foundry (Azure): two environment variables
+  on a direct-mode runner, your cloud's standard credentials, and no change to
+  your Agents.
+- **Encrypt what a run leaves in Temporal** — The
+  [payload encryption guide](/docs/runners/payload-encryption) turns on
+  AES-256-GCM for every Temporal payload the runner produces, with two
+  environment variables on the runner and the server.
+
+The next concept page covers [Harnesses](/docs/harnesses) — the loops that run
+your Agent's Sessions.

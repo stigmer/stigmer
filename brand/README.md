@@ -101,7 +101,7 @@ when a link names a heading its docs page no longer has.
 saying where it holds, and its three questions (what's on it, what it can
 reach, what happens when nobody's using it), each answered with its sentences
 and proofs. It shows the worked Environment file of
-`docs/concepts/environments.mdx` as the real thing: `__tests__/sandbox.test.ts`
+`docs/environments/index.mdx` as the real thing: `__tests__/sandbox.test.ts`
 fails while the file here and that page's first YAML block differ, and
 `make check-docs-yaml` holds the page's block to the API. It prints no wake
 time; the sleep panel links to the hard parts' sandbox row, which reads

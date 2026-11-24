@@ -47,7 +47,7 @@
 //!
 //! This crate is a hand-maintained mirror of
 //! `backend/services/runner/src/ipc-protocol.ts`. See the IPC spec at
-//! <https://stigmer.ai/docs/guides/runners/ipc-protocol>.
+//! <https://stigmer.ai/docs/runners/ipc-protocol>.
 
 mod config;
 mod error;

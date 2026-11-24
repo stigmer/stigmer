@@ -18,8 +18,8 @@
  * plain-HTTP lanes are side doors, never the API, so the box does not say
  * REST); access is checked against one OpenFGA model in every edition
  * (backend/services/stigmer-server/src/authorization/README.md); and a job
- * runs on Temporal, which `stigmer up` starts too (docs/concepts/
- * runners.mdx). The model call leaves from the sandbox, where the runner
+ * runs on Temporal, which `stigmer up` starts too (docs/runners/
+ * index.mdx). The model call leaves from the sandbox, where the runner
  * works; on Stigmer Cloud it passes Stigmer's model proxy, which adds the
  * key, and elsewhere the runner holds it, so the picture says only "on your
  * key", which holds everywhere.

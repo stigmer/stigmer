@@ -79,7 +79,7 @@ source, runs on the developer's servers or on Stigmer Cloud, runs on their
 own model keys, and gives each of their customers their own Organization on
 the editions that include it. Agents, Environments, Sessions and their events
 carry the same names in both. Link the mapping,
-https://stigmer.ai/docs/concepts/coming-from-claude-managed-agents, or the
+https://stigmer.ai/docs/coming-from-claude-managed-agents, or the
 side-by-side comparison, https://stigmer.ai/compare/claude-managed-agents.
 
 ## Map of the documentation
@@ -89,53 +89,53 @@ pages, by group:
 
 **Get started** — what Stigmer is, and one job from the terminal to your
 product.
-- What is Stigmer: https://stigmer.ai/docs/concepts/what-is-stigmer
+- What is Stigmer: https://stigmer.ai/docs/what-is-stigmer
 - Your first agent job: https://stigmer.ai/docs/getting-started/quickstart
 - Do the same job from your app: https://stigmer.ai/docs/getting-started/call-from-your-app
 - Put the agent in your app: https://stigmer.ai/docs/getting-started/embed-agent
 - One organization per customer: https://stigmer.ai/docs/getting-started/one-organization-per-customer
 - Run it on your servers: https://stigmer.ai/docs/guides/self-hosting/overview
-- Coming from Claude Managed Agents: https://stigmer.ai/docs/concepts/coming-from-claude-managed-agents
+- Coming from Claude Managed Agents: https://stigmer.ai/docs/coming-from-claude-managed-agents
 
 **How it works** — the job, its computer, the work and its keys.
-- Agents: https://stigmer.ai/docs/concepts/agents
-- Environments: https://stigmer.ai/docs/concepts/environments
-- Sessions: https://stigmer.ai/docs/concepts/sessions
-- Files: https://stigmer.ai/docs/concepts/files
-- Vaults: https://stigmer.ai/docs/concepts/vaults
+- Agents: https://stigmer.ai/docs/agents
+- Environments: https://stigmer.ai/docs/environments
+- Sessions: https://stigmer.ai/docs/sessions
+- Files: https://stigmer.ai/docs/files
+- Vaults: https://stigmer.ai/docs/vaults
 - Model provider keys: https://stigmer.ai/docs/guides/integrations/model-provider-keys
 
 **What an agent can do** — what it knows, its tools, and where it asks first.
-- Skills: https://stigmer.ai/docs/concepts/skills
-- Plugins: https://stigmer.ai/docs/concepts/plugins
-- Tools: https://stigmer.ai/docs/concepts/tools
+- Skills: https://stigmer.ai/docs/skills
+- Plugins: https://stigmer.ai/docs/plugins
+- Tools: https://stigmer.ai/docs/tools
 - Integrations & marketplace: https://stigmer.ai/docs/guides/integrations/overview
 - Your AI tools (Claude Code, Codex, Cursor, Claude Desktop): https://stigmer.ai/docs/guides/editors/connect-mcp
-- Approval flows: https://stigmer.ai/docs/concepts/approval-flows
-- Scores and evals: https://stigmer.ai/docs/concepts/scores,
+- Approval flows: https://stigmer.ai/docs/approval-flows
+- Scores and evals: https://stigmer.ai/docs/scores,
   https://stigmer.ai/docs/guides/evals/test-with-evals
 
 **Reach an agent** — channels, routines and your own code.
-- Channels (chat link, embed, Slack, WhatsApp): https://stigmer.ai/docs/concepts/channels,
-  then https://stigmer.ai/docs/guides/channels/create-a-chat-link,
-  https://stigmer.ai/docs/guides/channels/embed-an-agent,
-  https://stigmer.ai/docs/guides/channels/connect-slack
-  and https://stigmer.ai/docs/guides/channels/connect-whatsapp
-- Routines: https://stigmer.ai/docs/concepts/routines
+- Channels (chat link, embed, Slack, WhatsApp): https://stigmer.ai/docs/channels,
+  then https://stigmer.ai/docs/channels/create-a-chat-link,
+  https://stigmer.ai/docs/channels/embed-an-agent,
+  https://stigmer.ai/docs/channels/connect-slack
+  and https://stigmer.ai/docs/channels/connect-whatsapp
+- Routines: https://stigmer.ai/docs/routines
 - From your app: https://stigmer.ai/docs/getting-started/call-from-your-app
 
 **Access and organizations** — who may use what.
-- Sharing and access: https://stigmer.ai/docs/concepts/sharing-and-access
-- Organizations: https://stigmer.ai/docs/concepts/organizations
-- Identity: https://stigmer.ai/docs/concepts/identity
+- Sharing and access: https://stigmer.ai/docs/sharing-and-access
+- Organizations: https://stigmer.ai/docs/organizations
+- Identity: https://stigmer.ai/docs/identity
 - Authentication & federation: https://stigmer.ai/docs/guides/authentication/overview
 
 **Editions and running it** — open source, Enterprise and Cloud, and where a
 run executes.
 - Editions: https://stigmer.ai/docs/guides/self-hosting/cloud-vs-self-hosted
-- Billing: https://stigmer.ai/docs/concepts/billing
-- Runners: https://stigmer.ai/docs/concepts/runners
-- Harnesses: https://stigmer.ai/docs/concepts/harnesses
+- Billing: https://stigmer.ai/docs/billing
+- Runners: https://stigmer.ai/docs/runners
+- Harnesses: https://stigmer.ai/docs/harnesses
 - Self-hosting: https://stigmer.ai/docs/guides/self-hosting/overview
 
 **Reference** — lookup material.
@@ -150,7 +150,7 @@ rather than trusting memory:
 - **Find the right page**: fetch `https://stigmer.ai/llms.txt` — an index of
   every documentation page with a one-line description.
 - **Read a page**: every page has a Markdown export at its URL plus `.md`
-  (for example `https://stigmer.ai/docs/concepts/tools.md`). Prefer it. If
+  (for example `https://stigmer.ai/docs/tools.md`). Prefer it. If
   it returns 404, fetch the page URL without `.md` — fetched HTML is
   converted to Markdown for you.
 - **Budget your fetches**: visitor conversations run under a small tool

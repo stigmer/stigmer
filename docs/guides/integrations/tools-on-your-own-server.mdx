@@ -10,8 +10,8 @@ When everything an Agent does is a call to your own service, such as looking up
 an order or reading your refund rules, it needs no computer. An Agent without
 one needs no sandbox: on Stigmer Cloud each turn runs on a runner shared by
 every such conversation, with nothing to start or wake, so it answers sooner
-([how much sooner](/docs/concepts/agents#how-much-sooner-it-answers)). This
-guide builds one: a shop's order desk whose tools live on the shop's own server.
+([how much sooner](/docs/agents#how-much-sooner-it-answers)). This guide builds
+one: a shop's order desk whose tools live on the shop's own server.
 
 The finished app is
 [`examples/apps/order-desk`](https://github.com/stigmer/stigmer/tree/main/examples/apps/order-desk)
@@ -75,7 +75,7 @@ address".
 
 The Agent's header names the key as `${ORDER_DESK_TOKEN}`, never its text: an
 Agent's headers are returned to anyone who can read the Agent. The value goes in
-a [Vault](/docs/concepts/vaults) your app owns:
+a [Vault](/docs/vaults) your app owns:
 
 ```typescript
 declare const vaultId: string;
@@ -169,6 +169,6 @@ An Agent without a computer runs no commands and has no disk. Its files are its
 notes, the conversation's uploads and the files it hands back, kept by Stigmer.
 Stigmer refuses anything that needs a computer when the Agent is saved or a
 conversation starts, naming what to remove:
-[A computer, or none](/docs/concepts/agents#a-computer-or-none) lists each rule.
+[A computer, or none](/docs/agents#a-computer-or-none) lists each rule.
 [Give an Agent its own MCP server](/docs/guides/integrations/connect-an-mcp-server#give-an-agent-its-own-mcp-server)
 covers how its server logs in, and what changes reach which conversations.

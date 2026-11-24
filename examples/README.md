@@ -57,9 +57,9 @@ through the same job step by step. To start it from your own code instead, read
 [Do the same job from your app](https://stigmer.ai/docs/getting-started/call-from-your-app);
 to give your users the chat, read
 [Put the agent in your app](https://stigmer.ai/docs/getting-started/embed-agent).
-[Agents](https://stigmer.ai/docs/concepts/agents),
-[Sessions](https://stigmer.ai/docs/concepts/sessions) and
-[Files](https://stigmer.ai/docs/concepts/files) explain what each step did.
+[Agents](https://stigmer.ai/docs/agents),
+[Sessions](https://stigmer.ai/docs/sessions) and
+[Files](https://stigmer.ai/docs/files) explain what each step did.
 
 The variance report's two files are the quickstart's own, byte for byte, and a
 test keeps them so. Every other example runs the same way from its own folder,

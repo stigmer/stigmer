@@ -536,7 +536,7 @@ the same `session_id` and `tool_use_id`.
 ## Answer a call of your app's own tool
 
 A Session can carry tools your app answers itself (its `custom_tools`; see
-[Sessions](/docs/concepts/sessions#your-apps-own-tools)). A call of one is an
+[Sessions](/docs/sessions#your-apps-own-tools)). A call of one is an
 `agent.custom_tool_use`, and it waits like an approval: the run's phase becomes
 `waiting` and the Session goes idle with `requires_action` naming it. The turn
 readers list these calls apart from the approvals (`customToolUses`), because an
@@ -935,6 +935,6 @@ useAttentionNotifications({
   <Card
     title="Approval Flows"
     description="What asks before acting, and how a person answers."
-    href="/docs/concepts/approval-flows"
+    href="/docs/approval-flows"
   />
 </Cards>

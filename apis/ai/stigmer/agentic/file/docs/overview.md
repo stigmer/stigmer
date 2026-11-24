@@ -12,7 +12,7 @@ conversation, written by that turn, with `output_path` saying where it was
 saved, so two files of one name in two folders are two Files. Files the agent
 edits in the workspace are not returned this way. A message names its files by
 id (`RunSpec.file_ids`); a conversation lists the ones it holds in its
-`resources`. [Files](/docs/concepts/files) explains how a file reaches the
+`resources`. [Files](/docs/files) explains how a file reaches the
 agent and how it compares with Claude's Files API.
 
 ```yaml

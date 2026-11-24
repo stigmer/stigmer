@@ -1,5 +1,5 @@
 ---
 type: regex
-pattern: stigmer\.ai/docs/(concepts/coming-from-claude-managed-agents|sdk/managed-agents)
+pattern: stigmer\.ai/docs/(coming-from-claude-managed-agents|sdk/managed-agents)
 flags: i
 ---

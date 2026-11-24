@@ -84,7 +84,7 @@ that executes your Agents — with durable state in volumes you own and back up.
   [Enable authentication](/docs/guides/self-hosting/authentication).
 - **Your LLM relationships.** You bring your own provider API keys and pay
   providers directly. There is no Stigmer billing when you self-host — see
-  [Billing](/docs/concepts/billing#self-hosting).
+  [Billing](/docs/billing#self-hosting).
 - **Sandbox isolation as configuration.** The server can start execution
   sandboxes through pluggable isolation drivers — local process, Docker, or
   Kubernetes. Isolation is off by default: the stock Docker Compose stack runs
@@ -132,15 +132,15 @@ layers on what only a managed, multi-tenant service has:
 - **Hosted sign-in.** People sign in at app.stigmer.ai, with no identity
   provider of your own to run.
 - **Channels.** Agents that talk to your users
-  [in Slack and WhatsApp](/docs/guides/channels/connect-slack) — webhook
-  delivery, provider apps, and outbound messaging are cloud infrastructure.
+  [in Slack and WhatsApp](/docs/channels/connect-slack) — webhook delivery,
+  provider apps, and outbound messaging are cloud infrastructure.
 - **Model calls on your own keys, counted.** LLM calls route through the managed
   proxy on your Organization's own provider keys (or your own compatible
   endpoint), with every call's tokens counted and never priced; the provider
   bills you directly. See
   [Model provider keys](/docs/guides/integrations/model-provider-keys).
 - **Plans and billing.** Free to start, then flat monthly plans with agent hours
-  included; see [Billing](/docs/concepts/billing).
+  included; see [Billing](/docs/billing).
 - **Someone else on call.** Upgrades, backups, scaling, and sandbox isolation
   are operated for you.
 

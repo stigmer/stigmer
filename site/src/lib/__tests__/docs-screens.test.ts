@@ -89,7 +89,7 @@ describe("the docs' pictures say what their pages say", () => {
   });
 
   it("names what a picture of the job story draws, on every page that shows one", () => {
-    expect(pagesShowing("own-computer")).toEqual(expect.arrayContaining(["concepts/what-is-stigmer.mdx", "index.mdx"]));
+    expect(pagesShowing("own-computer")).toEqual(expect.arrayContaining(["what-is-stigmer.mdx", "index.mdx"]));
     const missing = Object.entries(STORY_PICTURES).flatMap(([picture, names]) =>
       pagesShowing(picture).flatMap((page) => {
         const source = collapsed(readFileSync(join(DOCS, page), "utf8"));

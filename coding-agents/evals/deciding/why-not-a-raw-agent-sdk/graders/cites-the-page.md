@@ -1,5 +1,5 @@
 ---
 type: regex
-pattern: stigmer\.ai/docs/(concepts/what-is-stigmer|concepts/harnesses|guides/runners/claude-harness)
+pattern: stigmer\.ai/docs/(what-is-stigmer|harnesses|runners/claude-harness)
 flags: i
 ---

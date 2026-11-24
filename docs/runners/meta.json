@@ -1,0 +1,9 @@
+{
+  "pages": [
+    "embedding",
+    "ipc-protocol",
+    "claude-harness",
+    "model-backends",
+    "payload-encryption"
+  ]
+}

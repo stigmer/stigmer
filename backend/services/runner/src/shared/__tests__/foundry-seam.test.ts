@@ -28,7 +28,7 @@
  *     tool_choice), NOT Anthropic's native structured-output parameter —
  *     which is why it works on "Hosted on Azure" Foundry deployments,
  *     where the native feature returns 400 by design (operator doc,
- *     docs/guides/runners/model-backends.mdx).
+ *     docs/runners/model-backends.mdx).
  */
 
 import { describe, it, expect, beforeEach, afterEach } from "vitest";

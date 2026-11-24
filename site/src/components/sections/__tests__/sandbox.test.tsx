@@ -138,6 +138,6 @@ describe("Sandbox", () => {
       panel("sleep")
         .getByRole("link", { name: "Waiting is never an agent hour" })
         .getAttribute("href"),
-    ).toBe("/docs/concepts/billing#agent-hours");
+    ).toBe("/docs/billing#agent-hours");
   });
 });

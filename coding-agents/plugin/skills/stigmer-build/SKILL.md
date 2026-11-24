@@ -52,16 +52,16 @@ then read its page.
 
 | The person needs | The piece | Never | Page |
 | --- | --- | --- | --- |
-| A password, token or key the agent's tools use | A vault holds the value; the Agent declares the variable in `env` as a secret with no value | the instructions, a Skill, an Environment, a plain `value`, a message | https://stigmer.ai/docs/concepts/vaults, https://stigmer.ai/docs/concepts/agents |
+| A password, token or key the agent's tools use | A vault holds the value; the Agent declares the variable in `env` as a secret with no value | the instructions, a Skill, an Environment, a plain `value`, a message | https://stigmer.ai/docs/vaults, https://stigmer.ai/docs/agents |
 | Each customer's own key under one name | A vault per customer, named on that customer's conversations, routines or channel; or an Organization per customer | one vault every customer's conversations use | https://stigmer.ai/docs/guides/authentication/customer-keys |
-| Packages installed before work starts, and a locked-down network | An Environment (apt and pip packages, `networking`), the Agent's default or named per conversation or routine | install steps in the instructions or a Skill; keys in the Environment | https://stigmer.ai/docs/guides/environments/set-up-an-environment, https://stigmer.ai/docs/concepts/environments |
-| A tool that waits for a person's yes | The tool's mark (an MCP tool's `destructiveHint`) or a `PreToolUse` hook that asks | a field on the Agent, or telling the model to ask | https://stigmer.ai/docs/concepts/approval-flows |
+| Packages installed before work starts, and a locked-down network | An Environment (apt and pip packages, `networking`), the Agent's default or named per conversation or routine | install steps in the instructions or a Skill; keys in the Environment | https://stigmer.ai/docs/environments/set-up-an-environment, https://stigmer.ai/docs/environments |
+| A tool that waits for a person's yes | The tool's mark (an MCP tool's `destructiveHint`) or a `PreToolUse` hook that asks | a field on the Agent, or telling the model to ask | https://stigmer.ai/docs/approval-flows |
 | Their MCP server | A plugin holding it (`stigmer mcp add`), listed in the Agent's `plugins` | a token pasted into a header | https://stigmer.ai/docs/guides/integrations/connect-an-mcp-server |
-| Only some tools | The Agent's `tools` and `disallowed_tools`, in the full tool-name form | bare tool names | https://stigmer.ai/docs/concepts/tools |
-| Know-how written down | A Skill (`stigmer push skill`), listed in the Agent's `skill_refs` | pasting it into the instructions | https://stigmer.ai/docs/concepts/skills |
-| A team's Claude Code, Cursor or Codex plugin | The folder, unchanged, as a plugin (`stigmer push plugin`), listed in the Agent's `plugins` | rewriting it; its Skills in `skill_refs` | https://stigmer.ai/docs/concepts/plugins, https://stigmer.ai/docs/guides/plugins/install-a-plugin, https://stigmer.ai/docs/guides/plugins/use-hooks |
-| A schedule, or another system starting the agent | A Routine | their own cron or a polling script as the answer | https://stigmer.ai/docs/concepts/routines |
-| People outside Stigmer chatting with it | A Channel: a chat link, the embed, Slack or WhatsApp | a home-made bot or inbox | https://stigmer.ai/docs/concepts/channels |
+| Only some tools | The Agent's `tools` and `disallowed_tools`, in the full tool-name form | bare tool names | https://stigmer.ai/docs/tools |
+| Know-how written down | A Skill (`stigmer push skill`), listed in the Agent's `skill_refs` | pasting it into the instructions | https://stigmer.ai/docs/skills |
+| A team's Claude Code, Cursor or Codex plugin | The folder, unchanged, as a plugin (`stigmer push plugin`), listed in the Agent's `plugins` | rewriting it; its Skills in `skill_refs` | https://stigmer.ai/docs/plugins, https://stigmer.ai/docs/plugins/install-a-plugin, https://stigmer.ai/docs/plugins/use-hooks |
+| A schedule, or another system starting the agent | A Routine | their own cron or a polling script as the answer | https://stigmer.ai/docs/routines |
+| People outside Stigmer chatting with it | A Channel: a chat link, the embed, Slack or WhatsApp | a home-made bot or inbox | https://stigmer.ai/docs/channels |
 
 ## Designing the agent
 
@@ -70,7 +70,7 @@ then read its page.
 The Agent's `env` names the variable as a secret with no value; the value
 lives in a vault and is found by its name when a run starts, so a shell
 command the agent runs (psql, curl) reads it as an environment variable.
-Pages: https://stigmer.ai/docs/concepts/vaults, https://stigmer.ai/docs/concepts/agents ("Where the secrets
+Pages: https://stigmer.ai/docs/vaults, https://stigmer.ai/docs/agents ("Where the secrets
 come from"), https://stigmer.ai/docs/cli/commands/vault.
 
 - One customer, one vault, the same variable name in each; the vault is
@@ -97,7 +97,7 @@ Page: https://stigmer.ai/docs/guides/integrations/connect-an-mcp-server.
 Approval comes from the tool, not the Agent: their MCP server marks the
 tool `destructiveHint: true`, or a `PreToolUse` hook asks before it; read
 tools stay unmarked. The run then waits, durably, until someone allows or
-denies the call. Page: https://stigmer.ai/docs/concepts/approval-flows.
+denies the call. Page: https://stigmer.ai/docs/approval-flows.
 
 - Never recommend approving every call (`auto_approve_all`, **Allow all**)
   as the setup.
@@ -109,7 +109,7 @@ denies the call. Page: https://stigmer.ai/docs/concepts/approval-flows.
 An Environment lists apt and pip packages, installed before the first turn
 of every fresh sandbox, and its `networking` limits the hosts. Make it the
 Agent's default Environment, or name it per conversation or routine.
-Pages: https://stigmer.ai/docs/guides/environments/set-up-an-environment, https://stigmer.ai/docs/concepts/environments.
+Pages: https://stigmer.ai/docs/environments/set-up-an-environment, https://stigmer.ai/docs/environments.
 
 - Packages under limited networking need the package registries allowed
   too, and that opens them to the agent: say so, for the security team.
@@ -123,7 +123,7 @@ and its `hooks.json` included: an Organization admin pushes it
 `plugins`, which brings its Skills and hooks with it. A loose skill folder
 is pushed the same way, by an admin (`stigmer push skill <dir>`), and
 listed in `skill_refs`.
-Pages: https://stigmer.ai/docs/guides/plugins/install-a-plugin, https://stigmer.ai/docs/guides/plugins/use-hooks.
+Pages: https://stigmer.ai/docs/plugins/install-a-plugin, https://stigmer.ai/docs/plugins/use-hooks.
 
 - Only `PreToolUse` and `PostToolUse` command hooks run; the plugin's page
   lists the rest as not run. Hooks in the repository's `.claude/settings.json`
@@ -145,7 +145,7 @@ has. When the person asked only to look, change nothing.
 `stigmer channel link <agent>` makes the hosted chat link (its audience is
 the Organization's members unless they choose `--audience public`). The
 chat inside their own app is the stigmer-integrate skill's job.
-Pages: https://stigmer.ai/docs/guides/channels/create-a-chat-link, https://stigmer.ai/docs/guides/channels/embed-an-agent.
+Pages: https://stigmer.ai/docs/channels/create-a-chat-link, https://stigmer.ai/docs/channels/embed-an-agent.
 
 ### Slack
 
@@ -155,7 +155,7 @@ Slack**), which installs the bot into one workspace; the bot answers as
 customer's workspace gets its own channel on the Agent, with a vault of
 that customer's keys; one app serves every workspace. The page says who
 must finish a customer's install. Stigmer Cloud only.
-Pages: https://stigmer.ai/docs/guides/channels/connect-slack, https://stigmer.ai/docs/guides/channels/bring-your-own-slack-app.
+Pages: https://stigmer.ai/docs/channels/connect-slack, https://stigmer.ai/docs/channels/bring-your-own-slack-app.
 
 - There is no self-install link a customer opens alone, no Slack App
   Directory listing, and no CLI command that installs Slack.
@@ -173,8 +173,8 @@ once the channel's proactive messaging is on; and the sweep is a scheduled
 routine whose message finds who is due and sends the template, because a
 routine's run may message anyone while a member's own conversation only
 answers them. Stigmer Cloud only.
-Pages: https://stigmer.ai/docs/guides/channels/set-up-your-meta-app, https://stigmer.ai/docs/guides/channels/connect-whatsapp,
-https://stigmer.ai/docs/guides/channels/send-proactive-messages-with-templates.
+Pages: https://stigmer.ai/docs/channels/set-up-your-meta-app, https://stigmer.ai/docs/channels/connect-whatsapp,
+https://stigmer.ai/docs/channels/send-proactive-messages-with-templates.
 
 - Templates are written in Meta's tools, never in Stigmer.
 - Meta bills templates, and replies past its free tier: the page says what
@@ -185,7 +185,7 @@ https://stigmer.ai/docs/guides/channels/send-proactive-messages-with-templates.
 In the console's **Conversations**, a person with **Participant** on the
 channel takes a conversation over, replies through the same number, and
 hands it back. WhatsApp only today; on Slack staff read, and only the
-Agent replies. Page: https://stigmer.ai/docs/guides/channels/take-over-conversations.
+Agent replies. Page: https://stigmer.ai/docs/channels/take-over-conversations.
 
 ### A routine on a schedule
 
@@ -193,7 +193,7 @@ A `kind: Routine` manifest (or the console's **New routine**): the Agent,
 the message every run starts from, a `cron` and its `time_zone`, the vaults
 its tools need (no one is signed in when it runs) and, if it needs one, an
 Environment. Applied with `stigmer apply -f <file>`: `stigmer routine`
-has no command that creates one. Page: https://stigmer.ai/docs/guides/routines/run-an-agent-on-a-schedule.
+has no command that creates one. Page: https://stigmer.ai/docs/routines/run-an-agent-on-a-schedule.
 
 - A routine is created off. Turning it on, or **Enable & run now**, starts
   runs that spend the Organization's model keys: ask first, and leave it
@@ -208,7 +208,7 @@ the other system sends one HTTP call with the routine's id and a note,
 using a service account's key kept in its secret store. Every run acts as
 the routine's owner, never the caller: to keep it off a person's login, the
 service account creates and owns the routine. Pages:
-https://stigmer.ai/docs/guides/routines/start-a-routine-from-another-system, https://stigmer.ai/docs/concepts/routines.
+https://stigmer.ai/docs/routines/start-a-routine-from-another-system, https://stigmer.ai/docs/routines.
 
 - The request takes the routine's `id` and the note's `text`, nothing else;
   there is no per-routine webhook URL.

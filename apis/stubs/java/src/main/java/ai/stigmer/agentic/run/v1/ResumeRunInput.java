@@ -11,7 +11,7 @@ package ai.stigmer.agentic.run.v1;
  *
  * Continues the run from where it was paused; the run moves back to
  * RUN_IN_PROGRESS. How a turn's state is saved is the harness's
- * ([Harnesses](/docs/concepts/harnesses)).
+ * ([Harnesses](/docs/harnesses)).
  *
  * ## Preconditions
  *
@@ -301,7 +301,7 @@ private static final long serialVersionUID = 0L;
    *
    * Continues the run from where it was paused; the run moves back to
    * RUN_IN_PROGRESS. How a turn's state is saved is the harness's
-   * ([Harnesses](/docs/concepts/harnesses)).
+   * ([Harnesses](/docs/harnesses)).
    *
    * ## Preconditions
    *

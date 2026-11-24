@@ -57,6 +57,12 @@ import { HELP_GROUPS, type HelpGroup } from "../src/commands/help.js";
 type GroupId = HelpGroup;
 const groupOrder = HELP_GROUPS;
 
+// The command pages' address on the site. Links between them are written
+// whole: the index page is the folder's own page, served at this address, so
+// a relative `./auth` written there resolves one folder up, to
+// /docs/cli/auth, which serves nothing.
+const COMMANDS_URL = "/docs/cli/commands";
+
 // sectionHeaderRe matches terminal-style UPPERCASE section headers found in
 // command descriptions (e.g. "USAGE FORMS:", "ENVIRONMENT VARIABLES:").
 const sectionHeaderRe = /^([A-Z][A-Z0-9]+(?: [A-Za-z0-9]+)*):\s*$/;
@@ -289,7 +295,7 @@ export function renderDefaultPage(cmd: Command, globalFlags: FlagDoc[]): string 
     }
   }
 
-  out += "## See also\n\n- [Command Reference](./) — all available commands\n";
+  out += `## See also\n\n- [Command Reference](${COMMANDS_URL}) — all available commands\n`;
   return out;
 }
 
@@ -308,7 +314,7 @@ export function renderIndexPage(grouped: Map<GroupId, Command[]>, globalFlags: F
     out += "| Command | Description |\n";
     out += "|---------|-------------|\n";
     for (const cmd of cmds) {
-      out += `| [\`${commandPath(cmd)}\`](./${cmd.name()}) | ${escapeTable(shortDescription(cmd))} |\n`;
+      out += `| [\`${commandPath(cmd)}\`](${COMMANDS_URL}/${cmd.name()}) | ${escapeTable(shortDescription(cmd))} |\n`;
     }
     out += "\n";
   }

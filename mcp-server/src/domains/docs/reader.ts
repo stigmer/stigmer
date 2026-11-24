@@ -84,7 +84,7 @@ export interface DocsReaderOptions {
 export interface DocsReader {
   /** The pages that best match the words, best first, at most {@link DOCS_SEARCH_LIMIT}. */
   searchDocs(query: string): Promise<DocsHit[]>;
-  /** One page's Markdown export, whole. Takes `concepts/tools`, `/docs/concepts/tools` or the full URL, with or without `.md`. */
+  /** One page's Markdown export, whole. Takes `tools`, `/docs/tools` or the full URL, with or without `.md`. */
   readDocPage(page: string): Promise<DocPage>;
 }
 

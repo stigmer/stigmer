@@ -8,7 +8,9 @@
  * costs the reader a redirect, and the homepage once linked four Getting
  * Started pages that only redirects still answered. The anchor and query are
  * dropped first; a docs path is served when its `.mdx` or `index.mdx`
- * exists, a post when its `.mdx` exists, a shown picture's file when the
+ * exists, and its Markdown twin (`<path>.md`, the welcome page's at
+ * `/docs/index.md`, as `markdownExportUrl` writes them) when the page is; a
+ * post when its `.mdx` exists, a shown picture's file when the
  * visual suite's list names it (the build writes each one at every density,
  * scripts/generate-screens.ts), and anything else when it is one of the
  * static routes.
@@ -51,7 +53,8 @@ export function servedPath(href: string): boolean {
   const target = href.split(/[#?]/)[0];
   if (MOVED.has(target)) return false;
   if (target === "/") return true;
-  if (target === "/docs") return docsPageExists("");
+  if (target === "/docs" || target === "/docs/index.md") return docsPageExists("");
+  if (target.startsWith("/docs/") && target.endsWith(".md")) return servedPath(target.slice(0, -".md".length));
   if (target.startsWith("/docs/")) return docsPageExists(target.slice("/docs/".length));
   if (target.startsWith("/blog/")) {
     return fs.existsSync(path.join(BLOG, `${target.slice("/blog/".length)}.mdx`));

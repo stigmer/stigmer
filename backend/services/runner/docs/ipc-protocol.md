@@ -3,7 +3,7 @@
 The canonical, human-readable reference for the manager-mode stdin/stdout IPC
 protocol now lives on the Stigmer documentation site:
 
-**https://stigmer.ai/docs/guides/runners/ipc-protocol**
+**https://stigmer.ai/docs/runners/ipc-protocol**
 
 That page is the single source of truth for the command/response contract, the
 versioned handshake, the lifecycle, and the compatibility rules. Edit it

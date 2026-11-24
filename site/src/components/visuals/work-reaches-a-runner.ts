@@ -10,7 +10,7 @@
  * same API your backend calls (backend/services/runner/src/client/). Every
  * way of running Stigmer starts the runner beside the server, so it sits
  * inside Stigmer's frame; the picture names no edition, because it holds in
- * every one (docs/concepts/runners.mdx).
+ * every one (docs/runners/index.mdx).
  *
  * The layout is the shared engine's (`drawing/grid.ts`): every box, line
  * piece and label is a named grid area, the frame is computed from what it

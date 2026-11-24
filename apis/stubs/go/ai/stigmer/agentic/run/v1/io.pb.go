@@ -954,7 +954,7 @@ func (x *PauseRunInput) GetReason() string {
 //
 // Continues the run from where it was paused; the run moves back to
 // RUN_IN_PROGRESS. How a turn's state is saved is the harness's
-// ([Harnesses](/docs/concepts/harnesses)).
+// ([Harnesses](/docs/harnesses)).
 //
 // ## Preconditions
 //

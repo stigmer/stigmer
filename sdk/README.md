@@ -19,7 +19,7 @@ with the same operations, authenticates with an API key or a user token, and
 reports refusals as typed errors.
 Every resource follows one set of rules for its ID and slug, renaming,
 references, updates and lists, the same in every language:
-[Resources](https://stigmer.ai/docs/concepts/resources).
+[Resources](https://stigmer.ai/docs/resources).
 
 ## UI libraries (TypeScript)
 

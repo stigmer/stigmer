@@ -4,9 +4,9 @@ import { PageActions } from "../page-actions";
 import { SITE_CONFIG } from "@/lib/constants";
 
 const PROPS = {
-  markdownUrl: "/docs/concepts/agents.md",
+  markdownUrl: "/docs/agents.md",
   pageTitle: "Agents",
-  pageUrl: "/docs/concepts/agents",
+  pageUrl: "/docs/agents",
 };
 
 afterEach(() => {
@@ -35,7 +35,7 @@ describe("PageActions", () => {
     await waitFor(() =>
       expect(screen.getByRole("button", { name: "Copied!" })).toBeTruthy(),
     );
-    expect(fetch).toHaveBeenCalledWith("/docs/concepts/agents.md");
+    expect(fetch).toHaveBeenCalledWith("/docs/agents.md");
     expect(clipboard.writeText).toHaveBeenCalledWith("# Agents");
   });
 
@@ -78,7 +78,7 @@ describe("PageActions", () => {
     expect(url.searchParams.get("labels")).toBe("documentation");
     expect(url.searchParams.get("title")).toBe("Docs feedback: Agents");
     expect(url.searchParams.get("body")).toContain(
-      `${SITE_CONFIG.url}/docs/concepts/agents`,
+      `${SITE_CONFIG.url}/docs/agents`,
     );
     expect(link.getAttribute("target")).toBe("_blank");
     expect(link.getAttribute("rel")).toContain("noopener");

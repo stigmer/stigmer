@@ -36,7 +36,7 @@ afterEach(() => {
 
 describe("the docs sidebar's labels", () => {
   it("gives no two neighbours the same name, anywhere in docs/", () => {
-    expect(repeatedSidebarLabels(DOCS), "rename one of each pair: a guide folder's title differs from its concept page's (docs/CONTRIBUTING.md)").toEqual([]);
+    expect(repeatedSidebarLabels(DOCS), "rename one of each pair (docs/CONTRIBUTING.md, \"Sidebar ordering\")").toEqual([]);
   });
 
   it("names a page and the folder beside it that share a title, with the group they sit in", () => {
@@ -99,10 +99,34 @@ describe("the docs sidebar's labels", () => {
     expect(() => repeatedSidebarLabels(docs)).toThrow('docs/meta.json: the entry "..." is not one page or one folder with a meta.json');
   });
 
+  it("names a folder with no title of its own after its index page, as the sidebar does", () => {
+    const docs = tree({
+      "meta.json": meta({ pages: ["channels", "[Channels](/docs/channels)"] }),
+      "channels/meta.json": meta({ pages: ["connect-slack"] }),
+      "channels/index.mdx": page("Channels"),
+      "channels/connect-slack.mdx": page("Connect Slack"),
+    });
+    expect(repeatedSidebarLabels(docs)).toEqual([
+      { label: "Channels", where: "docs/meta.json", entries: ["channels", "[Channels](/docs/channels)"] },
+    ]);
+  });
+
+  it("reads a folder's meta.json title before its index page's", () => {
+    const docs = tree({
+      "meta.json": meta({ pages: ["sdk", "concepts/sdk"] }),
+      "sdk/meta.json": meta({ title: "SDK reference", pages: [] }),
+      "sdk/index.mdx": page("SDK"),
+      "concepts/sdk.mdx": page("SDK"),
+    });
+    expect(repeatedSidebarLabels(docs)).toEqual([]);
+  });
+
   it("refuses a page or a folder with no title, naming the file", () => {
     const untitledPage = tree({ "meta.json": meta({ pages: ["index"] }), "index.mdx": "Text.\n" });
     expect(() => repeatedSidebarLabels(untitledPage)).toThrow("docs/index.mdx: no title");
     const untitledFolder = tree({ "meta.json": meta({ pages: ["guides"] }), "guides/meta.json": meta({ pages: [] }) });
-    expect(() => repeatedSidebarLabels(untitledFolder)).toThrow("docs/guides/meta.json: no title");
+    expect(() => repeatedSidebarLabels(untitledFolder)).toThrow("docs/guides: no title in its meta.json and no index.mdx");
+    const untitledIndex = tree({ "meta.json": meta({ pages: ["channels"] }), "channels/meta.json": meta({ pages: [] }), "channels/index.mdx": "Text.\n" });
+    expect(() => repeatedSidebarLabels(untitledIndex)).toThrow("docs/channels/index.mdx: no title");
   });
 });

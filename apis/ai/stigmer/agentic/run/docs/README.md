@@ -29,7 +29,7 @@ Run is more than a log record. It provides active runtime control:
 - **Lifecycle control**: pause, resume, terminate, or recover from failure without losing completed work; the session's `interrupt` stops a conversation's unfinished turns
 - **Human-in-the-Loop (HITL) approvals**: a turn waits at a tool that needs a person's answer (`RUN_WAITING_FOR_APPROVAL`) until the session's `confirmToolUse` or `grantPermission` answers it
 - **File record**: `status.file_changes` keeps the change sets each turn captured (contents before and after, the diff, the snapshots); keeping or undoing them is the session's file review
-- **Files**: name uploaded Files by id in a message; the agent finds them under `.stigmer/uploads/`. What the agent saves in `.stigmer/outputs/` comes back as Files of the turn (`FileStatus.run_id`, `output_path`), downloaded with `stigmer download run <id>`; see [Files](https://stigmer.ai/docs/concepts/files)
+- **Files**: name uploaded Files by id in a message; the agent finds them under `.stigmer/uploads/`. What the agent saves in `.stigmer/outputs/` comes back as Files of the turn (`FileStatus.run_id`, `output_path`), downloaded with `stigmer download run <id>`; see [Files](https://stigmer.ai/docs/files)
 - **Run settings**: one `run_config` per message (model, speed tier, thinking, cost and tool limits), resolved with the agent's defaults and recorded on `status.run_config`; see [run-resource-guide.md](run-resource-guide.md#run-settings-run_config)
 - **Context management**: automatic context window summarization for long-running conversations, by the model's Model Registry entry
 - **Usage**: `status.streaming_usage` tracks tokens and estimated cost while the run works; the usage report RPCs read the metered record
@@ -42,7 +42,7 @@ Run is more than a log record. It provides active runtime control:
 | [run-resource-guide.md](run-resource-guide.md) | Complete spec and status schema reference — all fields, types, and CLI commands |
 | [run-lifecycle.md](run-lifecycle.md) | Phase state machine — interrupt, terminate, pause/resume, recover |
 | [hitl-approvals.md](hitl-approvals.md) | Human-in-the-Loop approval gates — what asks, answering on the session, approve all, unattended turns |
-| [Files](https://stigmer.ai/docs/concepts/files) | A message's files, a conversation's Files, and the outputs an agent returns |
+| [Files](https://stigmer.ai/docs/files) | A message's files, a conversation's Files, and the outputs an agent returns |
 | [examples.md](examples.md) | Complete examples from minimal trigger to full-featured run |
 
 ## Proto Source

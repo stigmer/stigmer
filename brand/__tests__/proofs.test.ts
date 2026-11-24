@@ -179,17 +179,17 @@ test("the proof check names a heading a docs page does not have", () => {
     problemsOf({
       kind: "source",
       label: "x",
-      href: "/docs/concepts/billing#agent-minutes",
+      href: "/docs/billing#agent-minutes",
     }),
     [
-      `source "/docs/concepts/billing#agent-minutes": docs/concepts/billing.mdx has no heading "#agent-minutes"`,
+      `source "/docs/billing#agent-minutes": docs/billing.mdx has no heading "#agent-minutes"`,
     ],
   );
   assert.deepEqual(
     problemsOf({
       kind: "source",
       label: "x",
-      href: "/docs/concepts/billing#agent-hours",
+      href: "/docs/billing#agent-hours",
     }),
     [],
   );

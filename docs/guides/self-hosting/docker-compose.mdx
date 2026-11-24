@@ -106,7 +106,7 @@ a space, which Temporal can't use. Two optional lines are worth setting now:
   the console and the API; runs fail at the LLM call. If your model traffic goes
   through an LLM gateway in front of Anthropic, set `ANTHROPIC_BASE_URL` to it
   too (see
-  [Send Claude calls through an LLM gateway](/docs/guides/runners/model-backends#send-claude-calls-through-an-llm-gateway)).
+  [Send Claude calls through an LLM gateway](/docs/runners/model-backends#send-claude-calls-through-an-llm-gateway)).
 - `STIGMER_OPERATOR_EMAIL`, your own email. It's stamped on what you create, and
   when you later turn authentication on, the person who signs in with this email
   owns the server's Organization.
@@ -155,8 +155,8 @@ this stack, your laptop and Stigmer Cloud is one command. For CI jobs and
 scripts, setting `STIGMER_SERVER_ADDRESS=<host>:<port>` in the process's
 variables overrides the active backend for that process. The
 [`stigmer config`](/docs/cli/commands/config) reference lists every backend and
-context command, and [Organizations](/docs/concepts/organizations) explains how
-the editions that hold several fit together.
+context command, and [Organizations](/docs/organizations) explains how the
+editions that hold several fit together.
 
 ### Run your first Agent
 

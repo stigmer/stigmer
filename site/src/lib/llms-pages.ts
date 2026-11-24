@@ -12,11 +12,12 @@
  *   - Root folders (`"root": true` in meta.json — rendered as layout tabs, not
  *     sidebar entries) always form their own sections titled from their
  *     meta.json, regardless of any preceding separator.
- *   - Cross-folder page refs ("concepts/agents"), file+folder hybrids
+ *   - Cross-folder page refs ("getting-started/quickstart"), file+folder hybrids
  *     ("runners.mdx" beside "runners/"), and folder indexes omitted from
  *     a `pages` allowlist are resolved the way Fumadocs resolves them.
  *   - `[Label](url)` link entries carry a custom sidebar label for a page
- *     (e.g. "[Welcome](/docs)", "[Overview](/docs/guides/runners)"). When
+ *     (e.g. "[Welcome](/docs)",
+ *     "[Editions](/docs/guides/self-hosting/cloud-vs-self-hosted)"). When
  *     the internal target is not collected through any other entry, the walk
  *     resolves and collects it; already-collected targets and external URLs
  *     are skipped.
@@ -43,7 +44,7 @@ export interface SectionMeta {
 }
 
 export interface DocsPageEntry {
-  /** Path relative to docs/, with .mdx and /index stripped (e.g. "concepts/agents"). */
+  /** Path relative to docs/, with .mdx and /index stripped (e.g. "agents"). */
   relativePath: string;
   title: string;
   description: string;
@@ -363,7 +364,8 @@ export function isLinkEntry(entry: string): boolean {
 
 /**
  * Extracts the docs-relative path from an internal link entry
- * ("[Overview](/docs/guides/runners)" → "guides/runners"; "[Welcome](/docs)"
+ * ("[Editions](/docs/guides/self-hosting/cloud-vs-self-hosted)" →
+ * "guides/self-hosting/cloud-vs-self-hosted"; "[Welcome](/docs)"
  * → ""). Returns null for external or non-docs URLs.
  */
 export function linkTargetRelativePath(entry: string): string | null {
