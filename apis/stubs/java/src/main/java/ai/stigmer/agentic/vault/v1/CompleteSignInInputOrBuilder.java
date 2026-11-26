@@ -12,7 +12,7 @@ public interface CompleteSignInInputOrBuilder extends
 
   /**
    * <pre>
-   * The state from startSignIn, as the login page returned it.
+   * The state from startSignIn.
    * </pre>
    *
    * <code>string state = 1 [json_name = "state", (.buf.validate.field) = { ... }</code>
@@ -21,7 +21,7 @@ public interface CompleteSignInInputOrBuilder extends
   java.lang.String getState();
   /**
    * <pre>
-   * The state from startSignIn, as the login page returned it.
+   * The state from startSignIn.
    * </pre>
    *
    * <code>string state = 1 [json_name = "state", (.buf.validate.field) = { ... }</code>
@@ -32,7 +32,10 @@ public interface CompleteSignInInputOrBuilder extends
 
   /**
    * <pre>
-   * The authorization code the login page returned.
+   * The authorization code the login page returned, for a page of the
+   * caller's own that received it. Empty finishes with the answer the
+   * callback page handed back (handBackSignIn), or answers pending until it
+   * has.
    * </pre>
    *
    * <code>string code = 2 [json_name = "code", (.buf.validate.field) = { ... }</code>
@@ -41,7 +44,10 @@ public interface CompleteSignInInputOrBuilder extends
   java.lang.String getCode();
   /**
    * <pre>
-   * The authorization code the login page returned.
+   * The authorization code the login page returned, for a page of the
+   * caller's own that received it. Empty finishes with the answer the
+   * callback page handed back (handBackSignIn), or answers pending until it
+   * has.
    * </pre>
    *
    * <code>string code = 2 [json_name = "code", (.buf.validate.field) = { ... }</code>

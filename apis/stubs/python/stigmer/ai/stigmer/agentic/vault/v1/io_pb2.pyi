@@ -159,12 +159,34 @@ class CompleteSignInInput(_message.Message):
     def __init__(self, state: _Optional[str] = ..., code: _Optional[str] = ...) -> None: ...
 
 class CompleteSignInOutput(_message.Message):
-    __slots__ = ("address", "description")
+    __slots__ = ("address", "description", "pending")
     ADDRESS_FIELD_NUMBER: _ClassVar[int]
     DESCRIPTION_FIELD_NUMBER: _ClassVar[int]
+    PENDING_FIELD_NUMBER: _ClassVar[int]
     address: str
     description: str
-    def __init__(self, address: _Optional[str] = ..., description: _Optional[str] = ...) -> None: ...
+    pending: bool
+    def __init__(self, address: _Optional[str] = ..., description: _Optional[str] = ..., pending: bool = ...) -> None: ...
+
+class HandBackSignInInput(_message.Message):
+    __slots__ = ("state", "code", "error", "error_description")
+    STATE_FIELD_NUMBER: _ClassVar[int]
+    CODE_FIELD_NUMBER: _ClassVar[int]
+    ERROR_FIELD_NUMBER: _ClassVar[int]
+    ERROR_DESCRIPTION_FIELD_NUMBER: _ClassVar[int]
+    state: str
+    code: str
+    error: str
+    error_description: str
+    def __init__(self, state: _Optional[str] = ..., code: _Optional[str] = ..., error: _Optional[str] = ..., error_description: _Optional[str] = ...) -> None: ...
+
+class HandBackSignInOutput(_message.Message):
+    __slots__ = ("provider_name", "address")
+    PROVIDER_NAME_FIELD_NUMBER: _ClassVar[int]
+    ADDRESS_FIELD_NUMBER: _ClassVar[int]
+    provider_name: str
+    address: str
+    def __init__(self, provider_name: _Optional[str] = ..., address: _Optional[str] = ...) -> None: ...
 
 class CreateConnectLinkInput(_message.Message):
     __slots__ = ("org", "vault_id", "address", "return_url", "expires_in_seconds")

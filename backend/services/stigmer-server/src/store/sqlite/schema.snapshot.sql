@@ -119,7 +119,10 @@ CREATE TABLE pending_oauth_state (
   connect_link TEXT NOT NULL DEFAULT '',
   provider_name TEXT NOT NULL DEFAULT '',
   userinfo_url TEXT NOT NULL DEFAULT '',
-  created_at INTEGER NOT NULL
+  created_at INTEGER NOT NULL,
+  answered_code TEXT,
+  answer_error TEXT,
+  answered_at INTEGER
 );
 
 CREATE TABLE resource_audit (

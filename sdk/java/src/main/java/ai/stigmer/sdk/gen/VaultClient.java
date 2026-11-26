@@ -13,6 +13,8 @@ import ai.stigmer.agentic.vault.v1.ConnectLinkTokenInput;
 import ai.stigmer.agentic.vault.v1.CreateConnectLinkInput;
 import ai.stigmer.agentic.vault.v1.GetMyVaultInput;
 import ai.stigmer.agentic.vault.v1.GetVaultByExternalIdInput;
+import ai.stigmer.agentic.vault.v1.HandBackSignInInput;
+import ai.stigmer.agentic.vault.v1.HandBackSignInOutput;
 import ai.stigmer.agentic.vault.v1.ListVaultsRequest;
 import ai.stigmer.agentic.vault.v1.RemoveVaultConnectionsInput;
 import ai.stigmer.agentic.vault.v1.RemoveVaultSecretsInput;
@@ -119,6 +121,12 @@ public final class VaultClient {
     public CompleteSignInOutput completeSignIn(CompleteSignInInput input) {
         try {
             return command.completeSignIn(input);
+        } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
+    }
+
+    public HandBackSignInOutput handBackSignIn(HandBackSignInInput input) {
+        try {
+            return command.handBackSignIn(input);
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
     }
 

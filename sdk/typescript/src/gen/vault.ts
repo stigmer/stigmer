@@ -9,7 +9,7 @@ import { createClient, type Client, type Transport } from "@connectrpc/connect";
 import { VaultSchema, type Vault } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/api_pb";
 import { VaultCommandController } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/command_pb";
 import { ConnectLinkController, ConnectLinkTokenInputSchema, ConnectLinkInfoSchema, StartConnectLinkOutputSchema, CompleteConnectLinkInputSchema, CompleteConnectLinkOutputSchema, type ConnectLinkTokenInput, type ConnectLinkInfo, type StartConnectLinkOutput, type CompleteConnectLinkInput, type CompleteConnectLinkOutput } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/connect_link_pb";
-import { UpdateVaultInputSchema, SetVaultSecretsInputSchema, RemoveVaultSecretsInputSchema, SetVaultConnectionInputSchema, RemoveVaultConnectionsInputSchema, StartSignInInputSchema, StartSignInOutputSchema, CompleteSignInInputSchema, CompleteSignInOutputSchema, CreateConnectLinkInputSchema, ConnectLinkSchema, GetMyVaultInputSchema, GetVaultByExternalIdInputSchema, ListVaultsRequestSchema, VaultListSchema, type SetVaultSecretsInput, type RemoveVaultSecretsInput, type SetVaultConnectionInput, type RemoveVaultConnectionsInput, type StartSignInInput, type StartSignInOutput, type CompleteSignInInput, type CompleteSignInOutput, type CreateConnectLinkInput, type ConnectLink, type GetMyVaultInput, type GetVaultByExternalIdInput, type ListVaultsRequest, type VaultList } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/io_pb";
+import { UpdateVaultInputSchema, SetVaultSecretsInputSchema, RemoveVaultSecretsInputSchema, SetVaultConnectionInputSchema, RemoveVaultConnectionsInputSchema, StartSignInInputSchema, StartSignInOutputSchema, CompleteSignInInputSchema, CompleteSignInOutputSchema, HandBackSignInInputSchema, HandBackSignInOutputSchema, CreateConnectLinkInputSchema, ConnectLinkSchema, GetMyVaultInputSchema, GetVaultByExternalIdInputSchema, ListVaultsRequestSchema, VaultListSchema, type SetVaultSecretsInput, type RemoveVaultSecretsInput, type SetVaultConnectionInput, type RemoveVaultConnectionsInput, type StartSignInInput, type StartSignInOutput, type CompleteSignInInput, type CompleteSignInOutput, type HandBackSignInInput, type HandBackSignInOutput, type CreateConnectLinkInput, type ConnectLink, type GetMyVaultInput, type GetVaultByExternalIdInput, type ListVaultsRequest, type VaultList } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/io_pb";
 import { VaultQueryController } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/query_pb";
 import { VaultSpecSchema, VaultConnectionSource, VaultSecretSchema, VaultConnectionSignInSchema, VaultConnectionSchema, type VaultSecret, type VaultConnectionSignIn, type VaultConnection } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/spec_pb";
 import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
@@ -96,6 +96,12 @@ export class VaultClient {
   async completeSignIn(input: MessageInitShape<typeof CompleteSignInInputSchema>): Promise<CompleteSignInOutput> {
     try {
       return await this.command.completeSignIn(input);
+    } catch (e) { throw wrapError(e); }
+  }
+
+  async handBackSignIn(input: MessageInitShape<typeof HandBackSignInInputSchema>): Promise<HandBackSignInOutput> {
+    try {
+      return await this.command.handBackSignIn(input);
     } catch (e) { throw wrapError(e); }
   }
 

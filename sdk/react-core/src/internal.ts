@@ -17,6 +17,7 @@
 export { fromProtoInteractionMode, toProtoInteractionMode } from "./composer/interaction-mode.js";
 export { ApiResourceKind } from "./deployment-mode.js";
 export { ExecutionTargetContext, useExecutionTarget } from "./execution-target-context.js";
+export { AbortError, computeBackoffDelay, sleep } from "./internal/backoff.js";
 export { FetchCacheContext, useFetchCache } from "./internal/FetchCacheProvider.js";
 export { isPerfLoggingEnabled } from "./internal/dev/enabled.js";
 export { useStreamRate } from "./internal/dev/use-stream-rate.js";

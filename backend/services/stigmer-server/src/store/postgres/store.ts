@@ -65,6 +65,8 @@ import type {
   ResourceNameStore,
   ResourceNameUndo,
   PendingOAuthState,
+  PendingSignInAnswer,
+  StoredPendingOAuthState,
   OrganizationDeletion,
   OrganizationDeletionStore,
   PendingOAuthStateStore,
@@ -149,6 +151,7 @@ import type {
   PermissionHistoryRecord,
 } from "../permission-history.js";
 import { decodeFiredBy, encodeFiredBy } from "../fired-by.js";
+import { pendingSignInAnswerOf } from "../pending-sign-in-answer.js";
 import { instantNotBefore, rfc3339Seconds } from "../rfc3339.js";
 import { stampEtag } from "../etag.js";
 import { fileBlobRefusal } from "../file-blobs.js";
@@ -2581,6 +2584,10 @@ const PENDING_OAUTH_STATE_COLUMNS = `state, code_verifier, client_id, client_sec
   address, login_app, resource, client_registration, connect_link, provider_name,
   userinfo_url, created_at`;
 
+/** The columns a read returns: the start's, then the answer the callback page handed back. */
+const STORED_PENDING_OAUTH_STATE_COLUMNS = `${PENDING_OAUTH_STATE_COLUMNS},
+  answered_code, answer_error, answered_at`;
+
 interface PendingOAuthStateRow {
   state: string;
   code_verifier: string;
@@ -2601,6 +2608,9 @@ interface PendingOAuthStateRow {
   provider_name: string;
   userinfo_url: string;
   created_at: string | number;
+  answered_code: string | null;
+  answer_error: string | null;
+  answered_at: string | number | null;
 }
 
 class PostgresPendingOAuthStateStore implements PendingOAuthStateStore {
@@ -2636,57 +2646,58 @@ class PostgresPendingOAuthStateStore implements PendingOAuthStateStore {
     );
   }
 
+  async find(stateParam: string): Promise<StoredPendingOAuthState | undefined> {
+    const result = await this.open().query(
+      `SELECT ${STORED_PENDING_OAUTH_STATE_COLUMNS} FROM pending_oauth_state
+       WHERE state = $1 AND created_at >= $2`,
+      [stateParam, pendingOAuthStateCutoff()],
+    );
+    const row = result.rows[0] as PendingOAuthStateRow | undefined;
+    return row === undefined ? undefined : storedPendingOAuthStateOf(row);
+  }
+
+  async recordAnswer(stateParam: string, answer: PendingSignInAnswer): Promise<boolean> {
+    // One conditional statement: of two hand-backs racing, one records.
+    const result = await this.open().query(
+      `UPDATE pending_oauth_state
+       SET answered_code = $2, answer_error = $3, answered_at = $4
+       WHERE state = $1 AND answered_at IS NULL AND created_at >= $5`,
+      [
+        stateParam,
+        answer.kind === "code" ? answer.code : null,
+        answer.kind === "refused" ? answer.reason : null,
+        Math.floor(Date.now() / 1000),
+        pendingOAuthStateCutoff(),
+      ],
+    );
+    return (result.rowCount ?? 0) === 1;
+  }
+
   async getAndDelete(
     stateParam: string,
-  ): Promise<PendingOAuthState | undefined> {
+  ): Promise<StoredPendingOAuthState | undefined> {
     // DELETE ... RETURNING is the at-most-once redemption in one atomic
     // statement — the same contract sqlite implements as a read+delete
     // transaction.
     const result = await this.open().query(
       `DELETE FROM pending_oauth_state WHERE state = $1
-       RETURNING ${PENDING_OAUTH_STATE_COLUMNS}`,
+       RETURNING ${STORED_PENDING_OAUTH_STATE_COLUMNS}`,
       [stateParam],
     );
     const row = result.rows[0] as PendingOAuthStateRow | undefined;
     if (row === undefined) {
       return undefined;
     }
-
-    const createdAt = Number(row.created_at);
-    const ageMs = Date.now() - createdAt * 1000;
-    if (ageMs > PENDING_OAUTH_STATE_TTL_MS) {
+    if (Number(row.created_at) < pendingOAuthStateCutoff()) {
       return undefined; // expired: deleted on the way out, never redeemed
     }
-
-    return {
-      state: row.state,
-      codeVerifier: row.code_verifier,
-      clientId: row.client_id,
-      clientSecret: row.client_secret,
-      tokenEndpoint: row.token_endpoint,
-      identityAccountId: row.identity_account_id,
-      authMethod: row.auth_method,
-      tokenAuthMethod: row.token_auth_method,
-      redirectUri: row.redirect_uri,
-      org: row.org,
-      vaultId: row.vault_id,
-      address: row.address,
-      loginApp: row.login_app,
-      resource: row.resource,
-      clientRegistration: row.client_registration,
-      connectLink: row.connect_link,
-      providerName: row.provider_name,
-      userinfoUrl: row.userinfo_url,
-      createdAt,
-    };
+    return storedPendingOAuthStateOf(row);
   }
 
   async cleanupExpired(): Promise<number> {
-    const cutoff =
-      Math.floor(Date.now() / 1000) - PENDING_OAUTH_STATE_TTL_MS / 1000;
     const result = await this.open().query(
       `DELETE FROM pending_oauth_state WHERE created_at < $1`,
-      [cutoff],
+      [pendingOAuthStateCutoff()],
     );
     return result.rowCount ?? 0;
   }
@@ -2706,6 +2717,36 @@ class PostgresPendingOAuthStateStore implements PendingOAuthStateStore {
     );
     return result.rowCount ?? 0;
   }
+}
+
+/** The oldest created_at (Unix seconds) a live state may carry: older ones have outlived their ten minutes. */
+function pendingOAuthStateCutoff(): number {
+  return Math.floor(Date.now() / 1000) - PENDING_OAUTH_STATE_TTL_MS / 1000;
+}
+
+function storedPendingOAuthStateOf(row: PendingOAuthStateRow): StoredPendingOAuthState {
+  return {
+    state: row.state,
+    codeVerifier: row.code_verifier,
+    clientId: row.client_id,
+    clientSecret: row.client_secret,
+    tokenEndpoint: row.token_endpoint,
+    identityAccountId: row.identity_account_id,
+    authMethod: row.auth_method,
+    tokenAuthMethod: row.token_auth_method,
+    redirectUri: row.redirect_uri,
+    org: row.org,
+    vaultId: row.vault_id,
+    address: row.address,
+    loginApp: row.login_app,
+    resource: row.resource,
+    clientRegistration: row.client_registration,
+    connectLink: row.connect_link,
+    providerName: row.provider_name,
+    userinfoUrl: row.userinfo_url,
+    createdAt: Number(row.created_at),
+    answer: pendingSignInAnswerOf(row.answered_code, row.answer_error, row.answered_at),
+  };
 }
 
 class PostgresOAuthClientRegistrationStore

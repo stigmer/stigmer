@@ -7,7 +7,7 @@ package ai.stigmer.agentic.vault.v1;
 
 /**
  * <pre>
- * The login a sign-in saved.
+ * The login a sign-in saved, or that it is still waiting for the login page.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.vault.v1.CompleteSignInOutput}
@@ -59,7 +59,7 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object address_ = "";
   /**
    * <pre>
-   * The address the login was saved at.
+   * The address the login was saved at; empty while pending.
    * </pre>
    *
    * <code>string address = 1 [json_name = "address"];</code>
@@ -80,7 +80,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * The address the login was saved at.
+   * The address the login was saved at; empty while pending.
    * </pre>
    *
    * <code>string address = 1 [json_name = "address"];</code>
@@ -108,7 +108,7 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * How the saved login is described: the account when the login app says
    * who signed in ("GitHub &#64;ana"), else the host ("Signed in at
-   * mcp.linear.app").
+   * mcp.linear.app"). Empty while pending.
    * </pre>
    *
    * <code>string description = 2 [json_name = "description"];</code>
@@ -131,7 +131,7 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * How the saved login is described: the account when the login app says
    * who signed in ("GitHub &#64;ana"), else the host ("Signed in at
-   * mcp.linear.app").
+   * mcp.linear.app"). Empty while pending.
    * </pre>
    *
    * <code>string description = 2 [json_name = "description"];</code>
@@ -150,6 +150,22 @@ private static final long serialVersionUID = 0L;
     } else {
       return (com.google.protobuf.ByteString) ref;
     }
+  }
+
+  public static final int PENDING_FIELD_NUMBER = 3;
+  private boolean pending_ = false;
+  /**
+   * <pre>
+   * Set when the login page has not answered yet: nothing was saved, and
+   * the sign-in stays open until it is finished or expires. Ask again.
+   * </pre>
+   *
+   * <code>bool pending = 3 [json_name = "pending"];</code>
+   * @return The pending.
+   */
+  @java.lang.Override
+  public boolean getPending() {
+    return pending_;
   }
 
   private byte memoizedIsInitialized = -1;
@@ -172,6 +188,9 @@ private static final long serialVersionUID = 0L;
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(description_)) {
       com.google.protobuf.GeneratedMessage.writeString(output, 2, description_);
     }
+    if (pending_ != false) {
+      output.writeBool(3, pending_);
+    }
     getUnknownFields().writeTo(output);
   }
 
@@ -186,6 +205,10 @@ private static final long serialVersionUID = 0L;
     }
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(description_)) {
       size += com.google.protobuf.GeneratedMessage.computeStringSize(2, description_);
+    }
+    if (pending_ != false) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeBoolSize(3, pending_);
     }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
@@ -206,6 +229,8 @@ private static final long serialVersionUID = 0L;
         .equals(other.getAddress())) return false;
     if (!getDescription()
         .equals(other.getDescription())) return false;
+    if (getPending()
+        != other.getPending()) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -221,6 +246,9 @@ private static final long serialVersionUID = 0L;
     hash = (53 * hash) + getAddress().hashCode();
     hash = (37 * hash) + DESCRIPTION_FIELD_NUMBER;
     hash = (53 * hash) + getDescription().hashCode();
+    hash = (37 * hash) + PENDING_FIELD_NUMBER;
+    hash = (53 * hash) + com.google.protobuf.Internal.hashBoolean(
+        getPending());
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -320,7 +348,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * The login a sign-in saved.
+   * The login a sign-in saved, or that it is still waiting for the login page.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.vault.v1.CompleteSignInOutput}
@@ -358,6 +386,7 @@ private static final long serialVersionUID = 0L;
       bitField0_ = 0;
       address_ = "";
       description_ = "";
+      pending_ = false;
       return this;
     }
 
@@ -397,6 +426,9 @@ private static final long serialVersionUID = 0L;
       if (((from_bitField0_ & 0x00000002) != 0)) {
         result.description_ = description_;
       }
+      if (((from_bitField0_ & 0x00000004) != 0)) {
+        result.pending_ = pending_;
+      }
     }
 
     @java.lang.Override
@@ -420,6 +452,9 @@ private static final long serialVersionUID = 0L;
         description_ = other.description_;
         bitField0_ |= 0x00000002;
         onChanged();
+      }
+      if (other.getPending() != false) {
+        setPending(other.getPending());
       }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
@@ -457,6 +492,11 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00000002;
               break;
             } // case 18
+            case 24: {
+              pending_ = input.readBool();
+              bitField0_ |= 0x00000004;
+              break;
+            } // case 24
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -477,7 +517,7 @@ private static final long serialVersionUID = 0L;
     private java.lang.Object address_ = "";
     /**
      * <pre>
-     * The address the login was saved at.
+     * The address the login was saved at; empty while pending.
      * </pre>
      *
      * <code>string address = 1 [json_name = "address"];</code>
@@ -497,7 +537,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The address the login was saved at.
+     * The address the login was saved at; empty while pending.
      * </pre>
      *
      * <code>string address = 1 [json_name = "address"];</code>
@@ -518,7 +558,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The address the login was saved at.
+     * The address the login was saved at; empty while pending.
      * </pre>
      *
      * <code>string address = 1 [json_name = "address"];</code>
@@ -535,7 +575,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The address the login was saved at.
+     * The address the login was saved at; empty while pending.
      * </pre>
      *
      * <code>string address = 1 [json_name = "address"];</code>
@@ -549,7 +589,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The address the login was saved at.
+     * The address the login was saved at; empty while pending.
      * </pre>
      *
      * <code>string address = 1 [json_name = "address"];</code>
@@ -571,7 +611,7 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * How the saved login is described: the account when the login app says
      * who signed in ("GitHub &#64;ana"), else the host ("Signed in at
-     * mcp.linear.app").
+     * mcp.linear.app"). Empty while pending.
      * </pre>
      *
      * <code>string description = 2 [json_name = "description"];</code>
@@ -593,7 +633,7 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * How the saved login is described: the account when the login app says
      * who signed in ("GitHub &#64;ana"), else the host ("Signed in at
-     * mcp.linear.app").
+     * mcp.linear.app"). Empty while pending.
      * </pre>
      *
      * <code>string description = 2 [json_name = "description"];</code>
@@ -616,7 +656,7 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * How the saved login is described: the account when the login app says
      * who signed in ("GitHub &#64;ana"), else the host ("Signed in at
-     * mcp.linear.app").
+     * mcp.linear.app"). Empty while pending.
      * </pre>
      *
      * <code>string description = 2 [json_name = "description"];</code>
@@ -635,7 +675,7 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * How the saved login is described: the account when the login app says
      * who signed in ("GitHub &#64;ana"), else the host ("Signed in at
-     * mcp.linear.app").
+     * mcp.linear.app"). Empty while pending.
      * </pre>
      *
      * <code>string description = 2 [json_name = "description"];</code>
@@ -651,7 +691,7 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * How the saved login is described: the account when the login app says
      * who signed in ("GitHub &#64;ana"), else the host ("Signed in at
-     * mcp.linear.app").
+     * mcp.linear.app"). Empty while pending.
      * </pre>
      *
      * <code>string description = 2 [json_name = "description"];</code>
@@ -664,6 +704,53 @@ private static final long serialVersionUID = 0L;
       checkByteStringIsUtf8(value);
       description_ = value;
       bitField0_ |= 0x00000002;
+      onChanged();
+      return this;
+    }
+
+    private boolean pending_ ;
+    /**
+     * <pre>
+     * Set when the login page has not answered yet: nothing was saved, and
+     * the sign-in stays open until it is finished or expires. Ask again.
+     * </pre>
+     *
+     * <code>bool pending = 3 [json_name = "pending"];</code>
+     * @return The pending.
+     */
+    @java.lang.Override
+    public boolean getPending() {
+      return pending_;
+    }
+    /**
+     * <pre>
+     * Set when the login page has not answered yet: nothing was saved, and
+     * the sign-in stays open until it is finished or expires. Ask again.
+     * </pre>
+     *
+     * <code>bool pending = 3 [json_name = "pending"];</code>
+     * @param value The pending to set.
+     * @return This builder for chaining.
+     */
+    public Builder setPending(boolean value) {
+
+      pending_ = value;
+      bitField0_ |= 0x00000004;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Set when the login page has not answered yet: nothing was saved, and
+     * the sign-in stays open until it is finished or expires. Ask again.
+     * </pre>
+     *
+     * <code>bool pending = 3 [json_name = "pending"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearPending() {
+      bitField0_ = (bitField0_ & ~0x00000004);
+      pending_ = false;
       onChanged();
       return this;
     }

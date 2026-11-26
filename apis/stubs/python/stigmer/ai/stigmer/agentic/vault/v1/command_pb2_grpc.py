@@ -72,6 +72,11 @@ class VaultCommandControllerStub(object):
                 request_serializer=ai_dot_stigmer_dot_agentic_dot_vault_dot_v1_dot_io__pb2.CompleteSignInInput.SerializeToString,
                 response_deserializer=ai_dot_stigmer_dot_agentic_dot_vault_dot_v1_dot_io__pb2.CompleteSignInOutput.FromString,
                 _registered_method=True)
+        self.handBackSignIn = channel.unary_unary(
+                '/ai.stigmer.agentic.vault.v1.VaultCommandController/handBackSignIn',
+                request_serializer=ai_dot_stigmer_dot_agentic_dot_vault_dot_v1_dot_io__pb2.HandBackSignInInput.SerializeToString,
+                response_deserializer=ai_dot_stigmer_dot_agentic_dot_vault_dot_v1_dot_io__pb2.HandBackSignInOutput.FromString,
+                _registered_method=True)
         self.createConnectLink = channel.unary_unary(
                 '/ai.stigmer.agentic.vault.v1.VaultCommandController/createConnectLink',
                 request_serializer=ai_dot_stigmer_dot_agentic_dot_vault_dot_v1_dot_io__pb2.CreateConnectLinkInput.SerializeToString,
@@ -206,8 +211,12 @@ class VaultCommandControllerServicer(object):
         """Start a sign-in at an address, to save the login in a vault.
 
         Answers the login page to send the person to. When they have signed in,
-        the page they return to calls completeSignIn with what the login page
-        handed back. The sign-in must be completed within ten minutes.
+        the login page sends them back to the console's callback page, which
+        hands its answer to Stigmer (handBackSignIn); the app that started the
+        sign-in then finishes it with completeSignIn, asking with no code until
+        the answer is there. A page of the app's own that receives the code (the
+        desktop app's) finishes with completeSignIn and the code instead. The
+        sign-in must be completed within ten minutes.
 
         The login fills every HTTP tool whose URL is the address, and a Git
         host's login serves clones from that host.
@@ -221,7 +230,30 @@ class VaultCommandControllerServicer(object):
         the login in the vault the sign-in was started for, replacing any login
         saved at the address.
 
+        With no code, it finishes with the answer the callback page handed back
+        (handBackSignIn). Until that answer arrives it answers pending and
+        changes nothing, so the app that started the sign-in asks again; a
+        refusal from the login page fails the sign-in with the login page's
+        words. With a code, it finishes with that code; a sign-in whose answer
+        was already handed back is refused, since a sign-in has one answer.
+
         Only the person who started the sign-in may finish it.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def handBackSignIn(self, request, context):
+        """Hand back what the login page answered a sign-in: its code, or its
+        refusal. The page the login page returns to calls it, whoever that
+        person is signed in as, or with no session at all; the app that started
+        the sign-in then finishes it (completeSignIn with no code).
+
+        Answers who the sign-in is with and its address, for the page to say
+        where the person signed in. An unknown, expired or already answered
+        sign-in is refused with FAILED_PRECONDITION, the same for each, and so
+        is a sign-in started by a Connect link, which finishes on the link's own
+        page.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -302,6 +334,11 @@ def add_VaultCommandControllerServicer_to_server(servicer, server):
                     servicer.completeSignIn,
                     request_deserializer=ai_dot_stigmer_dot_agentic_dot_vault_dot_v1_dot_io__pb2.CompleteSignInInput.FromString,
                     response_serializer=ai_dot_stigmer_dot_agentic_dot_vault_dot_v1_dot_io__pb2.CompleteSignInOutput.SerializeToString,
+            ),
+            'handBackSignIn': grpc.unary_unary_rpc_method_handler(
+                    servicer.handBackSignIn,
+                    request_deserializer=ai_dot_stigmer_dot_agentic_dot_vault_dot_v1_dot_io__pb2.HandBackSignInInput.FromString,
+                    response_serializer=ai_dot_stigmer_dot_agentic_dot_vault_dot_v1_dot_io__pb2.HandBackSignInOutput.SerializeToString,
             ),
             'createConnectLink': grpc.unary_unary_rpc_method_handler(
                     servicer.createConnectLink,
@@ -607,6 +644,33 @@ class VaultCommandController(object):
             '/ai.stigmer.agentic.vault.v1.VaultCommandController/completeSignIn',
             ai_dot_stigmer_dot_agentic_dot_vault_dot_v1_dot_io__pb2.CompleteSignInInput.SerializeToString,
             ai_dot_stigmer_dot_agentic_dot_vault_dot_v1_dot_io__pb2.CompleteSignInOutput.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def handBackSignIn(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/ai.stigmer.agentic.vault.v1.VaultCommandController/handBackSignIn',
+            ai_dot_stigmer_dot_agentic_dot_vault_dot_v1_dot_io__pb2.HandBackSignInInput.SerializeToString,
+            ai_dot_stigmer_dot_agentic_dot_vault_dot_v1_dot_io__pb2.HandBackSignInOutput.FromString,
             options,
             channel_credentials,
             insecure,

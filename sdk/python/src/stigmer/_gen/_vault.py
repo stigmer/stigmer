@@ -99,6 +99,12 @@ class VaultClient:
         except grpc.RpcError as e:
             raise wrap_error(e) from e
 
+    def hand_back_sign_in(self, input: io_pb2.HandBackSignInInput) -> io_pb2.HandBackSignInOutput:
+        try:
+            return self._command.handBackSignIn(input)
+        except grpc.RpcError as e:
+            raise wrap_error(e) from e
+
     def create_connect_link(self, input: io_pb2.CreateConnectLinkInput) -> io_pb2.ConnectLink:
         try:
             return self._command.createConnectLink(input)

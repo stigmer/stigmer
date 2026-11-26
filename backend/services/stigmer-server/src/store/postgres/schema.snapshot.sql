@@ -129,6 +129,9 @@ CREATE TABLE public.pending_oauth_state (
   provider_name text DEFAULT ''::text NOT NULL,
   userinfo_url text DEFAULT ''::text NOT NULL,
   created_at bigint NOT NULL,
+  answered_code text,
+  answer_error text,
+  answered_at bigint,
   CONSTRAINT pending_oauth_state_pkey PRIMARY KEY (state)
 );
 CREATE INDEX idx_pending_oauth_state_created ON public.pending_oauth_state USING btree (created_at);

@@ -31,6 +31,12 @@
 // vault holds at the address (a pasted login included). A login app with an
 // account endpoint describes the login by the account.
 //
+// The hand-back: the page the login page returns to hands its answer to the
+// server with no credential (handBackSignIn, public: the state is the
+// authority), and the signer's completeSignIn with no code collects it,
+// answering pending until it is there. A refusal ends the sign-in in the
+// login page's words; a sign-in has one answer.
+//
 // Out of scope here: a Client ID Metadata Document (the server under test
 // offers one only on a public https origin, which no hermetic target has; the
 // server's unit suite pins it), the run and connect use of the saved login
@@ -461,17 +467,85 @@ describe("vault sign-in conformance — completion", () => {
     expect(reused.rawMessage).toBe("this sign-in has expired or was already used: start it again");
   });
 
-  it("[rpc:VaultCommandController.completeSignIn] rejects an empty state or code (InvalidArgument)", async () => {
+  it("[rpc:VaultCommandController.completeSignIn] rejects an empty state (InvalidArgument)", async () => {
     await expectGrpcCode(
       () => clients.vaultCommand.completeSignIn({ state: "", code: "c" }),
       Code.InvalidArgument,
       "completeSignIn empty state",
     );
-    await expectGrpcCode(
-      () => clients.vaultCommand.completeSignIn({ state: "s", code: "" }),
-      Code.InvalidArgument,
-      "completeSignIn empty code",
+  });
+
+  it("[rpc:VaultCommandController.handBackSignIn] a tokenless hand-back records the login page's code, and the signer's completeSignIn with no code saves the login; asked before, it answers pending", async () => {
+    const { org } = await target.provisionTenancy();
+    const address = discoveredAddress();
+    const started = await clients.vaultCommand.startSignIn({ vault: myVaultTarget(org), address });
+
+    const waiting = await clients.vaultCommand.completeSignIn({ state: started.state });
+    expect(waiting.pending).toBe(true);
+    expect(waiting.address).toBe("");
+    expect(mockAs.capturedTokenRequests(), "nothing is exchanged while waiting").toHaveLength(0);
+
+    const handedBack = await target
+      .anonymousClients()
+      .vaultCommand.handBackSignIn({ state: started.state, code: "handed-back-code" });
+    expect(handedBack.providerName).toBe(hostOf(address));
+    expect(handedBack.address).toBe(address);
+    expect(mockAs.capturedTokenRequests(), "the hand-back exchanges nothing").toHaveLength(0);
+
+    const done = await clients.vaultCommand.completeSignIn({ state: started.state });
+    expect(done.pending).toBe(false);
+    expect(done.address).toBe(address);
+    expect(done.description).toBe(`Signed in at ${hostOf(address)}`);
+    expect(mockAs.capturedTokenRequests().map((exchange) => exchange.code)).toEqual(["handed-back-code"]);
+    expect((await myVault(org)).spec?.connections[address]?.source).toBe(VaultConnectionSource.sign_in);
+  });
+
+  it("[rpc:VaultCommandController.handBackSignIn] a refusal handed back ends the sign-in in the login page's words; a second answer and an unknown state are refused alike (FailedPrecondition, pinned copy)", async () => {
+    const { org } = await target.provisionTenancy();
+    const anonymous = target.anonymousClients();
+    const refused = await clients.vaultCommand.startSignIn({ vault: myVaultTarget(org), address: discoveredAddress() });
+    await anonymous.vaultCommand.handBackSignIn({
+      state: refused.state,
+      error: "access_denied",
+      errorDescription: "The user denied the request",
+    });
+    const second = await expectGrpcCode(
+      () => anonymous.vaultCommand.handBackSignIn({ state: refused.state, code: "late-code" }),
+      Code.FailedPrecondition,
+      "handBackSignIn for an answered sign-in",
     );
+    expect(second.rawMessage).toBe("this sign-in has expired or was already used: start it again");
+    const ended = await expectGrpcCode(
+      () => clients.vaultCommand.completeSignIn({ state: refused.state }),
+      Code.FailedPrecondition,
+      "completeSignIn after a refusal",
+    );
+    expect(ended.rawMessage).toBe(
+      "The login page did not sign you in: The user denied the request. Nothing was saved",
+    );
+    expect(mockAs.capturedTokenRequests()).toHaveLength(0);
+
+    const unknown = await expectGrpcCode(
+      () => anonymous.vaultCommand.handBackSignIn({ state: "never-issued-state", code: "code" }),
+      Code.FailedPrecondition,
+      "handBackSignIn with an unknown state",
+    );
+    expect(unknown.rawMessage).toBe("this sign-in has expired or was already used: start it again");
+  });
+
+  it("[rpc:VaultCommandController.handBackSignIn] rejects an empty state, and an answer that is both or neither a code and an error (InvalidArgument)", async () => {
+    const anonymous = target.anonymousClients();
+    for (const [input, what] of [
+      [{ state: "", code: "c" }, "empty state"],
+      [{ state: "s" }, "neither code nor error"],
+      [{ state: "s", code: "c", error: "access_denied" }, "both code and error"],
+    ] as const) {
+      await expectGrpcCode(
+        () => anonymous.vaultCommand.handBackSignIn(input),
+        Code.InvalidArgument,
+        `handBackSignIn with ${what}`,
+      );
+    }
   });
 
   it("[rpc:VaultCommandController.completeSignIn] maps a failing token endpoint to Unavailable", async () => {

@@ -12,7 +12,7 @@ public interface CompleteSignInOutputOrBuilder extends
 
   /**
    * <pre>
-   * The address the login was saved at.
+   * The address the login was saved at; empty while pending.
    * </pre>
    *
    * <code>string address = 1 [json_name = "address"];</code>
@@ -21,7 +21,7 @@ public interface CompleteSignInOutputOrBuilder extends
   java.lang.String getAddress();
   /**
    * <pre>
-   * The address the login was saved at.
+   * The address the login was saved at; empty while pending.
    * </pre>
    *
    * <code>string address = 1 [json_name = "address"];</code>
@@ -34,7 +34,7 @@ public interface CompleteSignInOutputOrBuilder extends
    * <pre>
    * How the saved login is described: the account when the login app says
    * who signed in ("GitHub &#64;ana"), else the host ("Signed in at
-   * mcp.linear.app").
+   * mcp.linear.app"). Empty while pending.
    * </pre>
    *
    * <code>string description = 2 [json_name = "description"];</code>
@@ -45,7 +45,7 @@ public interface CompleteSignInOutputOrBuilder extends
    * <pre>
    * How the saved login is described: the account when the login app says
    * who signed in ("GitHub &#64;ana"), else the host ("Signed in at
-   * mcp.linear.app").
+   * mcp.linear.app"). Empty while pending.
    * </pre>
    *
    * <code>string description = 2 [json_name = "description"];</code>
@@ -53,4 +53,15 @@ public interface CompleteSignInOutputOrBuilder extends
    */
   com.google.protobuf.ByteString
       getDescriptionBytes();
+
+  /**
+   * <pre>
+   * Set when the login page has not answered yet: nothing was saved, and
+   * the sign-in stays open until it is finished or expires. Ask again.
+   * </pre>
+   *
+   * <code>bool pending = 3 [json_name = "pending"];</code>
+   * @return The pending.
+   */
+  boolean getPending();
 }

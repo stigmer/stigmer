@@ -14,7 +14,9 @@
  *     a oneof the annotation cannot express: `can_edit` on a vault named by
  *     id; `can_create_vault` on the organization for `mine` (members);
  *   - startSignIn and completeSignIn sign a person in at an address and
- *     save the login into a vault they may change (sign-in/person.ts);
+ *     save the login into a vault they may change, and the public
+ *     handBackSignIn keeps the login page's answer for the signer to
+ *     collect, the state its only authority (sign-in/person.ts);
  *     createConnectLink makes a one-time page for someone without an
  *     account, served by the public ConnectLinkController (connect-link.ts);
  *   - getByReference loads, then asks can_view on the vault it found; a
@@ -148,7 +150,7 @@ import {
   startConnectLink,
 } from "./connect-link.js";
 import type { ConnectLinkDeps } from "./connect-link.js";
-import { completePersonSignIn, startPersonSignIn } from "./sign-in/person.js";
+import { completePersonSignIn, handBackSignIn, startPersonSignIn } from "./sign-in/person.js";
 import {
   MY_VAULT_RENAME_REFUSAL,
   MY_VAULT_SLUG_REFUSAL,
@@ -226,6 +228,8 @@ export function registerVaultServices(
       await validated(VaultCommandController.method.completeSignIn.input, input, caller, ctx, deps);
       return completePersonSignIn(deps.signIn, input, caller);
     },
+    // Public: the state is the authority (sign-in/person.ts).
+    handBackSignIn: (input) => handBackSignIn(deps.signIn, input),
     createConnectLink: async (input, ctx) => {
       const caller = callerIdentityOf(ctx);
       await validated(VaultCommandController.method.createConnectLink.input, input, caller, ctx, deps);

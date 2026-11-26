@@ -599,6 +599,22 @@ export interface PendingOAuthState {
 }
 
 /**
+ * What the login page answered a pending sign-in, as the callback page
+ * handed it back (`VaultCommandController.handBackSignIn`): the code, sealed
+ * at rest like the row's other secrets, or the refusal in the login page's
+ * own words.
+ */
+export type PendingSignInAnswer =
+  | { readonly kind: "code"; readonly code: string }
+  | { readonly kind: "refused"; readonly reason: string };
+
+/** A pending sign-in as read back: the row its start saved, and the login page's answer once one was handed back. */
+export interface StoredPendingOAuthState extends PendingOAuthState {
+  /** Undefined until the callback page hands the answer back. */
+  readonly answer: PendingSignInAnswer | undefined;
+}
+
+/**
  * One OAuth client Stigmer registered with a login server (RFC 7591), kept
  * so every later sign-in reuses it: keyed by the login server and the
  * redirect URI it was registered with. Only public clients are registered,
@@ -691,11 +707,23 @@ export interface ConnectAttemptStore {
 export interface PendingOAuthStateStore {
   save(state: PendingOAuthState): Promise<void>;
   /**
+   * Reads a state by its state parameter, leaving it in place: undefined
+   * when no state exists or it has expired. The read a completion checks
+   * its caller against before anything spends the state.
+   */
+  find(stateParam: string): Promise<StoredPendingOAuthState | undefined>;
+  /**
+   * Records the login page's answer on a live state that has none yet, in
+   * one conditional write: true for the one call that recorded it; false
+   * when the state is unknown, expired or already answered.
+   */
+  recordAnswer(stateParam: string, answer: PendingSignInAnswer): Promise<boolean>;
+  /**
    * Atomically retrieves and deletes a state by its state parameter.
    * Returns undefined when no state exists OR it has expired (an expired
    * row is deleted on the way out).
    */
-  getAndDelete(stateParam: string): Promise<PendingOAuthState | undefined>;
+  getAndDelete(stateParam: string): Promise<StoredPendingOAuthState | undefined>;
   /** Removes all expired states; returns the count removed. */
   cleanupExpired(): Promise<number>;
   /** Removes every state begun in an organization (its purge); returns the count. */

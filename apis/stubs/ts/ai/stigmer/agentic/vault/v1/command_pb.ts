@@ -6,7 +6,7 @@ import type { GenFile, GenService } from "@bufbuild/protobuf/codegenv1";
 import { fileDesc, serviceDesc } from "@bufbuild/protobuf/codegenv1";
 import type { VaultSchema } from "./api_pb.js";
 import { file_ai_stigmer_agentic_vault_v1_api } from "./api_pb.js";
-import type { CompleteSignInInputSchema, CompleteSignInOutputSchema, ConnectLinkSchema, CreateConnectLinkInputSchema, RemoveVaultConnectionsInputSchema, RemoveVaultSecretsInputSchema, SetVaultConnectionInputSchema, SetVaultSecretsInputSchema, StartSignInInputSchema, StartSignInOutputSchema, UpdateVaultInputSchema } from "./io_pb.js";
+import type { CompleteSignInInputSchema, CompleteSignInOutputSchema, ConnectLinkSchema, CreateConnectLinkInputSchema, HandBackSignInInputSchema, HandBackSignInOutputSchema, RemoveVaultConnectionsInputSchema, RemoveVaultSecretsInputSchema, SetVaultConnectionInputSchema, SetVaultSecretsInputSchema, StartSignInInputSchema, StartSignInOutputSchema, UpdateVaultInputSchema } from "./io_pb.js";
 import { file_ai_stigmer_agentic_vault_v1_io } from "./io_pb.js";
 import type { ApiResourceDeleteInputSchema, RenameInputSchema, UpdateVisibilityInputSchema } from "../../../commons/apiresource/io_pb.js";
 import { file_ai_stigmer_commons_apiresource_io } from "../../../commons/apiresource/io_pb.js";
@@ -17,7 +17,7 @@ import { file_ai_stigmer_commons_rpc_method_options } from "../../../commons/rpc
  * Describes the file ai/stigmer/agentic/vault/v1/command.proto.
  */
 export const file_ai_stigmer_agentic_vault_v1_command: GenFile = /*@__PURE__*/
-  fileDesc("CilhaS9zdGlnbWVyL2FnZW50aWMvdmF1bHQvdjEvY29tbWFuZC5wcm90bxIbYWkuc3RpZ21lci5hZ2VudGljLnZhdWx0LnYxMrINChZWYXVsdENvbW1hbmRDb250cm9sbGVyEqQBCgZjcmVhdGUSIi5haS5zdGlnbWVyLmFnZW50aWMudmF1bHQudjEuVmF1bHQaIi5haS5zdGlnbWVyLmFnZW50aWMudmF1bHQudjEuVmF1bHQiUsK4GE4INBAeIgxtZXRhZGF0YS5vcmcqOnVuYXV0aG9yaXplZCB0byBjcmVhdGUgYSBzaGFyZWQgdmF1bHQgaW4gdGhpcyBvcmdhbml6YXRpb24SmQEKBnVwZGF0ZRItLmFpLnN0aWdtZXIuYWdlbnRpYy52YXVsdC52MS5VcGRhdGVWYXVsdElucHV0GiIuYWkuc3RpZ21lci5hZ2VudGljLnZhdWx0LnYxLlZhdWx0IjzCuBg4CAIQOyIUcmVzb3VyY2UubWV0YWRhdGEuaWQqHHVuYXV0aG9yaXplZCB0byB1cGRhdGUgdmF1bHQSrQEKEHVwZGF0ZVZpc2liaWxpdHkSNS5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuVXBkYXRlVmlzaWJpbGl0eUlucHV0GiIuYWkuc3RpZ21lci5hZ2VudGljLnZhdWx0LnYxLlZhdWx0Ij7CuBg6CDAQOyILcmVzb3VyY2VfaWQqJ3VuYXV0aG9yaXplZCB0byB1cGRhdGUgdmF1bHQgdmlzaWJpbGl0eRKOAQoGcmVuYW1lEisuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLlJlbmFtZUlucHV0GiIuYWkuc3RpZ21lci5hZ2VudGljLnZhdWx0LnYxLlZhdWx0IjPCuBgvCAMQOyILcmVzb3VyY2VfaWQqHHVuYXV0aG9yaXplZCB0byByZW5hbWUgdmF1bHQSmQEKBmRlbGV0ZRI2LmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZURlbGV0ZUlucHV0GiIuYWkuc3RpZ21lci5hZ2VudGljLnZhdWx0LnYxLlZhdWx0IjPCuBgvCAMQOyILcmVzb3VyY2VfaWQqHHVuYXV0aG9yaXplZCB0byBkZWxldGUgdmF1bHQSaQoKc2V0U2VjcmV0cxIxLmFpLnN0aWdtZXIuYWdlbnRpYy52YXVsdC52MS5TZXRWYXVsdFNlY3JldHNJbnB1dBoiLmFpLnN0aWdtZXIuYWdlbnRpYy52YXVsdC52MS5WYXVsdCIE0LgYARJvCg1yZW1vdmVTZWNyZXRzEjQuYWkuc3RpZ21lci5hZ2VudGljLnZhdWx0LnYxLlJlbW92ZVZhdWx0U2VjcmV0c0lucHV0GiIuYWkuc3RpZ21lci5hZ2VudGljLnZhdWx0LnYxLlZhdWx0IgTQuBgBEm8KDXNldENvbm5lY3Rpb24SNC5haS5zdGlnbWVyLmFnZW50aWMudmF1bHQudjEuU2V0VmF1bHRDb25uZWN0aW9uSW5wdXQaIi5haS5zdGlnbWVyLmFnZW50aWMudmF1bHQudjEuVmF1bHQiBNC4GAESdwoRcmVtb3ZlQ29ubmVjdGlvbnMSOC5haS5zdGlnbWVyLmFnZW50aWMudmF1bHQudjEuUmVtb3ZlVmF1bHRDb25uZWN0aW9uc0lucHV0GiIuYWkuc3RpZ21lci5hZ2VudGljLnZhdWx0LnYxLlZhdWx0IgTQuBgBEnIKC3N0YXJ0U2lnbkluEi0uYWkuc3RpZ21lci5hZ2VudGljLnZhdWx0LnYxLlN0YXJ0U2lnbkluSW5wdXQaLi5haS5zdGlnbWVyLmFnZW50aWMudmF1bHQudjEuU3RhcnRTaWduSW5PdXRwdXQiBNC4GAESewoOY29tcGxldGVTaWduSW4SMC5haS5zdGlnbWVyLmFnZW50aWMudmF1bHQudjEuQ29tcGxldGVTaWduSW5JbnB1dBoxLmFpLnN0aWdtZXIuYWdlbnRpYy52YXVsdC52MS5Db21wbGV0ZVNpZ25Jbk91dHB1dCIE0LgYARK6AQoRY3JlYXRlQ29ubmVjdExpbmsSMy5haS5zdGlnbWVyLmFnZW50aWMudmF1bHQudjEuQ3JlYXRlQ29ubmVjdExpbmtJbnB1dBooLmFpLnN0aWdtZXIuYWdlbnRpYy52YXVsdC52MS5Db25uZWN0TGluayJGwrgYQggCEDsiCHZhdWx0X2lkKjJ1bmF1dGhvcml6ZWQgdG8gbWFrZSBhIENvbm5lY3QgbGluayBmb3IgdGhpcyB2YXVsdBoEoP8rO2IGcHJvdG8z", [file_ai_stigmer_agentic_vault_v1_api, file_ai_stigmer_agentic_vault_v1_io, file_ai_stigmer_commons_apiresource_io, file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_commons_rpc_method_options]);
+  fileDesc("CilhaS9zdGlnbWVyL2FnZW50aWMvdmF1bHQvdjEvY29tbWFuZC5wcm90bxIbYWkuc3RpZ21lci5hZ2VudGljLnZhdWx0LnYxMq8OChZWYXVsdENvbW1hbmRDb250cm9sbGVyEqQBCgZjcmVhdGUSIi5haS5zdGlnbWVyLmFnZW50aWMudmF1bHQudjEuVmF1bHQaIi5haS5zdGlnbWVyLmFnZW50aWMudmF1bHQudjEuVmF1bHQiUsK4GE4INBAeIgxtZXRhZGF0YS5vcmcqOnVuYXV0aG9yaXplZCB0byBjcmVhdGUgYSBzaGFyZWQgdmF1bHQgaW4gdGhpcyBvcmdhbml6YXRpb24SmQEKBnVwZGF0ZRItLmFpLnN0aWdtZXIuYWdlbnRpYy52YXVsdC52MS5VcGRhdGVWYXVsdElucHV0GiIuYWkuc3RpZ21lci5hZ2VudGljLnZhdWx0LnYxLlZhdWx0IjzCuBg4CAIQOyIUcmVzb3VyY2UubWV0YWRhdGEuaWQqHHVuYXV0aG9yaXplZCB0byB1cGRhdGUgdmF1bHQSrQEKEHVwZGF0ZVZpc2liaWxpdHkSNS5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuVXBkYXRlVmlzaWJpbGl0eUlucHV0GiIuYWkuc3RpZ21lci5hZ2VudGljLnZhdWx0LnYxLlZhdWx0Ij7CuBg6CDAQOyILcmVzb3VyY2VfaWQqJ3VuYXV0aG9yaXplZCB0byB1cGRhdGUgdmF1bHQgdmlzaWJpbGl0eRKOAQoGcmVuYW1lEisuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLlJlbmFtZUlucHV0GiIuYWkuc3RpZ21lci5hZ2VudGljLnZhdWx0LnYxLlZhdWx0IjPCuBgvCAMQOyILcmVzb3VyY2VfaWQqHHVuYXV0aG9yaXplZCB0byByZW5hbWUgdmF1bHQSmQEKBmRlbGV0ZRI2LmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZURlbGV0ZUlucHV0GiIuYWkuc3RpZ21lci5hZ2VudGljLnZhdWx0LnYxLlZhdWx0IjPCuBgvCAMQOyILcmVzb3VyY2VfaWQqHHVuYXV0aG9yaXplZCB0byBkZWxldGUgdmF1bHQSaQoKc2V0U2VjcmV0cxIxLmFpLnN0aWdtZXIuYWdlbnRpYy52YXVsdC52MS5TZXRWYXVsdFNlY3JldHNJbnB1dBoiLmFpLnN0aWdtZXIuYWdlbnRpYy52YXVsdC52MS5WYXVsdCIE0LgYARJvCg1yZW1vdmVTZWNyZXRzEjQuYWkuc3RpZ21lci5hZ2VudGljLnZhdWx0LnYxLlJlbW92ZVZhdWx0U2VjcmV0c0lucHV0GiIuYWkuc3RpZ21lci5hZ2VudGljLnZhdWx0LnYxLlZhdWx0IgTQuBgBEm8KDXNldENvbm5lY3Rpb24SNC5haS5zdGlnbWVyLmFnZW50aWMudmF1bHQudjEuU2V0VmF1bHRDb25uZWN0aW9uSW5wdXQaIi5haS5zdGlnbWVyLmFnZW50aWMudmF1bHQudjEuVmF1bHQiBNC4GAESdwoRcmVtb3ZlQ29ubmVjdGlvbnMSOC5haS5zdGlnbWVyLmFnZW50aWMudmF1bHQudjEuUmVtb3ZlVmF1bHRDb25uZWN0aW9uc0lucHV0GiIuYWkuc3RpZ21lci5hZ2VudGljLnZhdWx0LnYxLlZhdWx0IgTQuBgBEnIKC3N0YXJ0U2lnbkluEi0uYWkuc3RpZ21lci5hZ2VudGljLnZhdWx0LnYxLlN0YXJ0U2lnbkluSW5wdXQaLi5haS5zdGlnbWVyLmFnZW50aWMudmF1bHQudjEuU3RhcnRTaWduSW5PdXRwdXQiBNC4GAESewoOY29tcGxldGVTaWduSW4SMC5haS5zdGlnbWVyLmFnZW50aWMudmF1bHQudjEuQ29tcGxldGVTaWduSW5JbnB1dBoxLmFpLnN0aWdtZXIuYWdlbnRpYy52YXVsdC52MS5Db21wbGV0ZVNpZ25Jbk91dHB1dCIE0LgYARJ7Cg5oYW5kQmFja1NpZ25JbhIwLmFpLnN0aWdtZXIuYWdlbnRpYy52YXVsdC52MS5IYW5kQmFja1NpZ25JbklucHV0GjEuYWkuc3RpZ21lci5hZ2VudGljLnZhdWx0LnYxLkhhbmRCYWNrU2lnbkluT3V0cHV0IgTIuBgBEroBChFjcmVhdGVDb25uZWN0TGluaxIzLmFpLnN0aWdtZXIuYWdlbnRpYy52YXVsdC52MS5DcmVhdGVDb25uZWN0TGlua0lucHV0GiguYWkuc3RpZ21lci5hZ2VudGljLnZhdWx0LnYxLkNvbm5lY3RMaW5rIkbCuBhCCAIQOyIIdmF1bHRfaWQqMnVuYXV0aG9yaXplZCB0byBtYWtlIGEgQ29ubmVjdCBsaW5rIGZvciB0aGlzIHZhdWx0GgSg/ys7YgZwcm90bzM", [file_ai_stigmer_agentic_vault_v1_api, file_ai_stigmer_agentic_vault_v1_io, file_ai_stigmer_commons_apiresource_io, file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_commons_rpc_method_options]);
 
 /**
  * VaultCommandController handles write operations for vaults.
@@ -175,8 +175,12 @@ export const VaultCommandController: GenService<{
    * Start a sign-in at an address, to save the login in a vault.
    *
    * Answers the login page to send the person to. When they have signed in,
-   * the page they return to calls completeSignIn with what the login page
-   * handed back. The sign-in must be completed within ten minutes.
+   * the login page sends them back to the console's callback page, which
+   * hands its answer to Stigmer (handBackSignIn); the app that started the
+   * sign-in then finishes it with completeSignIn, asking with no code until
+   * the answer is there. A page of the app's own that receives the code (the
+   * desktop app's) finishes with completeSignIn and the code instead. The
+   * sign-in must be completed within ten minutes.
    *
    * The login fills every HTTP tool whose URL is the address, and a Git
    * host's login serves clones from that host.
@@ -193,6 +197,13 @@ export const VaultCommandController: GenService<{
    * the login in the vault the sign-in was started for, replacing any login
    * saved at the address.
    *
+   * With no code, it finishes with the answer the callback page handed back
+   * (handBackSignIn). Until that answer arrives it answers pending and
+   * changes nothing, so the app that started the sign-in asks again; a
+   * refusal from the login page fails the sign-in with the login page's
+   * words. With a code, it finishes with that code; a sign-in whose answer
+   * was already handed back is refused, since a sign-in has one answer.
+   *
    * Only the person who started the sign-in may finish it.
    *
    * @generated from rpc ai.stigmer.agentic.vault.v1.VaultCommandController.completeSignIn
@@ -201,6 +212,25 @@ export const VaultCommandController: GenService<{
     methodKind: "unary";
     input: typeof CompleteSignInInputSchema;
     output: typeof CompleteSignInOutputSchema;
+  },
+  /**
+   * Hand back what the login page answered a sign-in: its code, or its
+   * refusal. The page the login page returns to calls it, whoever that
+   * person is signed in as, or with no session at all; the app that started
+   * the sign-in then finishes it (completeSignIn with no code).
+   *
+   * Answers who the sign-in is with and its address, for the page to say
+   * where the person signed in. An unknown, expired or already answered
+   * sign-in is refused with FAILED_PRECONDITION, the same for each, and so
+   * is a sign-in started by a Connect link, which finishes on the link's own
+   * page.
+   *
+   * @generated from rpc ai.stigmer.agentic.vault.v1.VaultCommandController.handBackSignIn
+   */
+  handBackSignIn: {
+    methodKind: "unary";
+    input: typeof HandBackSignInInputSchema;
+    output: typeof HandBackSignInOutputSchema;
   },
   /**
    * Make a Connect link: a one-time page where someone without a Stigmer
