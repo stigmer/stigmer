@@ -49,6 +49,8 @@ const JourneyLauncherLine = lazy(() => import("../journey/JourneyNextLine.js").t
 
 /** What an end user reads when the agent their launcher is pinned to cannot be found. */
 const PIN_UNAVAILABLE = "This agent isn't available. It may have been renamed or removed.";
+/** Why Send waits while the agent the conversation is for is still being read. */
+const AGENT_LOADING = "Loading the agent\u2026";
 
 /** Props for {@link NewSessionViewer}. */
 export interface NewSessionViewerProps {
@@ -468,11 +470,18 @@ export function NewSessionViewer({
   // never opened.
   const pinsAgent = audience === "endUser" && initialAgentRef != null;
   const pinWaits = pinsAgent && flow.agentRef == null;
+  // For every audience, Send also waits while the picked agent's engine and
+  // run defaults are read, which the flow refuses a send for meanwhile
+  // (stigmer#3481): a held Send says why, a refusal after the click only
+  // tells the person to try again.
+  const agentLoads = !isGuest && flow.agentRef != null && flow.isAgentLoading === true;
   const sendBlockedReason = pinWaits
     ? pinError !== null
       ? PIN_UNAVAILABLE
-      : "Loading the agent\u2026"
-    : !showConnectPanel && shownMissing
+      : AGENT_LOADING
+    : agentLoads
+      ? AGENT_LOADING
+      : !showConnectPanel && shownMissing
       ? connectReason(shownReadiness.provider, shownModelName)
       : undefined;
   // A pinned model makes the picker a dead control (the pin wins over any

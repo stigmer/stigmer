@@ -2255,7 +2255,7 @@ export const SessionComposer = memo(SessionComposerInner);
 
 /** Composed with `UNSTYLED_LIST` at each `<ul>`, where the list-reset lint reads it. */
 /** Why Send is held while the agent the composer was opened for is still being read. */
-const AGENT_LOADING_REASON = "Waiting for the agent to load.";
+const AGENT_LOADING_REASON = "Loading the agent\u2026";
 
 const SIGN_IN_LIST = "stg:flex stg:flex-col stg:divide-y stg:divide-border stg:rounded-md stg:border stg:border-border";
 const SIGN_IN_ROW = "stg:flex stg:items-center stg:justify-between stg:gap-3 stg:px-3 stg:py-2";

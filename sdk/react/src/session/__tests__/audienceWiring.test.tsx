@@ -327,6 +327,19 @@ describe("NewSessionViewer — audience wiring", () => {
     }
   });
 
+  it("any audience: Send waits while the picked agent's engine and run defaults load (stigmer#3481)", () => {
+    mockUseNewSessionFlow.mockImplementation(() => ({ ...stubNewSessionFlow, isAgentLoading: true }) as unknown as typeof stubNewSessionFlow);
+    try {
+      render(<NewSessionViewer org="acme" onSessionCreated={vi.fn()} initialAgentRef={AGENT_REF} />);
+      expect(lastComposerProps().sendBlockedReason).toBe("Loading the agent\u2026");
+      cleanup();
+      render(<NewSessionViewer org="acme" onSessionCreated={vi.fn()} audience="endUser" initialAgentRef={AGENT_REF} />);
+      expect(lastComposerProps().sendBlockedReason).toBe("Loading the agent\u2026");
+    } finally {
+      mockUseNewSessionFlow.mockImplementation(() => stubNewSessionFlow);
+    }
+  });
+
   it("endUser with a pinned agent that resolved: nothing holds Send", () => {
     render(<NewSessionViewer org="acme" onSessionCreated={vi.fn()} audience="endUser" initialAgentRef={AGENT_REF} />);
     expect(lastComposerProps().sendBlockedReason).toBeUndefined();

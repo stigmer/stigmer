@@ -70,7 +70,7 @@ function wrapper({ children }: { children: ReactNode }) {
 }
 
 const AGENT_REF = { org: "acme", slug: "variance-reporter" };
-const HOLD = "Waiting for the agent to load.";
+const HOLD = "Loading the agent\u2026";
 
 /** A read of the agent that answers when the test says. */
 function deferredRead() {
