@@ -9,8 +9,8 @@
 // off from the app (`Cross-Origin-Opener-Policy: same-origin`, as Sentry's
 // login page does), and the chat finishes it: the login page returns to the
 // console's callback page, which hands the answer to Stigmer and never says
-// "Connected", and the app collects it under the person's own session and
-// says "Signed in".
+// "Connected", and the app collects it under the person's own session: the
+// sign-in row goes, and the agent needs no more setup.
 //
 // It ends there: an app user's run reads only the vaults on the
 // organization's embedding settings, never the app user's own My vault
@@ -101,6 +101,8 @@ test.describe("a chat in an app on its own address signs in to the app's tool se
     await app.goto(`http://localhost:${APP_PORT}`);
     const signIn = app.getByRole("button", { name: `Sign in to ${SERVER}` });
     await expect(signIn).toBeVisible({ timeout: 60_000 });
+    const needsSetup = app.getByText("Agent needs configuration before use");
+    await expect(needsSetup).toBeVisible();
 
     // The login page carries Sentry's opener policy: consenting there cuts
     // the window off from the app, so nothing reaches the app but Stigmer.
@@ -109,11 +111,12 @@ test.describe("a chat in an app on its own address signs in to the app's tool se
     const popup = await popupOpened;
     await popup.getByRole("link", { name: "Allow" }).click({ timeout: 30_000 });
 
-    // The callback page says where the person signed in, never "Connected",
-    // and the chat finishes the sign-in itself.
-    // Exact: "Not signed in" holds the words too.
-    await expect(app.getByText("Signed in", { exact: true })).toBeVisible({ timeout: 60_000 });
-    await expect(app.getByRole("button", { name: `Sign in to ${SERVER}` })).toHaveCount(0);
+    // The chat finishes the sign-in itself: it reads the agent again, finds
+    // the login at the server's address, and the agent needs nothing more.
+    await expect(signIn).toHaveCount(0, { timeout: 60_000 });
+    await expect(needsSetup).toHaveCount(0, { timeout: 30_000 });
+    // The callback page, when the browser left it open, says where the
+    // person signed in, never "Connected".
     if (!popup.isClosed()) {
       await expect(popup.getByRole("heading", { name: /^You're signed in at / })).toBeVisible();
       await expect(popup.getByText("Connected")).toHaveCount(0);
