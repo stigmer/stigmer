@@ -34,6 +34,7 @@ import { MockOAuthAuthorizationServer } from "@stigmer/test-support/oauth-author
 
 async function main(): Promise<void> {
   const authorizationServer = new MockOAuthAuthorizationServer();
+  /* v8 ignore next 2 -- @preserve: a process entry the e2e stacks spawn (test/e2e/fixtures/oauth-mcp.ts); no vitest config runs it, and the port and public origin it sets are tested in test/support */
   authorizationServer.publicOrigin = process.env.STIGMER_OAUTH_LOGIN_ORIGIN || undefined;
   await authorizationServer.start(Number(process.env.STIGMER_OAUTH_LOGIN_PORT ?? "0"));
   authorizationServer.authorizeRedirect = true;
@@ -41,6 +42,7 @@ async function main(): Promise<void> {
   authorizationServer.openerPolicy = process.env.STIGMER_OAUTH_OPENER_POLICY || undefined;
 
   const mcp = new McpToolFixture();
+  /* v8 ignore next 2 -- @preserve: a process entry the e2e stacks spawn (test/e2e/fixtures/oauth-mcp.ts); no vitest config runs it, and the port and public origin it sets are tested in the harness's mcp-server.test.ts */
   mcp.publicOrigin = process.env.STIGMER_OAUTH_MCP_ORIGIN || undefined;
   await mcp.start(Number(process.env.STIGMER_OAUTH_MCP_PORT ?? "0"));
   mcp.requireOAuth({
