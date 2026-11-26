@@ -61,7 +61,8 @@ describe("openerPolicy", () => {
     expect(answer.headers.get("cross-origin-opener-policy")).toBe("same-origin");
     const page = await answer.text();
     const href = /<a href="([^"]*)">Allow<\/a>/.exec(page)?.[1] ?? "";
-    const link = new URL(href.replaceAll("&amp;", "&").replaceAll("&quot;", '"').replaceAll("&lt;", "<").replaceAll("&gt;", ">"));
+    // Unescaped as a browser reads the attribute: every other entity first, "&amp;" last.
+    const link = new URL(href.replaceAll("&quot;", '"').replaceAll("&lt;", "<").replaceAll("&gt;", ">").replaceAll("&amp;", "&"));
     expect(link.origin + link.pathname).toBe("http://localhost:3000/auth/oauth/callback");
     expect(link.searchParams.get("code")).toMatch(/^mock-authorization-code-\d+$/);
     expect(link.searchParams.get("state")).toBe('a"<b>&');
