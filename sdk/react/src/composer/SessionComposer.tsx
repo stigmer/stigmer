@@ -1618,6 +1618,14 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
 
   const initialAgentHandled = useRef(false);
 
+  // A composer opened for an agent (the agent page's Start session) holds
+  // Send until that agent has been read, however the read ends: a message
+  // sent before it would start a conversation with the default assistant,
+  // silently (stigmer#3481).
+  const [initialAgentPending, setInitialAgentPending] = useState(
+    () => initialAgentRef !== undefined && showAgent,
+  );
+
   useEffect(() => {
     if (!initialAgentRef || !showAgent || !org || initialAgentHandled.current) {
       return;
@@ -1626,11 +1634,16 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
     let cancelled = false;
     initialAgentHandled.current = true;
 
-    handleAgentSelectRef.current(initialAgentRef).catch(() => {
-      if (!cancelled) {
-        initialAgentHandled.current = false;
-      }
-    });
+    handleAgentSelectRef.current(initialAgentRef)
+      .catch(() => {
+        if (!cancelled) {
+          initialAgentHandled.current = false;
+        }
+      })
+      // However the read ends, and even after a re-run of this effect
+      // (StrictMode runs it twice; the first run's read is the one that
+      // answers), the hold is over.
+      .finally(() => setInitialAgentPending(false));
 
     return () => {
       cancelled = true;
@@ -1678,7 +1691,8 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
   // retry/remove); isUploading covers both the preparing and uploading
   // phases (see its doc — same drop class).
   const uploadsBlocked = enableFiles && uploads.isUploading;
-  const canSend = composer.canSubmit && !uploadsBlocked && sendBlockedReason === undefined;
+  const heldReason = sendBlockedReason ?? (initialAgentPending ? AGENT_LOADING_REASON : undefined);
+  const canSend = composer.canSubmit && !uploadsBlocked && heldReason === undefined;
 
   // True when the upload gate is the OPERATIVE blocker — the message would
   // send right now if uploads were done. Drives the attempt-triggered wait
@@ -2164,7 +2178,7 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
           disabled={isDisabled}
           isSubmitting={isSubmitting}
           canSend={canSend}
-          sendBlockedReason={sendBlockedReason}
+          sendBlockedReason={heldReason}
           onSend={composer.submit}
           onStop={onStop}
           isStopping={isStopping}
@@ -2238,6 +2252,9 @@ export const SessionComposer = memo(SessionComposerInner);
 // ---------------------------------------------------------------------------
 
 /** Composed with `UNSTYLED_LIST` at each `<ul>`, where the list-reset lint reads it. */
+/** Why Send is held while the agent the composer was opened for is still being read. */
+const AGENT_LOADING_REASON = "Waiting for the agent to load.";
+
 const SIGN_IN_LIST = "stg:flex stg:flex-col stg:divide-y stg:divide-border stg:rounded-md stg:border stg:border-border";
 const SIGN_IN_ROW = "stg:flex stg:items-center stg:justify-between stg:gap-3 stg:px-3 stg:py-2";
 const SIGN_IN_NAME = "stg:text-sm stg:font-medium stg:text-foreground";
