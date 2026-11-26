@@ -1636,7 +1636,9 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
 
     handleAgentSelectRef.current(initialAgentRef)
       .catch(() => {
+        /* v8 ignore next -- @preserve: handleAgentSelect catches every failure itself (agentSetup.state.error shows it), so this never runs; it keeps a future throw a retry on the next mount rather than an unhandled rejection */
         if (!cancelled) {
+          /* v8 ignore next -- @preserve: handleAgentSelect catches every failure itself (agentSetup.state.error shows it), so this never runs; it keeps a future throw a retry on the next mount rather than an unhandled rejection */
           initialAgentHandled.current = false;
         }
       })
