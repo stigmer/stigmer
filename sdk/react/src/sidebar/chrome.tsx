@@ -8,6 +8,7 @@ import { OrgSwitcher } from "../organization/OrgSwitcher.js";
 import { useSingleOrg } from "../server-info.js";
 import { BETA_LINE, BETA_URL, BETA_WORD } from "../internal/beta.js";
 import { tagClasses } from "../internal/surface/Tag.js";
+import { Tooltip, TooltipContent, TooltipTrigger } from "../internal/tooltip.js";
 
 // ---------------------------------------------------------------------------
 // Shared sidebar chrome — the pieces WorkspaceSidebar and SettingsSidebar
@@ -108,27 +109,34 @@ export function SidebarChrome({
 /**
  * Stigmer's "Beta" mark, at the end of the top row in every edition: the
  * neutral label as a link to the page that says what Beta means, opening
- * beside the console as the help row does. Its accessible name and tooltip
- * are the whole line, since the row has room for the word alone. The chrome
- * is the console's (the web console, the desktop app, the documentation
- * tours), never a developer's product, so the mark never reaches one.
+ * beside the console as the help row does. Its accessible name and the
+ * house tooltip are the whole line, since the row has room for the word
+ * alone. The chrome is the console's (the web console, the desktop app, the
+ * documentation tours), never a developer's product, so the mark never
+ * reaches one.
  */
 function BetaMark() {
   return (
-    <a
-      href={BETA_URL}
-      target="_blank"
-      rel="noopener noreferrer"
-      aria-label={BETA_LINE}
-      title={BETA_LINE}
-      className={cn(
-        tagClasses(),
-        "stg:no-underline stg:transition-colors stg:motion-reduce:transition-none stg:hover:bg-sidebar-accent",
-        "stg:focus-visible:ring-sidebar-ring stg:focus-visible:ring-2 stg:focus-visible:outline-none",
-      )}
-    >
-      {BETA_WORD}
-    </a>
+    <Tooltip>
+      <TooltipTrigger
+        render={
+          <a
+            href={BETA_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label={BETA_LINE}
+            className={cn(
+              tagClasses(),
+              "stg:no-underline stg:transition-colors stg:motion-reduce:transition-none stg:hover:bg-sidebar-accent",
+              "stg:focus-visible:ring-sidebar-ring stg:focus-visible:ring-2 stg:focus-visible:outline-none",
+            )}
+          >
+            {BETA_WORD}
+          </a>
+        }
+      />
+      <TooltipContent side="bottom">{BETA_LINE}</TooltipContent>
+    </Tooltip>
   );
 }
 

@@ -8,6 +8,11 @@ import { OIDC_STACK } from "../../fixtures/oidc";
  * sidebar's top row carries the "Beta" mark. The trusted-local stack, where no
  * one signs in, shows the mark (tests/functional/beta.spec.ts).
  *
+ * Its file name sorts after console-login.spec.ts on purpose: the project
+ * runs its files serially in name order on one fresh server, and that spec
+ * proves the first sign-in provisions the person, so no spec may sign in
+ * before it.
+ *
  * Stack shape: `STIGMER_E2E_OIDC=1`; without it the arms SKIP with the reason.
  */
 

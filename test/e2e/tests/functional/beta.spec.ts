@@ -7,7 +7,7 @@ import { test, expect, type Page, type TestInfo } from "@playwright/test";
  * Beta means in a new tab, its accessible name the whole line: at a desk's
  * width with the sidebar open, and at a phone's once the menu is opened. The
  * OIDC stack's sign-in page says the line before anyone signs in
- * (tests/console-login/beta.spec.ts).
+ * (tests/console-login/sign-in-says-beta.spec.ts).
  */
 
 const BETA_LINE = "Stigmer is in Beta: things may change, and your work is kept. Tell us what breaks.";
