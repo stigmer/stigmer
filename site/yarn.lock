@@ -2792,7 +2792,7 @@ __metadata:
 
 "@stigmer/client@file:../sdk/typescript::locator=stigmer-site%40workspace%3A.":
   version: 0.0.0-dev
-  resolution: "@stigmer/client@file:../sdk/typescript#../sdk/typescript::hash=332ca0&locator=stigmer-site%40workspace%3A."
+  resolution: "@stigmer/client@file:../sdk/typescript#../sdk/typescript::hash=0a3648&locator=stigmer-site%40workspace%3A."
   dependencies:
     "@connectrpc/connect": "npm:^2.0.0"
     "@connectrpc/connect-web": "npm:^2.0.0"
@@ -2805,24 +2805,24 @@ __metadata:
   peerDependenciesMeta:
     "@connectrpc/connect-node":
       optional: true
-  checksum: 10c0/c62971ea327ba3b50fe6ce8b9c71e5f59126b613434a72ac66750cdbde29165a20cf30b48b9a5c640e9b43cbd7c112dab51816b3653ca02336209079b55a591b
+  checksum: 10c0/9883b6239d8d5bebacec4ea067514170c96f3a3697a86b161c8449f507b5126d5f37d516861b4828e2981ca5d26d13cc1cb194c5b4d6c73e4cb007302c499f3f
   languageName: node
   linkType: hard
 
 "@stigmer/design-tokens@file:../sdk/theme::locator=stigmer-site%40workspace%3A.":
   version: 0.0.0-dev
-  resolution: "@stigmer/design-tokens@file:../sdk/theme#../sdk/theme::hash=02ba80&locator=stigmer-site%40workspace%3A."
+  resolution: "@stigmer/design-tokens@file:../sdk/theme#../sdk/theme::hash=c0cf2d&locator=stigmer-site%40workspace%3A."
   peerDependencies:
     clsx: ^2.0.0
     tailwind-merge: ^3.0.0
-  checksum: 10c0/4d1d39d5abf2f49ae518fc8225a558ea014afade7dae401a3271fc8cdb4d7635796243e1072fe5af9c1d01aaad4bd8e962e5aa5bd9d79d9cc9b4865a465a5e70
+  checksum: 10c0/fe41f543d500ea5d00b7c086f887baffc92733c2ef76cfff20ede4b6998d1fa6be6d719b98a6f33b2541c6c9c339cf96241cdcc2cd2010d681d8ede662d93ede
   languageName: node
   linkType: hard
 
 "@stigmer/embed@file:../sdk/embed::locator=stigmer-site%40workspace%3A.":
   version: 0.0.0-dev
-  resolution: "@stigmer/embed@file:../sdk/embed#../sdk/embed::hash=de38e4&locator=stigmer-site%40workspace%3A."
-  checksum: 10c0/c9f83df8034ccf2c6f31eda6c6f041e15305d33b86eb116644a016b9fd3936d2c053a55c350f1e01c112a78144522fa8f356e12841461631f25bb4b161e1daa9
+  resolution: "@stigmer/embed@file:../sdk/embed#../sdk/embed::hash=9e6666&locator=stigmer-site%40workspace%3A."
+  checksum: 10c0/163fdd11241f04a564d0d0c2df8a4f3a4f38443aded2ba395ec16b4d38c95c52399d70999b035670ad8a268f759f8d1fca055de8af1bd7c3e0b8bc03c471ef2e
   languageName: node
   linkType: hard
 
@@ -2853,7 +2853,7 @@ __metadata:
 
 "@stigmer/react-core@file:../sdk/react-core::locator=stigmer-site%40workspace%3A.":
   version: 0.0.0-dev
-  resolution: "@stigmer/react-core@file:../sdk/react-core#../sdk/react-core::hash=af4ae9&locator=stigmer-site%40workspace%3A."
+  resolution: "@stigmer/react-core@file:../sdk/react-core#../sdk/react-core::hash=69e8dc&locator=stigmer-site%40workspace%3A."
   dependencies:
     diff: "npm:^8.0.3"
   peerDependencies:
@@ -2861,13 +2861,13 @@ __metadata:
     "@stigmer/apis": "*"
     "@stigmer/client": "*"
     react: ^19.0.0
-  checksum: 10c0/4386a7001289df16af4565c8f6adb2ed01315a933b6383f78a78f1c5844729fac7fde26db49d12e5d59780277cc5b237cdd638d1d6a961444db6535a0bd3dfd4
+  checksum: 10c0/216324d9235227a0ea2ce2eaab82e47a32bb3d36b0e05a7986fd2301bd83e6cfde62cab185db46a9e22bf7c1ce0c0173b8331afa90b9c7de0cdc18d42cb5ce1e
   languageName: node
   linkType: hard
 
 "@stigmer/react-sdk@file:../sdk/react::locator=stigmer-site%40workspace%3A.":
   version: 0.0.0-dev
-  resolution: "@stigmer/react-sdk@file:../sdk/react#../sdk/react::hash=bc1a92&locator=stigmer-site%40workspace%3A."
+  resolution: "@stigmer/react-sdk@file:../sdk/react#../sdk/react::hash=78ebaf&locator=stigmer-site%40workspace%3A."
   dependencies:
     "@base-ui/react": "npm:^1.3.0"
     "@bufbuild/protovalidate": "npm:^1.1.1"
@@ -2903,7 +2903,7 @@ __metadata:
     lucide-react: ">=0.400.0"
     react: ^19.0.0
     react-dom: ^19.0.0
-  checksum: 10c0/746c32ca2555f0a6bac27e2e0c40d1d6e29a3217ebd6512ebaad7f525047584779197137b61410d26fea40191be7101d2bbe00ea0e0b5618f1c8a60ceb770c2e
+  checksum: 10c0/aa546774c1a13df60217e108d28bf81aecd08f95bffc70b00ad8e50c767300e0f6ad6e89b00e01053ccdff45d3a829ad4d1a25ff062423e84555fd8dadd89dfb
   languageName: node
   linkType: hard
 
