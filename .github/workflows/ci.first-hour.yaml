@@ -20,8 +20,8 @@
 # for this job alone, so the journey's sign-up is the server's first.
 #
 # Needs NO secrets: the issuer, the model and the tool server are hermetic.
-# The same specs run nightly against a deployed Stigmer, configured as a
-# target (test/e2e/helpers/first-hour/target.ts).
+# The same specs can walk a deployed Stigmer, configured as a target
+# (test/e2e/helpers/first-hour/target.ts).
 #
 # Which changes need it is its list in scripts/ci-lanes.mjs; ci.gate.yaml
 # calls it for those, and a red job here turns `Gate`, the required check,

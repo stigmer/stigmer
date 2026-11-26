@@ -52,10 +52,10 @@ and the questions before "done". Read it once per session under this gate.
 A developer's first hour (sign-up, an agent, the chat in their app, a sign-in to
 their tool server, the agent calling the tool) is proven by
 `test/e2e/tests/first-hour`, in the Gate on every change it can break
-(`ci.first-hour.yaml`) and nightly against Stigmer Cloud with the same specs
-(`test/e2e/helpers/first-hour/target.ts`). A change to any part of that hour
-adds to or changes that journey, and keeps its rules, each held by what is
-named:
+(`ci.first-hour.yaml`) and against a deployed Stigmer with the same specs, its
+target configured as a module (`test/e2e/helpers/first-hour/target.ts`). A
+change to any part of that hour adds to or changes that journey, and keeps its
+rules, each held by what is named:
 
 - **A real browser.** Playwright's Chromium drives every screen, the login pages
   included; no step is a call standing in for a click a person makes

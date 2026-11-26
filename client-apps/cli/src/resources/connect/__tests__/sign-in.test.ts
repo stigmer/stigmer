@@ -115,6 +115,20 @@ describe("holdsLoginFor", () => {
 });
 
 describe("runSignIn", () => {
+  it("says to open the address by hand when the browser does not open", async () => {
+    const { client } = fakeClient([SAVED]);
+    const lines: string[] = [];
+    await runSignIn(
+      deps(client, {
+        openBrowser: async () => {
+          throw new Error("no opener");
+        },
+        log: (line) => lines.push(line),
+      }),
+    );
+    expect(lines).toContain("  Could not open the browser automatically. Open the URL above in your browser.");
+  });
+
   it("starts the sign-in in My vault at the address, opens its login page, and finishes that sign-in", async () => {
     const { client, started, asks } = fakeClient([PENDING, SAVED]);
     const opened: string[] = [];

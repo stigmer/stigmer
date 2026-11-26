@@ -56,12 +56,18 @@ export interface Journey {
   asPerson(): Promise<Stigmer>;
 }
 
-/** Why the journey cannot run on this stack, or null when it can (a sync check for `test.skip`). */
+/**
+ * Why the journey cannot run on this stack, or null when it can (a sync
+ * check for `test.skip`). Inside the gate (STIGMER_TEST_GATE=1) a stack
+ * without the journey's parts fails instead: its lane exists for this
+ * journey, and would otherwise pass with every step skipped.
+ */
 export function journeySkipReason(): string | null {
   if ((process.env[JOURNEY_TARGET_VARIABLE] ?? "") !== "") return null;
-  return localTarget() === null
-    ? "needs the first-hour stack (the OIDC posture, the mock model, the OAuth MCP fixture) — run `make test-e2e-first-hour`"
-    : null;
+  if (localTarget() !== null) return null;
+  const reason = "needs the first-hour stack (the OIDC posture, the mock model, the OAuth MCP fixture) — run `make test-e2e-first-hour`";
+  if (process.env.STIGMER_TEST_GATE === "1") throw new Error(`the first-hour journey cannot run in the gate: it ${reason}`);
+  return reason;
 }
 
 export const test = base.extend<object, { journey: Journey }>({

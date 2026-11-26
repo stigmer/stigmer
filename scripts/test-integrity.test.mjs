@@ -1352,3 +1352,26 @@ it("a first-hour quarantine names an owner and an end date at most 14 days out; 
     until: "2026-12-10",
   });
 });
+
+it("the command: a first-hour quarantine with no owner or end date is refused, and passes once it names both", () => {
+  const r = repo();
+  const spec = "test/e2e/tests/first-hour/2-console-tool-call.spec.ts";
+  const until = new Date(Date.now() + 7 * 86_400_000).toISOString().slice(0, 10);
+  try {
+    r.write(spec, `test("signs in", async () => {});\n`);
+    r.git("add", ".");
+    r.git("commit", "-q", "-m", "base");
+
+    r.write(spec, `// quarantined: stigmer/stigmer#1571\ntest.skip("signs in", async () => {});\n`);
+    const refused = r.run();
+    assert.equal(refused.status, 1, refused.stdout);
+    assert.match(refused.stdout, /quarantine-terms .*"signs in" names no owner/);
+    assert.match(refused.stdout, /quarantine-terms .*"signs in" names no end date/);
+
+    r.write(spec, `// quarantined: stigmer/stigmer#1571 owner=whysosuresh until=${until}\ntest.skip("signs in", async () => {});\n`);
+    const named = r.run();
+    assert.doesNotMatch(named.stdout, /quarantine-terms/);
+  } finally {
+    rmSync(r.dir, { recursive: true, force: true });
+  }
+});
