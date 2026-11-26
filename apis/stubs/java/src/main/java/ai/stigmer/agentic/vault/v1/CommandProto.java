@@ -42,7 +42,7 @@ public final class CommandProto extends com.google.protobuf.GeneratedFile {
       "r/commons/apiresource/io.proto\0328ai/stigm" +
       "er/commons/apiresource/rpc_service_optio" +
       "ns.proto\032+ai/stigmer/commons/rpc/method_" +
-      "options.proto2\262\r\n\026VaultCommandController" +
+      "options.proto2\257\016\n\026VaultCommandController" +
       "\022\244\001\n\006create\022\".ai.stigmer.agentic.vault.v" +
       "1.Vault\032\".ai.stigmer.agentic.vault.v1.Va" +
       "ult\"R\302\270\030N\0104\020\036\"\014metadata.org*:unauthorize" +
@@ -80,16 +80,19 @@ public final class CommandProto extends com.google.protobuf.GeneratedFile {
       "tput\"\004\320\270\030\001\022{\n\016completeSignIn\0220.ai.stigme" +
       "r.agentic.vault.v1.CompleteSignInInput\0321" +
       ".ai.stigmer.agentic.vault.v1.CompleteSig" +
-      "nInOutput\"\004\320\270\030\001\022\272\001\n\021createConnectLink\0223." +
-      "ai.stigmer.agentic.vault.v1.CreateConnec" +
-      "tLinkInput\032(.ai.stigmer.agentic.vault.v1" +
-      ".ConnectLink\"F\302\270\030B\010\002\020;\"\010vault_id*2unauth" +
-      "orized to make a Connect link for this v" +
-      "ault\032\004\240\377+;B\237\001B\014CommandProtoP\001\242\002\004ASAV\252\002\033A" +
-      "i.Stigmer.Agentic.Vault.V1\312\002\033Ai\\Stigmer\\" +
-      "Agentic\\Vault\\V1\342\002\'Ai\\Stigmer\\Agentic\\Va" +
-      "ult\\V1\\GPBMetadata\352\002\037Ai::Stigmer::Agenti" +
-      "c::Vault::V1b\006proto3"
+      "nInOutput\"\004\320\270\030\001\022{\n\016handBackSignIn\0220.ai.s" +
+      "tigmer.agentic.vault.v1.HandBackSignInIn" +
+      "put\0321.ai.stigmer.agentic.vault.v1.HandBa" +
+      "ckSignInOutput\"\004\310\270\030\001\022\272\001\n\021createConnectLi" +
+      "nk\0223.ai.stigmer.agentic.vault.v1.CreateC" +
+      "onnectLinkInput\032(.ai.stigmer.agentic.vau" +
+      "lt.v1.ConnectLink\"F\302\270\030B\010\002\020;\"\010vault_id*2u" +
+      "nauthorized to make a Connect link for t" +
+      "his vault\032\004\240\377+;B\237\001B\014CommandProtoP\001\242\002\004ASA" +
+      "V\252\002\033Ai.Stigmer.Agentic.Vault.V1\312\002\033Ai\\Sti" +
+      "gmer\\Agentic\\Vault\\V1\342\002\'Ai\\Stigmer\\Agent" +
+      "ic\\Vault\\V1\\GPBMetadata\352\002\037Ai::Stigmer::A" +
+      "gentic::Vault::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -110,6 +113,7 @@ public final class CommandProto extends com.google.protobuf.GeneratedFile {
         com.google.protobuf.ExtensionRegistry.newInstance();
     registry.add(ai.stigmer.commons.apiresource.RpcServiceOptionsProto.apiResourceKind);
     registry.add(ai.stigmer.commons.rpc.MethodOptionsProto.config);
+    registry.add(ai.stigmer.commons.rpc.MethodOptionsProto.isPublic);
     registry.add(ai.stigmer.commons.rpc.MethodOptionsProto.isSkipAuthorization);
     com.google.protobuf.Descriptors.FileDescriptor
         .internalUpdateFileDescriptor(descriptor, registry);

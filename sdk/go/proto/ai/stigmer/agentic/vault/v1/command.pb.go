@@ -26,7 +26,7 @@ var File_ai_stigmer_agentic_vault_v1_command_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_vault_v1_command_proto_rawDesc = "" +
 	"\n" +
-	")ai/stigmer/agentic/vault/v1/command.proto\x12\x1bai.stigmer.agentic.vault.v1\x1a%ai/stigmer/agentic/vault/v1/api.proto\x1a$ai/stigmer/agentic/vault/v1/io.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a8ai/stigmer/commons/apiresource/rpc_service_options.proto\x1a+ai/stigmer/commons/rpc/method_options.proto2\xb2\r\n" +
+	")ai/stigmer/agentic/vault/v1/command.proto\x12\x1bai.stigmer.agentic.vault.v1\x1a%ai/stigmer/agentic/vault/v1/api.proto\x1a$ai/stigmer/agentic/vault/v1/io.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a8ai/stigmer/commons/apiresource/rpc_service_options.proto\x1a+ai/stigmer/commons/rpc/method_options.proto2\xaf\x0e\n" +
 	"\x16VaultCommandController\x12\xa4\x01\n" +
 	"\x06create\x12\".ai.stigmer.agentic.vault.v1.Vault\x1a\".ai.stigmer.agentic.vault.v1.Vault\"R¸\x18N\b4\x10\x1e\"\fmetadata.org*:unauthorized to create a shared vault in this organization\x12\x99\x01\n" +
 	"\x06update\x12-.ai.stigmer.agentic.vault.v1.UpdateVaultInput\x1a\".ai.stigmer.agentic.vault.v1.Vault\"<¸\x188\b\x02\x10;\"\x14resource.metadata.id*\x1cunauthorized to update vault\x12\xad\x01\n" +
@@ -39,7 +39,8 @@ const file_ai_stigmer_agentic_vault_v1_command_proto_rawDesc = "" +
 	"\rsetConnection\x124.ai.stigmer.agentic.vault.v1.SetVaultConnectionInput\x1a\".ai.stigmer.agentic.vault.v1.Vault\"\x04и\x18\x01\x12w\n" +
 	"\x11removeConnections\x128.ai.stigmer.agentic.vault.v1.RemoveVaultConnectionsInput\x1a\".ai.stigmer.agentic.vault.v1.Vault\"\x04и\x18\x01\x12r\n" +
 	"\vstartSignIn\x12-.ai.stigmer.agentic.vault.v1.StartSignInInput\x1a..ai.stigmer.agentic.vault.v1.StartSignInOutput\"\x04и\x18\x01\x12{\n" +
-	"\x0ecompleteSignIn\x120.ai.stigmer.agentic.vault.v1.CompleteSignInInput\x1a1.ai.stigmer.agentic.vault.v1.CompleteSignInOutput\"\x04и\x18\x01\x12\xba\x01\n" +
+	"\x0ecompleteSignIn\x120.ai.stigmer.agentic.vault.v1.CompleteSignInInput\x1a1.ai.stigmer.agentic.vault.v1.CompleteSignInOutput\"\x04и\x18\x01\x12{\n" +
+	"\x0ehandBackSignIn\x120.ai.stigmer.agentic.vault.v1.HandBackSignInInput\x1a1.ai.stigmer.agentic.vault.v1.HandBackSignInOutput\"\x04ȸ\x18\x01\x12\xba\x01\n" +
 	"\x11createConnectLink\x123.ai.stigmer.agentic.vault.v1.CreateConnectLinkInput\x1a(.ai.stigmer.agentic.vault.v1.ConnectLink\"F¸\x18B\b\x02\x10;\"\bvault_id*2unauthorized to make a Connect link for this vault\x1a\x04\xa0\xff+;B\xfd\x01\n" +
 	"\x1fcom.ai.stigmer.agentic.vault.v1B\fCommandProtoP\x01Z;go.stigmer.ai/sdk/proto/ai/stigmer/agentic/vault/v1;vaultv1\xa2\x02\x04ASAV\xaa\x02\x1bAi.Stigmer.Agentic.Vault.V1\xca\x02\x1bAi\\Stigmer\\Agentic\\Vault\\V1\xe2\x02'Ai\\Stigmer\\Agentic\\Vault\\V1\\GPBMetadata\xea\x02\x1fAi::Stigmer::Agentic::Vault::V1b\x06proto3"
 
@@ -55,10 +56,12 @@ var file_ai_stigmer_agentic_vault_v1_command_proto_goTypes = []any{
 	(*RemoveVaultConnectionsInput)(nil),        // 8: ai.stigmer.agentic.vault.v1.RemoveVaultConnectionsInput
 	(*StartSignInInput)(nil),                   // 9: ai.stigmer.agentic.vault.v1.StartSignInInput
 	(*CompleteSignInInput)(nil),                // 10: ai.stigmer.agentic.vault.v1.CompleteSignInInput
-	(*CreateConnectLinkInput)(nil),             // 11: ai.stigmer.agentic.vault.v1.CreateConnectLinkInput
-	(*StartSignInOutput)(nil),                  // 12: ai.stigmer.agentic.vault.v1.StartSignInOutput
-	(*CompleteSignInOutput)(nil),               // 13: ai.stigmer.agentic.vault.v1.CompleteSignInOutput
-	(*ConnectLink)(nil),                        // 14: ai.stigmer.agentic.vault.v1.ConnectLink
+	(*HandBackSignInInput)(nil),                // 11: ai.stigmer.agentic.vault.v1.HandBackSignInInput
+	(*CreateConnectLinkInput)(nil),             // 12: ai.stigmer.agentic.vault.v1.CreateConnectLinkInput
+	(*StartSignInOutput)(nil),                  // 13: ai.stigmer.agentic.vault.v1.StartSignInOutput
+	(*CompleteSignInOutput)(nil),               // 14: ai.stigmer.agentic.vault.v1.CompleteSignInOutput
+	(*HandBackSignInOutput)(nil),               // 15: ai.stigmer.agentic.vault.v1.HandBackSignInOutput
+	(*ConnectLink)(nil),                        // 16: ai.stigmer.agentic.vault.v1.ConnectLink
 }
 var file_ai_stigmer_agentic_vault_v1_command_proto_depIdxs = []int32{
 	0,  // 0: ai.stigmer.agentic.vault.v1.VaultCommandController.create:input_type -> ai.stigmer.agentic.vault.v1.Vault
@@ -72,21 +75,23 @@ var file_ai_stigmer_agentic_vault_v1_command_proto_depIdxs = []int32{
 	8,  // 8: ai.stigmer.agentic.vault.v1.VaultCommandController.removeConnections:input_type -> ai.stigmer.agentic.vault.v1.RemoveVaultConnectionsInput
 	9,  // 9: ai.stigmer.agentic.vault.v1.VaultCommandController.startSignIn:input_type -> ai.stigmer.agentic.vault.v1.StartSignInInput
 	10, // 10: ai.stigmer.agentic.vault.v1.VaultCommandController.completeSignIn:input_type -> ai.stigmer.agentic.vault.v1.CompleteSignInInput
-	11, // 11: ai.stigmer.agentic.vault.v1.VaultCommandController.createConnectLink:input_type -> ai.stigmer.agentic.vault.v1.CreateConnectLinkInput
-	0,  // 12: ai.stigmer.agentic.vault.v1.VaultCommandController.create:output_type -> ai.stigmer.agentic.vault.v1.Vault
-	0,  // 13: ai.stigmer.agentic.vault.v1.VaultCommandController.update:output_type -> ai.stigmer.agentic.vault.v1.Vault
-	0,  // 14: ai.stigmer.agentic.vault.v1.VaultCommandController.updateVisibility:output_type -> ai.stigmer.agentic.vault.v1.Vault
-	0,  // 15: ai.stigmer.agentic.vault.v1.VaultCommandController.rename:output_type -> ai.stigmer.agentic.vault.v1.Vault
-	0,  // 16: ai.stigmer.agentic.vault.v1.VaultCommandController.delete:output_type -> ai.stigmer.agentic.vault.v1.Vault
-	0,  // 17: ai.stigmer.agentic.vault.v1.VaultCommandController.setSecrets:output_type -> ai.stigmer.agentic.vault.v1.Vault
-	0,  // 18: ai.stigmer.agentic.vault.v1.VaultCommandController.removeSecrets:output_type -> ai.stigmer.agentic.vault.v1.Vault
-	0,  // 19: ai.stigmer.agentic.vault.v1.VaultCommandController.setConnection:output_type -> ai.stigmer.agentic.vault.v1.Vault
-	0,  // 20: ai.stigmer.agentic.vault.v1.VaultCommandController.removeConnections:output_type -> ai.stigmer.agentic.vault.v1.Vault
-	12, // 21: ai.stigmer.agentic.vault.v1.VaultCommandController.startSignIn:output_type -> ai.stigmer.agentic.vault.v1.StartSignInOutput
-	13, // 22: ai.stigmer.agentic.vault.v1.VaultCommandController.completeSignIn:output_type -> ai.stigmer.agentic.vault.v1.CompleteSignInOutput
-	14, // 23: ai.stigmer.agentic.vault.v1.VaultCommandController.createConnectLink:output_type -> ai.stigmer.agentic.vault.v1.ConnectLink
-	12, // [12:24] is the sub-list for method output_type
-	0,  // [0:12] is the sub-list for method input_type
+	11, // 11: ai.stigmer.agentic.vault.v1.VaultCommandController.handBackSignIn:input_type -> ai.stigmer.agentic.vault.v1.HandBackSignInInput
+	12, // 12: ai.stigmer.agentic.vault.v1.VaultCommandController.createConnectLink:input_type -> ai.stigmer.agentic.vault.v1.CreateConnectLinkInput
+	0,  // 13: ai.stigmer.agentic.vault.v1.VaultCommandController.create:output_type -> ai.stigmer.agentic.vault.v1.Vault
+	0,  // 14: ai.stigmer.agentic.vault.v1.VaultCommandController.update:output_type -> ai.stigmer.agentic.vault.v1.Vault
+	0,  // 15: ai.stigmer.agentic.vault.v1.VaultCommandController.updateVisibility:output_type -> ai.stigmer.agentic.vault.v1.Vault
+	0,  // 16: ai.stigmer.agentic.vault.v1.VaultCommandController.rename:output_type -> ai.stigmer.agentic.vault.v1.Vault
+	0,  // 17: ai.stigmer.agentic.vault.v1.VaultCommandController.delete:output_type -> ai.stigmer.agentic.vault.v1.Vault
+	0,  // 18: ai.stigmer.agentic.vault.v1.VaultCommandController.setSecrets:output_type -> ai.stigmer.agentic.vault.v1.Vault
+	0,  // 19: ai.stigmer.agentic.vault.v1.VaultCommandController.removeSecrets:output_type -> ai.stigmer.agentic.vault.v1.Vault
+	0,  // 20: ai.stigmer.agentic.vault.v1.VaultCommandController.setConnection:output_type -> ai.stigmer.agentic.vault.v1.Vault
+	0,  // 21: ai.stigmer.agentic.vault.v1.VaultCommandController.removeConnections:output_type -> ai.stigmer.agentic.vault.v1.Vault
+	13, // 22: ai.stigmer.agentic.vault.v1.VaultCommandController.startSignIn:output_type -> ai.stigmer.agentic.vault.v1.StartSignInOutput
+	14, // 23: ai.stigmer.agentic.vault.v1.VaultCommandController.completeSignIn:output_type -> ai.stigmer.agentic.vault.v1.CompleteSignInOutput
+	15, // 24: ai.stigmer.agentic.vault.v1.VaultCommandController.handBackSignIn:output_type -> ai.stigmer.agentic.vault.v1.HandBackSignInOutput
+	16, // 25: ai.stigmer.agentic.vault.v1.VaultCommandController.createConnectLink:output_type -> ai.stigmer.agentic.vault.v1.ConnectLink
+	13, // [13:26] is the sub-list for method output_type
+	0,  // [0:13] is the sub-list for method input_type
 	0,  // [0:0] is the sub-list for extension type_name
 	0,  // [0:0] is the sub-list for extension extendee
 	0,  // [0:0] is the sub-list for field type_name

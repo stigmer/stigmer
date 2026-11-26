@@ -97,6 +97,11 @@ func (v *VaultClient) CompleteSignIn(ctx context.Context, input *vaultv1.Complet
 	return resp, wrapErr(err)
 }
 
+func (v *VaultClient) HandBackSignIn(ctx context.Context, input *vaultv1.HandBackSignInInput) (*vaultv1.HandBackSignInOutput, error) {
+	resp, err := v.command.HandBackSignIn(ctx, input)
+	return resp, wrapErr(err)
+}
+
 func (v *VaultClient) CreateConnectLink(ctx context.Context, input *vaultv1.CreateConnectLinkInput) (*vaultv1.ConnectLink, error) {
 	resp, err := v.command.CreateConnectLink(ctx, input)
 	return resp, wrapErr(err)

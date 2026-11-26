@@ -3,7 +3,10 @@
 // a 302 to the request's redirect_uri carrying a fresh code and the request's
 // state, so a browser-driven sign-in completes against the mock; off, the
 // static login page the server's pre-flight probe expects stands; `reset()`
-// turns it off. Driven over loopback; no target.
+// turns it off. With `openerPolicy` set too, the consent is a page carrying
+// that Cross-Origin-Opener-Policy with an Allow link to the same redirect,
+// its address escaped, since a browser applies an opener policy to a page and
+// never to a redirect. Driven over loopback; no target.
 // Domain: test support (identity fixtures).
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import { MockOAuthAuthorizationServer } from "../oauth-authorization-server.ts";
@@ -43,5 +46,28 @@ describe("authorizeRedirect", () => {
     const answer = await fetch(new URL("/authorize?redirect_uri=http://localhost:3000/cb", mock.origin()), { redirect: "manual" });
     expect(answer.status).toBe(200);
     expect(await answer.text()).toContain("Sign in to ConformanceVendor");
+  });
+});
+
+describe("openerPolicy", () => {
+  it("consents on a page carrying the opener policy, whose Allow link is the redirect with its code and state", async () => {
+    mock.authorizeRedirect = true;
+    mock.openerPolicy = "same-origin";
+    const url = new URL("/authorize", mock.origin());
+    url.searchParams.set("redirect_uri", "http://localhost:3000/auth/oauth/callback");
+    url.searchParams.set("state", 'a"<b>&');
+    const answer = await fetch(url, { redirect: "manual" });
+    expect(answer.status).toBe(200);
+    expect(answer.headers.get("cross-origin-opener-policy")).toBe("same-origin");
+    const page = await answer.text();
+    const href = /<a href="([^"]*)">Allow<\/a>/.exec(page)?.[1] ?? "";
+    // Unescaped as a browser reads the attribute: every other entity first, "&amp;" last.
+    const link = new URL(href.replaceAll("&quot;", '"').replaceAll("&lt;", "<").replaceAll("&gt;", ">").replaceAll("&amp;", "&"));
+    expect(link.origin + link.pathname).toBe("http://localhost:3000/auth/oauth/callback");
+    expect(link.searchParams.get("code")).toMatch(/^mock-authorization-code-\d+$/);
+    expect(link.searchParams.get("state")).toBe('a"<b>&');
+
+    mock.reset();
+    expect(mock.openerPolicy).toBeUndefined();
   });
 });

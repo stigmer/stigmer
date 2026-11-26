@@ -246,30 +246,70 @@ message StartSignInOutput {
   repeated string scopes = 4;
 }
 
-// Input for finishing a sign-in, with what the login page handed back.
+// Input for finishing a sign-in.
 message CompleteSignInInput {
+  // The state from startSignIn.
+  string state = 1 [(buf.validate.field).string = {
+    min_len: 1
+    max_len: 512
+  }];
+
+  // The authorization code the login page returned, for a page of the
+  // caller's own that received it. Empty finishes with the answer the
+  // callback page handed back (handBackSignIn), or answers pending until it
+  // has.
+  string code = 2 [(buf.validate.field).string.max_len = 4096];
+}
+
+// The login a sign-in saved, or that it is still waiting for the login page.
+message CompleteSignInOutput {
+  // The address the login was saved at; empty while pending.
+  string address = 1;
+
+  // How the saved login is described: the account when the login app says
+  // who signed in ("GitHub @ana"), else the host ("Signed in at
+  // mcp.linear.app"). Empty while pending.
+  string description = 2;
+
+  // Set when the login page has not answered yet: nothing was saved, and
+  // the sign-in stays open until it is finished or expires. Ask again.
+  bool pending = 3;
+}
+
+// Input for handing back what the login page answered: the query
+// parameters it sent the person back with (RFC 6749 section 4.1.2), either a
+// code or a refusal.
+message HandBackSignInInput {
   // The state from startSignIn, as the login page returned it.
   string state = 1 [(buf.validate.field).string = {
     min_len: 1
     max_len: 512
   }];
 
-  // The authorization code the login page returned.
-  string code = 2 [(buf.validate.field).string = {
-    min_len: 1
-    max_len: 4096
-  }];
+  // The authorization code, when the person signed in.
+  string code = 2 [(buf.validate.field).string.max_len = 4096];
+
+  // The login page's error code ("access_denied"), when it did not sign the
+  // person in.
+  string error = 3 [(buf.validate.field).string.max_len = 256];
+
+  // The login page's words for its refusal, when it gave any.
+  string error_description = 4 [(buf.validate.field).string.max_len = 1024];
+
+  option (buf.validate.message).cel = {
+    id: "hand_back_sign_in.one_answer"
+    message: "exactly one of code or error is required"
+    expression: "(this.code != '') != (this.error != '')"
+  };
 }
 
-// The login a sign-in saved.
-message CompleteSignInOutput {
-  // The address the login was saved at.
-  string address = 1;
+// Where the person signed in, for the page to say so.
+message HandBackSignInOutput {
+  // Who the person signed in with ("GitHub", or the address's host).
+  string provider_name = 1;
 
-  // How the saved login is described: the account when the login app says
-  // who signed in ("GitHub @ana"), else the host ("Signed in at
-  // mcp.linear.app").
-  string description = 2;
+  // The address the login will be saved at.
+  string address = 2;
 }
 
 // Input for making a Connect link: a one-time page an integrator sends its

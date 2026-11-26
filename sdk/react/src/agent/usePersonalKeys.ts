@@ -21,6 +21,14 @@
  * run carrying another organization's agent. The reading is the
  * composer's own (`useAgentSetup`), so the two never disagree.
  *
+ * A run's organization may be named by its slug, as an embedded chat names
+ * it (`<AgentChat agent="acme/variance-reporter">`), while an agent names
+ * its organization by id. The slug is turned into the id through the
+ * console's organization list when one is mounted, and otherwise through
+ * the caller's own organizations, read once ({@link organizationIdOf});
+ * until that answer lands the keys are not ready, so an agent of the run's
+ * own organization is never taken for another's.
+ *
  * The subagents and plugins are read by reference; while they load the
  * answer is not ready, so a caller never names a key a moment later
  * withdrawn. A subagent or plugin that cannot be read names only the
@@ -32,22 +40,56 @@
 import { useMemo } from "react";
 import type { Agent } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb";
 import type { AgentSpec } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/spec_pb";
+import type { Organization } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/api_pb";
+import type { Stigmer } from "@stigmer/client";
 import { useStigmer } from "@stigmer/react-core";
 import { useFetch } from "@stigmer/react-core/internal";
 import { readAgentServers, runDeclarations, signInKeys, subagentOrgs } from "./runServers.js";
 import { findOrgByRef, useKnownOrgs } from "../organization/OrgProvider.js";
 
 /**
- * The id of the organization `ref` names (an id or a slug), through the
- * caller's organizations and the one they have open when a provider is
- * mounted; `ref` itself otherwise.
+ * The id of the organization `ref` names (an id or a slug): from `known`,
+ * the organizations a mounted provider holds (the caller's own and the one
+ * they have open); with no provider, from the caller's own organizations,
+ * read until one matches. `ref` itself when none does, or when they cannot
+ * be read: an id names itself, and a reference to an organization the
+ * caller is not in is judged as named.
  */
-export function useOrganizationId(ref: string): string {
+export async function organizationIdOf(
+  stigmer: Pick<Stigmer, "organization">,
+  ref: string,
+  known: readonly Organization[] | undefined,
+): Promise<string> {
+  if (ref === "") return "";
+  if (known !== undefined) return findOrgByRef(known, ref)?.metadata?.id || ref;
+  try {
+    for await (const org of stigmer.organization.listMineAll({})) {
+      if (org.metadata?.id === ref || org.metadata?.slug === ref) return org.metadata.id || ref;
+    }
+  } catch {
+    // Unreadable: judged as named, as before the lookup existed.
+  }
+  return ref;
+}
+
+/**
+ * The id of the organization `ref` names (an id or a slug), by
+ * {@link organizationIdOf}: at once when a provider is mounted, and `null`
+ * while the caller's own organizations are read when none is.
+ */
+export function useOrganizationId(ref: string): string | null {
+  const stigmer = useStigmer();
   const orgs = useKnownOrgs();
-  return useMemo(
-    () => (orgs ? findOrgByRef(orgs, ref)?.metadata?.id : undefined) || ref,
-    [orgs, ref],
+  const known = useMemo(() => (orgs ? findOrgByRef(orgs, ref)?.metadata?.id || ref : null), [orgs, ref]);
+  const { data: looked, isLoading } = useFetch(
+    known === null && ref !== "" ? () => organizationIdOf(stigmer, ref, undefined) : null,
+    [known, ref, stigmer],
+    null as string | null,
+    { cacheKey: known === null && ref !== "" ? `organization-id:${ref}` : undefined },
   );
+  if (known !== null) return known;
+  if (ref === "") return "";
+  return isLoading ? null : looked;
 }
 
 /** Return value of {@link usePersonalKeys}. */
@@ -74,6 +116,7 @@ export function usePersonalKeys(
   const agentOrg = agent?.metadata?.org ?? "";
   const sameOrganization =
     agent !== null &&
+    runOrgId !== null &&
     runOrgId !== "" &&
     agentOrg === runOrgId &&
     subagentOrgs(spec ?? undefined, agentOrg).every((subagentOrg) => subagentOrg === runOrgId);
@@ -91,7 +134,7 @@ export function usePersonalKeys(
   );
 
   return useMemo(() => {
-    if (agent === null || spec === null || spec === undefined) {
+    if (agent === null || spec === null || spec === undefined || runOrgId === null) {
       return { keys: [], isReady: false };
     }
     if (!sameOrganization) {
@@ -102,5 +145,5 @@ export function usePersonalKeys(
     }
     const keys = serverKeys.declared.filter((key) => !serverKeys.signIn.has(key)).sort();
     return { keys, isReady: true };
-  }, [agent, spec, sameOrganization, isLoading, serverKeys]);
+  }, [agent, spec, runOrgId, sameOrganization, isLoading, serverKeys]);
 }

@@ -280,6 +280,20 @@ export const SQLITE_MIGRATIONS: ReadonlyArray<SqliteSchemaMigration> = [
       `CREATE INDEX idx_file_blob_refs_org ON file_blob_refs (org)`,
     ],
   },
+  {
+    version: 2,
+    statements: [
+      // A sign-in's answer from its login page, handed back by the console's
+      // callback page and collected by the signer's own completion
+      // (domain/vault/sign-in/person.ts): the code, sealed like the row's
+      // other secrets, or the refusal's words. answered_at marks a row
+      // answered, once. Nullable, so a row the previous release writes reads
+      // as unanswered, and that release never reads these columns.
+      `ALTER TABLE pending_oauth_state ADD COLUMN answered_code TEXT`,
+      `ALTER TABLE pending_oauth_state ADD COLUMN answer_error TEXT`,
+      `ALTER TABLE pending_oauth_state ADD COLUMN answered_at INTEGER`,
+    ],
+  },
 ];
 
 /** The newest version this build knows. */

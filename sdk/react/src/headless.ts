@@ -844,6 +844,8 @@ export {
   gitHostOf,
   GITHUB_HOST,
   useVaultSignIn,
+  SIGN_IN_ENDED,
+  useSignInReturn,
 } from "./vault/index.js";
 export type {
   UseMyVaultReturn,
@@ -863,6 +865,7 @@ export type {
   SignInReturnTo,
   UseVaultSignInReturn,
   VaultSignInPhase,
+  SignInReturnState,
   ToolCredentialsReadiness,
   OAuthCallbackParams,
 } from "./vault/index.js";

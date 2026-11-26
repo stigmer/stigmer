@@ -36,7 +36,7 @@ export interface SharedVaultSignInProps {
 
 /** One owed sign-in, saved into a shared vault. */
 export function SharedVaultSignIn({ signIn, vault, onSignedIn }: SharedVaultSignInProps) {
-  const { signIn: start, phase, isInProgress, error } = useVaultSignIn();
+  const { signIn: start, phase, isInProgress, error, clearError } = useVaultSignIn();
   const { address } = signIn;
   const { org, id } = vault;
   const onSignIn = useCallback(() => {
@@ -48,6 +48,13 @@ export function SharedVaultSignIn({ signIn, vault, onSignedIn }: SharedVaultSign
     );
   }, [start, address, org, id, onSignedIn]);
   return (
-    <SignInNeededCell name={signIn.server.name} isSigningIn={isInProgress} phase={phase} error={error} onSignIn={onSignIn} />
+    <SignInNeededCell
+      name={signIn.server.name}
+      isSigningIn={isInProgress}
+      phase={phase}
+      error={error}
+      onSignIn={onSignIn}
+      onCancel={clearError}
+    />
   );
 }

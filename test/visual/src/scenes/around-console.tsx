@@ -18,6 +18,8 @@ import { IamRole } from "@stigmer/apis/ai/stigmer/iam/v1/enum_pb";
 import { InvitationCommandController } from "@stigmer/apis/ai/stigmer/iam/invitation/v1/command_pb";
 import { InvitationQueryController } from "@stigmer/apis/ai/stigmer/iam/invitation/v1/query_pb";
 import { InvitationPreviewSchema } from "@stigmer/apis/ai/stigmer/iam/invitation/v1/io_pb";
+import { VaultCommandController } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/command_pb";
+import { HandBackSignInOutputSchema } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/io_pb";
 import { InvitationSchema } from "@stigmer/apis/ai/stigmer/iam/invitation/v1/api_pb";
 import {
   CompleteConnectLinkOutputSchema,
@@ -37,6 +39,7 @@ import {
   ConnectLinkView,
   InvitationRedemption,
   OAuthCallbackHandler,
+  SignInReturn,
   type IdentityAccountGateState,
   type OrgGateState,
 } from "@stigmer/react-sdk";
@@ -384,13 +387,48 @@ const POPUP_QUERIES: Record<PopupFace, Record<string, string>> = {
   missing: {},
 };
 
-/** The OAuth pop-up a vault's sign-in returns to. */
+/** The Slack install's pop-up, which posts the install's answer to the page that opened it. */
 export function oauthPopupScene(face: PopupFace): Drawing {
   return {
     render: () => (
       <WithReturnQuery query={POPUP_QUERIES[face]}>
         <StandaloneScreen mark={<Mark />}>
           <OAuthCallbackHandler appName="Stigmer" />
+        </StandaloneScreen>
+      </WithReturnQuery>
+    ),
+  };
+}
+
+type ReturnAnswer = "handed-back" | "refused" | "ended";
+
+const RETURN_QUERIES: Record<ReturnAnswer, Record<string, string>> = {
+  "handed-back": { code: "c_0001", state: "st_0001" },
+  refused: { error: "access_denied", error_description: "The person declined access.", state: "st_0001" },
+  ended: { code: "c_0001", state: "st_0001" },
+};
+
+/**
+ * The console's page a sign-in at an address returns to: the answer is
+ * handed to Stigmer, and the page says where the person signed in, the
+ * login page's refusal, or that the sign-in is over.
+ */
+export function oauthReturnScene(answer: ReturnAnswer): Drawing {
+  return {
+    routes: (router) => {
+      router.service(VaultCommandController, {
+        handBackSignIn: () => {
+          if (answer === "ended") {
+            throw new ConnectError("this sign-in has expired or was already used: start it again", Code.FailedPrecondition);
+          }
+          return create(HandBackSignInOutputSchema, { providerName: "Sentry", address: "https://mcp.sentry.dev/mcp" });
+        },
+      });
+    },
+    render: () => (
+      <WithReturnQuery query={RETURN_QUERIES[answer]}>
+        <StandaloneScreen mark={<Mark />}>
+          <SignInReturn />
         </StandaloneScreen>
       </WithReturnQuery>
     ),
@@ -503,6 +541,9 @@ export const AROUND_CONSOLE_DRAWINGS = {
   "oauth-popup-done": () => oauthPopupScene("done"),
   "oauth-popup-declined": () => oauthPopupScene("declined"),
   "oauth-popup-missing": () => oauthPopupScene("missing"),
+  "oauth-return-handed-back": () => oauthReturnScene("handed-back"),
+  "oauth-return-refused": () => oauthReturnScene("refused"),
+  "oauth-return-ended": () => oauthReturnScene("ended"),
   "sign-in-ready": () => signInScene("ready"),
   "sign-in-handing-off": () => signInScene("handing-off"),
   "sign-in-failed": () => signInScene("failed"),

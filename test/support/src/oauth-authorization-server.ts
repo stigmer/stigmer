@@ -119,6 +119,13 @@ export class MockOAuthAuthorizationServer {
   // journey) completes against this mock. Off, the static login page stands,
   // which is what the server's pre-flight probe expects.
   authorizeRedirect = false;
+  // Consent on a page that sets this Cross-Origin-Opener-Policy, as Sentry's
+  // (`same-origin`) and Vercel's (`restrict-properties`) login pages do: with
+  // authorizeRedirect on, a 200 authorize answers a page with an Allow link
+  // to the redirect, which a browser-driven journey clicks. A browser applies
+  // an opener policy to the document it lands on, never to a redirect, so a
+  // page is what cuts the sign-in window off from the page that opened it.
+  openerPolicy: string | undefined;
   // Body served with a non-2xx authorize status. An RFC 6749-shaped JSON
   // object yields a vendor detail in the rejection message; a plain string
   // models an HTML error page (no extractable detail).
@@ -198,6 +205,7 @@ export class MockOAuthAuthorizationServer {
     this.protectedResourcePaths = [];
     this.tenant += 1;
     this.authorizeRedirect = false;
+    this.openerPolicy = undefined;
     this.authorizeStatus = 200;
     this.authorizeErrorBody = undefined;
     this.tokenStatus = 200;
@@ -365,6 +373,13 @@ export class MockOAuthAuthorizationServer {
       location.searchParams.set("code", `mock-authorization-code-${this.tokenSerial}`);
       const state = params.get("state");
       if (state !== null) location.searchParams.set("state", state);
+      if (this.openerPolicy !== undefined) {
+        res.writeHead(200, { "content-type": "text/html", "cross-origin-opener-policy": this.openerPolicy });
+        res.end(
+          `<html><body><h1>Sign in to ConformanceVendor</h1><a href="${escapeHtml(location.toString())}">Allow</a></body></html>`,
+        );
+        return;
+      }
       res.writeHead(302, { location: location.toString() });
       res.end();
       return;
@@ -439,4 +454,10 @@ async function readBody(req: IncomingMessage): Promise<string> {
     chunks.push(chunk as Buffer);
   }
   return Buffer.concat(chunks).toString("utf8");
+}
+
+// The redirect in an attribute of the consent page: its query carries the
+// request's state, which a suite may set to anything.
+function escapeHtml(value: string): string {
+  return value.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }

@@ -19,8 +19,9 @@
     },
     "/auth/oauth/callback": {
       "scenes": [
-        "oauth-popup-done",
-        "oauth-popup-declined"
+        "oauth-return-handed-back",
+        "oauth-return-refused",
+        "oauth-return-ended"
       ]
     },
     "/chat/[channel]": {

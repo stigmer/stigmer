@@ -76,6 +76,13 @@ export interface UsePluginServerSignInReturn {
    * A no-op unless `kind` is `sign-in-needed` or `sign-in-available`.
    */
   readonly signIn: () => void;
+  /**
+   * Cancel a sign-in in progress: the wait ends, its window closes and the
+   * row is back on "Sign in". A sign-in left in a closed window waits for
+   * the server's ten minutes otherwise, so a row that shows the wait offers
+   * this as its Cancel.
+   */
+  readonly cancelSignIn: () => void;
   /** Remove the login saved at this address from My vault. */
   readonly signOut: () => Promise<void>;
   /** The sign-in's phase; `idle` when none is running. */
@@ -195,13 +202,27 @@ export function usePluginServerSignIn(
       declaredVariables,
       error,
       signIn,
+      cancelSignIn: clearSignInError,
       signOut,
       phase: vaultSignIn.phase,
       isSigningIn: vaultSignIn.isInProgress,
       isSigningOut,
       refetch,
     }),
-    [kind, address, connection, declaredVariables, error, signIn, signOut, vaultSignIn.phase, vaultSignIn.isInProgress, isSigningOut, refetch],
+    [
+      kind,
+      address,
+      connection,
+      declaredVariables,
+      error,
+      signIn,
+      clearSignInError,
+      signOut,
+      vaultSignIn.phase,
+      vaultSignIn.isInProgress,
+      isSigningOut,
+      refetch,
+    ],
   );
 }
 

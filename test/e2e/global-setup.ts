@@ -82,6 +82,17 @@ async function globalSetup() {
     // embedding tutorial (tests/embed-tutorial) runs a conversation a
     // signed-in person starts, which console-login never does.
     const mock = MOCK_LLM ? await startMockLlmProxy() : null;
+    // A tool server that signs in, whose login page cuts its window off
+    // from the page that opened it (Sentry's opener policy), and the
+    // console's callback as the server's OAuth redirect: the embedded
+    // chat's sign-in (tests/embed-sign-in), from an app on its own address.
+    const { child: oauthMcp, ready: oauthMcpReady } = await startOAuthMcpFixture({ openerPolicy: "same-origin" }).catch(
+      (error: unknown) => {
+        issuer.kill();
+        throw error;
+      },
+    );
+    const baseURL = process.env.STIGMER_E2E_BASE_URL ?? "http://localhost:3000";
     const state = await startBackendStack({
       apiPort: API_PORT,
       singleOrg: true,
@@ -92,12 +103,16 @@ async function globalSetup() {
         STIGMER_OIDC_CONSOLE_CLIENT_ID: OIDC_CONSOLE_CLIENT_ID,
         STIGMER_HELP_URL: OIDC_HELP.url,
         STIGMER_HELP_LABEL: OIDC_HELP.label,
+        STIGMER_OAUTH_REDIRECT_URI: `${baseURL}/auth/oauth/callback`,
       },
     }).catch((error: unknown) => {
       issuer.kill();
+      oauthMcp.kill();
       throw error;
     });
     adoptStackFixture(issuer);
+    adoptStackFixture(oauthMcp);
+    state.oauthMcp = oauthMcpReady;
     if (mock !== null) state.mockLlmControlUrl = mock.controlUrl;
     writeStackState(state);
     console.log(

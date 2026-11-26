@@ -438,8 +438,8 @@
       "slug": "vault",
       "title": "Vault",
       "description": "Hooks and components for My vault and shared vaults, their secrets and logins, the vault picker, and the session value pool.",
-      "hooks": 8,
-      "components": 6
+      "hooks": 9,
+      "components": 7
     },
     {
       "slug": "version-history",

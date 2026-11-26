@@ -4,7 +4,8 @@
  * token.
  * - The account shown is the one the saved login's description names.
  * - Connecting is the vault's sign-in at the address `github.com`, saved in
- *   the organization's My vault: in a browser through the shared popup;
+ *   the organization's My vault: in a browser through the shared popup,
+ *   finished by asking the server with the state and no code;
  *   with `openUrl` (a desktop shell) by opening the login page with the
  *   shell's return choice, the shell handing the code back through
  *   handleCallback.
@@ -38,18 +39,15 @@ import { StigmerContext } from "@stigmer/react-core";
 import { FetchCacheContext } from "@stigmer/react-core/internal";
 import { useGitHubConnection } from "../useGitHubConnection";
 
+/**
+ * The popup, and how the login page answers a popup sign-in: `declined`, the
+ * server fails the asking completion in the login page's words;
+ * `untilCancelled`, it answers pending until the wait is cancelled.
+ */
 const popup = vi.hoisted(() => ({ blocked: false, declined: false, untilCancelled: false, closed: vi.fn() }));
 vi.mock("../../internal/oauthPopup.js", () => ({
   openOAuthPopup: vi.fn(() => (popup.blocked ? null : { location: { href: "" }, closed: false, close: vi.fn() })),
   popupBlockedError: vi.fn(() => new Error("blocked")),
-  waitForOAuthCallback: vi.fn(async (_popup: unknown, _state: string, onDispose: (dispose: () => void) => void) => {
-    if (popup.untilCancelled) {
-      return new Promise((_resolve, reject) => onDispose(() => reject(new Error("OAuth flow was cancelled."))));
-    }
-    onDispose(() => {});
-    if (popup.declined) throw new Error("access_denied: the person declined");
-    return { code: "code-1", state: "st-1" };
-  }),
   closeOAuthPopup: popup.closed,
 }));
 
@@ -104,6 +102,10 @@ function clientFor(server: Server) {
         },
         completeSignIn: (req) => {
           server.calls.push(`complete:${req.code}:${req.state}`);
+          if (req.code === "" && popup.untilCancelled) return create(CompleteSignInOutputSchema, { pending: true });
+          if (req.code === "" && popup.declined) {
+            throw new ConnectError("The login page did not sign you in: access_denied. Nothing was saved", Code.FailedPrecondition);
+          }
           server.mine = vaultWith("GitHub @octocat");
           return create(CompleteSignInOutputSchema, { address: "github.com", description: "GitHub @octocat" });
         },
@@ -157,7 +159,7 @@ describe("useGitHubConnection", () => {
     await act(async () => {
       await result.current.connect();
     });
-    expect(server.calls).toEqual(["start:github.com:org_acme:mine:web:0", "complete:code-1:st-1"]);
+    expect(server.calls).toEqual(["start:github.com:org_acme:mine:web:0", "complete::st-1"]);
     await waitFor(() => expect(result.current.user?.login).toBe("octocat"));
     expect(result.current.isConnecting).toBe(false);
 
@@ -199,7 +201,7 @@ describe("useGitHubConnection", () => {
       pending = result.current.connect().catch((err: unknown) => err);
     });
     await waitFor(() => expect(result.current.isConnecting).toBe(true));
-    await waitFor(() => expect(server.calls).toHaveLength(1));
+    await waitFor(() => expect(server.calls).toContain("complete::st-1"));
     await act(async () => {
       result.current.disconnect();
       expect(await pending).toBeInstanceOf(Error);

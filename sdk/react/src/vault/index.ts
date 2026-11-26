@@ -32,12 +32,16 @@ export { SYSTEM_ENV_VAR_KEYS } from "./systemEnvVars.js";
 export { useToolCredentialsReadiness } from "./useToolCredentialsReadiness.js";
 export type { ToolCredentialsReadiness } from "./useToolCredentialsReadiness.js";
 export { normalizeAddress, toolAddressOf, toolLoginKeyOf, gitHostOf, GITHUB_HOST } from "./address.js";
-export { useVaultSignIn } from "./useVaultSignIn.js";
+export { useVaultSignIn, SIGN_IN_ENDED } from "./useVaultSignIn.js";
 export type {
   SignInDestination,
   SignInReturnTo,
   UseVaultSignInReturn,
   VaultSignInPhase,
 } from "./useVaultSignIn.js";
+export { useSignInReturn } from "./useSignInReturn.js";
+export type { SignInReturnState } from "./useSignInReturn.js";
+export { SignInReturn } from "./SignInReturn.js";
+export type { SignInReturnProps } from "./SignInReturn.js";
 export { OAuthCallbackHandler } from "./OAuthCallbackHandler.js";
 export type { OAuthCallbackHandlerProps, OAuthCallbackParams } from "./OAuthCallbackHandler.js";

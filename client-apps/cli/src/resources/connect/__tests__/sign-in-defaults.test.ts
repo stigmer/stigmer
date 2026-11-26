@@ -1,10 +1,10 @@
 // The sign-in's own side effects, when no test double is injected: the
 // browser opens through the platform's launcher (spawned detached, its output
 // ignored), and a platform with none is told to open the URL itself; the
-// guidance goes to stderr; the wait polls every 3 seconds on the real clock;
+// guidance goes to stderr; the wait asks every 2 seconds on the real clock;
 // the console probe counts any HTTP answer as serving and a refused
 // connection as not; and a vault read failing for any reason but a missing
-// My vault fails the wait. The launcher is replaced at its module seam
+// My vault fails. The launcher is replaced at its module seam
 // (node:child_process), so no browser starts; the probe runs over a real
 // loopback listener.
 
@@ -13,11 +13,11 @@ import { createServer, type Server } from "node:http";
 import type { AddressInfo } from "node:net";
 import { create } from "@bufbuild/protobuf";
 import { Code } from "@connectrpc/connect";
-import { VaultSchema } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/api_pb";
+import { CompleteSignInOutputSchema } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/io_pb";
 import { StigmerError } from "@stigmer/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { UsageError } from "../../../errors/index.js";
-import { runSignIn, type SignInClient, type SignInDeps, waitForLogin } from "../sign-in.js";
+import { readMyVault, runSignIn, type SignInClient, type SignInDeps } from "../sign-in.js";
 
 const launcher = vi.hoisted(() => ({
   calls: [] as { command: string; args: readonly string[]; options: unknown }[],
@@ -35,19 +35,21 @@ vi.mock("node:child_process", () => ({
 const ADDRESS = "https://mcp.linear.app/mcp";
 const LOGIN_PAGE = "https://linear.app/oauth/authorize?x=1";
 
-// A My vault holding the login from the `loginOnRead`th read on.
-function fakeClient(loginOnRead: number): { client: SignInClient; reads: () => number } {
-  let reads = 0;
+// A server that answers pending until the `savedOnAsk`th ask, which saves the login.
+function fakeClient(savedOnAsk: number): { client: SignInClient; reads: () => number } {
+  let asks = 0;
   const client = {
     vault: {
       startSignIn: async () => ({ authorizationUrl: LOGIN_PAGE, state: "s", providerName: "", scopes: [] }),
-      getMine: async () => {
-        reads += 1;
-        return create(VaultSchema, { spec: { connections: reads >= loginOnRead ? { [ADDRESS]: {} } : {} } });
+      completeSignIn: async () => {
+        asks += 1;
+        return asks >= savedOnAsk
+          ? create(CompleteSignInOutputSchema, { address: ADDRESS, description: "Signed in at mcp.linear.app" })
+          : create(CompleteSignInOutputSchema, { pending: true });
       },
     },
   } as unknown as SignInClient;
-  return { client, reads: () => reads };
+  return { client, reads: () => asks };
 }
 
 function deps(client: SignInClient, overrides: Partial<SignInDeps> = {}): SignInDeps {
@@ -86,22 +88,22 @@ afterEach(() => {
 });
 
 describe("runSignIn with its own effects", () => {
-  it("opens the login page with the platform's launcher, guides on stderr, and polls every 3 seconds", async () => {
+  it("opens the login page with the platform's launcher, guides on stderr, and asks every 2 seconds", async () => {
     setPlatform("darwin");
     vi.useFakeTimers();
     const { client, reads } = fakeClient(2);
     const done = runSignIn(deps(client));
 
-    await vi.advanceTimersByTimeAsync(3000);
+    await vi.advanceTimersByTimeAsync(2000);
     expect(reads()).toBe(1);
-    await vi.advanceTimersByTimeAsync(3000);
+    await vi.advanceTimersByTimeAsync(2000);
     await done;
 
     expect(reads()).toBe(2);
     expect(launcher.calls).toEqual([{ command: "open", args: [LOGIN_PAGE], options: { stdio: "ignore", detached: true } }]);
     expect(stderr).toContain("Sign in to 'linear' with its login server.");
     expect(stderr).toContain(`If the browser doesn't open automatically, visit:\n  ${LOGIN_PAGE}`);
-    expect(stderr).toContain("Signed in.");
+    expect(stderr).toContain(`Signed in to 'linear'. Saved in My vault as "Signed in at mcp.linear.app".`);
   });
 
   it("tells the user to open the URL when the platform has no launcher", async () => {
@@ -154,7 +156,7 @@ describe("the local console probe", () => {
   });
 });
 
-describe("waitForLogin", () => {
+describe("readMyVault", () => {
   it("fails on a vault read refused for any reason but a missing My vault", async () => {
     const denied = new StigmerError("permission-denied", "not yours", Code.PermissionDenied);
     const client = {
@@ -164,6 +166,6 @@ describe("waitForLogin", () => {
         },
       },
     } as unknown as SignInClient;
-    await expect(waitForLogin(deps(client, { sleep: async () => {} }))).rejects.toBe(denied);
+    await expect(readMyVault(client, "acme")).rejects.toBe(denied);
   });
 });

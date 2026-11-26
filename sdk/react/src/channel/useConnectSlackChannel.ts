@@ -74,8 +74,9 @@ export interface UseConnectSlackChannelReturn {
  * 4. Calls `completeInstall` to exchange the code — the server stores the
  *    bot token and records the install facts on `status.slack`
  *
- * The callback page is the same `OAuthCallbackHandler` component used by
- * MCP OAuth, hosted on the console's Slack redirect route.
+ * The callback page is `OAuthCallbackHandler`, hosted on the console's
+ * Slack redirect route. A sign-in at an address returns elsewhere
+ * (`SignInReturn`), since it finishes through Stigmer, not the browser.
  *
  * @example
  * ```tsx

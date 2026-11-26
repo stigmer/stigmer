@@ -79,6 +79,28 @@ myVault.secretNames.has("OPENAI_API_KEY"); // true after the refetch
 ```
 
 
+### useSignInReturn
+
+Behavior hook for the page a login page returns to: reads the answer
+from the URL once and hands it to Stigmer. Render [`SignInReturn`](#signinreturn)
+for the styled page.
+
+**Signature**
+
+```tsx
+function useSignInReturn(): SignInReturnState
+```
+
+```tsx
+function MyCallback() {
+  const back = useSignInReturn();
+  if (back.kind === "handed-back") return <p>Signed in at {back.providerName}. Go back to the app.</p>;
+  if (back.kind === "handing-back") return <p>One moment…</p>;
+  return <p>The sign-in didn't finish.</p>;
+}
+```
+
+
 ### useToolCredentialsReadiness
 
 Data hook that checks a channel's named vaults. `applicable` is the
@@ -249,7 +271,7 @@ function useVaultSignIn(): UseVaultSignInReturn
 
 <TypeTable
   type={{
-    clearError: { type: "() => void", description: "Clears the error and cancels a sign-in in progress." },
+    clearError: { type: "() => void", description: "Clears the error and cancels a sign-in in progress: the wait ends and the popup closes. A sign-in left in a closed window waits for the server's ten minutes otherwise, so a surface that shows the wait offers this as its Cancel." },
     error: { type: "Error | null", description: "The last sign-in's failure, or `null`." },
     isInProgress: { type: "boolean", description: "Whether a sign-in is in progress." },
     phase: { type: "VaultSignInPhase", description: "", typeDescriptionLink: "#vaultsigninphase" },
@@ -352,17 +374,18 @@ All visual properties flow through `--stgm-*` design tokens.
 
 Lightweight component for OAuth callback pages.
 
-Render this component at the URL configured as your OAuth redirect
-URI (`STIGMER_OAUTH_REDIRECT_URI`). It extracts the `code` and
-`state` query parameters from the current URL, posts them back to
-the opener window via `window.postMessage`, and closes the popup.
+Render this component at the Slack install's redirect URI. It extracts
+the `code` and `state` query parameters from the current URL, posts them
+back to the opener window via `window.postMessage`, and closes the
+popup. A sign-in at an address (`STIGMER_OAUTH_REDIRECT_URI`) renders
+`SignInReturn`.
 
 The component handles three scenarios:
 1. **Popup with opener** (primary): posts the message and closes.
 2. **No opener, `onFallback` provided**: calls the fallback with
    the extracted parameters so the host app can handle them.
-3. **No opener, no fallback**: shows a message asking the user to
-   return to the main window.
+3. **No opener, no fallback**: says the window could not reach the app,
+   and to go back to it.
 
 When the login page refused (`error`), the refusal is passed to the
 page that started the sign-in, so its wait ends at once, and shown here.
@@ -374,18 +397,57 @@ this component:
 
 <TypeTable
   type={{
-    appName: { type: "string", description: "The app the person goes back to, as they know it (\"Stigmer\"), in the page's lines: \"Close this tab and go back to Stigmer to carry on.\"" },
+    appName: { type: "string", description: "The app the person goes back to, as they know it (\"Stigmer\"), in the page's lines: \"Sent back to Stigmer\"." },
     className: { type: "string", description: "Additional CSS classes for the root container." },
     onFallback: { type: "(params: OAuthCallbackParams) => void", description: "Fallback callback invoked when the page was opened as a regular navigation (no `window.opener`), meaning the popup `postMessage` path cannot be used.  Receives the extracted `code` and `state` so the host application can complete the OAuth flow via its own routing logic.  When omitted and `window.opener` is unavailable, the component renders an instructional message asking the user to close the tab." },
   }}
 />
 
 ```tsx
-// app/auth/oauth/callback/page.tsx (Next.js)
+// app/oauth/slack/callback/page.tsx (Next.js)
 import { OAuthCallbackHandler } from "@stigmer/react-sdk";
 
-export default function OAuthCallbackPage() {
+export default function SlackCallbackPage() {
   return <OAuthCallbackHandler />;
+}
+```
+
+
+### SignInReturn
+
+The page at `STIGMER_OAUTH_REDIRECT_URI` for a sign-in at an address
+(an MCP server's "Sign in", "Connect GitHub", `stigmer connect plugin`).
+Render it inside a `StigmerProvider` with no token: the call is public.
+A Connect link's return renders `ConnectLinkCallback` instead, and the
+Slack install's page `OAuthCallbackHandler`.
+
+Once Stigmer has the answer the page says where the person signed in and
+to go back where they started, then closes itself, which a browser allows
+for a window a script opened and ignores for a tab, so the sentence stays
+wherever the window does.
+
+**Props** — `SignInReturnProps`
+
+<TypeTable
+  type={{
+    className: { type: "string", description: "Additional CSS class names for the root container." },
+  }}
+/>
+
+```tsx
+// app/auth/oauth/callback/page.tsx (Next.js)
+import { Stigmer } from "@stigmer/client";
+import { SignInReturn, StigmerProvider } from "@stigmer/react-sdk";
+
+// No token: the hand-back is public.
+const client = new Stigmer({ baseUrl: "https://api.example.com", getAccessToken: () => null });
+
+export default function OAuthCallbackPage() {
+  return (
+    <StigmerProvider client={client}>
+      <SignInReturn />
+    </StigmerProvider>
+  );
 }
 ```
 
@@ -626,6 +688,13 @@ Parameters extracted from the OAuth callback URL.
 />
 
 
+### SIGN_IN_ENDED
+
+The reason `completeSignIn` refuses a sign-in that is unknown, expired or
+already finished with (FAILED_PRECONDITION, a `google.rpc.ErrorInfo` of
+domain "stigmer.ai"): it is over, start it again.
+
+
 ### SignInDestination
 
 Where a sign-in saves its login: a shared vault by id, or the caller's My vault.
@@ -638,12 +707,28 @@ Where a sign-in saves its login: a shared vault by id, or the caller's My vault.
 />
 
 
+### SignInReturnState
+
+Where a return stands.
+
+- `handing-back`: the answer is on its way to Stigmer.
+- `handed-back`: Stigmer has the login page's code; the app that started
+  the sign-in finishes it. `providerName` is who the person signed in at,
+  `address` the address the login is for.
+- `refused`: the login page did not sign the person in (`reason`, its
+  words); Stigmer has the refusal, so the app's wait ends with it too.
+- `failed`: the answer did not reach Stigmer (`error`): the sign-in
+  expired or was already used, or the request failed on the way.
+- `no-answer`: the page was opened without a sign-in's answer.
+
+
 ### SignInReturnTo
 
 Where the login page sends the person back to. `web` (the default) is the
-console's callback page, which hands the result to the popup's opener;
-`desktop` is the same page handing it on to the desktop app; `loopback`
-is a page the desktop app serves on this machine.
+console's callback page, which hands the result to Stigmer for the app
+that started the sign-in to collect; `desktop` is the same page handing it
+on to the desktop app; `loopback` is a page the desktop app serves on this
+machine.
 
 
 ### SYSTEM_ENV_VAR_KEYS
@@ -736,5 +821,8 @@ A secret to save: its value, and optionally what it is for.
 
 ### VaultSignInPhase
 
-The progress of a popup sign-in.
+The progress of a popup sign-in. `awaiting-callback` lasts until the
+sign-in is saved: the ask that finds the login page's answer also finishes
+it, so a popup sign-in passes from there to `done`. `completing` is the
+phase of a flow that finishes with a code it holds itself.
 

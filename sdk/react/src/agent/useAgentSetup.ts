@@ -19,7 +19,8 @@ import { valuesOf } from "../vault/types.js";
 import { toolLoginKeyOf, vaultLoginServes } from "../vault/address.js";
 import { MY_VAULT_ONLY, conversationVaultsKey, type ConversationVaults } from "../vault/conversationVaults.js";
 import { readAgentServers, runDeclarations, serversOf, signInKeys, signInServers, subagentOrgs } from "./runServers.js";
-import { useOrganizationId } from "./usePersonalKeys.js";
+import { organizationIdOf } from "./usePersonalKeys.js";
+import { useKnownOrgs } from "../organization/OrgProvider.js";
 import { diffEnv } from "../vault/diffEnv.js";
 import {
   agentSetupReducer,
@@ -311,7 +312,9 @@ export function useAgentSetup(
 ): UseAgentSetupReturn {
   const stigmer = useStigmer();
   const myVault = useMyVault(org);
-  const orgId = useOrganizationId(org ?? "");
+  // The organizations a mounted provider holds, for naming the run's own by
+  // id; without one, a resolution reads the caller's (organizationIdOf).
+  const knownOrgs = useKnownOrgs();
   // Keyed by content: hosts pass a fresh choice per render, and the
   // callbacks below must not churn with it.
   const vaultsKey = conversationVaultsKey(conversationVaults);
@@ -363,7 +366,11 @@ export function useAgentSetup(
       const coveredKeys = new Set(poolKeys ?? []);
 
       try {
-        const agent = await stigmer.agent.getByReference(ref);
+        const [agent, orgId] = await Promise.all([
+          stigmer.agent.getByReference(ref),
+          // An embedded chat names its organization by slug; the agent names it by id.
+          organizationIdOf(stigmer, org, knownOrgs),
+        ]);
         const agentName = agent.metadata?.name ?? ref.slug;
 
         // Sign-ins first: an agent whose plugin server that signs in has no
@@ -486,7 +493,7 @@ export function useAgentSetup(
         throw err;
       }
     },
-    [org, orgId, stigmer, poolKeys, choice],
+    [org, knownOrgs, stigmer, poolKeys, choice],
   );
 
   // -------------------------------------------------------------------------

@@ -5,7 +5,7 @@
 
 import { Vault } from "./api_pbjs";
 import { MethodKind } from "@bufbuild/protobuf";
-import { CompleteSignInInput, CompleteSignInOutput, ConnectLink, CreateConnectLinkInput, RemoveVaultConnectionsInput, RemoveVaultSecretsInput, SetVaultConnectionInput, SetVaultSecretsInput, StartSignInInput, StartSignInOutput, UpdateVaultInput } from "./io_pbjs";
+import { CompleteSignInInput, CompleteSignInOutput, ConnectLink, CreateConnectLinkInput, HandBackSignInInput, HandBackSignInOutput, RemoveVaultConnectionsInput, RemoveVaultSecretsInput, SetVaultConnectionInput, SetVaultSecretsInput, StartSignInInput, StartSignInOutput, UpdateVaultInput } from "./io_pbjs";
 import { ApiResourceDeleteInput, RenameInput, UpdateVisibilityInput } from "../../../commons/apiresource/io_pbjs";
 
 /**
@@ -175,8 +175,12 @@ export const VaultCommandController = {
      * Start a sign-in at an address, to save the login in a vault.
      *
      * Answers the login page to send the person to. When they have signed in,
-     * the page they return to calls completeSignIn with what the login page
-     * handed back. The sign-in must be completed within ten minutes.
+     * the login page sends them back to the console's callback page, which
+     * hands its answer to Stigmer (handBackSignIn); the app that started the
+     * sign-in then finishes it with completeSignIn, asking with no code until
+     * the answer is there. A page of the app's own that receives the code (the
+     * desktop app's) finishes with completeSignIn and the code instead. The
+     * sign-in must be completed within ten minutes.
      *
      * The login fills every HTTP tool whose URL is the address, and a Git
      * host's login serves clones from that host.
@@ -194,7 +198,22 @@ export const VaultCommandController = {
      * the login in the vault the sign-in was started for, replacing any login
      * saved at the address.
      *
+     * With no code, it finishes with the answer the callback page handed back
+     * (handBackSignIn). Until that answer arrives it answers pending and
+     * changes nothing, so the app that started the sign-in asks again; a
+     * refusal from the login page fails the sign-in with the login page's
+     * words. With a code, it finishes with that code; a sign-in whose answer
+     * was already handed back is refused, since a sign-in has one answer.
+     *
      * Only the person who started the sign-in may finish it.
+     *
+     * A sign-in that is unknown, expired or already finished is refused with
+     * FAILED_PRECONDITION carrying a google.rpc.ErrorInfo detail (domain
+     * "stigmer.ai"):
+     *
+     *   - SIGN_IN_ENDED — the sign-in is over: start it again. Asked right
+     *     after an ask that failed, it means that ask took the sign-in, so the
+     *     earlier failure is the sign-in's outcome. No metadata.
      *
      * @generated from rpc ai.stigmer.agentic.vault.v1.VaultCommandController.completeSignIn
      */
@@ -202,6 +221,27 @@ export const VaultCommandController = {
       name: "completeSignIn",
       I: CompleteSignInInput,
       O: CompleteSignInOutput,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * Hand back what the login page answered a sign-in: its code, or its
+     * refusal. The page the login page returns to calls it, whoever that
+     * person is signed in as, or with no session at all; the app that started
+     * the sign-in then finishes it (completeSignIn with no code).
+     *
+     * Answers who the sign-in is with and its address, for the page to say
+     * where the person signed in. An unknown, expired or already answered
+     * sign-in is refused with FAILED_PRECONDITION, the same for each, carrying
+     * the ErrorInfo reason SIGN_IN_ENDED (as completeSignIn); a sign-in started
+     * by a Connect link is refused too, with no reason, since it finishes on
+     * the link's own page.
+     *
+     * @generated from rpc ai.stigmer.agentic.vault.v1.VaultCommandController.handBackSignIn
+     */
+    handBackSignIn: {
+      name: "handBackSignIn",
+      I: HandBackSignInInput,
+      O: HandBackSignInOutput,
       kind: MethodKind.Unary,
     },
     /**

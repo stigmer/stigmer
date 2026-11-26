@@ -5,9 +5,17 @@
  *
  *   - two members signing in at one address each save into their own My
  *     vault, and neither's login is the other's;
- *   - a state is its signer's: another account cannot complete it, a state
- *     with no signer (a Connect link's) is no person's, and a caller with no
- *     identity cannot start one;
+ *   - a state is its signer's: another account cannot complete it, nor
+ *     spend it for the signer, a state with no signer (a Connect link's) is
+ *     no person's, and a caller with no identity cannot start one;
+ *   - the login page's answer, handed back by the callback page with no
+ *     session, is collected by the signer's completion with no code: asked
+ *     early it answers pending, changes nothing and asks the authorizer
+ *     nothing; a refusal ends the sign-in in the login page's words; a
+ *     sign-in has one answer, so a second hand-back and a code passed after
+ *     one are refused; a Connect link's state is refused at the hand-back;
+ *     two completions racing exchange once; and the code rests sealed and
+ *     opens only at the exchange;
  *   - a sign-in replaces whatever login its address holds, a pasted one
  *     included (a sign-in and a pasted login serve the same tools), and a
  *     re-sign-in answered without a refresh token keeps the previous one
@@ -42,6 +50,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
   CompleteSignInInputSchema,
+  HandBackSignInInputSchema,
   SignInReturn,
   StartSignInInputSchema,
 } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/io_pb";
@@ -50,11 +59,14 @@ import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/ap
 import { OAuthAppSchema } from "@stigmer/apis/ai/stigmer/iam/oauthapp/v1/api_pb";
 import { VendorApprovalStatus } from "@stigmer/apis/ai/stigmer/iam/oauthapp/v1/spec_pb";
 
+import { SecretService } from "../../../../encryption/encryption.js";
 import type { CallerIdentity } from "../../../../extensions/identity.js";
 import { testCallerIdentity } from "../../../../pipeline/__tests__/support.js";
+import type { PendingOAuthStateStore, PendingSignInAnswer } from "../../../../store/interface.js";
 import { MAX_VAULT_ENTRIES } from "../../constants.js";
 import { VaultConnectionSource } from "../../service.js";
-import { completePersonSignIn, startPersonSignIn } from "../person.js";
+import { errorReasonOf } from "../../../../pipeline/errors.js";
+import { SIGN_IN_ENDED_REASON, completePersonSignIn, handBackSignIn, startPersonSignIn } from "../person.js";
 import { SignInRenewalError } from "../../resolve.js";
 import { newSignInFreshener } from "../refresh.js";
 import {
@@ -107,6 +119,43 @@ function start(
 
 function complete(caller: CallerIdentity, state: string) {
   return completePersonSignIn(rig.deps(), create(CompleteSignInInputSchema, { state, code: "code" }), caller);
+}
+
+/** The signer's app asking for the answer the callback page handed back: a completion with no code. */
+function collect(caller: CallerIdentity, state: string, deps = rig.deps()) {
+  return completePersonSignIn(deps, create(CompleteSignInInputSchema, { state }), caller);
+}
+
+/** The real pending-state store with some of its methods replaced, the rest its own. */
+function storeWith(real: PendingOAuthStateStore, replaced: Partial<PendingOAuthStateStore>): PendingOAuthStateStore {
+  return new Proxy(real, {
+    get(target, property, receiver) {
+      if (Object.hasOwn(replaced, property)) return replaced[property as keyof PendingOAuthStateStore];
+      const value: unknown = Reflect.get(target, property, receiver);
+      return typeof value === "function" ? value.bind(target) : value;
+    },
+  });
+}
+
+/** A store where `answer` is recorded right after a completion reads the row: a hand-back racing it. */
+function answeredAfterRead(answer: PendingSignInAnswer): PendingOAuthStateStore {
+  const real = rig.store.pendingOAuthStates;
+  return storeWith(real, {
+    find: async (state) => {
+      const row = await real.find(state);
+      await real.recordAnswer(state, answer);
+      return row;
+    },
+  });
+}
+
+/** The callback page handing back what the login page sent: no caller at all. */
+function handBack(
+  state: string,
+  answer: { code?: string; error?: string; errorDescription?: string } = { code: "code-from-page" },
+  deps = rig.deps(),
+) {
+  return handBackSignIn(deps, create(HandBackSignInInputSchema, { state, ...answer }));
 }
 
 async function signIn(
@@ -220,13 +269,16 @@ describe("a sign-in saves into the signer's own vault", () => {
     }
   });
 
-  it("another account cannot complete a sign-in someone else started", async () => {
+  it("another account cannot complete a sign-in someone else started, nor spend it", async () => {
     await seedOrganizationApp(rig);
     const started = await start(alice);
     await expectRefusal(complete(ben, started.state), Code.FailedPrecondition, "started by another account");
     expect(await myLogin(rig, ben, VENDOR_ADDRESS)).toBeUndefined();
     // The provider's code is never spent on the wrong account.
     expect(tokenRequests()).toEqual([]);
+    // And the refusal left the signer's sign-in in place.
+    await complete(alice, started.state);
+    expect(await myLogin(rig, alice, VENDOR_ADDRESS)).toBe("at-default");
   });
 
   it("refuses a state with no signer, and a Connect link's state, before the code is spent", async () => {
@@ -279,7 +331,179 @@ describe("a sign-in saves into the signer's own vault", () => {
     await seedOrganizationApp(rig);
     const started = await start(alice);
     await complete(alice, started.state);
-    await expectRefusal(complete(alice, started.state), Code.FailedPrecondition, "expired or was already used");
+    const used = await expectRefusal(complete(alice, started.state), Code.FailedPrecondition, "expired or was already used");
+    // The reason a client asking after a failed ask reads as "that ask took it".
+    expect(errorReasonOf(used)).toBe(SIGN_IN_ENDED_REASON);
+  });
+});
+
+describe("the login page's answer, handed back and collected", () => {
+  const exchangedCodes = () => tokenRequests().map((request) => new URLSearchParams(request.body).get("code"));
+
+  it("the callback page hands the code back with no session, and the signer's completion with no code saves the login", async () => {
+    await seedOrganizationApp(rig);
+    const started = await start(alice);
+
+    const handedBack = await handBack(started.state);
+    expect(handedBack.providerName).toBe("Vendor");
+    expect(handedBack.address).toBe(VENDOR_ADDRESS);
+    expect(tokenRequests(), "the hand-back exchanges nothing").toEqual([]);
+
+    rig.levers.tokenBodies.push({ body: { access_token: "at-handed-back", token_type: "bearer" } });
+    const saved = await collect(alice, started.state);
+    expect(saved.pending).toBe(false);
+    expect(saved.address).toBe(VENDOR_ADDRESS);
+    expect(saved.description).toBe("Signed in at mcp.vendor.example");
+    expect(exchangedCodes()).toEqual(["code-from-page"]);
+    expect(await myLogin(rig, alice, VENDOR_ADDRESS)).toBe("at-handed-back");
+  });
+
+  it("asked before the answer arrives, it answers pending, keeps the sign-in and asks the authorizer nothing", async () => {
+    await seedOrganizationApp(rig);
+    const started = await start(alice);
+    // Were the vault rule asked, this would refuse: the wait never asks it.
+    rig.levers.denyMyVault = true;
+
+    const waiting = await collect(alice, started.state);
+    expect(waiting.pending).toBe(true);
+    expect(waiting.address).toBe("");
+    expect(waiting.description).toBe("");
+    expect(await rig.store.pendingOAuthStates.find(started.state), "the sign-in stays open").toBeDefined();
+    expect(await rig.vaults.findMine(ORG, alice.identityId)).toBeUndefined();
+
+    // Once there is something to exchange, the rule is asked, before the code is spent.
+    await handBack(started.state);
+    await expectRefusal(collect(alice, started.state), Code.PermissionDenied, "");
+    expect(tokenRequests()).toEqual([]);
+    rig.levers.denyMyVault = false;
+    await collect(alice, started.state);
+    expect(exchangedCodes()).toEqual(["code-from-page"]);
+  });
+
+  it("a refusal handed back ends the sign-in in the login page's words, with nothing saved", async () => {
+    await seedOrganizationApp(rig);
+    const started = await start(alice);
+    await handBack(started.state, { error: "access_denied", errorDescription: "The user denied the request" });
+
+    await expectRefusal(
+      collect(alice, started.state),
+      Code.FailedPrecondition,
+      "The login page did not sign you in: The user denied the request",
+    );
+    await expectRefusal(collect(alice, started.state), Code.FailedPrecondition, "expired or was already used");
+    expect(tokenRequests()).toEqual([]);
+    expect(await myLogin(rig, alice, VENDOR_ADDRESS)).toBeUndefined();
+
+    const bare = await start(alice);
+    await handBack(bare.state, { error: "server_error" });
+    await expectRefusal(collect(alice, bare.state), Code.FailedPrecondition, "did not sign you in: server_error");
+  });
+
+  it("has one answer: a second hand-back, and a code passed after one, are refused and the first answer kept", async () => {
+    await seedOrganizationApp(rig);
+    const started = await start(alice);
+    await handBack(started.state);
+
+    await expectRefusal(handBack(started.state, { code: "another" }), Code.FailedPrecondition, "expired or was already used");
+    await expectRefusal(handBack(started.state, { error: "access_denied" }), Code.FailedPrecondition, "expired or was already used");
+    await expectRefusal(complete(alice, started.state), Code.FailedPrecondition, "already has the login page's answer");
+
+    await collect(alice, started.state);
+    expect(exchangedCodes()).toEqual(["code-from-page"]);
+  });
+
+  it("refuses an unknown or expired state, and a Connect link's, at the hand-back", async () => {
+    await seedOrganizationApp(rig);
+    const unknown = await expectRefusal(handBack("never-started"), Code.FailedPrecondition, "expired or was already used");
+    expect(errorReasonOf(unknown)).toBe(SIGN_IN_ENDED_REASON);
+
+    const started = await start(alice);
+    const row = (await rig.store.pendingOAuthStates.getAndDelete(started.state))!;
+    await rig.store.pendingOAuthStates.save({ ...row, state: "aged", createdAt: Math.floor(Date.now() / 1000) - 11 * 60 });
+    await expectRefusal(handBack("aged"), Code.FailedPrecondition, "expired or was already used");
+
+    await rig.store.pendingOAuthStates.save({ ...row, state: "link", identityAccountId: "", connectLink: "link-hash", createdAt: 0 });
+    const link = await expectRefusal(handBack("link"), Code.FailedPrecondition, "started by a Connect link");
+    expect(errorReasonOf(link)).toBeUndefined();
+    expect((await rig.store.pendingOAuthStates.find("link"))?.answer).toBeUndefined();
+  });
+
+  it("a stranger holding the state neither finishes it nor spends it, and the signer still does", async () => {
+    await seedOrganizationApp(rig);
+    const started = await start(alice);
+    await handBack(started.state);
+
+    await expectRefusal(collect(ben, started.state), Code.FailedPrecondition, "started by another account");
+    await expectRefusal(complete(ben, started.state), Code.FailedPrecondition, "started by another account");
+    expect(tokenRequests()).toEqual([]);
+
+    await collect(alice, started.state);
+    expect(exchangedCodes()).toEqual(["code-from-page"]);
+    expect(await myLogin(rig, ben, VENDOR_ADDRESS)).toBeUndefined();
+  });
+
+  it("two completions racing for one answer exchange it once", async () => {
+    await seedOrganizationApp(rig);
+    const started = await start(alice);
+    await handBack(started.state);
+
+    const outcomes = await Promise.allSettled([collect(alice, started.state), collect(alice, started.state)]);
+    expect(outcomes.filter((outcome) => outcome.status === "fulfilled")).toHaveLength(1);
+    const lost = outcomes.find((outcome) => outcome.status === "rejected");
+    expect(String((lost as PromiseRejectedResult).reason)).toContain("expired or was already used");
+    expect(exchangedCodes()).toEqual(["code-from-page"]);
+  });
+
+  it("an answer handed back between the read and the take of a completion carrying its own code refuses it, exchanging nothing", async () => {
+    await seedOrganizationApp(rig);
+    for (const late of [
+      { kind: "code", code: "code-from-page" },
+      { kind: "refused", reason: "access_denied" },
+    ] satisfies PendingSignInAnswer[]) {
+      const started = await start(alice);
+      await expectRefusal(
+        completePersonSignIn(
+          rig.deps({ pendingOAuthStates: answeredAfterRead(late) }),
+          create(CompleteSignInInputSchema, { state: started.state, code: "code" }),
+          alice,
+        ),
+        Code.FailedPrecondition,
+        "already has the login page's answer",
+      );
+    }
+    expect(exchangedCodes()).toEqual([]);
+  });
+
+  it("an answer that lands between the hand-back's read and its record wins, and the late one is refused as spent", async () => {
+    await seedOrganizationApp(rig);
+    const started = await start(alice);
+    const real = rig.store.pendingOAuthStates;
+    const racing = storeWith(real, {
+      recordAnswer: async (state, answer) => {
+        await real.recordAnswer(state, { kind: "refused", reason: "first" });
+        return real.recordAnswer(state, answer);
+      },
+    });
+    await expectRefusal(handBack(started.state, { code: "late" }, rig.deps({ pendingOAuthStates: racing })), Code.FailedPrecondition, "expired or was already used");
+    expect((await real.find(started.state))?.answer).toEqual({ kind: "refused", reason: "first" });
+  });
+
+  it("the code rests sealed under the deployment's key and opens only at the exchange", async () => {
+    await seedOrganizationApp(rig);
+    const deps = rig.deps({ secretService: SecretService.create(Buffer.alloc(32, 9)) });
+    const started = await startPersonSignIn(
+      deps,
+      create(StartSignInInputSchema, { vault: target(""), address: VENDOR_ADDRESS }),
+      alice,
+    );
+    await handBack(started.state, { code: "code-from-page" }, deps);
+
+    const answer = (await rig.store.pendingOAuthStates.find(started.state))?.answer;
+    expect(answer?.kind).toBe("code");
+    expect(answer?.kind === "code" ? answer.code : "").toMatch(/^enc:v1:/);
+
+    await collect(alice, started.state, deps);
+    expect(exchangedCodes()).toEqual(["code-from-page"]);
   });
 });
 

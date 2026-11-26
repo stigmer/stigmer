@@ -876,12 +876,15 @@ func (x *StartSignInOutput) GetScopes() []string {
 	return nil
 }
 
-// Input for finishing a sign-in, with what the login page handed back.
+// Input for finishing a sign-in.
 type CompleteSignInInput struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// The state from startSignIn, as the login page returned it.
+	// The state from startSignIn.
 	State string `protobuf:"bytes,1,opt,name=state,proto3" json:"state,omitempty"`
-	// The authorization code the login page returned.
+	// The authorization code the login page returned, for a page of the
+	// caller's own that received it. Empty finishes with the answer the
+	// callback page handed back (handBackSignIn), or answers pending until it
+	// has.
 	Code          string `protobuf:"bytes,2,opt,name=code,proto3" json:"code,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -931,15 +934,18 @@ func (x *CompleteSignInInput) GetCode() string {
 	return ""
 }
 
-// The login a sign-in saved.
+// The login a sign-in saved, or that it is still waiting for the login page.
 type CompleteSignInOutput struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// The address the login was saved at.
+	// The address the login was saved at; empty while pending.
 	Address string `protobuf:"bytes,1,opt,name=address,proto3" json:"address,omitempty"`
 	// How the saved login is described: the account when the login app says
 	// who signed in ("GitHub @ana"), else the host ("Signed in at
-	// mcp.linear.app").
-	Description   string `protobuf:"bytes,2,opt,name=description,proto3" json:"description,omitempty"`
+	// mcp.linear.app"). Empty while pending.
+	Description string `protobuf:"bytes,2,opt,name=description,proto3" json:"description,omitempty"`
+	// Set when the login page has not answered yet: nothing was saved, and
+	// the sign-in stays open until it is finished or expires. Ask again.
+	Pending       bool `protobuf:"varint,3,opt,name=pending,proto3" json:"pending,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -988,6 +994,144 @@ func (x *CompleteSignInOutput) GetDescription() string {
 	return ""
 }
 
+func (x *CompleteSignInOutput) GetPending() bool {
+	if x != nil {
+		return x.Pending
+	}
+	return false
+}
+
+// Input for handing back what the login page answered: the query
+// parameters it sent the person back with (RFC 6749 section 4.1.2), either a
+// code or a refusal.
+type HandBackSignInInput struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// The state from startSignIn, as the login page returned it.
+	State string `protobuf:"bytes,1,opt,name=state,proto3" json:"state,omitempty"`
+	// The authorization code, when the person signed in.
+	Code string `protobuf:"bytes,2,opt,name=code,proto3" json:"code,omitempty"`
+	// The login page's error code ("access_denied"), when it did not sign the
+	// person in.
+	Error string `protobuf:"bytes,3,opt,name=error,proto3" json:"error,omitempty"`
+	// The login page's words for its refusal, when it gave any.
+	ErrorDescription string `protobuf:"bytes,4,opt,name=error_description,json=errorDescription,proto3" json:"error_description,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
+}
+
+func (x *HandBackSignInInput) Reset() {
+	*x = HandBackSignInInput{}
+	mi := &file_ai_stigmer_agentic_vault_v1_io_proto_msgTypes[14]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *HandBackSignInInput) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*HandBackSignInInput) ProtoMessage() {}
+
+func (x *HandBackSignInInput) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_agentic_vault_v1_io_proto_msgTypes[14]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use HandBackSignInInput.ProtoReflect.Descriptor instead.
+func (*HandBackSignInInput) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_vault_v1_io_proto_rawDescGZIP(), []int{14}
+}
+
+func (x *HandBackSignInInput) GetState() string {
+	if x != nil {
+		return x.State
+	}
+	return ""
+}
+
+func (x *HandBackSignInInput) GetCode() string {
+	if x != nil {
+		return x.Code
+	}
+	return ""
+}
+
+func (x *HandBackSignInInput) GetError() string {
+	if x != nil {
+		return x.Error
+	}
+	return ""
+}
+
+func (x *HandBackSignInInput) GetErrorDescription() string {
+	if x != nil {
+		return x.ErrorDescription
+	}
+	return ""
+}
+
+// Where the person signed in, for the page to say so.
+type HandBackSignInOutput struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Who the person signed in with ("GitHub", or the address's host).
+	ProviderName string `protobuf:"bytes,1,opt,name=provider_name,json=providerName,proto3" json:"provider_name,omitempty"`
+	// The address the login will be saved at.
+	Address       string `protobuf:"bytes,2,opt,name=address,proto3" json:"address,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *HandBackSignInOutput) Reset() {
+	*x = HandBackSignInOutput{}
+	mi := &file_ai_stigmer_agentic_vault_v1_io_proto_msgTypes[15]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *HandBackSignInOutput) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*HandBackSignInOutput) ProtoMessage() {}
+
+func (x *HandBackSignInOutput) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_agentic_vault_v1_io_proto_msgTypes[15]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use HandBackSignInOutput.ProtoReflect.Descriptor instead.
+func (*HandBackSignInOutput) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_vault_v1_io_proto_rawDescGZIP(), []int{15}
+}
+
+func (x *HandBackSignInOutput) GetProviderName() string {
+	if x != nil {
+		return x.ProviderName
+	}
+	return ""
+}
+
+func (x *HandBackSignInOutput) GetAddress() string {
+	if x != nil {
+		return x.Address
+	}
+	return ""
+}
+
 // Input for making a Connect link: a one-time page an integrator sends its
 // customer, where the customer signs in at an address and the login is saved
 // into the integrator's vault for that customer. The customer needs no
@@ -1015,7 +1159,7 @@ type CreateConnectLinkInput struct {
 
 func (x *CreateConnectLinkInput) Reset() {
 	*x = CreateConnectLinkInput{}
-	mi := &file_ai_stigmer_agentic_vault_v1_io_proto_msgTypes[14]
+	mi := &file_ai_stigmer_agentic_vault_v1_io_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1027,7 +1171,7 @@ func (x *CreateConnectLinkInput) String() string {
 func (*CreateConnectLinkInput) ProtoMessage() {}
 
 func (x *CreateConnectLinkInput) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_vault_v1_io_proto_msgTypes[14]
+	mi := &file_ai_stigmer_agentic_vault_v1_io_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1040,7 +1184,7 @@ func (x *CreateConnectLinkInput) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateConnectLinkInput.ProtoReflect.Descriptor instead.
 func (*CreateConnectLinkInput) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_vault_v1_io_proto_rawDescGZIP(), []int{14}
+	return file_ai_stigmer_agentic_vault_v1_io_proto_rawDescGZIP(), []int{16}
 }
 
 func (x *CreateConnectLinkInput) GetOrg() string {
@@ -1093,7 +1237,7 @@ type ConnectLink struct {
 
 func (x *ConnectLink) Reset() {
 	*x = ConnectLink{}
-	mi := &file_ai_stigmer_agentic_vault_v1_io_proto_msgTypes[15]
+	mi := &file_ai_stigmer_agentic_vault_v1_io_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1105,7 +1249,7 @@ func (x *ConnectLink) String() string {
 func (*ConnectLink) ProtoMessage() {}
 
 func (x *ConnectLink) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_vault_v1_io_proto_msgTypes[15]
+	mi := &file_ai_stigmer_agentic_vault_v1_io_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1118,7 +1262,7 @@ func (x *ConnectLink) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ConnectLink.ProtoReflect.Descriptor instead.
 func (*ConnectLink) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_vault_v1_io_proto_rawDescGZIP(), []int{15}
+	return file_ai_stigmer_agentic_vault_v1_io_proto_rawDescGZIP(), []int{17}
 }
 
 func (x *ConnectLink) GetUrl() string {
@@ -1153,7 +1297,7 @@ type UpdateVaultInput struct {
 
 func (x *UpdateVaultInput) Reset() {
 	*x = UpdateVaultInput{}
-	mi := &file_ai_stigmer_agentic_vault_v1_io_proto_msgTypes[16]
+	mi := &file_ai_stigmer_agentic_vault_v1_io_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1165,7 +1309,7 @@ func (x *UpdateVaultInput) String() string {
 func (*UpdateVaultInput) ProtoMessage() {}
 
 func (x *UpdateVaultInput) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_vault_v1_io_proto_msgTypes[16]
+	mi := &file_ai_stigmer_agentic_vault_v1_io_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1178,7 +1322,7 @@ func (x *UpdateVaultInput) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateVaultInput.ProtoReflect.Descriptor instead.
 func (*UpdateVaultInput) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_vault_v1_io_proto_rawDescGZIP(), []int{16}
+	return file_ai_stigmer_agentic_vault_v1_io_proto_rawDescGZIP(), []int{18}
 }
 
 func (x *UpdateVaultInput) GetResource() *Vault {
@@ -1255,15 +1399,25 @@ const file_ai_stigmer_agentic_vault_v1_io_proto_rawDesc = "" +
 	"\x11authorization_url\x18\x01 \x01(\tR\x10authorizationUrl\x12\x14\n" +
 	"\x05state\x18\x02 \x01(\tR\x05state\x12#\n" +
 	"\rprovider_name\x18\x03 \x01(\tR\fproviderName\x12\x16\n" +
-	"\x06scopes\x18\x04 \x03(\tR\x06scopes\"W\n" +
+	"\x06scopes\x18\x04 \x03(\tR\x06scopes\"U\n" +
 	"\x13CompleteSignInInput\x12 \n" +
 	"\x05state\x18\x01 \x01(\tB\n" +
-	"\xbaH\ar\x05\x10\x01\x18\x80\x04R\x05state\x12\x1e\n" +
-	"\x04code\x18\x02 \x01(\tB\n" +
-	"\xbaH\ar\x05\x10\x01\x18\x80 R\x04code\"R\n" +
+	"\xbaH\ar\x05\x10\x01\x18\x80\x04R\x05state\x12\x1c\n" +
+	"\x04code\x18\x02 \x01(\tB\b\xbaH\x05r\x03\x18\x80 R\x04code\"l\n" +
 	"\x14CompleteSignInOutput\x12\x18\n" +
 	"\aaddress\x18\x01 \x01(\tR\aaddress\x12 \n" +
-	"\vdescription\x18\x02 \x01(\tR\vdescription\"\xa4\x03\n" +
+	"\vdescription\x18\x02 \x01(\tR\vdescription\x12\x18\n" +
+	"\apending\x18\x03 \x01(\bR\apending\"\xa4\x02\n" +
+	"\x13HandBackSignInInput\x12 \n" +
+	"\x05state\x18\x01 \x01(\tB\n" +
+	"\xbaH\ar\x05\x10\x01\x18\x80\x04R\x05state\x12\x1c\n" +
+	"\x04code\x18\x02 \x01(\tB\b\xbaH\x05r\x03\x18\x80 R\x04code\x12\x1e\n" +
+	"\x05error\x18\x03 \x01(\tB\b\xbaH\x05r\x03\x18\x80\x02R\x05error\x125\n" +
+	"\x11error_description\x18\x04 \x01(\tB\b\xbaH\x05r\x03\x18\x80\bR\x10errorDescription:v\xbaHs\x1aq\n" +
+	"\x1chand_back_sign_in.one_answer\x12(exactly one of code or error is required\x1a'(this.code != '') != (this.error != '')\"U\n" +
+	"\x14HandBackSignInOutput\x12#\n" +
+	"\rprovider_name\x18\x01 \x01(\tR\fproviderName\x12\x18\n" +
+	"\aaddress\x18\x02 \x01(\tR\aaddress\"\xa4\x03\n" +
 	"\x16CreateConnectLinkInput\x12\x19\n" +
 	"\x03org\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x03org\x126\n" +
 	"\bvault_id\x18\x02 \x01(\tB\x1b\xbaH\x18r\x16\x18\x1e2\x12^vlt_[0-9a-z]{26}$R\avaultId\x12$\n" +
@@ -1303,7 +1457,7 @@ func file_ai_stigmer_agentic_vault_v1_io_proto_rawDescGZIP() []byte {
 }
 
 var file_ai_stigmer_agentic_vault_v1_io_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_ai_stigmer_agentic_vault_v1_io_proto_msgTypes = make([]protoimpl.MessageInfo, 19)
+var file_ai_stigmer_agentic_vault_v1_io_proto_msgTypes = make([]protoimpl.MessageInfo, 21)
 var file_ai_stigmer_agentic_vault_v1_io_proto_goTypes = []any{
 	(SignInReturn)(0),                   // 0: ai.stigmer.agentic.vault.v1.SignInReturn
 	(*VaultTarget)(nil),                 // 1: ai.stigmer.agentic.vault.v1.VaultTarget
@@ -1320,28 +1474,30 @@ var file_ai_stigmer_agentic_vault_v1_io_proto_goTypes = []any{
 	(*StartSignInOutput)(nil),           // 12: ai.stigmer.agentic.vault.v1.StartSignInOutput
 	(*CompleteSignInInput)(nil),         // 13: ai.stigmer.agentic.vault.v1.CompleteSignInInput
 	(*CompleteSignInOutput)(nil),        // 14: ai.stigmer.agentic.vault.v1.CompleteSignInOutput
-	(*CreateConnectLinkInput)(nil),      // 15: ai.stigmer.agentic.vault.v1.CreateConnectLinkInput
-	(*ConnectLink)(nil),                 // 16: ai.stigmer.agentic.vault.v1.ConnectLink
-	(*UpdateVaultInput)(nil),            // 17: ai.stigmer.agentic.vault.v1.UpdateVaultInput
-	nil,                                 // 18: ai.stigmer.agentic.vault.v1.SetVaultSecretsInput.SecretsEntry
-	nil,                                 // 19: ai.stigmer.agentic.vault.v1.ListVaultsRequest.LabelsEntry
-	(*Vault)(nil),                       // 20: ai.stigmer.agentic.vault.v1.Vault
-	(*timestamppb.Timestamp)(nil),       // 21: google.protobuf.Timestamp
-	(*fieldmaskpb.FieldMask)(nil),       // 22: google.protobuf.FieldMask
+	(*HandBackSignInInput)(nil),         // 15: ai.stigmer.agentic.vault.v1.HandBackSignInInput
+	(*HandBackSignInOutput)(nil),        // 16: ai.stigmer.agentic.vault.v1.HandBackSignInOutput
+	(*CreateConnectLinkInput)(nil),      // 17: ai.stigmer.agentic.vault.v1.CreateConnectLinkInput
+	(*ConnectLink)(nil),                 // 18: ai.stigmer.agentic.vault.v1.ConnectLink
+	(*UpdateVaultInput)(nil),            // 19: ai.stigmer.agentic.vault.v1.UpdateVaultInput
+	nil,                                 // 20: ai.stigmer.agentic.vault.v1.SetVaultSecretsInput.SecretsEntry
+	nil,                                 // 21: ai.stigmer.agentic.vault.v1.ListVaultsRequest.LabelsEntry
+	(*Vault)(nil),                       // 22: ai.stigmer.agentic.vault.v1.Vault
+	(*timestamppb.Timestamp)(nil),       // 23: google.protobuf.Timestamp
+	(*fieldmaskpb.FieldMask)(nil),       // 24: google.protobuf.FieldMask
 }
 var file_ai_stigmer_agentic_vault_v1_io_proto_depIdxs = []int32{
 	1,  // 0: ai.stigmer.agentic.vault.v1.SetVaultSecretsInput.vault:type_name -> ai.stigmer.agentic.vault.v1.VaultTarget
-	18, // 1: ai.stigmer.agentic.vault.v1.SetVaultSecretsInput.secrets:type_name -> ai.stigmer.agentic.vault.v1.SetVaultSecretsInput.SecretsEntry
+	20, // 1: ai.stigmer.agentic.vault.v1.SetVaultSecretsInput.secrets:type_name -> ai.stigmer.agentic.vault.v1.SetVaultSecretsInput.SecretsEntry
 	1,  // 2: ai.stigmer.agentic.vault.v1.RemoveVaultSecretsInput.vault:type_name -> ai.stigmer.agentic.vault.v1.VaultTarget
 	1,  // 3: ai.stigmer.agentic.vault.v1.SetVaultConnectionInput.vault:type_name -> ai.stigmer.agentic.vault.v1.VaultTarget
 	1,  // 4: ai.stigmer.agentic.vault.v1.RemoveVaultConnectionsInput.vault:type_name -> ai.stigmer.agentic.vault.v1.VaultTarget
-	19, // 5: ai.stigmer.agentic.vault.v1.ListVaultsRequest.labels:type_name -> ai.stigmer.agentic.vault.v1.ListVaultsRequest.LabelsEntry
-	20, // 6: ai.stigmer.agentic.vault.v1.VaultList.entries:type_name -> ai.stigmer.agentic.vault.v1.Vault
+	21, // 5: ai.stigmer.agentic.vault.v1.ListVaultsRequest.labels:type_name -> ai.stigmer.agentic.vault.v1.ListVaultsRequest.LabelsEntry
+	22, // 6: ai.stigmer.agentic.vault.v1.VaultList.entries:type_name -> ai.stigmer.agentic.vault.v1.Vault
 	1,  // 7: ai.stigmer.agentic.vault.v1.StartSignInInput.vault:type_name -> ai.stigmer.agentic.vault.v1.VaultTarget
 	0,  // 8: ai.stigmer.agentic.vault.v1.StartSignInInput.return_to:type_name -> ai.stigmer.agentic.vault.v1.SignInReturn
-	21, // 9: ai.stigmer.agentic.vault.v1.ConnectLink.expires_at:type_name -> google.protobuf.Timestamp
-	20, // 10: ai.stigmer.agentic.vault.v1.UpdateVaultInput.resource:type_name -> ai.stigmer.agentic.vault.v1.Vault
-	22, // 11: ai.stigmer.agentic.vault.v1.UpdateVaultInput.update_mask:type_name -> google.protobuf.FieldMask
+	23, // 9: ai.stigmer.agentic.vault.v1.ConnectLink.expires_at:type_name -> google.protobuf.Timestamp
+	22, // 10: ai.stigmer.agentic.vault.v1.UpdateVaultInput.resource:type_name -> ai.stigmer.agentic.vault.v1.Vault
+	24, // 11: ai.stigmer.agentic.vault.v1.UpdateVaultInput.update_mask:type_name -> google.protobuf.FieldMask
 	2,  // 12: ai.stigmer.agentic.vault.v1.SetVaultSecretsInput.SecretsEntry.value:type_name -> ai.stigmer.agentic.vault.v1.VaultSecretInput
 	13, // [13:13] is the sub-list for method output_type
 	13, // [13:13] is the sub-list for method input_type
@@ -1366,7 +1522,7 @@ func file_ai_stigmer_agentic_vault_v1_io_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ai_stigmer_agentic_vault_v1_io_proto_rawDesc), len(file_ai_stigmer_agentic_vault_v1_io_proto_rawDesc)),
 			NumEnums:      1,
-			NumMessages:   19,
+			NumMessages:   21,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

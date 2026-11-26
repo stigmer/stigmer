@@ -29,7 +29,6 @@ const popup = vi.hoisted(() => ({
 vi.mock("../../internal/oauthPopup.js", () => ({
   openOAuthPopup: vi.fn(() => popup.opened),
   popupBlockedError: vi.fn(() => new Error("Your browser blocked the authentication popup.")),
-  waitForOAuthCallback: vi.fn(async () => ({ code: "code-1", state: "st-1" })),
   closeOAuthPopup: vi.fn(),
 }));
 

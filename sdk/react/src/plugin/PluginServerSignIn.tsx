@@ -15,6 +15,10 @@
  * once inline, as removing any vault entry does, because the login cannot
  * be read back.
  *
+ * While a sign-in waits, the cell offers Cancel beside the busy label: the
+ * wait lasts until the server's ten-minute life of a sign-in, so a window
+ * closed by mistake must never leave the row stuck.
+ *
  * The owed sign-in's look is {@link SignInNeededCell}, which the
  * composer's row for a run that never reads My vault renders too (it saves
  * into a shared vault instead), so the two never drift apart. The cell is
@@ -142,6 +146,7 @@ function PluginServerSignInView({
           phase={signIn.phase}
           error={signIn.error}
           onSignIn={signIn.signIn}
+          onCancel={signIn.cancelSignIn}
           className={className}
         />
       );
@@ -153,6 +158,7 @@ function PluginServerSignInView({
           <Button variant="ghost" size="xs" onClick={signIn.signIn} disabled={signIn.isSigningIn} aria-label={`Sign in to ${name}`}>
             {signIn.isSigningIn ? phaseLabel(signIn.phase) : "Sign in"}
           </Button>
+          {signIn.isSigningIn && <CancelSignIn name={name} onCancel={signIn.cancelSignIn} />}
         </span>
       );
     case "api-key":
@@ -172,10 +178,20 @@ function PluginServerSignInView({
   }
 }
 
+/** Cancel beside a waiting sign-in: ends the wait and closes its window. */
+function CancelSignIn({ name, onCancel }: { readonly name: string; readonly onCancel: () => void }) {
+  return (
+    <Button variant="ghost" size="xs" onClick={onCancel} aria-label={`Cancel the sign-in to ${name}`}>
+      Cancel
+    </Button>
+  );
+}
+
 /**
  * A sign-in that stands between a server and its first tool call: the
  * failure of the last try, "Not signed in", and Sign in (its phase while
- * one runs). The one look for every owed sign-in, wherever it saves.
+ * one runs, with Cancel beside it). The one look for every owed sign-in,
+ * wherever it saves.
  */
 export function SignInNeededCell({
   name,
@@ -183,6 +199,7 @@ export function SignInNeededCell({
   phase,
   error,
   onSignIn,
+  onCancel,
   className,
 }: {
   /** The server's name, for the button's accessible name. */
@@ -193,6 +210,8 @@ export function SignInNeededCell({
   readonly error: Error | null;
   /** Starts the sign-in; called from the click, so a popup may open before any await. */
   readonly onSignIn: () => void;
+  /** Cancels a sign-in in progress: the wait ends and its window closes. */
+  readonly onCancel: () => void;
   readonly className?: string;
 }) {
   return (
@@ -206,6 +225,7 @@ export function SignInNeededCell({
       <Button variant="primary" size="sm" onClick={onSignIn} disabled={isSigningIn} aria-label={`Sign in to ${name}`}>
         {isSigningIn ? phaseLabel(phase) : "Sign in"}
       </Button>
+      {isSigningIn && <CancelSignIn name={name} onCancel={onCancel} />}
     </span>
   );
 }

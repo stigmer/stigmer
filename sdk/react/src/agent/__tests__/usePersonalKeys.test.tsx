@@ -6,10 +6,12 @@
  * fills it) and every key the runner fills itself, and none for a run
  * carrying an agent or subagent of another organization. Not ready while
  * the plugins load; a plugin that cannot be read leaves the other keys
- * named. Without an organization list, an organization reference is taken
- * as the id it names; with one, a reference to the organization the person
- * has open outside their list (a child its parent's admin opened) names its
- * id too, so that organization's agents read their keys.
+ * named. Without an organization list, a reference is looked up among the
+ * person's own organizations (a slug names its id; one they cannot read, or
+ * that none holds, is taken as named), and the keys wait for that answer;
+ * with a list, a reference to the organization the person has open outside
+ * their list (a child its parent's admin opened) names its id too, so that
+ * organization's agents read their keys.
  */
 import { describe, it, expect, vi } from "vitest";
 import { renderHook, waitFor } from "@testing-library/react";
@@ -23,7 +25,7 @@ import type { Stigmer } from "@stigmer/client";
 import { StigmerContext } from "@stigmer/react-core";
 import { FetchCacheContext } from "@stigmer/react-core/internal";
 import { OrgProvider, useOrg } from "../../organization/OrgProvider";
-import { useOrganizationId, usePersonalKeys } from "../usePersonalKeys";
+import { organizationIdOf, useOrganizationId, usePersonalKeys } from "../usePersonalKeys";
 
 const ORG = "org_acme";
 
@@ -116,13 +118,13 @@ describe("usePersonalKeys", () => {
     expect(result.current.keys).toEqual(["GITHUB_TOKEN"]);
   });
 
-  it("is ready with no keys, reading no plugin, for an agent of another organization", () => {
+  it("is ready with no keys, reading no plugin, for an agent of another organization", async () => {
     const agent = agentIn("org_globex");
     const getPlugin = vi.fn();
     const { result } = renderHook(() => usePersonalKeys(agent, agent.spec, ORG), {
       wrapper: wrapperFor(getPlugin),
     });
-    expect(result.current).toEqual({ keys: [], isReady: true });
+    await waitFor(() => expect(result.current).toEqual({ keys: [], isReady: true }));
     expect(getPlugin).not.toHaveBeenCalled();
   });
 
@@ -143,7 +145,7 @@ describe("usePersonalKeys", () => {
     expect(getVersion).toHaveBeenCalledWith({ agentId: "agt_triager", versionHash: pin });
   });
 
-  it("is ready with no keys, reading nothing, for a run carrying another organization's subagent", () => {
+  it("is ready with no keys, reading nothing, for a run carrying another organization's subagent", async () => {
     const agent = create(AgentSchema, {
       metadata: { id: "agt_1", org: ORG, slug: "release-captain" },
       spec: { env: { GITHUB_TOKEN: {} }, subagents: [{ org: "org_globex", id: "agt_partner", version: "c".repeat(64) }] },
@@ -152,15 +154,63 @@ describe("usePersonalKeys", () => {
     const { result } = renderHook(() => usePersonalKeys(agent, agent.spec, ORG), {
       wrapper: wrapperFor(vi.fn(), getVersion),
     });
-    expect(result.current).toEqual({ keys: [], isReady: true });
+    await waitFor(() => expect(result.current).toEqual({ keys: [], isReady: true }));
     expect(getVersion).not.toHaveBeenCalled();
   });
 
-  it("takes an organization reference as the id it names when no organization list is mounted", () => {
+  it("takes an organization reference as named when no list is mounted and the person's organizations cannot be read", async () => {
     const { result } = renderHook(() => useOrganizationId("org_acme"), {
       wrapper: wrapperFor(vi.fn()),
     });
-    expect(result.current).toBe("org_acme");
+    await waitFor(() => expect(result.current).toBe("org_acme"));
+  });
+
+  it("names a slug's id from the person's own organizations when no list is mounted, and the keys wait for it", async () => {
+    const agent = agentIn(ORG);
+    // Each hook reads on its own; every pending read gets the one answer.
+    const pending: Array<(value: unknown) => void> = [];
+    const listMine = vi.fn(() => new Promise((resolve) => pending.push(resolve)));
+    const answer = (value: unknown) => {
+      for (const resolve of pending.splice(0)) resolve(value);
+    };
+    const client = {
+      plugin: { getByReference: vi.fn(async () => calendar) },
+      agent: { getVersion: vi.fn() },
+      organization: {
+        listMineAll: async function* () {
+          const page = (await listMine()) as { entries: Organization[] };
+          yield* page.entries;
+        },
+      },
+    } as unknown as Stigmer;
+    const { result } = renderHook(() => ({ id: useOrganizationId("acme"), keys: usePersonalKeys(agent, agent.spec, "acme") }), {
+      wrapper: ({ children }: { children: ReactNode }) => (
+        <FetchCacheContext.Provider value={null}>
+          <StigmerContext.Provider value={client}>{children}</StigmerContext.Provider>
+        </FetchCacheContext.Provider>
+      ),
+    });
+    expect(result.current.id).toBeNull();
+    expect(result.current.keys).toEqual({ keys: [], isReady: false });
+    answer({ entries: [{ metadata: { id: ORG, slug: "acme" } }] });
+    await waitFor(() => expect(result.current.id).toBe(ORG));
+    await waitFor(() => expect(result.current.keys).toEqual({ keys: ["CAL_REGION", "GITHUB_TOKEN"], isReady: true }));
+  });
+});
+
+describe("organizationIdOf", () => {
+  const unread = { organization: { listMineAll: vi.fn() } } as unknown as Stigmer;
+
+  it("names an empty reference empty, and reads nothing for it", async () => {
+    await expect(organizationIdOf(unread, "", undefined)).resolves.toBe("");
+    expect(unread.organization.listMineAll).not.toHaveBeenCalled();
+  });
+
+  it("names a reference from a provider's list without reading, and judges one it lacks as named", async () => {
+    const known = [{ metadata: { id: ORG, slug: "acme" } }] as Organization[];
+    await expect(organizationIdOf(unread, "acme", known)).resolves.toBe(ORG);
+    await expect(organizationIdOf(unread, "globex", known)).resolves.toBe("globex");
+    expect(unread.organization.listMineAll).not.toHaveBeenCalled();
   });
 });
 

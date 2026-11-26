@@ -329,6 +329,20 @@ export const POSTGRES_MIGRATIONS: ReadonlyArray<PostgresSchemaMigration> = [
       `CREATE STATISTICS resources_list_proven ON ((list_indexed_at = updated_at)) FROM resources`,
     ],
   },
+  {
+    version: 3,
+    statements: [
+      // A sign-in's answer from its login page, handed back by the console's
+      // callback page and collected by the signer's own completion
+      // (domain/vault/sign-in/person.ts): the code, sealed like the row's
+      // other secrets, or the refusal's words. answered_at marks a row
+      // answered, once. Nullable, so a row the previous release writes reads
+      // as unanswered, and that release never reads these columns.
+      `ALTER TABLE pending_oauth_state ADD COLUMN answered_code TEXT`,
+      `ALTER TABLE pending_oauth_state ADD COLUMN answer_error TEXT`,
+      `ALTER TABLE pending_oauth_state ADD COLUMN answered_at BIGINT`,
+    ],
+  },
 ];
 
 /** The newest version this build knows. */

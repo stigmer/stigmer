@@ -66,6 +66,7 @@ import { ApiResourceAuditActorSchema, ApiResourceAuditSchema } from "@stigmer/ap
 import { AuditNotFoundError, ResourceNotFoundError } from "../interface.js";
 import type {
   PendingOAuthState,
+  PendingOAuthStateStore,
   ResourceNameRename,
   ResourceNameUndo,
   SearchIndexEntry,
@@ -2170,6 +2171,91 @@ export function describeStoreContract(
       expect(
         await fx.store.pendingOAuthStates.getAndDelete("state-1"),
       ).toBeDefined();
+    });
+  });
+
+  describe("a pending sign-in's answer (find, recordAnswer)", () => {
+    const state: PendingOAuthState = {
+      state: "state-1",
+      codeVerifier: "enc:v1:sealed-verifier",
+      clientId: "client-1",
+      clientSecret: "",
+      tokenEndpoint: "https://example.test/token",
+      identityAccountId: "ida_1",
+      authMethod: "mcp_oauth",
+      tokenAuthMethod: "",
+      redirectUri: "http://127.0.0.1/cb",
+      org: "acme",
+      vaultId: "",
+      address: "https://mcp.example.test/mcp",
+      loginApp: "",
+      resource: "",
+      clientRegistration: "",
+      connectLink: "",
+      providerName: "mcp.example.test",
+      userinfoUrl: "",
+      createdAt: 0,
+    };
+    const states = (): PendingOAuthStateStore => fx.store.pendingOAuthStates;
+
+    it("find reads a live state and leaves it in place, unanswered", async () => {
+      await states().save(state);
+
+      const found = await states().find("state-1");
+      expect(found?.codeVerifier).toBe("enc:v1:sealed-verifier");
+      expect(found?.answer, "nothing was handed back yet").toBeUndefined();
+      expect(await states().find("state-1"), "a read spends nothing").toBeDefined();
+      expect(await fx.countPendingOAuthStates(), "the row stays").toBe(1);
+    });
+
+    it("find answers undefined for an unknown or expired state, and leaves the expired row to the sweep", async () => {
+      await states().save({ ...state, createdAt: Math.floor(Date.now() / 1000) - 11 * 60 });
+
+      expect(await states().find("ghost")).toBeUndefined();
+      expect(await states().find("state-1")).toBeUndefined();
+      expect(await states().cleanupExpired()).toBe(1);
+    });
+
+    it("records a code once: a second answer of either kind is refused and the first kept", async () => {
+      await states().save(state);
+
+      expect(await states().recordAnswer("state-1", { kind: "code", code: "enc:v1:sealed-code" })).toBe(true);
+      expect(await states().recordAnswer("state-1", { kind: "code", code: "enc:v1:another" })).toBe(false);
+      expect(await states().recordAnswer("state-1", { kind: "refused", reason: "access_denied" })).toBe(false);
+
+      expect((await states().find("state-1"))?.answer).toEqual({ kind: "code", code: "enc:v1:sealed-code" });
+      expect(
+        (await states().getAndDelete("state-1"))?.answer,
+        "the take carries the answer with the row",
+      ).toEqual({ kind: "code", code: "enc:v1:sealed-code" });
+    });
+
+    it("records a refusal in the login page's words", async () => {
+      await states().save(state);
+
+      expect(
+        await states().recordAnswer("state-1", { kind: "refused", reason: "The user denied the request" }),
+      ).toBe(true);
+      expect((await states().find("state-1"))?.answer).toEqual({
+        kind: "refused",
+        reason: "The user denied the request",
+      });
+    });
+
+    it("refuses an answer for an unknown or expired state", async () => {
+      await states().save({ ...state, createdAt: Math.floor(Date.now() / 1000) - 11 * 60 });
+
+      expect(await states().recordAnswer("ghost", { kind: "code", code: "c" })).toBe(false);
+      expect(await states().recordAnswer("state-1", { kind: "code", code: "c" })).toBe(false);
+    });
+
+    it("of answers racing for one state, exactly one records", async () => {
+      await states().save(state);
+
+      const recorded = await Promise.all(
+        Array.from({ length: 8 }, (_, i) => states().recordAnswer("state-1", { kind: "code", code: `code-${i}` })),
+      );
+      expect(recorded.filter(Boolean)).toHaveLength(1);
     });
   });
 

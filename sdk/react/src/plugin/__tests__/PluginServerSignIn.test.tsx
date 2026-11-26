@@ -6,7 +6,8 @@
  * in, which clears the last failure, signs in at the server's address into
  * the organization's My vault, then rereads My vault and tells the host; a
  * failed sign-in leaves Sign in with the reason; the busy button names the
- * sign-in's phase; a login at the address reads Signed in, in the ready
+ * sign-in's phase, with Cancel beside it, which cancels the sign-in (an
+ * owed sign-in and an offered one alike); a login at the address reads Signed in, in the ready
  * colour the theme contract measures as text, with Sign out,
  * which asks once, can be cancelled, removes the login at the address, and
  * shows a refused removal; a login that serves the server from elsewhere
@@ -161,6 +162,18 @@ describe("PluginServerSignIn: signing in", () => {
     expect(screen.queryByText("Not signed in")).toBeNull();
   });
 
+  it("offers Cancel while a sign-in waits, which cancels it", () => {
+    renderCell(LINEAR);
+    expect(screen.queryByRole("button", { name: "Cancel the sign-in to linear" })).toBeNull();
+
+    stubs.signIn.isInProgress = true;
+    stubs.signIn.phase = "awaiting-callback";
+    cleanup();
+    renderCell(LINEAR);
+    fireEvent.click(screen.getByRole("button", { name: "Cancel the sign-in to linear" }));
+    expect(stubs.signIn.clearError).toHaveBeenCalledTimes(1);
+  });
+
   it("labels every phase", () => {
     const labels: Record<VaultSignInPhase, string> = {
       idle: "Sign in",
@@ -257,6 +270,14 @@ describe("PluginServerSignIn: an agent's own server", () => {
 
     await waitFor(() => expect(stubs.signIn.signIn).toHaveBeenCalledWith(ZENDESK_URL, { org: ORG }));
     await waitFor(() => expect(onSignedIn).toHaveBeenCalledWith(ZENDESK_URL));
+  });
+
+  it("offers Cancel while the offered sign-in waits, which cancels it", () => {
+    stubs.signIn.isInProgress = true;
+    stubs.signIn.phase = "awaiting-callback";
+    renderCell(ZENDESK, vi.fn(), true);
+    fireEvent.click(screen.getByRole("button", { name: "Cancel the sign-in to zendesk" }));
+    expect(stubs.signIn.clearError).toHaveBeenCalledTimes(1);
   });
 
   it("reads Signed in from a login at the server's address", () => {

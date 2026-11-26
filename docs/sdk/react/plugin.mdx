@@ -519,6 +519,7 @@ function usePluginServerSignIn(org: string | null, server: McpServerEntry | null
 <TypeTable
   type={{
     address: { type: "string | null", description: "The address a login for this server is saved at; `null` for a local program." },
+    cancelSignIn: { type: "() => void", description: "Cancel a sign-in in progress: the wait ends, its window closes and the row is back on \"Sign in\". A sign-in left in a closed window waits for the server's ten minutes otherwise, so a row that shows the wait offers this as its Cancel." },
     connection: { type: "VaultConnection | null", description: "The login saved at exactly this address, when there is one: what \"Sign out\" removes." },
     declaredVariables: { type: "readonly string[]", description: "The variables an `api-key` server reads, in the plugin's order, leaving out any the runner fills." },
     error: { type: "Error | null", description: "The read error, or the last sign-in or sign-out error, or `null`." },

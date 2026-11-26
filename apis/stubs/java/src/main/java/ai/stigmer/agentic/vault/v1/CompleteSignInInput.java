@@ -7,7 +7,7 @@ package ai.stigmer.agentic.vault.v1;
 
 /**
  * <pre>
- * Input for finishing a sign-in, with what the login page handed back.
+ * Input for finishing a sign-in.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.vault.v1.CompleteSignInInput}
@@ -59,7 +59,7 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object state_ = "";
   /**
    * <pre>
-   * The state from startSignIn, as the login page returned it.
+   * The state from startSignIn.
    * </pre>
    *
    * <code>string state = 1 [json_name = "state", (.buf.validate.field) = { ... }</code>
@@ -80,7 +80,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * The state from startSignIn, as the login page returned it.
+   * The state from startSignIn.
    * </pre>
    *
    * <code>string state = 1 [json_name = "state", (.buf.validate.field) = { ... }</code>
@@ -106,7 +106,10 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object code_ = "";
   /**
    * <pre>
-   * The authorization code the login page returned.
+   * The authorization code the login page returned, for a page of the
+   * caller's own that received it. Empty finishes with the answer the
+   * callback page handed back (handBackSignIn), or answers pending until it
+   * has.
    * </pre>
    *
    * <code>string code = 2 [json_name = "code", (.buf.validate.field) = { ... }</code>
@@ -127,7 +130,10 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * The authorization code the login page returned.
+   * The authorization code the login page returned, for a page of the
+   * caller's own that received it. Empty finishes with the answer the
+   * callback page handed back (handBackSignIn), or answers pending until it
+   * has.
    * </pre>
    *
    * <code>string code = 2 [json_name = "code", (.buf.validate.field) = { ... }</code>
@@ -316,7 +322,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Input for finishing a sign-in, with what the login page handed back.
+   * Input for finishing a sign-in.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.vault.v1.CompleteSignInInput}
@@ -473,7 +479,7 @@ private static final long serialVersionUID = 0L;
     private java.lang.Object state_ = "";
     /**
      * <pre>
-     * The state from startSignIn, as the login page returned it.
+     * The state from startSignIn.
      * </pre>
      *
      * <code>string state = 1 [json_name = "state", (.buf.validate.field) = { ... }</code>
@@ -493,7 +499,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The state from startSignIn, as the login page returned it.
+     * The state from startSignIn.
      * </pre>
      *
      * <code>string state = 1 [json_name = "state", (.buf.validate.field) = { ... }</code>
@@ -514,7 +520,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The state from startSignIn, as the login page returned it.
+     * The state from startSignIn.
      * </pre>
      *
      * <code>string state = 1 [json_name = "state", (.buf.validate.field) = { ... }</code>
@@ -531,7 +537,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The state from startSignIn, as the login page returned it.
+     * The state from startSignIn.
      * </pre>
      *
      * <code>string state = 1 [json_name = "state", (.buf.validate.field) = { ... }</code>
@@ -545,7 +551,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The state from startSignIn, as the login page returned it.
+     * The state from startSignIn.
      * </pre>
      *
      * <code>string state = 1 [json_name = "state", (.buf.validate.field) = { ... }</code>
@@ -565,7 +571,10 @@ private static final long serialVersionUID = 0L;
     private java.lang.Object code_ = "";
     /**
      * <pre>
-     * The authorization code the login page returned.
+     * The authorization code the login page returned, for a page of the
+     * caller's own that received it. Empty finishes with the answer the
+     * callback page handed back (handBackSignIn), or answers pending until it
+     * has.
      * </pre>
      *
      * <code>string code = 2 [json_name = "code", (.buf.validate.field) = { ... }</code>
@@ -585,7 +594,10 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The authorization code the login page returned.
+     * The authorization code the login page returned, for a page of the
+     * caller's own that received it. Empty finishes with the answer the
+     * callback page handed back (handBackSignIn), or answers pending until it
+     * has.
      * </pre>
      *
      * <code>string code = 2 [json_name = "code", (.buf.validate.field) = { ... }</code>
@@ -606,7 +618,10 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The authorization code the login page returned.
+     * The authorization code the login page returned, for a page of the
+     * caller's own that received it. Empty finishes with the answer the
+     * callback page handed back (handBackSignIn), or answers pending until it
+     * has.
      * </pre>
      *
      * <code>string code = 2 [json_name = "code", (.buf.validate.field) = { ... }</code>
@@ -623,7 +638,10 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The authorization code the login page returned.
+     * The authorization code the login page returned, for a page of the
+     * caller's own that received it. Empty finishes with the answer the
+     * callback page handed back (handBackSignIn), or answers pending until it
+     * has.
      * </pre>
      *
      * <code>string code = 2 [json_name = "code", (.buf.validate.field) = { ... }</code>
@@ -637,7 +655,10 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The authorization code the login page returned.
+     * The authorization code the login page returned, for a page of the
+     * caller's own that received it. Empty finishes with the answer the
+     * callback page handed back (handBackSignIn), or answers pending until it
+     * has.
      * </pre>
      *
      * <code>string code = 2 [json_name = "code", (.buf.validate.field) = { ... }</code>

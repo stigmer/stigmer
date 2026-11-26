@@ -356,6 +356,37 @@ public final class VaultCommandControllerGrpc {
     return getCompleteSignInMethod;
   }
 
+  private static volatile io.grpc.MethodDescriptor<ai.stigmer.agentic.vault.v1.HandBackSignInInput,
+      ai.stigmer.agentic.vault.v1.HandBackSignInOutput> getHandBackSignInMethod;
+
+  @io.grpc.stub.annotations.RpcMethod(
+      fullMethodName = SERVICE_NAME + '/' + "handBackSignIn",
+      requestType = ai.stigmer.agentic.vault.v1.HandBackSignInInput.class,
+      responseType = ai.stigmer.agentic.vault.v1.HandBackSignInOutput.class,
+      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
+  public static io.grpc.MethodDescriptor<ai.stigmer.agentic.vault.v1.HandBackSignInInput,
+      ai.stigmer.agentic.vault.v1.HandBackSignInOutput> getHandBackSignInMethod() {
+    io.grpc.MethodDescriptor<ai.stigmer.agentic.vault.v1.HandBackSignInInput, ai.stigmer.agentic.vault.v1.HandBackSignInOutput> getHandBackSignInMethod;
+    if ((getHandBackSignInMethod = VaultCommandControllerGrpc.getHandBackSignInMethod) == null) {
+      synchronized (VaultCommandControllerGrpc.class) {
+        if ((getHandBackSignInMethod = VaultCommandControllerGrpc.getHandBackSignInMethod) == null) {
+          VaultCommandControllerGrpc.getHandBackSignInMethod = getHandBackSignInMethod =
+              io.grpc.MethodDescriptor.<ai.stigmer.agentic.vault.v1.HandBackSignInInput, ai.stigmer.agentic.vault.v1.HandBackSignInOutput>newBuilder()
+              .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
+              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "handBackSignIn"))
+              .setSampledToLocalTracing(true)
+              .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.agentic.vault.v1.HandBackSignInInput.getDefaultInstance()))
+              .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.agentic.vault.v1.HandBackSignInOutput.getDefaultInstance()))
+              .setSchemaDescriptor(new VaultCommandControllerMethodDescriptorSupplier("handBackSignIn"))
+              .build();
+        }
+      }
+    }
+    return getHandBackSignInMethod;
+  }
+
   private static volatile io.grpc.MethodDescriptor<ai.stigmer.agentic.vault.v1.CreateConnectLinkInput,
       ai.stigmer.agentic.vault.v1.ConnectLink> getCreateConnectLinkMethod;
 
@@ -590,8 +621,12 @@ public final class VaultCommandControllerGrpc {
      * <pre>
      * Start a sign-in at an address, to save the login in a vault.
      * Answers the login page to send the person to. When they have signed in,
-     * the page they return to calls completeSignIn with what the login page
-     * handed back. The sign-in must be completed within ten minutes.
+     * the login page sends them back to the console's callback page, which
+     * hands its answer to Stigmer (handBackSignIn); the app that started the
+     * sign-in then finishes it with completeSignIn, asking with no code until
+     * the answer is there. A page of the app's own that receives the code (the
+     * desktop app's) finishes with completeSignIn and the code instead. The
+     * sign-in must be completed within ten minutes.
      * The login fills every HTTP tool whose URL is the address, and a Git
      * host's login serves clones from that host.
      * </pre>
@@ -606,12 +641,43 @@ public final class VaultCommandControllerGrpc {
      * Finish a sign-in: exchange the code the login page handed back and save
      * the login in the vault the sign-in was started for, replacing any login
      * saved at the address.
+     * With no code, it finishes with the answer the callback page handed back
+     * (handBackSignIn). Until that answer arrives it answers pending and
+     * changes nothing, so the app that started the sign-in asks again; a
+     * refusal from the login page fails the sign-in with the login page's
+     * words. With a code, it finishes with that code; a sign-in whose answer
+     * was already handed back is refused, since a sign-in has one answer.
      * Only the person who started the sign-in may finish it.
+     * A sign-in that is unknown, expired or already finished is refused with
+     * FAILED_PRECONDITION carrying a google.rpc.ErrorInfo detail (domain
+     * "stigmer.ai"):
+     *   - SIGN_IN_ENDED — the sign-in is over: start it again. Asked right
+     *     after an ask that failed, it means that ask took the sign-in, so the
+     *     earlier failure is the sign-in's outcome. No metadata.
      * </pre>
      */
     default void completeSignIn(ai.stigmer.agentic.vault.v1.CompleteSignInInput request,
         io.grpc.stub.StreamObserver<ai.stigmer.agentic.vault.v1.CompleteSignInOutput> responseObserver) {
       io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getCompleteSignInMethod(), responseObserver);
+    }
+
+    /**
+     * <pre>
+     * Hand back what the login page answered a sign-in: its code, or its
+     * refusal. The page the login page returns to calls it, whoever that
+     * person is signed in as, or with no session at all; the app that started
+     * the sign-in then finishes it (completeSignIn with no code).
+     * Answers who the sign-in is with and its address, for the page to say
+     * where the person signed in. An unknown, expired or already answered
+     * sign-in is refused with FAILED_PRECONDITION, the same for each, carrying
+     * the ErrorInfo reason SIGN_IN_ENDED (as completeSignIn); a sign-in started
+     * by a Connect link is refused too, with no reason, since it finishes on
+     * the link's own page.
+     * </pre>
+     */
+    default void handBackSignIn(ai.stigmer.agentic.vault.v1.HandBackSignInInput request,
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.vault.v1.HandBackSignInOutput> responseObserver) {
+      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getHandBackSignInMethod(), responseObserver);
     }
 
     /**
@@ -813,8 +879,12 @@ public final class VaultCommandControllerGrpc {
      * <pre>
      * Start a sign-in at an address, to save the login in a vault.
      * Answers the login page to send the person to. When they have signed in,
-     * the page they return to calls completeSignIn with what the login page
-     * handed back. The sign-in must be completed within ten minutes.
+     * the login page sends them back to the console's callback page, which
+     * hands its answer to Stigmer (handBackSignIn); the app that started the
+     * sign-in then finishes it with completeSignIn, asking with no code until
+     * the answer is there. A page of the app's own that receives the code (the
+     * desktop app's) finishes with completeSignIn and the code instead. The
+     * sign-in must be completed within ten minutes.
      * The login fills every HTTP tool whose URL is the address, and a Git
      * host's login serves clones from that host.
      * </pre>
@@ -830,13 +900,45 @@ public final class VaultCommandControllerGrpc {
      * Finish a sign-in: exchange the code the login page handed back and save
      * the login in the vault the sign-in was started for, replacing any login
      * saved at the address.
+     * With no code, it finishes with the answer the callback page handed back
+     * (handBackSignIn). Until that answer arrives it answers pending and
+     * changes nothing, so the app that started the sign-in asks again; a
+     * refusal from the login page fails the sign-in with the login page's
+     * words. With a code, it finishes with that code; a sign-in whose answer
+     * was already handed back is refused, since a sign-in has one answer.
      * Only the person who started the sign-in may finish it.
+     * A sign-in that is unknown, expired or already finished is refused with
+     * FAILED_PRECONDITION carrying a google.rpc.ErrorInfo detail (domain
+     * "stigmer.ai"):
+     *   - SIGN_IN_ENDED — the sign-in is over: start it again. Asked right
+     *     after an ask that failed, it means that ask took the sign-in, so the
+     *     earlier failure is the sign-in's outcome. No metadata.
      * </pre>
      */
     public void completeSignIn(ai.stigmer.agentic.vault.v1.CompleteSignInInput request,
         io.grpc.stub.StreamObserver<ai.stigmer.agentic.vault.v1.CompleteSignInOutput> responseObserver) {
       io.grpc.stub.ClientCalls.asyncUnaryCall(
           getChannel().newCall(getCompleteSignInMethod(), getCallOptions()), request, responseObserver);
+    }
+
+    /**
+     * <pre>
+     * Hand back what the login page answered a sign-in: its code, or its
+     * refusal. The page the login page returns to calls it, whoever that
+     * person is signed in as, or with no session at all; the app that started
+     * the sign-in then finishes it (completeSignIn with no code).
+     * Answers who the sign-in is with and its address, for the page to say
+     * where the person signed in. An unknown, expired or already answered
+     * sign-in is refused with FAILED_PRECONDITION, the same for each, carrying
+     * the ErrorInfo reason SIGN_IN_ENDED (as completeSignIn); a sign-in started
+     * by a Connect link is refused too, with no reason, since it finishes on
+     * the link's own page.
+     * </pre>
+     */
+    public void handBackSignIn(ai.stigmer.agentic.vault.v1.HandBackSignInInput request,
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.vault.v1.HandBackSignInOutput> responseObserver) {
+      io.grpc.stub.ClientCalls.asyncUnaryCall(
+          getChannel().newCall(getHandBackSignInMethod(), getCallOptions()), request, responseObserver);
     }
 
     /**
@@ -1016,8 +1118,12 @@ public final class VaultCommandControllerGrpc {
      * <pre>
      * Start a sign-in at an address, to save the login in a vault.
      * Answers the login page to send the person to. When they have signed in,
-     * the page they return to calls completeSignIn with what the login page
-     * handed back. The sign-in must be completed within ten minutes.
+     * the login page sends them back to the console's callback page, which
+     * hands its answer to Stigmer (handBackSignIn); the app that started the
+     * sign-in then finishes it with completeSignIn, asking with no code until
+     * the answer is there. A page of the app's own that receives the code (the
+     * desktop app's) finishes with completeSignIn and the code instead. The
+     * sign-in must be completed within ten minutes.
      * The login fills every HTTP tool whose URL is the address, and a Git
      * host's login serves clones from that host.
      * </pre>
@@ -1032,12 +1138,43 @@ public final class VaultCommandControllerGrpc {
      * Finish a sign-in: exchange the code the login page handed back and save
      * the login in the vault the sign-in was started for, replacing any login
      * saved at the address.
+     * With no code, it finishes with the answer the callback page handed back
+     * (handBackSignIn). Until that answer arrives it answers pending and
+     * changes nothing, so the app that started the sign-in asks again; a
+     * refusal from the login page fails the sign-in with the login page's
+     * words. With a code, it finishes with that code; a sign-in whose answer
+     * was already handed back is refused, since a sign-in has one answer.
      * Only the person who started the sign-in may finish it.
+     * A sign-in that is unknown, expired or already finished is refused with
+     * FAILED_PRECONDITION carrying a google.rpc.ErrorInfo detail (domain
+     * "stigmer.ai"):
+     *   - SIGN_IN_ENDED — the sign-in is over: start it again. Asked right
+     *     after an ask that failed, it means that ask took the sign-in, so the
+     *     earlier failure is the sign-in's outcome. No metadata.
      * </pre>
      */
     public ai.stigmer.agentic.vault.v1.CompleteSignInOutput completeSignIn(ai.stigmer.agentic.vault.v1.CompleteSignInInput request) throws io.grpc.StatusException {
       return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
           getChannel(), getCompleteSignInMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
+     * Hand back what the login page answered a sign-in: its code, or its
+     * refusal. The page the login page returns to calls it, whoever that
+     * person is signed in as, or with no session at all; the app that started
+     * the sign-in then finishes it (completeSignIn with no code).
+     * Answers who the sign-in is with and its address, for the page to say
+     * where the person signed in. An unknown, expired or already answered
+     * sign-in is refused with FAILED_PRECONDITION, the same for each, carrying
+     * the ErrorInfo reason SIGN_IN_ENDED (as completeSignIn); a sign-in started
+     * by a Connect link is refused too, with no reason, since it finishes on
+     * the link's own page.
+     * </pre>
+     */
+    public ai.stigmer.agentic.vault.v1.HandBackSignInOutput handBackSignIn(ai.stigmer.agentic.vault.v1.HandBackSignInInput request) throws io.grpc.StatusException {
+      return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
+          getChannel(), getHandBackSignInMethod(), getCallOptions(), request);
     }
 
     /**
@@ -1216,8 +1353,12 @@ public final class VaultCommandControllerGrpc {
      * <pre>
      * Start a sign-in at an address, to save the login in a vault.
      * Answers the login page to send the person to. When they have signed in,
-     * the page they return to calls completeSignIn with what the login page
-     * handed back. The sign-in must be completed within ten minutes.
+     * the login page sends them back to the console's callback page, which
+     * hands its answer to Stigmer (handBackSignIn); the app that started the
+     * sign-in then finishes it with completeSignIn, asking with no code until
+     * the answer is there. A page of the app's own that receives the code (the
+     * desktop app's) finishes with completeSignIn and the code instead. The
+     * sign-in must be completed within ten minutes.
      * The login fills every HTTP tool whose URL is the address, and a Git
      * host's login serves clones from that host.
      * </pre>
@@ -1232,12 +1373,43 @@ public final class VaultCommandControllerGrpc {
      * Finish a sign-in: exchange the code the login page handed back and save
      * the login in the vault the sign-in was started for, replacing any login
      * saved at the address.
+     * With no code, it finishes with the answer the callback page handed back
+     * (handBackSignIn). Until that answer arrives it answers pending and
+     * changes nothing, so the app that started the sign-in asks again; a
+     * refusal from the login page fails the sign-in with the login page's
+     * words. With a code, it finishes with that code; a sign-in whose answer
+     * was already handed back is refused, since a sign-in has one answer.
      * Only the person who started the sign-in may finish it.
+     * A sign-in that is unknown, expired or already finished is refused with
+     * FAILED_PRECONDITION carrying a google.rpc.ErrorInfo detail (domain
+     * "stigmer.ai"):
+     *   - SIGN_IN_ENDED — the sign-in is over: start it again. Asked right
+     *     after an ask that failed, it means that ask took the sign-in, so the
+     *     earlier failure is the sign-in's outcome. No metadata.
      * </pre>
      */
     public ai.stigmer.agentic.vault.v1.CompleteSignInOutput completeSignIn(ai.stigmer.agentic.vault.v1.CompleteSignInInput request) {
       return io.grpc.stub.ClientCalls.blockingUnaryCall(
           getChannel(), getCompleteSignInMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
+     * Hand back what the login page answered a sign-in: its code, or its
+     * refusal. The page the login page returns to calls it, whoever that
+     * person is signed in as, or with no session at all; the app that started
+     * the sign-in then finishes it (completeSignIn with no code).
+     * Answers who the sign-in is with and its address, for the page to say
+     * where the person signed in. An unknown, expired or already answered
+     * sign-in is refused with FAILED_PRECONDITION, the same for each, carrying
+     * the ErrorInfo reason SIGN_IN_ENDED (as completeSignIn); a sign-in started
+     * by a Connect link is refused too, with no reason, since it finishes on
+     * the link's own page.
+     * </pre>
+     */
+    public ai.stigmer.agentic.vault.v1.HandBackSignInOutput handBackSignIn(ai.stigmer.agentic.vault.v1.HandBackSignInInput request) {
+      return io.grpc.stub.ClientCalls.blockingUnaryCall(
+          getChannel(), getHandBackSignInMethod(), getCallOptions(), request);
     }
 
     /**
@@ -1425,8 +1597,12 @@ public final class VaultCommandControllerGrpc {
      * <pre>
      * Start a sign-in at an address, to save the login in a vault.
      * Answers the login page to send the person to. When they have signed in,
-     * the page they return to calls completeSignIn with what the login page
-     * handed back. The sign-in must be completed within ten minutes.
+     * the login page sends them back to the console's callback page, which
+     * hands its answer to Stigmer (handBackSignIn); the app that started the
+     * sign-in then finishes it with completeSignIn, asking with no code until
+     * the answer is there. A page of the app's own that receives the code (the
+     * desktop app's) finishes with completeSignIn and the code instead. The
+     * sign-in must be completed within ten minutes.
      * The login fills every HTTP tool whose URL is the address, and a Git
      * host's login serves clones from that host.
      * </pre>
@@ -1442,13 +1618,45 @@ public final class VaultCommandControllerGrpc {
      * Finish a sign-in: exchange the code the login page handed back and save
      * the login in the vault the sign-in was started for, replacing any login
      * saved at the address.
+     * With no code, it finishes with the answer the callback page handed back
+     * (handBackSignIn). Until that answer arrives it answers pending and
+     * changes nothing, so the app that started the sign-in asks again; a
+     * refusal from the login page fails the sign-in with the login page's
+     * words. With a code, it finishes with that code; a sign-in whose answer
+     * was already handed back is refused, since a sign-in has one answer.
      * Only the person who started the sign-in may finish it.
+     * A sign-in that is unknown, expired or already finished is refused with
+     * FAILED_PRECONDITION carrying a google.rpc.ErrorInfo detail (domain
+     * "stigmer.ai"):
+     *   - SIGN_IN_ENDED — the sign-in is over: start it again. Asked right
+     *     after an ask that failed, it means that ask took the sign-in, so the
+     *     earlier failure is the sign-in's outcome. No metadata.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.vault.v1.CompleteSignInOutput> completeSignIn(
         ai.stigmer.agentic.vault.v1.CompleteSignInInput request) {
       return io.grpc.stub.ClientCalls.futureUnaryCall(
           getChannel().newCall(getCompleteSignInMethod(), getCallOptions()), request);
+    }
+
+    /**
+     * <pre>
+     * Hand back what the login page answered a sign-in: its code, or its
+     * refusal. The page the login page returns to calls it, whoever that
+     * person is signed in as, or with no session at all; the app that started
+     * the sign-in then finishes it (completeSignIn with no code).
+     * Answers who the sign-in is with and its address, for the page to say
+     * where the person signed in. An unknown, expired or already answered
+     * sign-in is refused with FAILED_PRECONDITION, the same for each, carrying
+     * the ErrorInfo reason SIGN_IN_ENDED (as completeSignIn); a sign-in started
+     * by a Connect link is refused too, with no reason, since it finishes on
+     * the link's own page.
+     * </pre>
+     */
+    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.vault.v1.HandBackSignInOutput> handBackSignIn(
+        ai.stigmer.agentic.vault.v1.HandBackSignInInput request) {
+      return io.grpc.stub.ClientCalls.futureUnaryCall(
+          getChannel().newCall(getHandBackSignInMethod(), getCallOptions()), request);
     }
 
     /**
@@ -1483,7 +1691,8 @@ public final class VaultCommandControllerGrpc {
   private static final int METHODID_REMOVE_CONNECTIONS = 8;
   private static final int METHODID_START_SIGN_IN = 9;
   private static final int METHODID_COMPLETE_SIGN_IN = 10;
-  private static final int METHODID_CREATE_CONNECT_LINK = 11;
+  private static final int METHODID_HAND_BACK_SIGN_IN = 11;
+  private static final int METHODID_CREATE_CONNECT_LINK = 12;
 
   private static final class MethodHandlers<Req, Resp> implements
       io.grpc.stub.ServerCalls.UnaryMethod<Req, Resp>,
@@ -1545,6 +1754,10 @@ public final class VaultCommandControllerGrpc {
         case METHODID_COMPLETE_SIGN_IN:
           serviceImpl.completeSignIn((ai.stigmer.agentic.vault.v1.CompleteSignInInput) request,
               (io.grpc.stub.StreamObserver<ai.stigmer.agentic.vault.v1.CompleteSignInOutput>) responseObserver);
+          break;
+        case METHODID_HAND_BACK_SIGN_IN:
+          serviceImpl.handBackSignIn((ai.stigmer.agentic.vault.v1.HandBackSignInInput) request,
+              (io.grpc.stub.StreamObserver<ai.stigmer.agentic.vault.v1.HandBackSignInOutput>) responseObserver);
           break;
         case METHODID_CREATE_CONNECT_LINK:
           serviceImpl.createConnectLink((ai.stigmer.agentic.vault.v1.CreateConnectLinkInput) request,
@@ -1646,6 +1859,13 @@ public final class VaultCommandControllerGrpc {
               ai.stigmer.agentic.vault.v1.CompleteSignInOutput>(
                 service, METHODID_COMPLETE_SIGN_IN)))
         .addMethod(
+          getHandBackSignInMethod(),
+          io.grpc.stub.ServerCalls.asyncUnaryCall(
+            new MethodHandlers<
+              ai.stigmer.agentic.vault.v1.HandBackSignInInput,
+              ai.stigmer.agentic.vault.v1.HandBackSignInOutput>(
+                service, METHODID_HAND_BACK_SIGN_IN)))
+        .addMethod(
           getCreateConnectLinkMethod(),
           io.grpc.stub.ServerCalls.asyncUnaryCall(
             new MethodHandlers<
@@ -1711,6 +1931,7 @@ public final class VaultCommandControllerGrpc {
               .addMethod(getRemoveConnectionsMethod())
               .addMethod(getStartSignInMethod())
               .addMethod(getCompleteSignInMethod())
+              .addMethod(getHandBackSignInMethod())
               .addMethod(getCreateConnectLinkMethod())
               .build();
         }

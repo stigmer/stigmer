@@ -10,9 +10,11 @@
  *   - a deployment with no console callback refuses a console sign-in and a
  *     Connect link, saying which setting is missing;
  *   - every start sweeps expired pending states;
- *   - a seal or a store that fails while the pending state is recorded, or
- *     while it is read back, answers INTERNAL, and a pending state whose
- *     secrets cannot be opened is refused before any token is asked for;
+ *   - a seal or a store that fails while the pending state is recorded,
+ *     while the login page's answer is handed back, or while either is read
+ *     back, answers INTERNAL, and a pending state whose secrets or
+ *     handed-back code cannot be opened is refused before any token is
+ *     asked for;
  *   - a Connect link whose maker's permission cannot be checked, whose vault
  *     is gone, whose spend loses a race, or whose organization cannot be
  *     read answers as it should;
@@ -30,6 +32,7 @@ import {
 import {
   CompleteSignInInputSchema,
   CreateConnectLinkInputSchema,
+  HandBackSignInInputSchema,
   StartSignInInputSchema,
 } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/io_pb";
 import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
@@ -42,7 +45,7 @@ import { completeConnectLink, createConnectLink, getConnectLink, startConnectLin
 import type { ConnectLinkDeps } from "../../connect-link.js";
 import { findLoginApp, loginAppByRef } from "../../login-app.js";
 import { loginServerHost } from "../client.js";
-import { completePersonSignIn, startPersonSignIn } from "../person.js";
+import { completePersonSignIn, handBackSignIn, startPersonSignIn } from "../person.js";
 import { sealPendingOAuthState } from "../start.js";
 import {
   MCP_ADDRESS,
@@ -76,8 +79,13 @@ function start(address: string, deps: Partial<ConnectLinkDeps> = {}) {
   );
 }
 
-function complete(state: string, deps: Partial<ConnectLinkDeps> = {}) {
-  return completePersonSignIn(rig.deps(deps), create(CompleteSignInInputSchema, { state, code: "code" }), alice);
+/** Completes as the signer: with the given code, or with "" to collect what was handed back. */
+function complete(state: string, deps: Partial<ConnectLinkDeps> = {}, code = "code") {
+  return completePersonSignIn(rig.deps(deps), create(CompleteSignInInputSchema, { state, code }), alice);
+}
+
+function handBack(state: string, deps: Partial<ConnectLinkDeps> = {}) {
+  return handBackSignIn(rig.deps(deps), create(HandBackSignInInputSchema, { state, code: "code" }));
 }
 
 const fault = (): Promise<never> => Promise.reject(new Error("disk gone"));
@@ -241,8 +249,9 @@ describe("recording and reading the pending state", () => {
   it("a store that fails while the state is read back answers INTERNAL, for a person and for a link", async () => {
     await seedOrganizationApp(rig);
     await seedSharedVault(rig);
-    const failingRead = withOverrides(rig.store.pendingOAuthStates, { getAndDelete: fault });
+    const failingRead = withOverrides(rig.store.pendingOAuthStates, { find: fault, getAndDelete: fault });
     await expectRefusal(complete("any", { pendingOAuthStates: failingRead }), Code.Internal, "");
+    await expectRefusal(handBack("any", { pendingOAuthStates: failingRead }), Code.Internal, "");
 
     const link = await createConnectLink(
       rig.deps(),
@@ -258,6 +267,33 @@ describe("recording and reading the pending state", () => {
       Code.Internal,
       "",
     );
+  });
+
+  it("a seal or a store that fails while the answer is handed back answers INTERNAL, and the sign-in stays open", async () => {
+    await seedOrganizationApp(rig);
+    const started = await start(VENDOR_ADDRESS);
+    const failingSeal = SecretService.create(Buffer.alloc(32, 3));
+    failingSeal.encrypt = fault;
+    await expectRefusal(handBack(started.state, { secretService: failingSeal }), Code.Internal, "");
+    await expectRefusal(
+      handBack(started.state, { pendingOAuthStates: withOverrides(rig.store.pendingOAuthStates, { recordAnswer: fault }) }),
+      Code.Internal,
+      "",
+    );
+    expect((await rig.store.pendingOAuthStates.find(started.state))?.answer).toBeUndefined();
+    await handBack(started.state);
+    await complete(started.state, {}, "");
+  });
+
+  it("a handed-back code that cannot be opened is refused before any token is asked for", async () => {
+    await seedOrganizationApp(rig);
+    const started = await start(VENDOR_ADDRESS);
+    await rig.store.pendingOAuthStates.recordAnswer(started.state, {
+      kind: "code",
+      code: "enc:v1:bm90LWEtcmVhbC1jaXBoZXJ0ZXh0",
+    });
+    await expectRefusal(complete(started.state, {}, ""), Code.Internal, "failed to decrypt the sign-in's code");
+    expect(rig.requestsTo("https://login.vendor.example/token")).toEqual([]);
   });
 
   it("a state whose verifier or client secret cannot be opened is refused before any token is asked for", async () => {

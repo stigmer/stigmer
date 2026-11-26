@@ -56,6 +56,8 @@ import type {
   ResourceNameStore,
   ResourceNameUndo,
   PendingOAuthState,
+  PendingSignInAnswer,
+  StoredPendingOAuthState,
   OrganizationDeletion,
   OrganizationDeletionStore,
   PendingOAuthStateStore,
@@ -146,6 +148,7 @@ import type {
   PermissionHistoryRecord,
 } from "../permission-history.js";
 import { decodeFiredBy, encodeFiredBy } from "../fired-by.js";
+import { pendingSignInAnswerOf } from "../pending-sign-in-answer.js";
 import { instantNotBefore, rfc3339Seconds } from "../rfc3339.js";
 import { normalizeBm25Score, renderFts5MatchExpression } from "./fts5.js";
 import { runMigrations } from "./migrations.js";
@@ -2385,6 +2388,10 @@ const PENDING_OAUTH_STATE_COLUMNS = `state, code_verifier, client_id, client_sec
   address, login_app, resource, client_registration, connect_link, provider_name,
   userinfo_url, created_at`;
 
+/** The columns a read returns: the start's, then the answer the callback page handed back. */
+const STORED_PENDING_OAUTH_STATE_COLUMNS = `${PENDING_OAUTH_STATE_COLUMNS},
+  answered_code, answer_error, answered_at`;
+
 interface PendingOAuthStateRow {
   state: string;
   code_verifier: string;
@@ -2405,6 +2412,9 @@ interface PendingOAuthStateRow {
   provider_name: string;
   userinfo_url: string;
   created_at: number;
+  answered_code: string | null;
+  answer_error: string | null;
+  answered_at: number | null;
 }
 
 class SqlitePendingOAuthStateStore implements PendingOAuthStateStore {
@@ -2441,9 +2451,37 @@ class SqlitePendingOAuthStateStore implements PendingOAuthStateStore {
       );
   }
 
+  async find(stateParam: string): Promise<StoredPendingOAuthState | undefined> {
+    const row = this.open()
+      .prepare(
+        `SELECT ${STORED_PENDING_OAUTH_STATE_COLUMNS} FROM pending_oauth_state
+         WHERE state = ? AND created_at >= ?`,
+      )
+      .get(stateParam, pendingOAuthStateCutoff()) as PendingOAuthStateRow | undefined;
+    return row === undefined ? undefined : pendingOAuthStateOf(row);
+  }
+
+  async recordAnswer(stateParam: string, answer: PendingSignInAnswer): Promise<boolean> {
+    // One conditional statement: of two hand-backs racing, one records.
+    const result = this.open()
+      .prepare(
+        `UPDATE pending_oauth_state
+         SET answered_code = ?, answer_error = ?, answered_at = ?
+         WHERE state = ? AND answered_at IS NULL AND created_at >= ?`,
+      )
+      .run(
+        answer.kind === "code" ? answer.code : null,
+        answer.kind === "refused" ? answer.reason : null,
+        Math.floor(Date.now() / 1000),
+        stateParam,
+        pendingOAuthStateCutoff(),
+      );
+    return Number(result.changes) === 1;
+  }
+
   async getAndDelete(
     stateParam: string,
-  ): Promise<PendingOAuthState | undefined> {
+  ): Promise<StoredPendingOAuthState | undefined> {
     const db = this.open();
 
     // Read + delete are one transaction so a state can be redeemed at most
@@ -2453,7 +2491,7 @@ class SqlitePendingOAuthStateStore implements PendingOAuthStateStore {
     try {
       const row = db
         .prepare(
-          `SELECT ${PENDING_OAUTH_STATE_COLUMNS} FROM pending_oauth_state WHERE state = ?`,
+          `SELECT ${STORED_PENDING_OAUTH_STATE_COLUMNS} FROM pending_oauth_state WHERE state = ?`,
         )
         .get(stateParam) as PendingOAuthStateRow | undefined;
 
@@ -2467,8 +2505,7 @@ class SqlitePendingOAuthStateStore implements PendingOAuthStateStore {
       );
       db.exec("COMMIT");
 
-      const ageMs = Date.now() - row.created_at * 1000;
-      if (ageMs > PENDING_OAUTH_STATE_TTL_MS) {
+      if (row.created_at < pendingOAuthStateCutoff()) {
         return undefined; // expired: deleted on the way out, never redeemed
       }
       return pendingOAuthStateOf(row);
@@ -2479,11 +2516,9 @@ class SqlitePendingOAuthStateStore implements PendingOAuthStateStore {
   }
 
   async cleanupExpired(): Promise<number> {
-    const cutoff =
-      Math.floor(Date.now() / 1000) - PENDING_OAUTH_STATE_TTL_MS / 1000;
     const result = this.open()
       .prepare(`DELETE FROM pending_oauth_state WHERE created_at < ?`)
-      .run(cutoff);
+      .run(pendingOAuthStateCutoff());
     return Number(result.changes);
   }
 
@@ -2502,7 +2537,12 @@ class SqlitePendingOAuthStateStore implements PendingOAuthStateStore {
   }
 }
 
-function pendingOAuthStateOf(row: PendingOAuthStateRow): PendingOAuthState {
+/** The oldest created_at (Unix seconds) a live state may carry: older ones have outlived their ten minutes. */
+function pendingOAuthStateCutoff(): number {
+  return Math.floor(Date.now() / 1000) - PENDING_OAUTH_STATE_TTL_MS / 1000;
+}
+
+function pendingOAuthStateOf(row: PendingOAuthStateRow): StoredPendingOAuthState {
   return {
     state: row.state,
     codeVerifier: row.code_verifier,
@@ -2523,6 +2563,7 @@ function pendingOAuthStateOf(row: PendingOAuthStateRow): PendingOAuthState {
     providerName: row.provider_name,
     userinfoUrl: row.userinfo_url,
     createdAt: row.created_at,
+    answer: pendingSignInAnswerOf(row.answered_code, row.answer_error, row.answered_at),
   };
 }
 
