@@ -96,7 +96,17 @@ test.describe("a developer's app, on its own address, signs its user in to the t
         await scriptToolCall(target.model, value, "call_first_hour_embedded");
         const composer = app.getByRole("textbox").first();
         await composer.fill(askForTheTool(value));
-        await app.getByRole("button", { name: "Send message" }).click();
+        // The chat reads the agent again after the sign-in; a message sent
+        // while it does is refused with "try again in a moment", which a
+        // person does (seen on a deployed Stigmer, where the read takes a
+        // moment longer than on a local stack).
+        const stillLoading = app.getByText("This agent is still loading. Please try again in a moment.");
+        for (let attempt = 1; ; attempt++) {
+          await app.getByRole("button", { name: "Send message" }).click({ timeout: 30_000 });
+          if (!(await stillLoading.isVisible({ timeout: 3_000 }).catch(() => false))) break;
+          expect(attempt, "the agent finishes loading within a minute").toBeLessThan(20);
+          await app.waitForTimeout(3_000);
+        }
 
         const refusal = app.getByText(new RegExp(`needs ${LOGIN_KEY}`)).first();
         const called = turnSummary(app);
