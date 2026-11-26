@@ -10,9 +10,12 @@
 // login page does), and the chat finishes it: the login page returns to the
 // console's callback page, which hands the answer to Stigmer and never says
 // "Connected", and the app collects it under the person's own session and
-// says "Signed in". Then the agent calls the server's `echo` tool, and the
-// tool answers through the saved login: the model receives the tool's
-// result, not a refusal.
+// says "Signed in".
+//
+// It ends there: an app user's run reads only the vaults on the
+// organization's embedding settings, never the app user's own My vault
+// where the sign-in saved the login, so the agent cannot call the tool with
+// it yet (stigmer/stigmer#3470).
 //
 // The tool server is added as the console adds one ("Add MCP server", a
 // plugin of that one server, whose install finds it signs in), and the
@@ -22,8 +25,7 @@
 // Stack shape: STIGMER_E2E_OIDC=1 and STIGMER_E2E_MOCK_LLM=1 (`make
 // test-e2e-console-login`): the OIDC stack starts the OAuth MCP fixture
 // with its login page's opener policy, and the server's OAuth redirect is
-// the console's callback page. The model is scripted: one call of the
-// server's echo tool, then a closing line.
+// the console's callback page.
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -35,8 +37,7 @@ import { Computer } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
 import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { OIDC_STACK } from "../../fixtures/oidc";
 import { getOAuthMcpFixture } from "../../fixtures/oauth-mcp";
-import { anthropicText, anthropicToolUses } from "../../fixtures/mock-llm";
-import { MockControl, getMockControlUrl } from "../../helpers/mock-llm-control";
+import { getMockControlUrl } from "../../helpers/mock-llm-control";
 import { APP_PORT, ownerBearer, packKit, prepareReader, runTutorial, type TutorialRun } from "../../helpers/embed-tutorial";
 
 const API_PORT = process.env.STIGMER_E2E_API_PORT ?? "7234";
@@ -46,35 +47,7 @@ const oauthMcp = getOAuthMcpFixture();
 
 /** The tool server's name, which is its plugin's too. */
 const SERVER = "app-tools";
-/** The name the model calls the server's echo tool by: `mcp__plugin_<plugin>_<server>__<tool>`. */
-const ECHO = `mcp__plugin_${SERVER}_${SERVER}__echo`;
-const ECHOED = "the tool answered with the saved login";
 
-/** A model request's messages, as the mock captured them. */
-interface CapturedMessages {
-  readonly body?: { readonly messages?: ReadonlyArray<{ readonly content?: unknown }> };
-}
-
-/** The tool results the model received, across every call the mock captured. */
-async function toolResults(): Promise<Array<{ text: string; isError: boolean }>> {
-  const res = await fetch(`${mockUrl}/__mock/requests`);
-  const { requests } = (await res.json()) as { requests: readonly CapturedMessages[] };
-  const results: Array<{ text: string; isError: boolean }> = [];
-  for (const request of requests) {
-    for (const message of request.body?.messages ?? []) {
-      if (!Array.isArray(message.content)) continue;
-      for (const block of message.content as ReadonlyArray<Record<string, unknown>>) {
-        if (block.type !== "tool_result") continue;
-        const content = block.content;
-        const text = Array.isArray(content)
-          ? (content as ReadonlyArray<{ text?: string }>).map((part) => part.text ?? "").join("")
-          : String(content ?? "");
-        results.push({ text, isError: block.is_error === true });
-      }
-    }
-  }
-  return results;
-}
 
 test.describe("a chat in an app on its own address signs in to the app's tool server", () => {
   test.skip(
@@ -91,7 +64,7 @@ test.describe("a chat in an app on its own address signs in to the app's tool se
     if (folder !== "") rmSync(folder, { recursive: true, force: true });
   });
 
-  test("the login page cuts the window off, the chat still finishes the sign-in, and the agent calls the tool", async ({
+  test("the login page cuts the window off, and the chat still finishes the sign-in", async ({
     page,
     browser,
   }) => {
@@ -144,16 +117,5 @@ test.describe("a chat in an app on its own address signs in to the app's tool se
       await expect(popup.getByRole("heading", { name: /^You're signed in at / })).toBeVisible();
       await expect(popup.getByText("Connected")).toHaveCount(0);
     }
-
-    // The agent calls the tool, with the login the chat saved.
-    const control = new MockControl(mockUrl!);
-    await control.reset();
-    await control.enqueue(anthropicToolUses([{ toolCallId: "toolu_echo", toolName: ECHO, toolInput: { text: ECHOED } }]));
-    await control.enqueue(anthropicText("The tool answered."));
-    const message = app.getByRole("textbox").first();
-    await message.fill("Call the app's tool.");
-    await message.press("Enter");
-    await expect(app.getByText("The tool answered.")).toBeVisible({ timeout: 120_000 });
-    expect(await toolResults()).toContainEqual({ text: ECHOED, isError: false });
   });
 });

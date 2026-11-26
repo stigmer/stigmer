@@ -153,9 +153,9 @@ export default defineConfig({
     {
       // The same OIDC stack with the mock model: the tutorial's app, on its
       // own address, signs a person in to a tool server whose login page
-      // cuts the sign-in window off from the app (an opener policy), and
-      // the agent calls the tool with the saved login. Needs the
-      // organization as the tutorial leaves it, so it runs after.
+      // cuts the sign-in window off from the app (an opener policy), and the
+      // chat finishes the sign-in. Needs the organization as the tutorial
+      // leaves it, so it runs after.
       name: "embed-sign-in",
       testDir: "./tests/embed-sign-in",
       fullyParallel: false,
