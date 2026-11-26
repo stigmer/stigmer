@@ -7,6 +7,7 @@ import { StigmerContext } from "@stigmer/react-core";
 import { OrgProvider } from "../../organization/OrgProvider";
 import { SETTINGS_NAV_GROUPS } from "../../settings/settings-nav";
 import { SettingsSidebar } from "../SettingsSidebar";
+import { BETA_LINE } from "../../internal/beta";
 import type { RenderSidebarLink } from "../types";
 
 beforeAll(() => {
@@ -114,5 +115,14 @@ describe("SettingsSidebar", () => {
   it("renders the footer slot", () => {
     renderSidebar(<SettingsSidebar {...baseProps()} />);
     expect(screen.getByTestId("footer-slot")).toBeTruthy();
+  });
+
+  it("says Stigmer is in Beta in its top row, linking the page that says what it means", () => {
+    renderSidebar(<SettingsSidebar {...baseProps()} />);
+    const mark = screen.getByRole("link", { name: BETA_LINE });
+    expect(mark.textContent).toBe("Beta");
+    expect(mark.getAttribute("href")).toBe("https://stigmer.ai/docs/beta");
+    expect(mark.getAttribute("target")).toBe("_blank");
+    expect(mark.getAttribute("rel")).toBe("noopener noreferrer");
   });
 });

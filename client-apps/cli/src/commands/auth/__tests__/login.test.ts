@@ -6,16 +6,20 @@
 //
 // The tokens are saved BEFORE the account step runs, so a setup failure is a
 // warning that says the login itself succeeded and how to finish, never an
-// error that makes the person log in again.
+// error that makes the person log in again. Every outcome ends saying that
+// Stigmer is in Beta, linking the page that says what it means.
 
 import { describe, expect, it } from "vitest";
 
 import { loginResult, serverLabel } from "../login.js";
 
 const CLOUD = { backendName: "cloud", type: "cloud", address: "api.stigmer.ai:443" } as const;
+const BETA =
+  "Stigmer is in Beta: things may change, and your work is kept. Tell us what breaks: https://stigmer.ai/docs/beta";
 const CLOUD_HINTS = [
   'Run commands against backend "cloud", e.g.:',
   "  stigmer list agents",
+  BETA,
 ];
 
 describe("serverLabel", () => {
@@ -44,7 +48,7 @@ describe("loginResult", () => {
       { status: "ensured", created: false },
     );
     expect(result.message).toBe("Authenticated with stigmer.acme.test:7234");
-    expect(result.hints).toEqual(['Run commands against backend "acme", e.g.:', "  stigmer list agents"]);
+    expect(result.hints).toEqual(['Run commands against backend "acme", e.g.:', "  stigmer list agents", BETA]);
   });
 
   it("a first sign-in says the account was created — visible, never silent", () => {
@@ -69,6 +73,7 @@ describe("loginResult", () => {
     );
     expect(result.hints).toEqual([
       "Run 'stigmer auth whoami' to finish setting up your account.",
+      BETA,
     ]);
   });
 });

@@ -12,6 +12,7 @@ import { SidebarTrigger } from "fumadocs-ui/components/layout/sidebar";
 import { Navbar } from "fumadocs-ui/layouts/docs-client";
 import { cn } from "@/lib/utils";
 import { StigmerIcon } from "@/components/ui/stigmer-icon";
+import { BetaMark } from "@/components/layout/BetaMark";
 import { AskAiTrigger } from "@/components/docs/ask-ai";
 import { selectActiveTab } from "./active-tab";
 
@@ -29,10 +30,10 @@ const iconButtonClasses = cn(
  * passed to `DocsLayout` as `nav.component` (which replaces the stock
  * mobile-only navbar entirely).
  *
- * Desktop (md+): logo → section tabs → search → Ask AI → Sign in.
- * Mobile: logo → Ask AI → search icon → drawer trigger. One component, one
- * DOM tree; breakpoint classes gate the clusters — the same pattern the
- * stock navbar and the Ask AI triggers already use.
+ * Desktop (md+): logo, Beta mark → section tabs → search → Ask AI → Sign in.
+ * Mobile: logo, Beta mark → Ask AI → search icon → drawer trigger. One
+ * component, one DOM tree; breakpoint classes gate the clusters — the same
+ * pattern the stock navbar and the Ask AI triggers already use.
  *
  * Height contract: the `on-root:[--fd-nav-height:56px]` class publishes the
  * header height to `:root` (Fumadocs' `:root:has(&)` variant — the exact
@@ -62,6 +63,7 @@ export function DocsHeader({ tabs }: { tabs: Option[] }) {
         >
           <StigmerIcon size={32} />
         </Link>
+        <BetaMark className="-ml-2 md:-ml-3" />
 
         <nav
           aria-label="Documentation sections"

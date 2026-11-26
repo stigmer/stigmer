@@ -5,7 +5,8 @@
  * and a failure said in plain words with Try again); the return from the
  * sign-in page (the wait, then the failure with Sign in again); and the
  * page that hands the browser back to the desktop app with its way back.
- * The sign-in screen ends with the deployment's help line (CON-13).
+ * The sign-in screen says Stigmer is in Beta under its lead when ready or
+ * failed, and ends with the deployment's help line (CON-13).
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
@@ -19,6 +20,7 @@ import {
 } from "@stigmer/apis/ai/stigmer/platform/v1/server_info_pb";
 import { StigmerProvider } from "../../provider";
 import { SignInView } from "../SignInView";
+import { BETA_LINE } from "../../internal/beta";
 import { SignInReturnView } from "../SignInReturnView";
 import { AppHandoffView } from "../AppHandoffView";
 
@@ -91,6 +93,22 @@ describe("SignInView", () => {
       />,
     );
     expect(screen.getByRole("alert").textContent).toContain("The sign-in didn't finish.");
+  });
+
+  it.each([
+    ["ready", { status: "ready" }],
+    ["failed", { status: "failed", error: new Error("Failed to fetch") }],
+  ] as const)("says Stigmer is in Beta when %s, its word linking the page that says what it means", (_, state) => {
+    render(<SignInView state={state} serverName="Stigmer" onSignIn={() => {}} />);
+    expect(screen.getByText((_content, element) => element?.tagName === "P" && element.textContent === BETA_LINE)).toBeTruthy();
+    const link = screen.getByRole("link", { name: "Beta" });
+    expect(link.getAttribute("href")).toBe("https://stigmer.ai/docs/beta");
+    expect(link.getAttribute("target")).toBe("_blank");
+  });
+
+  it("says nothing of Beta while it waits for the browser", () => {
+    render(<SignInView state={{ status: "waiting" }} serverName="Acme" onSignIn={() => {}} />);
+    expect(screen.queryByRole("link", { name: "Beta" })).toBeNull();
   });
 });
 

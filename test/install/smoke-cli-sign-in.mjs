@@ -12,7 +12,8 @@
  *      `stigmer auth login` with `BROWSER` naming a stand-in browser that
  *      follows the authorize address to the CLI's loopback callback (the
  *      issuer consents as its person). The login says it authenticated with
- *      that server, the config file keeps the sign-in beside its issuer, and
+ *      that server and that Stigmer is in Beta, linking the page that says
+ *      what it means; the config file keeps the sign-in beside its issuer, and
  *      `stigmer auth whoami` answers as the issuer's person and names the
  *      server's address as its `Endpoint`. `stigmer status` names that
  *      backend and address, and never says to start a local stack, which a
@@ -43,6 +44,7 @@ const COMMAND_TIMEOUT_MS = 120_000;
 /** What the CLI says, restated here: the install layer imports no CLI source. */
 export const SAYS = {
   loggedOut: 'Logged out from backend "smoke"',
+  beta: "Stigmer is in Beta: things may change, and your work is kept. Tell us what breaks: https://stigmer.ai/docs/beta",
   deviceCode: /To sign in, open (\S+) and enter ([0-9A-F]{4}-[0-9A-F]{4})/,
 };
 
@@ -93,6 +95,7 @@ async function main() {
     const login = await stigmer(["auth", "login"], { BROWSER: `"${process.execPath}" "${follower}"` });
     check(login.status === 0, `auth login exited ${login.status}`, login);
     check(said(login, `Authenticated with ${endpoint}`), "auth login did not say it authenticated with the server", login);
+    check(said(login, SAYS.beta), "auth login did not say that Stigmer is in Beta", login);
     const config = readFileSync(join(home, ".stigmer", "config.yaml"), "utf8");
     check(config.includes(`oidc_issuer: ${server.issuer.issuer}`), "the config keeps no issuer beside the sign-in");
     check(config.includes(`oidc_client_id: ${NATIVE_CLIENT}`), "the config keeps no client beside the sign-in");

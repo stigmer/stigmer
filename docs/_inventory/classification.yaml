@@ -44,6 +44,14 @@ pages:
       it.
 
   # ── Get Started ────────────────────────────────────────────────────────
+  beta:
+    fate: keep
+    diataxis: explanation
+    teaches:
+      What Beta means for Stigmer, what is kept while it lasts, how to tell
+      the team what breaks, and the bar for lifting it.
+    medium: none
+
   what-is-stigmer:
     fate: keep
     diataxis: explanation

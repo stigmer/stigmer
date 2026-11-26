@@ -54,7 +54,8 @@ export interface SettingsSidebarProps {
  *
  * Like {@link WorkspaceSidebar}, this is the exact component the web
  * console, desktop app, and documentation tours all render; hosts vary
- * only `renderLink`, `groups`, and the `footer` slot.
+ * only `renderLink`, `groups`, and the `footer` slot. Its top row ends with
+ * the same "Beta" mark.
  *
  * Row identifiers passed to `renderLink` are the settings route
  * basenames (`"api-keys"`, `"members"`, …) plus `"back-to-sessions"`,

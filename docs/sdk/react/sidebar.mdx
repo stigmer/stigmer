@@ -17,7 +17,8 @@ the SDK's settings-nav model, with a user footer.
 
 Like [`WorkspaceSidebar`](#workspacesidebar), this is the exact component the web
 console, desktop app, and documentation tours all render; hosts vary
-only `renderLink`, `groups`, and the `footer` slot.
+only `renderLink`, `groups`, and the `footer` slot. Its top row ends with
+the same "Beta" mark.
 
 Row identifiers passed to `renderLink` are the settings route
 basenames (`"api-keys"`, `"members"`, …) plus `"back-to-sessions"`,
@@ -89,6 +90,10 @@ render — hosts differ only in what they return from `renderLink`
 data or frozen fixtures), and the `footer` slot. Documentation tours
 render it too, which is the point: the depicted chrome cannot drift
 from the product because it *is* the product (stigmer/stigmer#317).
+
+Its top row ends with Stigmer's "Beta" mark, linking the docs page that
+says what Beta means. The mark is the product's statement, the same in
+every edition, so no prop or server setting hides it.
 
 Layout note: the sidebar fills its container's height and defines no
 width — the console's app shell owns the `w-60` (240px) column.

@@ -10,10 +10,13 @@
 // The order matters for the result: the tokens are already saved when the
 // account step runs, so its failure is a WARNING that says the login stood
 // and how to finish (`auth whoami` runs the same flow), never an error that
-// sends the person back to the browser.
+// sends the person back to the browser. Either way the result ends saying
+// that Stigmer is in Beta (../../beta.ts), on every sign-in: a person who
+// signed up in the console meets the CLI as a newcomer too.
 
 import { ensureMyIdentityAccount } from "@stigmer/client";
 import type { LoginOptions, LoginOutcome } from "../../auth/index.js";
+import { BETA_HINT } from "../../beta.js";
 import { DEFAULT_CLOUD_ENDPOINT } from "../../config/resolve.js";
 import { classify } from "../../errors/index.js";
 import { CommandResult } from "../../output/index.js";
@@ -43,11 +46,14 @@ export function loginResult(signedIn: SignedIn, setup: AccountSetup): CommandRes
           : `Authenticated with ${label}`,
       )
         .hint(`Run commands against backend "${signedIn.backendName}", e.g.:`)
-        .hint("  stigmer list agents");
+        .hint("  stigmer list agents")
+        .hint(BETA_HINT);
     case "failed":
       return CommandResult.warning(
         `Authenticated with ${label}, but your account could not be set up: ${setup.message}`,
-      ).hint("Run 'stigmer auth whoami' to finish setting up your account.");
+      )
+        .hint("Run 'stigmer auth whoami' to finish setting up your account.")
+        .hint(BETA_HINT);
     default: {
       const _exhaustive: never = setup;
       throw new Error(`unknown account setup: ${String(_exhaustive)}`);

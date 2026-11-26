@@ -116,6 +116,10 @@ export interface WorkspaceSidebarProps {
  * render it too, which is the point: the depicted chrome cannot drift
  * from the product because it *is* the product (stigmer/stigmer#317).
  *
+ * Its top row ends with Stigmer's "Beta" mark, linking the docs page that
+ * says what Beta means. The mark is the product's statement, the same in
+ * every edition, so no prop or server setting hides it.
+ *
  * Layout note: the sidebar fills its container's height and defines no
  * width — the console's app shell owns the `w-60` (240px) column.
  *

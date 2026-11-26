@@ -11,3 +11,4 @@ Agents:
   Add a model provider: stigmer setup, then stigmer down && stigmer up
   Check status with: stigmer status
   Stop it with:    stigmer down
+  Stigmer is in Beta: things may change, and your work is kept. Tell us what breaks: https://stigmer.ai/docs/beta

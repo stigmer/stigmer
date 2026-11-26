@@ -1,0 +1,67 @@
+---
+title: Stigmer is in Beta
+description:
+  What Beta means for Stigmer, what is kept while it lasts, how to tell the team
+  what breaks, and the bar Stigmer must meet before Beta is lifted.
+---
+
+Stigmer is in Beta: things may change, and your work is kept. Tell us what
+breaks.
+
+Stigmer says this once wherever you first meet it: beside its name on this site
+and in the console, on the sign-in screen, after `stigmer auth login` and
+`stigmer up`, and in the setup guide your coding agent follows. This page is
+what each of those links to.
+
+## What may change
+
+Beta means the product is still taking its shape from the developers who use it.
+Between releases, any part you use may change:
+
+- commands and their flags in the [command line](/docs/cli);
+- fields in the API and in the [SDKs](/docs/sdk);
+- screens in the console and the desktop app;
+- the defaults an Agent runs with.
+
+Each release says what changed in its
+[release notes](https://stigmer.ai/releases). Read them before you upgrade a
+server you run yourself.
+
+## What is kept
+
+Your work outlives every change.
+
+- **On Stigmer Cloud**, your Agents, Sessions, files and keys are kept from
+  release to release. No wipe is planned.
+- **On your own server or laptop**, the data is yours and stays where you put
+  it. The operations guide shows how to
+  [back it up](/docs/guides/self-hosting/operations#back-up),
+  [restore it](/docs/guides/self-hosting/operations#restore) and
+  [upgrade it](/docs/guides/self-hosting/operations#upgrade).
+
+## Tell us what breaks
+
+A rough edge you hit is one the team wants to hear about, whether it stopped you
+or only slowed you down.
+
+- Open an issue on [GitHub](https://github.com/stigmer/stigmer/issues), with
+  what you ran and what you saw.
+- Ask in the [Discord community](https://discord.gg/EtANnfsJ8B).
+- In a console whose operator set a help link, the sidebar's help row reaches
+  them.
+
+## The bar for lifting Beta
+
+Beta comes off when all of these hold:
+
+- three developers outside the team set Stigmer up from the
+  [coding-agent setup](/docs/getting-started/coding-agent) without the team's
+  help, each ending with an Agent in their own app that has called one of their
+  app's own tools;
+- that path has no open problem;
+- every way to manage a plugin works from both the console and the command line;
+- the whole journey, from signing up to the Agent calling a tool, is tested on
+  every change and every night against Stigmer Cloud.
+
+Lifting Beta ships in a release whose notes say so, and this page then says so
+too.

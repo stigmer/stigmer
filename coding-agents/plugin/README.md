@@ -3,6 +3,9 @@
 This repository is published from [stigmer/stigmer](https://github.com/stigmer/stigmer)'s
 `coding-agents/` folder at each release; change it there.
 
+Stigmer is in Beta: things may change, and your work is kept. Tell us what
+breaks. What Beta means, and the bar for lifting it: https://stigmer.ai/docs/beta
+
 Stigmer runs AI agents for the users of your own product. This plugin makes your
 coding agent Stigmer's expert, in Claude Code, Codex and Cursor. Ask it in plain
 words, and it:
