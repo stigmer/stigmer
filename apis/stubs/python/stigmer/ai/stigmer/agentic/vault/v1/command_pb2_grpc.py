@@ -238,6 +238,14 @@ class VaultCommandControllerServicer(object):
         was already handed back is refused, since a sign-in has one answer.
 
         Only the person who started the sign-in may finish it.
+
+        A sign-in that is unknown, expired or already finished is refused with
+        FAILED_PRECONDITION carrying a google.rpc.ErrorInfo detail (domain
+        "stigmer.ai"):
+
+        - SIGN_IN_ENDED — the sign-in is over: start it again. Asked right
+        after an ask that failed, it means that ask took the sign-in, so the
+        earlier failure is the sign-in's outcome. No metadata.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -251,9 +259,10 @@ class VaultCommandControllerServicer(object):
 
         Answers who the sign-in is with and its address, for the page to say
         where the person signed in. An unknown, expired or already answered
-        sign-in is refused with FAILED_PRECONDITION, the same for each, and so
-        is a sign-in started by a Connect link, which finishes on the link's own
-        page.
+        sign-in is refused with FAILED_PRECONDITION, the same for each, carrying
+        the ErrorInfo reason SIGN_IN_ENDED (as completeSignIn); a sign-in started
+        by a Connect link is refused too, with no reason, since it finishes on
+        the link's own page.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')

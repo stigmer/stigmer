@@ -14,6 +14,11 @@
 //
 //   npx tsx test/conformance/src/harness/oauth-mcp-fixture-main.ts
 //
+// With STIGMER_OAUTH_OPENER_POLICY set, the login server consents on a page
+// carrying that Cross-Origin-Opener-Policy (`same-origin`, as Sentry's
+// does), which a journey clicks through, so the sign-in window is cut off
+// from the page that opened it.
+//
 // Prints one JSON line — `{ mcpUrl, authorizationServer }` — once both are
 // listening, then serves until SIGTERM/SIGINT. A Bearer-carrying tool call
 // reaches the fixture's `echo` surface, so a session on an agent that lists
@@ -25,6 +30,8 @@ async function main(): Promise<void> {
   const authorizationServer = new MockOAuthAuthorizationServer();
   await authorizationServer.start();
   authorizationServer.authorizeRedirect = true;
+  const openerPolicy = process.env.STIGMER_OAUTH_OPENER_POLICY;
+  if (openerPolicy !== undefined && openerPolicy !== "") authorizationServer.openerPolicy = openerPolicy;
 
   const mcp = new McpToolFixture();
   await mcp.start();

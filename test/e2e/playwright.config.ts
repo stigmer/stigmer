@@ -151,6 +151,18 @@ export default defineConfig({
       use: { ...devices["Desktop Chrome"] },
     },
     {
+      // The same OIDC stack with the mock model: the tutorial's app, on its
+      // own address, signs a person in to a tool server whose login page
+      // cuts the sign-in window off from the app (an opener policy), and
+      // the agent calls the tool with the saved login. Needs the
+      // organization as the tutorial leaves it, so it runs after.
+      name: "embed-sign-in",
+      testDir: "./tests/embed-sign-in",
+      fullyParallel: false,
+      dependencies: ["embed-tutorial"],
+      use: { ...devices["Desktop Chrome"] },
+    },
+    {
       // The single-organization stack shape: global-setup boots the shipped
       // server entry (one organization, made by the server) with nothing
       // seeded; the console as a laptop runs it.

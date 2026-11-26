@@ -132,6 +132,10 @@
         {
           "scene": "oauth-popup-done",
           "width": "desktop"
+        },
+        {
+          "scene": "oauth-return-handed-back",
+          "width": "desktop"
         }
       ],
       "unbuilt": "",
@@ -155,7 +159,9 @@
       ],
       "buttons": [],
       "sample": {},
-      "ruled": {},
+      "ruled": {
+        "word Connected": "The owner's ruling, 2026-11-26 (stigmer#3467): the page never claims Connected, since it cannot know the sign-in finished. A tool's sign-in says \"You're signed in at <provider>\" and to go back where it started; the Slack install's pop-up says \"Sent back to Stigmer\"."
+      },
       "pending": {}
     },
     {
@@ -192,6 +198,14 @@
       "built": [
         {
           "scene": "oauth-popup-declined",
+          "width": "desktop"
+        },
+        {
+          "scene": "oauth-return-refused",
+          "width": "desktop"
+        },
+        {
+          "scene": "oauth-return-ended",
           "width": "desktop"
         }
       ],

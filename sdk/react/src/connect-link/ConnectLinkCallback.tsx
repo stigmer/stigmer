@@ -33,7 +33,7 @@ export interface ConnectLinkCallbackProps {
  * and says it was already used: the login is saved, and nothing trusted
  * says where to send the customer back.
  *
- * Render it in place of `OAuthCallbackHandler` when the return's `state` is
+ * Render it in place of `SignInReturn` when the return's `state` is
  * the one this tab's link started with (`pendingConnectLinkToken(state)`
  * answers its secret), inside a `StigmerProvider` with no token: the call is
  * public. A link that no longer works says so; nothing trusted says where to

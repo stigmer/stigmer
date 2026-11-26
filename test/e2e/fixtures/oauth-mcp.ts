@@ -8,6 +8,9 @@
  * URL-only server, watch the save complete its OAuth, press Sign in on the
  * plugin's page, consent, and read "Signed in".
  *
+ * The OIDC stack starts it too, its login page carrying an opener policy,
+ * for the embedded chat's sign-in (`tests/embed-sign-in`).
+ *
  * On by STIGMER_E2E_OAUTH_MCP=1 (`make test-e2e-oauth-mcp`). A running
  * backend cannot be reused: it was not booted with the redirect URI the web
  * dev server's origin needs, and the fixture's URLs are per run.
@@ -34,8 +37,17 @@ export interface OAuthMcpReady {
   readonly authorizationServer: string;
 }
 
+/** How the fixture's login server consents. */
+export interface OAuthMcpOptions {
+  /**
+   * The Cross-Origin-Opener-Policy its consent page carries (a page with an
+   * Allow link the journey clicks); unset, it consents by redirect.
+   */
+  readonly openerPolicy?: string;
+}
+
 /** Spawn the fixture; resolves once it has printed its ready line. */
-export function startOAuthMcpFixture(): Promise<{
+export function startOAuthMcpFixture(options: OAuthMcpOptions = {}): Promise<{
   child: ChildProcess;
   ready: OAuthMcpReady;
 }> {
@@ -43,6 +55,10 @@ export function startOAuthMcpFixture(): Promise<{
     const child = spawn(TSX, [FIXTURE_MAIN], {
       cwd: REPO_ROOT,
       stdio: ["ignore", "pipe", "pipe"],
+      env: {
+        ...process.env,
+        ...(options.openerPolicy === undefined ? {} : { STIGMER_OAUTH_OPENER_POLICY: options.openerPolicy }),
+      },
     });
     let buffered = "";
     const timer = setTimeout(() => {

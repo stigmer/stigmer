@@ -301,7 +301,7 @@ export interface Reader {
 }
 
 /** Signs in to the console as the issuer's person and returns the bearer its RPCs carry to `apiPort`. */
-async function ownerBearer(page: Page, apiPort: string): Promise<string> {
+export async function ownerBearer(page: Page, apiPort: string): Promise<string> {
   let bearer: string | undefined;
   page.on("request", (request) => {
     const authorization = request.headers()["authorization"];

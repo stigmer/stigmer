@@ -203,6 +203,9 @@ export type SceneId =
   | "oauth-popup-done"
   | "oauth-popup-declined"
   | "oauth-popup-missing"
+  | "oauth-return-handed-back"
+  | "oauth-return-refused"
+  | "oauth-return-ended"
   | "sign-in-ready"
   | "sign-in-handing-off"
   | "sign-in-failed"
@@ -1726,9 +1729,12 @@ const LISTED: readonly Scene[] = [
   { id: "connect-return-failed", title: "Connect link's return: it did not finish", widths: ["desktop"] },
   { id: "connect-return-dead", title: "Connect link's return: the link expired on the way", widths: ["desktop"] },
   { id: "connect-return-unsafe", title: "Connect link's return: saved, but the app's address is not a browser's", widths: ["desktop"] },
-  { id: "oauth-popup-done", title: "OAuth pop-up: the sign-in is handed back", widths: ["desktop"] },
-  { id: "oauth-popup-declined", title: "OAuth pop-up: the provider says the person declined", widths: ["desktop"] },
-  { id: "oauth-popup-missing", title: "OAuth pop-up: reached without the provider's answer", widths: ["desktop"] },
+  { id: "oauth-popup-done", title: "Slack install pop-up: the install is sent back", widths: ["desktop"] },
+  { id: "oauth-popup-declined", title: "Slack install pop-up: the provider says the person declined", widths: ["desktop"] },
+  { id: "oauth-popup-missing", title: "Slack install pop-up: reached without the provider's answer", widths: ["desktop"] },
+  { id: "oauth-return-handed-back", title: "Back from a tool's login page: signed in, finishing where it started", widths: ["desktop"] },
+  { id: "oauth-return-refused", title: "Back from a tool's login page: the login page declined", widths: ["desktop"] },
+  { id: "oauth-return-ended", title: "Back from a tool's login page: the sign-in expired or was used", widths: ["desktop"] },
   { id: "sign-in-ready", title: "Sign-in: ready, one Sign in", widths: ["desktop", "narrow"] },
   { id: "sign-in-handing-off", title: "Sign-in: taking a newcomer to create their account", widths: ["desktop"] },
   { id: "sign-in-failed", title: "Sign-in: it could not start", widths: ["desktop"] },

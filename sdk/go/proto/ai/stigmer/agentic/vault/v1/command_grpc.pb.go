@@ -140,6 +140,14 @@ type VaultCommandControllerClient interface {
 	// was already handed back is refused, since a sign-in has one answer.
 	//
 	// Only the person who started the sign-in may finish it.
+	//
+	// A sign-in that is unknown, expired or already finished is refused with
+	// FAILED_PRECONDITION carrying a google.rpc.ErrorInfo detail (domain
+	// "stigmer.ai"):
+	//
+	//   - SIGN_IN_ENDED — the sign-in is over: start it again. Asked right
+	//     after an ask that failed, it means that ask took the sign-in, so the
+	//     earlier failure is the sign-in's outcome. No metadata.
 	CompleteSignIn(ctx context.Context, in *CompleteSignInInput, opts ...grpc.CallOption) (*CompleteSignInOutput, error)
 	// Hand back what the login page answered a sign-in: its code, or its
 	// refusal. The page the login page returns to calls it, whoever that
@@ -148,9 +156,10 @@ type VaultCommandControllerClient interface {
 	//
 	// Answers who the sign-in is with and its address, for the page to say
 	// where the person signed in. An unknown, expired or already answered
-	// sign-in is refused with FAILED_PRECONDITION, the same for each, and so
-	// is a sign-in started by a Connect link, which finishes on the link's own
-	// page.
+	// sign-in is refused with FAILED_PRECONDITION, the same for each, carrying
+	// the ErrorInfo reason SIGN_IN_ENDED (as completeSignIn); a sign-in started
+	// by a Connect link is refused too, with no reason, since it finishes on
+	// the link's own page.
 	HandBackSignIn(ctx context.Context, in *HandBackSignInInput, opts ...grpc.CallOption) (*HandBackSignInOutput, error)
 	// Make a Connect link: a one-time page where someone without a Stigmer
 	// account signs in at an address, and the login is saved into a shared
@@ -410,6 +419,14 @@ type VaultCommandControllerServer interface {
 	// was already handed back is refused, since a sign-in has one answer.
 	//
 	// Only the person who started the sign-in may finish it.
+	//
+	// A sign-in that is unknown, expired or already finished is refused with
+	// FAILED_PRECONDITION carrying a google.rpc.ErrorInfo detail (domain
+	// "stigmer.ai"):
+	//
+	//   - SIGN_IN_ENDED — the sign-in is over: start it again. Asked right
+	//     after an ask that failed, it means that ask took the sign-in, so the
+	//     earlier failure is the sign-in's outcome. No metadata.
 	CompleteSignIn(context.Context, *CompleteSignInInput) (*CompleteSignInOutput, error)
 	// Hand back what the login page answered a sign-in: its code, or its
 	// refusal. The page the login page returns to calls it, whoever that
@@ -418,9 +435,10 @@ type VaultCommandControllerServer interface {
 	//
 	// Answers who the sign-in is with and its address, for the page to say
 	// where the person signed in. An unknown, expired or already answered
-	// sign-in is refused with FAILED_PRECONDITION, the same for each, and so
-	// is a sign-in started by a Connect link, which finishes on the link's own
-	// page.
+	// sign-in is refused with FAILED_PRECONDITION, the same for each, carrying
+	// the ErrorInfo reason SIGN_IN_ENDED (as completeSignIn); a sign-in started
+	// by a Connect link is refused too, with no reason, since it finishes on
+	// the link's own page.
 	HandBackSignIn(context.Context, *HandBackSignInInput) (*HandBackSignInOutput, error)
 	// Make a Connect link: a one-time page where someone without a Stigmer
 	// account signs in at an address, and the login is saved into a shared
