@@ -265,6 +265,12 @@ export interface UseNewSessionFlowReturn {
    */
   readonly agentHasComputer: boolean;
   /**
+   * Whether the selected agent's engine and run defaults are still being
+   * read. A send meanwhile is refused (it would start on the remembered
+   * engine instead), so a launcher holds Send while this is true.
+   */
+  readonly isAgentLoading: boolean;
+  /**
    * What applies when the person picks no Environment: the selected
    * agent's default and the organization's. Pass it to the composer's
    * `environmentDefaults`.
@@ -827,6 +833,7 @@ export function useNewSessionFlow(
   );
 
   return {
+    isAgentLoading,
     harness,
     setHarness,
     modelId: effectiveModelId,
