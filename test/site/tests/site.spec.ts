@@ -28,6 +28,7 @@ import { AXE_TAGS, describeJudgement, judgeAxe, type KnownViolation } from "@sti
 const PAGES = [
   { path: "/", why: "the home page: the site's own layout, not the docs'" },
   { path: "/docs", why: "the docs' landing page and its navigation" },
+  { path: "/docs/beta", why: "the Beta page every surface links, under the header's Beta mark" },
   { path: "/docs/getting-started/quickstart", why: "a guide with many code blocks, each a scroll region a keyboard must reach" },
   { path: "/docs/sdk/ink", why: "a reference with wide tables, each a scroll region a keyboard must reach" },
   { path: "/docs/cli/commands/agent", why: "a page generated from the CLI's own help, not written by hand" },

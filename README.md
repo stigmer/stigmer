@@ -16,6 +16,10 @@ keeps their data apart from every other customer's.
 Run it yourself on a laptop, one server or Kubernetes, or use Stigmer Cloud.
 Agents run on your own model provider key.
 
+Stigmer is in Beta: things may change, and your work is kept. Tell us what
+breaks. [What Beta means](https://stigmer.ai/docs/beta).
+
+[![Beta](https://img.shields.io/badge/status-Beta-lightgrey)](https://stigmer.ai/docs/beta)
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue)](LICENSE)
 [![Discord](https://img.shields.io/badge/Discord-community-5865F2?logo=discord&logoColor=white)](https://discord.com/invite/EtANnfsJ8B)
 [![GitHub stars](https://img.shields.io/github/stars/stigmer/stigmer?style=flat)](https://github.com/stigmer/stigmer/stargazers)

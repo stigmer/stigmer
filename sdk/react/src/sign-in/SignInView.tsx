@@ -1,7 +1,8 @@
 "use client";
 
 // The console's sign-in screen, one look for the web console and the desktop
-// app: the host's mark, where the person signs in, one act and the help line.
+// app: the host's mark, where the person signs in, that Stigmer is in Beta,
+// one act and the help line.
 // The host keeps its sign-in wiring (the web console's issuer redirect, the
 // desktop's system browser) and passes the state. A sign-in page on another
 // site than the server's is named before the person goes on, and a sign-in
@@ -13,6 +14,7 @@ import { ExternalLink, Lock, RotateCcw } from "lucide-react";
 import { Button } from "../button/Button.js";
 import { ErrorMessage } from "../error/ErrorMessage.js";
 import { Notice } from "../internal/surface/Notice.js";
+import { BETA_LINE, BETA_URL, BETA_WORD } from "../internal/beta.js";
 import { ScreenWait, StandaloneScreen } from "../standalone-screen/StandaloneScreen.js";
 
 /** Where a sign-in stands. */
@@ -65,9 +67,36 @@ export interface SignInViewProps {
 
 const DEFAULT_LEAD = "You'll continue on your sign-in page, then come straight back here.";
 
+/** Where the line's linked word sits ("Stigmer is in |Beta|: things may change…"). */
+const BETA_AT = BETA_LINE.indexOf(BETA_WORD);
+
+/**
+ * Stigmer is in Beta, said once under the lead where a newcomer first meets
+ * the console, its word linking the page that says what Beta means. The
+ * line opens that page beside the console, as the help line does.
+ */
+function BetaLine() {
+  return (
+    <p className="stg:m-0 stg:text-center stg:text-xs stg:text-muted-foreground">
+      {BETA_LINE.slice(0, BETA_AT)}
+      <a
+        href={BETA_URL}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="stg:rounded-sm stg:text-foreground stg:underline stg:decoration-border stg:underline-offset-4 stg:hover:decoration-foreground stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring"
+      >
+        {BETA_WORD}
+      </a>
+      {BETA_LINE.slice(BETA_AT + BETA_WORD.length)}
+    </p>
+  );
+}
+
 /**
  * The sign-in screen: ready, the sign-in page on another site, handing off
- * to create an account, waiting for the browser, and failed.
+ * to create an account, waiting for the browser, and failed. Ready and
+ * failed say that Stigmer is in Beta under the lead, linking the page that
+ * says what it means.
  *
  * @example
  * ```tsx
@@ -145,6 +174,7 @@ export function SignInView({
       }
       help
     >
+      <BetaLine />
       {elsewhere !== undefined && !failed && (
         <Notice tone="paused" role="note" icon={<Lock className="stg:size-4" />} headline={`${elsewhere.server} signs people in at ${elsewhere.provider}, on another site.`}>
           <p className="stg:m-0">

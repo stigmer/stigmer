@@ -11,6 +11,10 @@ You will take the person from nothing to their agent's chat inside their own
 app, in this order. Each step ends with something they can see; tell them what
 it is in one line.
 
+Stigmer is in Beta. Say so once, at step 1, in these words, with the page:
+"Stigmer is in Beta: things may change, and your work is kept. Tell us what
+breaks." (https://stigmer.ai/docs/beta)
+
 0. Find the command line
 1. Where it runs, and signing in
 2. What should your agent do for your users?

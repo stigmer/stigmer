@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/ui/icon";
 import { DiscordIcon } from "@/components/ui/discord-icon";
 import { MobileMenu } from "./MobileMenu";
+import { BetaMark } from "./BetaMark";
 
 export type HeaderProps = React.HTMLAttributes<HTMLElement>;
 
@@ -51,21 +52,24 @@ function Header({ className, ...props }: HeaderProps) {
       >
         <div className="h-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="h-full flex items-center justify-between">
-            {/* Logo */}
-            <Link
-              href="/"
-              className="inline-flex items-center transition-opacity hover:opacity-80"
-              aria-label={`${SITE_CONFIG.name} - Go to homepage`}
-            >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src="/logo-lockup-white.svg"
-                alt="Stigmer"
-                width={364}
-                height={96}
-                className="h-10 w-auto"
-              />
-            </Link>
+            {/* Logo, and the Beta mark beside it */}
+            <div className="flex items-center gap-3">
+              <Link
+                href="/"
+                className="inline-flex items-center transition-opacity hover:opacity-80"
+                aria-label={`${SITE_CONFIG.name} - Go to homepage`}
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src="/logo-lockup-white.svg"
+                  alt="Stigmer"
+                  width={364}
+                  height={96}
+                  className="h-10 w-auto"
+                />
+              </Link>
+              <BetaMark />
+            </div>
 
             {/* Desktop Navigation */}
             <nav
@@ -113,9 +117,7 @@ function Header({ className, ...props }: HeaderProps) {
                 </a>
 
                 <Button asChild size="sm">
-                  <a href={SITE_CONFIG.cloudSignupUrl}>
-                    Start free
-                  </a>
+                  <a href={SITE_CONFIG.cloudSignupUrl}>Start free</a>
                 </Button>
               </div>
             </nav>
@@ -175,7 +177,12 @@ function ResourcesDropdown() {
         {/* Above the header (z-50) and every page's content: with no level of
             its own the menu opened under the home page's hero, whose text took
             the clicks meant for its links. */}
-        <Menu.Positioner side="bottom" align="center" sideOffset={8} className="z-[60]">
+        <Menu.Positioner
+          side="bottom"
+          align="center"
+          sideOffset={8}
+          className="z-[60]"
+        >
           <Menu.Popup
             className={cn(
               "min-w-[10rem] py-1.5",

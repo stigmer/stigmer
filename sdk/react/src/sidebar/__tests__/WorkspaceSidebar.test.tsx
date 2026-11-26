@@ -11,6 +11,7 @@ import { ApiResourceMetadataSchema } from "@stigmer/apis/ai/stigmer/commons/apir
 import { StigmerContext } from "@stigmer/react-core";
 import { OrgProvider } from "../../organization/OrgProvider";
 import { WorkspaceSidebar } from "../WorkspaceSidebar";
+import { BETA_LINE } from "../../internal/beta";
 import type { RecentActivityEntry } from "../../activity/types";
 import type { RenderSidebarLink } from "../types";
 
@@ -280,5 +281,14 @@ describe("WorkspaceSidebar — chrome", () => {
   it("resolves the org switcher from the mocked transport", async () => {
     renderSidebar(<WorkspaceSidebar {...baseProps()} />);
     expect(await screen.findByText("Acme Corp")).toBeTruthy();
+  });
+
+  it("says Stigmer is in Beta in its top row, linking the page that says what it means", () => {
+    renderSidebar(<WorkspaceSidebar {...baseProps()} />);
+    const mark = screen.getByRole("link", { name: BETA_LINE });
+    expect(mark.textContent).toBe("Beta");
+    expect(mark.getAttribute("href")).toBe("https://stigmer.ai/docs/beta");
+    expect(mark.getAttribute("target")).toBe("_blank");
+    expect(mark.getAttribute("rel")).toBe("noopener noreferrer");
   });
 });

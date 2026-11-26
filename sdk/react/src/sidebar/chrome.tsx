@@ -6,13 +6,15 @@ import { cn } from "@stigmer/design-tokens";
 import type { Organization } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/api_pb";
 import { OrgSwitcher } from "../organization/OrgSwitcher.js";
 import { useSingleOrg } from "../server-info.js";
+import { BETA_LINE, BETA_URL, BETA_WORD } from "../internal/beta.js";
+import { tagClasses } from "../internal/surface/Tag.js";
 
 // ---------------------------------------------------------------------------
 // Shared sidebar chrome — the pieces WorkspaceSidebar and SettingsSidebar
-// have in common: the nav container, the top row (collapse toggle + org
-// switcher), the hairline separator, the footer band, and the shared class
-// recipes (nav rows, section labels). Internal to the sidebar domain; not
-// exported from the SDK.
+// have in common: the nav container, the top row (collapse toggle, org
+// switcher, the Beta mark), the hairline separator, the footer band, and the
+// shared class recipes (nav rows, section labels). Internal to the sidebar
+// domain; not exported from the SDK.
 //
 // Every class here is transcribed from the console's sidebars — this file
 // IS the console's chrome now, so a change here changes the console, the
@@ -90,6 +92,7 @@ export function SidebarChrome({
               switcher waits for the server's answer rather than flash. */}
           {singleOrg === false && <OrgSwitcher onOrgChanged={onOrgChanged} />}
         </div>
+        <BetaMark />
       </div>
 
       {children}
@@ -99,6 +102,33 @@ export function SidebarChrome({
         {footer}
       </div>
     </nav>
+  );
+}
+
+/**
+ * Stigmer's "Beta" mark, at the end of the top row in every edition: the
+ * neutral label as a link to the page that says what Beta means, opening
+ * beside the console as the help row does. Its accessible name and tooltip
+ * are the whole line, since the row has room for the word alone. The chrome
+ * is the console's (the web console, the desktop app, the documentation
+ * tours), never a developer's product, so the mark never reaches one.
+ */
+function BetaMark() {
+  return (
+    <a
+      href={BETA_URL}
+      target="_blank"
+      rel="noopener noreferrer"
+      aria-label={BETA_LINE}
+      title={BETA_LINE}
+      className={cn(
+        tagClasses(),
+        "stg:no-underline stg:transition-colors stg:motion-reduce:transition-none stg:hover:bg-sidebar-accent",
+        "stg:focus-visible:ring-sidebar-ring stg:focus-visible:ring-2 stg:focus-visible:outline-none",
+      )}
+    >
+      {BETA_WORD}
+    </a>
   );
 }
 

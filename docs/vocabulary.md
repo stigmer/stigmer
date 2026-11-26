@@ -56,6 +56,15 @@ repository or package description and a bio: "The open-source backend for the
 agents in your product." A surface with its own length rules fits the sentence
 to them.
 
+**Beta**, said once on every surface where a newcomer meets Stigmer (the site's
+and the docs' header, the console's sidebar and sign-in screen, the command
+line's sign-in and `stigmer up`, the setup guide a coding agent follows), linked
+to [the Beta page](/docs/beta): "Stigmer is in Beta: things may change, and your
+work is kept. Tell us what breaks." A small mark says the word alone where there
+is no room for the line. It is the product's statement, the same in every
+[edition](#edition), and never appears inside a developer's own product. "Beta"
+describes Stigmer only; it is never a tag on a resource.
+
 **What each customer's agent has**, in this order where a surface has room: its
 own computer, a sandbox that keeps its files between turns; it works on a job
 for hours, not one request; it asks before acting on anything you mark as

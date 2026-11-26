@@ -19,9 +19,13 @@
 // terminal a missing or refused key is asked for before the daemon starts, so
 // the key entered reaches the runner in this start (local/model-key-step.ts).
 // Off a terminal nothing is asked, and the check runs beside the start.
+//
+// The card ends saying that Stigmer is in Beta (../beta.ts), as a hint, so a
+// script reading the JSON form finds it in `hints` and nothing else moves.
 
 import { homedir } from "node:os";
 import type { Command } from "commander";
+import { BETA_HINT } from "../beta.js";
 import { CliExitError } from "../errors/cli-exit-error.js";
 import { ExitCode } from "@stigmer/client/exit-codes";
 import { CommandResult, type OutputFlags, renderResult } from "../output/index.js";
@@ -159,6 +163,7 @@ async function renderUpCard(
   addAgentsSection(result, report, key);
   result.hint("Check status with: stigmer status");
   result.hint(run.foreground ? "Stop it with:    Ctrl-C (or stigmer down from another shell)" : "Stop it with:    stigmer down");
+  result.hint(BETA_HINT);
   renderResult(result, resultFormat(flags));
 }
 

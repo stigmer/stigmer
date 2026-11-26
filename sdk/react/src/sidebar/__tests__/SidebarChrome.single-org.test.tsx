@@ -6,7 +6,9 @@
  *     the sidebar shows no switcher, so a laptop never sees one flash;
  *   - a server that holds one organization keeps the switcher hidden;
  *   - a server that holds several, and one that fails to answer (an older
- *     server, a network fault), show the switcher as they always have.
+ *     server, a network fault), show the switcher as they always have;
+ *   - the Beta mark is there in every case: it is the product's, not the
+ *     server's, so no answer changes it.
  */
 import { afterEach, beforeAll, describe, expect, it } from "vitest";
 import { cleanup, render, screen, waitFor } from "@testing-library/react";
@@ -27,6 +29,7 @@ import { StigmerContext } from "@stigmer/react-core";
 import { OrgProvider } from "../../organization/OrgProvider";
 import { useSingleOrg } from "../../server-info";
 import { SidebarChrome } from "../chrome";
+import { BETA_LINE } from "../../internal/beta";
 
 beforeAll(() => {
   // happy-dom lacks ResizeObserver, which Base UI positioners observe.
@@ -114,12 +117,14 @@ describe("useSingleOrg and the sidebar's switcher", () => {
 
     expect(screen.getByTestId("single-org").textContent).toBe("undefined");
     expect(screen.queryByRole("button", { name: "Organization menu" })).toBeNull();
+    expect(screen.getByRole("link", { name: BETA_LINE })).toBeTruthy();
 
     answer.open();
     await waitFor(() =>
       expect(screen.getByTestId("single-org").textContent).toBe("true"),
     );
     expect(screen.queryByRole("button", { name: "Organization menu" })).toBeNull();
+    expect(screen.getByRole("link", { name: BETA_LINE })).toBeTruthy();
   });
 
   it("shows the switcher on a server that holds several", async () => {
@@ -128,6 +133,7 @@ describe("useSingleOrg and the sidebar's switcher", () => {
       expect(screen.getByTestId("single-org").textContent).toBe("false"),
     );
     expect(await screen.findByRole("button", { name: "Organization menu" })).toBeTruthy();
+    expect(screen.getByRole("link", { name: BETA_LINE })).toBeTruthy();
   });
 
   it("shows the switcher when the server does not answer", async () => {
