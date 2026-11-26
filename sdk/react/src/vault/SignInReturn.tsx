@@ -34,7 +34,11 @@ export interface SignInReturnProps {
  * @example
  * ```tsx
  * // app/auth/oauth/callback/page.tsx (Next.js)
- * const client = new Stigmer({ baseUrl, getAccessToken: () => null });
+ * import { Stigmer } from "@stigmer/client";
+ * import { SignInReturn, StigmerProvider } from "@stigmer/react-sdk";
+ *
+ * // No token: the hand-back is public.
+ * const client = new Stigmer({ baseUrl: "https://api.example.com", getAccessToken: () => null });
  *
  * export default function OAuthCallbackPage() {
  *   return (
