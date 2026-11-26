@@ -129,7 +129,7 @@ describe("runSignIn", () => {
       ["st-1", ""],
       ["st-1", ""],
     ]);
-    expect(lines).toContain("Signed in: Linear @ana\n");
+    expect(lines).toContain(`Signed in to 'linear'. Saved in My vault as "Linear @ana".\n`);
   });
 
   it("refuses an unreachable local console with the other ways, a pasted key only where accepted", async () => {
@@ -156,7 +156,7 @@ describe("waitForSignIn", () => {
     const { client, asks } = fakeClient([PENDING, PENDING, create(CompleteSignInOutputSchema, { address: ADDRESS })]);
     await waitForSignIn(deps(client, { log: (line) => lines.push(line) }), "st-1");
     expect(asks).toHaveLength(3);
-    expect(lines).toContain(`Signed in: ${ADDRESS}\n`);
+    expect(lines).toContain(`Signed in to 'linear'. Saved in My vault as "${ADDRESS}".\n`);
   });
 
   it("asks again after a transient failure, at a growing pause", async () => {

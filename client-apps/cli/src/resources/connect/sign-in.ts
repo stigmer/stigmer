@@ -8,8 +8,9 @@
 // sign-in's state and no code every 2 seconds: the server answers pending
 // until the answer is there, then saves the login in that same ask. The
 // server's ten-minute life of a sign-in governs the wait, not a clock here.
-// The CLI prints whose login was saved ("GitHub @ana", or the host), so a
-// login that is not the person's shows itself.
+// The CLI prints whose login was saved, in the server's description of it
+// ("GitHub @ana", or "Signed in at HOST" when the login names no account),
+// so a login that is not the person's shows itself.
 //
 // The ask that finds the answer takes the sign-in, so a failure there (a
 // token exchange the login server refused answers UNAVAILABLE) is the
@@ -135,7 +136,7 @@ export async function waitForSignIn(deps: SignInDeps, state: string): Promise<vo
         lastFailure = undefined;
         continue;
       }
-      log(`Signed in: ${answer.description || answer.address}\n`);
+      log(`Signed in to '${deps.serverName}'. Saved in My vault as "${answer.description || answer.address}".\n`);
       return;
     } catch (err) {
       if (getErrorReason(err)?.reason === SIGN_IN_ENDED) {

@@ -44,7 +44,7 @@ function fakeClient(savedOnAsk: number): { client: SignInClient; reads: () => nu
       completeSignIn: async () => {
         asks += 1;
         return asks >= savedOnAsk
-          ? create(CompleteSignInOutputSchema, { address: ADDRESS, description: "mcp.linear.app" })
+          ? create(CompleteSignInOutputSchema, { address: ADDRESS, description: "Signed in at mcp.linear.app" })
           : create(CompleteSignInOutputSchema, { pending: true });
       },
     },
@@ -103,7 +103,7 @@ describe("runSignIn with its own effects", () => {
     expect(launcher.calls).toEqual([{ command: "open", args: [LOGIN_PAGE], options: { stdio: "ignore", detached: true } }]);
     expect(stderr).toContain("Sign in to 'linear' with its login server.");
     expect(stderr).toContain(`If the browser doesn't open automatically, visit:\n  ${LOGIN_PAGE}`);
-    expect(stderr).toContain("Signed in: mcp.linear.app");
+    expect(stderr).toContain(`Signed in to 'linear'. Saved in My vault as "Signed in at mcp.linear.app".`);
   });
 
   it("tells the user to open the URL when the platform has no launcher", async () => {
