@@ -23,9 +23,12 @@ server's key in the plugin's MCP configuration.
 
 A server that signs in (an address that answers with an OAuth challenge) uses
 the login saved in My vault at its address. When there is none, the command
-opens the login page in your browser and waits until the sign-in is saved,
-then lists the tools. A server that also accepts a pasted key is satisfied by a
-key saved under its login key:
+opens the login page in your browser (the `BROWSER` command when you set one,
+as `stigmer auth login` does) and waits until the sign-in is saved, then lists
+the tools. Where no browser can open (an SSH session, a machine with no
+display), it prints the login page's address instead: open it in a browser on
+any device, and the command finishes the same way. A server that also accepts a
+pasted key is satisfied by a key saved under its login key:
 
 ```bash
 stigmer vault set-secret LINEAR_TOKEN --mine

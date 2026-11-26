@@ -6,7 +6,9 @@
 // turns it off. With `openerPolicy` set too, the consent is a page carrying
 // that Cross-Origin-Opener-Policy with an Allow link to the same redirect,
 // its address escaped, since a browser applies an opener policy to a page and
-// never to a redirect. Driven over loopback; no target.
+// never to a redirect. Served at a public origin (a tunnel), on a port given
+// ahead, every document and endpoint names that origin. Driven over
+// loopback; no target.
 // Domain: test support (identity fixtures).
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import { MockOAuthAuthorizationServer } from "../oauth-authorization-server.ts";
@@ -69,5 +71,27 @@ describe("openerPolicy", () => {
 
     mock.reset();
     expect(mock.openerPolicy).toBeUndefined();
+  });
+});
+
+describe("publicOrigin", () => {
+  it("listens on the port it is given and names the public origin as its issuer and in its endpoints", async () => {
+    const probe = new MockOAuthAuthorizationServer();
+    await probe.start();
+    const port = Number(new URL(probe.origin()).port);
+    await probe.close();
+
+    const tunnelled = new MockOAuthAuthorizationServer();
+    tunnelled.publicOrigin = "https://login.example.trycloudflare.com";
+    await tunnelled.start(port);
+    try {
+      expect(tunnelled.origin()).toBe("https://login.example.trycloudflare.com");
+      const metadata = (await (await fetch(`http://127.0.0.1:${port}/.well-known/oauth-authorization-server`)).json()) as Record<string, unknown>;
+      expect(metadata.issuer).toBe("https://login.example.trycloudflare.com");
+      expect(metadata.authorization_endpoint).toBe("https://login.example.trycloudflare.com/authorize");
+      expect(metadata.token_endpoint).toBe("https://login.example.trycloudflare.com/token");
+    } finally {
+      await tunnelled.close();
+    }
   });
 });

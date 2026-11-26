@@ -60,6 +60,7 @@ test("a path in a lane's list selects that lane; the always lane runs for every 
     "conformance-enterprise",
     "conformance-execution",
     "e2e-interactive",
+    "first-hour",
     "docs-snippets",
     "runner",
     "ts-workspace",
@@ -77,7 +78,7 @@ test("a path in a lane's list selects that lane; the always lane runs for every 
 });
 
 test("the runner's model path runs every install journey beside the runner's own lanes", () => {
-  const installs = ["all-in-one", "cli-up", "compose-stack", "conformance", "conformance-enterprise", "conformance-execution", "e2e-interactive", "docs-snippets", "operator", "runner", "ts-workspace"];
+  const installs = ["all-in-one", "cli-up", "compose-stack", "conformance", "conformance-enterprise", "conformance-execution", "e2e-interactive", "first-hour", "docs-snippets", "operator", "runner", "ts-workspace"];
   assert.deepEqual(selected(["backend/services/runner/src/shared/model-client.ts"]), installs);
   assert.deepEqual(selected(["backend/services/runner/src/shared/llm-backend.ts"]), installs);
   assert.deepEqual(selected(["backend/services/runner/src/shared/llm-proxy.ts"]), installs);
@@ -105,13 +106,15 @@ test("a store migration runs the upgrade rehearsal; a CLI command runs `stigmer 
     "conformance-enterprise",
     "conformance-execution",
     "e2e-interactive",
+    "first-hour",
     "ee",
     "stigmer-server",
     "ts-workspace",
     "upgrade-rehearsal",
   ]);
-  // conformance-execution runs the CLI from source (`make install-cli-shim`).
-  assert.deepEqual(selected(["client-apps/cli/src/commands/run.ts"]), ["cli-up", "conformance-execution", "docs", "ts-workspace"]);
+  // conformance-execution runs the CLI from source (`make install-cli-shim`),
+  // and the first-hour journey signs in and runs with it.
+  assert.deepEqual(selected(["client-apps/cli/src/commands/run.ts"]), ["cli-up", "conformance-execution", "docs", "first-hour", "ts-workspace"]);
   // An image's user and data paths decide whether the last release's volume is still readable.
   assert.ok(selected(["backend/services/stigmer-server/Dockerfile"]).includes("upgrade-rehearsal"));
   assert.ok(selected(["backend/services/runner/Dockerfile.sandbox"]).includes("upgrade-rehearsal"));

@@ -1,3 +1,4 @@
+import { randomBytes } from "node:crypto";
 import { createNodeClient } from "@stigmer/client/node";
 import {
   adoptStackFixture,
@@ -12,10 +13,12 @@ import {
   OIDC_CONSOLE_CLIENT_ID,
   OIDC_HELP,
   OIDC_ISSUER,
+  OIDC_NATIVE_CLIENT_ID,
   OIDC_STACK,
+  FIRST_HOUR_STACK,
   startIssuerProcess,
 } from "./fixtures/oidc";
-import { OAUTH_MCP_STACK, startOAuthMcpFixture } from "./fixtures/oauth-mcp";
+import { startOAuthMcpFixture } from "./fixtures/oauth-mcp";
 import { SINGLE_ORG_STACK } from "./fixtures/single-org";
 import { NO_PROVIDERS_STACK } from "./fixtures/no-providers";
 import { writeStackState } from "./fixtures/stack-state";
@@ -84,8 +87,9 @@ async function globalSetup() {
     const mock = MOCK_LLM ? await startMockLlmProxy() : null;
     // A tool server that signs in, whose login page cuts its window off
     // from the page that opened it (Sentry's opener policy), and the
-    // console's callback as the server's OAuth redirect: the embedded
-    // chat's sign-in (tests/embed-sign-in), from an app on its own address.
+    // console's callback as the server's OAuth redirect: the first-hour
+    // journey's sign-ins (tests/first-hour), from the console, from an app
+    // on its own address and from the CLI.
     const { child: oauthMcp, ready: oauthMcpReady } = await startOAuthMcpFixture({ openerPolicy: "same-origin" }).catch(
       (error: unknown) => {
         issuer.kill();
@@ -93,17 +97,26 @@ async function globalSetup() {
       },
     );
     const baseURL = process.env.STIGMER_E2E_BASE_URL ?? "http://localhost:3000";
+    // On the first-hour journey's boot the runner starts signed in, as a
+    // self-hosted server's does: the key the server stores as its `runner`
+    // service account's at boot (fixtures/oidc.ts FIRST_HOUR_STACK). Its one
+    // call on its own key reads a plugin while it lists a server's tools
+    // (Check tools, `stigmer connect plugin`); every run carries its own.
+    const runnerKey = FIRST_HOUR_STACK ? `stk_${randomBytes(32).toString("base64url")}` : undefined;
     const state = await startBackendStack({
       apiPort: API_PORT,
       singleOrg: true,
+      ...(runnerKey === undefined ? {} : { runnerToken: runnerKey }),
       ...(mock === null ? {} : { mockLlmEndpoint: mock.proxyUrl }),
       extraServerEnv: {
         STIGMER_OIDC_ISSUER: OIDC_ISSUER,
         STIGMER_OIDC_AUDIENCE: OIDC_AUDIENCE,
         STIGMER_OIDC_CONSOLE_CLIENT_ID: OIDC_CONSOLE_CLIENT_ID,
+        STIGMER_OIDC_NATIVE_CLIENT_ID: OIDC_NATIVE_CLIENT_ID,
         STIGMER_HELP_URL: OIDC_HELP.url,
         STIGMER_HELP_LABEL: OIDC_HELP.label,
         STIGMER_OAUTH_REDIRECT_URI: `${baseURL}/auth/oauth/callback`,
+        ...(runnerKey === undefined ? {} : { STIGMER_RUNNER_API_KEY: runnerKey }),
       },
     }).catch((error: unknown) => {
       issuer.kill();
@@ -162,47 +175,6 @@ async function globalSetup() {
     console.log(
       "[e2e] Backend stack ready on the shipped entry, its runners declared to reach no model provider",
     );
-    return;
-  }
-
-  // The OAuth MCP stack shape: the conformance harness's hosted OAuth MCP
-  // server and its login server as one process, and the server booted with
-  // the web dev server's callback page as its OAuth redirect, so the plugin
-  // journey can sign in through a real popup. A running stack cannot be
-  // reused: its redirect URI is not this origin's, and the fixture's URLs
-  // are per run.
-  if (OAUTH_MCP_STACK) {
-    if (alreadyRunning) {
-      throw new Error(
-        `[e2e] STIGMER_E2E_OAUTH_MCP is set but a backend is already running on :${API_PORT}.\n` +
-          `  The plugin sign-in arm needs a fresh stack booted with the console's OAuth callback.\n` +
-          `  Stop the running stack (or set STIGMER_E2E_API_PORT to a free port) and retry.`,
-      );
-    }
-    console.log("[e2e] STIGMER_E2E_OAUTH_MCP set — starting the OAuth MCP fixture");
-    const { child: fixture, ready } = await startOAuthMcpFixture();
-    console.log(
-      `[e2e] OAuth MCP fixture ready (pid: ${fixture.pid}); MCP at ${ready.mcpUrl}, login server at ${ready.authorizationServer}`,
-    );
-    const baseURL = process.env.STIGMER_E2E_BASE_URL ?? "http://localhost:3000";
-    const state = await startBackendStack({
-      apiPort: API_PORT,
-      extraServerEnv: {
-        STIGMER_OAUTH_REDIRECT_URI: `${baseURL}/auth/oauth/callback`,
-      },
-    }).catch((error: unknown) => {
-      fixture.kill();
-      throw error;
-    });
-    adoptStackFixture(fixture);
-    state.oauthMcp = ready;
-    writeStackState(state);
-    const client = createNodeClient({
-      baseUrl: `http://localhost:${API_PORT}`,
-      getAccessToken: () => null,
-    });
-    await ensureDefaultOrg(client);
-    console.log(`[e2e] Backend stack ready in the OAuth MCP shape; seeded "default" org`);
     return;
   }
 

@@ -180,14 +180,28 @@ function run(line: string, cwd: string, env: NodeJS.ProcessEnv): void {
 }
 
 /**
- * Installs what the `npm install` lines name: their @stigmer/* packages as
- * this checkout's tarballs, the rest from the registry as the reader's npm
- * would (`registryPackagesOf`), so a line that names one more package needs
- * no edit here.
+ * The @stigmer/* packages an app installs: this checkout's tarballs, or a
+ * published version from a registry, as a reader of a deployed Stigmer
+ * installs them (the first-hour journey's deployed target).
  */
-function installAsLine(tarballs: readonly string[], lines: readonly string[], cwd: string, env: NodeJS.ProcessEnv): void {
+export type Kit = readonly string[] | { readonly version: string; readonly registry?: string };
+
+/**
+ * Installs what the `npm install` lines name: their @stigmer/* packages from
+ * the kit (this checkout's tarballs, or each named package at the published
+ * version), the rest from the registry as the reader's npm would
+ * (`registryPackagesOf`), so a line that names one more package needs no
+ * edit here.
+ */
+function installAsLine(kit: Kit, lines: readonly string[], cwd: string, env: NodeJS.ProcessEnv): void {
   const registry = [...new Set(lines.flatMap((line) => registryPackagesOf(line) as string[]))];
-  run(`npm install ${[...tarballs, ...registry].map((arg) => JSON.stringify(arg)).join(" ")}`, cwd, env);
+  const stigmer = Array.isArray(kit)
+    ? (kit as readonly string[])
+    : [...new Set(lines.flatMap((line) => line.split(/\s+/).filter((word) => word.startsWith("@stigmer/"))))].map(
+        (name) => `${name}@${(kit as { version: string }).version}`,
+      );
+  const from = Array.isArray(kit) || (kit as { registry?: string }).registry === undefined ? "" : ` --@stigmer:registry=${(kit as { registry: string }).registry}`;
+  run(`npm install${from} ${[...stigmer, ...registry].map((arg) => JSON.stringify(arg)).join(" ")}`, cwd, env);
 }
 
 /**
@@ -243,7 +257,7 @@ async function background(line: string, cwd: string, env: NodeJS.ProcessEnv, por
  */
 export async function runTutorial(
   folder: string,
-  tarballs: readonly string[],
+  tarballs: Kit,
   env: TutorialEnv,
   pages: readonly string[] = [EMBED_PAGE],
 ): Promise<TutorialRun> {

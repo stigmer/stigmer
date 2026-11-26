@@ -1,27 +1,17 @@
 /**
- * The OAuth MCP stack shape: a hosted MCP server that answers the OAuth
- * challenge and a login server that consents by redirect, both as one
- * PROCESS from the conformance harness (`oauth-mcp-fixture-main.ts`, which
- * stays there because it needs the MCP SDK), and the control plane
- * booted with the console's callback as its OAuth redirect. The shape lets
- * the plugin journey drive a real sign-in through the browser: install a
- * URL-only server, watch the save complete its OAuth, press Sign in on the
- * plugin's page, consent, and read "Signed in".
- *
- * The OIDC stack starts it too, its login page carrying an opener policy,
- * for the embedded chat's sign-in (`tests/embed-sign-in`).
- *
- * On by STIGMER_E2E_OAUTH_MCP=1 (`make test-e2e-oauth-mcp`). A running
- * backend cannot be reused: it was not booted with the redirect URI the web
- * dev server's origin needs, and the fixture's URLs are per run.
+ * The OAuth MCP fixture: a hosted MCP server that answers the OAuth
+ * challenge and a login server that consents, both as one PROCESS from the
+ * conformance harness (`oauth-mcp-fixture-main.ts`, which stays there
+ * because it needs the MCP SDK). The OIDC stack starts it, its login page
+ * carrying an opener policy, with the control plane booted with the
+ * console's callback as its OAuth redirect, for the first-hour journey's
+ * sign-ins (`tests/first-hour`): from the plugin's page, from an app on its
+ * own address and from the CLI. A deployed target serves it through a
+ * tunnel (`tunnelled`).
  */
 import { spawn, type ChildProcess } from "node:child_process";
 import * as path from "node:path";
 import { readStackState } from "./stack-state";
-
-export const OAUTH_MCP_STACK =
-  process.env.STIGMER_E2E_OAUTH_MCP === "1" ||
-  process.env.STIGMER_E2E_OAUTH_MCP === "true";
 
 const REPO_ROOT = path.resolve(import.meta.dirname, "../../..");
 const FIXTURE_MAIN = path.join(
@@ -44,6 +34,16 @@ export interface OAuthMcpOptions {
    * Allow link the journey clicks); unset, it consents by redirect.
    */
   readonly openerPolicy?: string;
+  /**
+   * Where a tunnel serves each server, for a deployed target that reaches
+   * only public addresses: the loopback port it listens on and the public
+   * origin it names itself by. Unset, both servers take an ephemeral
+   * loopback port and name it.
+   */
+  readonly tunnelled?: {
+    readonly mcp: { readonly port: number; readonly origin: string };
+    readonly login: { readonly port: number; readonly origin: string };
+  };
 }
 
 /** Spawn the fixture; resolves once it has printed its ready line. */
@@ -58,6 +58,14 @@ export function startOAuthMcpFixture(options: OAuthMcpOptions = {}): Promise<{
       env: {
         ...process.env,
         ...(options.openerPolicy === undefined ? {} : { STIGMER_OAUTH_OPENER_POLICY: options.openerPolicy }),
+        ...(options.tunnelled === undefined
+          ? {}
+          : {
+              STIGMER_OAUTH_MCP_PORT: String(options.tunnelled.mcp.port),
+              STIGMER_OAUTH_MCP_ORIGIN: options.tunnelled.mcp.origin,
+              STIGMER_OAUTH_LOGIN_PORT: String(options.tunnelled.login.port),
+              STIGMER_OAUTH_LOGIN_ORIGIN: options.tunnelled.login.origin,
+            }),
       },
     });
     let buffered = "";

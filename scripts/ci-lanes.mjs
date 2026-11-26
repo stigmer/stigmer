@@ -580,6 +580,41 @@ export const LANES = {
       "mcp-server/**",
     ],
   },
+  "ci.first-hour.yaml": {
+    // A developer's first hour, sign-up to the agent's first tool call
+    // (test/e2e/tests/first-hour): everything ci.e2e-interactive.yaml's
+    // stacks run on, and what only this journey walks: the CLI the person
+    // signs in and runs with, the coding agents' guide it points at, and
+    // the getting-started pages it reads its steps from (the quickstart's
+    // Stigmer Cloud tab, the embedding tutorial).
+    paths: [
+      "test/e2e/**",
+      "docs/getting-started/**",
+      "test/install/lib/doc-steps.mjs",
+      "site/src/lib/snippet-setup.mjs",
+      "client-apps/cli/**",
+      "coding-agents/**",
+      // The hermetic issuer and the OAuth MCP fixture run as processes from
+      // these two packages.
+      "test/support/**",
+      "test/conformance/src/harness/**",
+      "backend/**",
+      "client-apps/web/**",
+      "sdk/**",
+      "apis/**",
+      "examples/**",
+      "mcp-server/**",
+      // The Chromium the job installs (scripts/lane-triggers.test.mjs fails when it is missing).
+      "scripts/playwright-chromium.mjs",
+      // The Makefile its steps' targets come from (ci.all-in-one says why).
+      "Makefile",
+      // What the lane sets up and installs from (ci.all-in-one says why).
+      ".nvmrc",
+      "package.json",
+      "package-lock.json",
+      ".github/workflows/ci.first-hour.yaml",
+    ],
+  },
   "ci.docs-snippets.yaml": {
     // Every TypeScript, Go, Python and Java block under docs/ compiles against
     // the SDK it shows, and so do the theme playground's code for every look

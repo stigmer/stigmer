@@ -19,6 +19,12 @@
 // does), which a journey clicks through, so the sign-in window is cut off
 // from the page that opened it.
 //
+// Reached through a tunnel (a deployed server reaches only public
+// addresses), each server listens on the port it is given and names the
+// tunnel's origin: STIGMER_OAUTH_MCP_PORT with STIGMER_OAUTH_MCP_ORIGIN for
+// the MCP server, STIGMER_OAUTH_LOGIN_PORT with STIGMER_OAUTH_LOGIN_ORIGIN
+// for the login server. Unset, both take an ephemeral loopback port.
+//
 // Prints one JSON line — `{ mcpUrl, authorizationServer }` — once both are
 // listening, then serves until SIGTERM/SIGINT. A Bearer-carrying tool call
 // reaches the fixture's `echo` surface, so a session on an agent that lists
@@ -28,13 +34,15 @@ import { MockOAuthAuthorizationServer } from "@stigmer/test-support/oauth-author
 
 async function main(): Promise<void> {
   const authorizationServer = new MockOAuthAuthorizationServer();
-  await authorizationServer.start();
+  authorizationServer.publicOrigin = process.env.STIGMER_OAUTH_LOGIN_ORIGIN || undefined;
+  await authorizationServer.start(Number(process.env.STIGMER_OAUTH_LOGIN_PORT ?? "0"));
   authorizationServer.authorizeRedirect = true;
   /* v8 ignore next -- @preserve: a process entry the e2e stacks spawn (test/e2e/fixtures/oauth-mcp.ts); no vitest config runs it, and the consent page it switches on is tested in test/support */
   authorizationServer.openerPolicy = process.env.STIGMER_OAUTH_OPENER_POLICY || undefined;
 
   const mcp = new McpToolFixture();
-  await mcp.start();
+  mcp.publicOrigin = process.env.STIGMER_OAUTH_MCP_ORIGIN || undefined;
+  await mcp.start(Number(process.env.STIGMER_OAUTH_MCP_PORT ?? "0"));
   mcp.requireOAuth({
     resourceMetadataUrl: `${new URL(mcp.url()).origin}/.well-known/oauth-protected-resource`,
     authorizationServerOrigin: authorizationServer.origin(),

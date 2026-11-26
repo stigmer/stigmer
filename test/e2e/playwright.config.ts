@@ -15,9 +15,7 @@ import {
  *
  * - **functional**: the console's journeys over data each spec seeds, asserted
  *   unconditionally, against the full local stack global-setup boots. Run via
- *   `make test-e2e`, and in CI by ci.e2e-interactive.yaml's e2e-functional job
- *   (with the plugin journey's sign-in arm on its own stack,
- *   `make test-e2e-oauth-mcp`).
+ *   `make test-e2e`, and in CI by ci.e2e-interactive.yaml's e2e-functional job.
  *
  * - **interactive**: tests that require the full backend stack (stigmer-server,
  *   Temporal, unified runner). Create real resources via API, verify they render
@@ -43,6 +41,12 @@ import {
  *   STIGMER_E2E_OIDC). One Playwright invocation boots exactly one stack, so
  *   this is its own invocation: `make test-e2e-console-login`. The spec skips
  *   visibly without the flag.
+ *
+ * - **first-hour**: a developer's first hour, sign-up to the agent's first
+ *   tool call, as one person across four specs, on the OIDC stack with the
+ *   mock model and an OAuth tool server, or on a deployed Stigmer
+ *   (helpers/first-hour/target.ts). Run via `make test-e2e-first-hour`, and
+ *   in CI by ci.first-hour.yaml.
  *
  * Override the target with STIGMER_E2E_BASE_URL for staging or local.
  * When no STIGMER_E2E_BASE_URL is set, Playwright auto-starts the local
@@ -151,15 +155,16 @@ export default defineConfig({
       use: { ...devices["Desktop Chrome"] },
     },
     {
-      // The same OIDC stack with the mock model: the tutorial's app, on its
-      // own address, signs a person in to a tool server whose login page
-      // cuts the sign-in window off from the app (an opener policy), and the
-      // chat finishes the sign-in. Needs the organization as the tutorial
-      // leaves it, so it runs after.
-      name: "embed-sign-in",
-      testDir: "./tests/embed-sign-in",
+      // A developer's first hour, sign-up to the agent's first tool call
+      // (tests/first-hour): the OIDC stack with the mock model, booted
+      // fresh for this project alone, so its sign-up is the server's first
+      // (`make test-e2e-first-hour`); or a deployed Stigmer, named by
+      // STIGMER_E2E_JOURNEY_TARGET with STIGMER_E2E_BASE_URL at its console
+      // (helpers/first-hour/target.ts). One person walks the specs in
+      // order, in one worker.
+      name: "first-hour",
+      testDir: "./tests/first-hour",
       fullyParallel: false,
-      dependencies: ["embed-tutorial"],
       use: { ...devices["Desktop Chrome"] },
     },
     {

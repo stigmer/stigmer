@@ -5,7 +5,8 @@
 // `echo_destructive` alone carries `destructiveHint: true` (the mark the
 // approval default asks on), and an unknown name is refused rather than served
 // as a guess; and the name a model calls a server's tool by
-// (`mcpToolName`). Driven over loopback with the real MCP client; no runner, no
+// (`mcpToolName`); and a fixture served at a public origin (a tunnel), on a
+// port given ahead, naming that origin in its URL and its document. Driven over loopback with the real MCP client; no runner, no
 // target. Domain: conformance harness (execution engine).
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
@@ -151,6 +152,33 @@ describe("the OAuth posture's metadata document", () => {
       expect(challenged.headers.get("www-authenticate")).toContain("resource_metadata=");
     } finally {
       fixture.requireOAuth(undefined);
+    }
+  });
+});
+
+describe("a fixture served at a public origin", () => {
+  it("listens on the port it is given and names the public origin in its URL and its resource document", async () => {
+    const probe = new McpToolFixture();
+    await probe.start();
+    const port = Number(new URL(probe.url()).port);
+    await probe.close();
+
+    const tunnelled = new McpToolFixture();
+    tunnelled.publicOrigin = "https://tools.example.trycloudflare.com";
+    await tunnelled.start(port);
+    try {
+      expect(tunnelled.url()).toBe("https://tools.example.trycloudflare.com/mcp");
+      tunnelled.requireOAuth({
+        resourceMetadataUrl: "https://tools.example.trycloudflare.com/.well-known/oauth-protected-resource",
+        authorizationServerOrigin: "https://login.example.trycloudflare.com",
+      });
+      const document = await fetch(`http://127.0.0.1:${port}/.well-known/oauth-protected-resource/mcp`);
+      expect(await document.json()).toEqual({
+        resource: "https://tools.example.trycloudflare.com/mcp",
+        authorization_servers: ["https://login.example.trycloudflare.com"],
+      });
+    } finally {
+      await tunnelled.close();
     }
   });
 });
