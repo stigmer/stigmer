@@ -153,13 +153,11 @@ export async function completePersonSignIn(
   if (pending === undefined) {
     throw spentSignIn();
   }
+  // Only a completion carrying its own code can find something new here:
+  // an answer, once recorded, never changes, so one collected at the read
+  // is the one taken. What a racing hand-back leaves is a conflict.
   const taken = settle(pending, input.code);
-  if (taken.kind === "refused") {
-    throw loginPageRefusal(taken.reason);
-  }
   if (taken.kind !== "code") {
-    // A hand-back that raced a completion carrying its own code, or (never,
-    // since an answer is never cleared) an answer gone since the read.
     throw alreadyAnswered();
   }
   const code = taken.sealed ? await unsealAnswerCode(deps, pending, taken.code) : taken.code;
@@ -235,6 +233,7 @@ function settle(row: StoredPendingOAuthState, givenCode: string): Settled {
       return { kind: "code", code: answer.code, sealed: true };
     case "refused":
       return { kind: "refused", reason: answer.reason };
+    /* v8 ignore next -- @preserve: the exhaustiveness guard over a closed union; no value reaches it */
     default: {
       const unknown: never = answer;
       throw new Error(`unknown sign-in answer: ${JSON.stringify(unknown)}`);

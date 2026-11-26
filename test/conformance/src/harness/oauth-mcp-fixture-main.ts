@@ -30,8 +30,8 @@ async function main(): Promise<void> {
   const authorizationServer = new MockOAuthAuthorizationServer();
   await authorizationServer.start();
   authorizationServer.authorizeRedirect = true;
-  const openerPolicy = process.env.STIGMER_OAUTH_OPENER_POLICY;
-  if (openerPolicy !== undefined && openerPolicy !== "") authorizationServer.openerPolicy = openerPolicy;
+  /* v8 ignore next -- @preserve: a process entry the e2e stacks spawn (test/e2e/fixtures/oauth-mcp.ts); no vitest config runs it, and the consent page it switches on is tested in test/support */
+  authorizationServer.openerPolicy = process.env.STIGMER_OAUTH_OPENER_POLICY || undefined;
 
   const mcp = new McpToolFixture();
   await mcp.start();

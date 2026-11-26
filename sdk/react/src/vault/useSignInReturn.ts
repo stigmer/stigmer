@@ -61,6 +61,28 @@ function answerOf(search: string): LoginPageAnswer | null {
   return { state, code, error, errorDescription: params.get("error_description") ?? "" };
 }
 
+/** Hands `answer` to Stigmer and says where the return stands; a page with none hands nothing back. */
+function handBack(
+  stigmer: ReturnType<typeof useStigmer>,
+  answer: LoginPageAnswer | null,
+  setState: (state: SignInReturnState) => void,
+): void {
+  if (answer === null) {
+    setState({ kind: "no-answer" });
+    return;
+  }
+  stigmer.vault
+    .handBackSignIn(create(HandBackSignInInputSchema, answer))
+    .then((handed) => {
+      if (answer.error !== "") {
+        setState({ kind: "refused", reason: answer.errorDescription !== "" ? answer.errorDescription : answer.error });
+        return;
+      }
+      setState({ kind: "handed-back", providerName: handed.providerName, address: handed.address });
+    })
+    .catch((err: unknown) => setState({ kind: "failed", error: toError(err) }));
+}
+
 /**
  * Behavior hook for the page a login page returns to: reads the answer
  * from the URL once and hands it to Stigmer. Render {@link SignInReturn}
@@ -83,23 +105,10 @@ export function useSignInReturn(): SignInReturnState {
 
   useEffect(() => {
     // React may run the effect twice (StrictMode): a sign-in has one answer.
-    if (didRun.current) return;
-    didRun.current = true;
-    const answer = answerOf(window.location.search);
-    if (answer === null) {
-      setState({ kind: "no-answer" });
-      return;
+    if (!didRun.current) {
+      didRun.current = true;
+      handBack(stigmer, answerOf(window.location.search), setState);
     }
-    stigmer.vault
-      .handBackSignIn(create(HandBackSignInInputSchema, answer))
-      .then((handed) => {
-        if (answer.error !== "") {
-          setState({ kind: "refused", reason: answer.errorDescription !== "" ? answer.errorDescription : answer.error });
-          return;
-        }
-        setState({ kind: "handed-back", providerName: handed.providerName, address: handed.address });
-      })
-      .catch((err: unknown) => setState({ kind: "failed", error: toError(err) }));
   }, [stigmer]);
 
   return state;

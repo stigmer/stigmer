@@ -25,7 +25,7 @@ import type { Stigmer } from "@stigmer/client";
 import { StigmerContext } from "@stigmer/react-core";
 import { FetchCacheContext } from "@stigmer/react-core/internal";
 import { OrgProvider, useOrg } from "../../organization/OrgProvider";
-import { useOrganizationId, usePersonalKeys } from "../usePersonalKeys";
+import { organizationIdOf, useOrganizationId, usePersonalKeys } from "../usePersonalKeys";
 
 const ORG = "org_acme";
 
@@ -195,6 +195,22 @@ describe("usePersonalKeys", () => {
     answer({ entries: [{ metadata: { id: ORG, slug: "acme" } }] });
     await waitFor(() => expect(result.current.id).toBe(ORG));
     await waitFor(() => expect(result.current.keys).toEqual({ keys: ["CAL_REGION", "GITHUB_TOKEN"], isReady: true }));
+  });
+});
+
+describe("organizationIdOf", () => {
+  const unread = { organization: { listMineAll: vi.fn() } } as unknown as Stigmer;
+
+  it("names an empty reference empty, and reads nothing for it", async () => {
+    await expect(organizationIdOf(unread, "", undefined)).resolves.toBe("");
+    expect(unread.organization.listMineAll).not.toHaveBeenCalled();
+  });
+
+  it("names a reference from a provider's list without reading, and judges one it lacks as named", async () => {
+    const known = [{ metadata: { id: ORG, slug: "acme" } }] as Organization[];
+    await expect(organizationIdOf(unread, "acme", known)).resolves.toBe(ORG);
+    await expect(organizationIdOf(unread, "globex", known)).resolves.toBe("globex");
+    expect(unread.organization.listMineAll).not.toHaveBeenCalled();
   });
 });
 

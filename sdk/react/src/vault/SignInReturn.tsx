@@ -103,6 +103,7 @@ export function SignInReturn({ className }: SignInReturnProps) {
           />
         </ScreenColumn>
       );
+    /* v8 ignore next -- @preserve: the exhaustiveness guard over a closed union; no value reaches it */
     default: {
       const unknown: never = back;
       throw new Error(`unknown sign-in return: ${JSON.stringify(unknown)}`);

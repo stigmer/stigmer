@@ -62,6 +62,7 @@ import { VendorApprovalStatus } from "@stigmer/apis/ai/stigmer/iam/oauthapp/v1/s
 import { SecretService } from "../../../../encryption/encryption.js";
 import type { CallerIdentity } from "../../../../extensions/identity.js";
 import { testCallerIdentity } from "../../../../pipeline/__tests__/support.js";
+import type { PendingOAuthStateStore, PendingSignInAnswer } from "../../../../store/interface.js";
 import { MAX_VAULT_ENTRIES } from "../../constants.js";
 import { VaultConnectionSource } from "../../service.js";
 import { errorReasonOf } from "../../../../pipeline/errors.js";
@@ -123,6 +124,29 @@ function complete(caller: CallerIdentity, state: string) {
 /** The signer's app asking for the answer the callback page handed back: a completion with no code. */
 function collect(caller: CallerIdentity, state: string, deps = rig.deps()) {
   return completePersonSignIn(deps, create(CompleteSignInInputSchema, { state }), caller);
+}
+
+/** The real pending-state store with some of its methods replaced, the rest its own. */
+function storeWith(real: PendingOAuthStateStore, replaced: Partial<PendingOAuthStateStore>): PendingOAuthStateStore {
+  return new Proxy(real, {
+    get(target, property, receiver) {
+      if (Object.hasOwn(replaced, property)) return replaced[property as keyof PendingOAuthStateStore];
+      const value: unknown = Reflect.get(target, property, receiver);
+      return typeof value === "function" ? value.bind(target) : value;
+    },
+  });
+}
+
+/** A store where `answer` is recorded right after a completion reads the row: a hand-back racing it. */
+function answeredAfterRead(answer: PendingSignInAnswer): PendingOAuthStateStore {
+  const real = rig.store.pendingOAuthStates;
+  return storeWith(real, {
+    find: async (state) => {
+      const row = await real.find(state);
+      await real.recordAnswer(state, answer);
+      return row;
+    },
+  });
 }
 
 /** The callback page handing back what the login page sent: no caller at all. */
@@ -428,6 +452,40 @@ describe("the login page's answer, handed back and collected", () => {
     const lost = outcomes.find((outcome) => outcome.status === "rejected");
     expect(String((lost as PromiseRejectedResult).reason)).toContain("expired or was already used");
     expect(exchangedCodes()).toEqual(["code-from-page"]);
+  });
+
+  it("an answer handed back between the read and the take of a completion carrying its own code refuses it, exchanging nothing", async () => {
+    await seedOrganizationApp(rig);
+    for (const late of [
+      { kind: "code", code: "code-from-page" },
+      { kind: "refused", reason: "access_denied" },
+    ] satisfies PendingSignInAnswer[]) {
+      const started = await start(alice);
+      await expectRefusal(
+        completePersonSignIn(
+          rig.deps({ pendingOAuthStates: answeredAfterRead(late) }),
+          create(CompleteSignInInputSchema, { state: started.state, code: "code" }),
+          alice,
+        ),
+        Code.FailedPrecondition,
+        "already has the login page's answer",
+      );
+    }
+    expect(exchangedCodes()).toEqual([]);
+  });
+
+  it("an answer that lands between the hand-back's read and its record wins, and the late one is refused as spent", async () => {
+    await seedOrganizationApp(rig);
+    const started = await start(alice);
+    const real = rig.store.pendingOAuthStates;
+    const racing = storeWith(real, {
+      recordAnswer: async (state, answer) => {
+        await real.recordAnswer(state, { kind: "refused", reason: "first" });
+        return real.recordAnswer(state, answer);
+      },
+    });
+    await expectRefusal(handBack(started.state, { code: "late" }, rig.deps({ pendingOAuthStates: racing })), Code.FailedPrecondition, "expired or was already used");
+    expect((await real.find(started.state))?.answer).toEqual({ kind: "refused", reason: "first" });
   });
 
   it("the code rests sealed under the deployment's key and opens only at the exchange", async () => {

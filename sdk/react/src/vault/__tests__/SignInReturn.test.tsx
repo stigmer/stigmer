@@ -6,12 +6,13 @@
  * where they started, and closes the window; a refusal is handed back too
  * and shown in the login page's words, with "Nothing was saved"; a sign-in
  * that expired or was used says so in the server's words; a failure on the
- * way offers a retry; a page with no answer, or with both a code and a
- * refusal, hands nothing back.
+ * way offers a retry, which loads the page again; under StrictMode's double
+ * effect the answer is handed back once; a page with no answer, or with both
+ * a code and a refusal, hands nothing back.
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { cleanup, render, screen } from "@testing-library/react";
-import type { ReactNode } from "react";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { StrictMode, type ReactNode } from "react";
 import { create } from "@bufbuild/protobuf";
 import { Code, ConnectError, createRouterTransport } from "@connectrpc/connect";
 import { Stigmer } from "@stigmer/client";
@@ -28,8 +29,9 @@ afterEach(() => {
 /** How the server answers the hand-back. */
 type Server = "accepts" | "ended" | "unavailable";
 
-function renderAt(search: string, server: Server = "accepts") {
-  vi.stubGlobal("location", { ...window.location, search, reload: vi.fn() });
+function renderAt(search: string, server: Server = "accepts", strict = false) {
+  const reload = vi.fn();
+  vi.stubGlobal("location", { ...window.location, search, reload });
   const close = vi.fn();
   vi.stubGlobal("close", close);
   const handedBack: HandBackSignInInput[] = [];
@@ -52,8 +54,8 @@ function renderAt(search: string, server: Server = "accepts") {
   const wrapper = ({ children }: { children: ReactNode }) => (
     <StigmerContext.Provider value={client}>{children}</StigmerContext.Provider>
   );
-  render(<SignInReturn />, { wrapper });
-  return { handedBack, close };
+  render(strict ? <StrictMode><SignInReturn /></StrictMode> : <SignInReturn />, { wrapper });
+  return { handedBack, close, reload };
 }
 
 describe("SignInReturn", () => {
@@ -90,10 +92,17 @@ describe("SignInReturn", () => {
     expect(screen.queryByText(/Connected/)).toBeNull();
   });
 
-  it("offers a retry when the answer failed on the way", async () => {
-    renderAt("?code=c-1&state=st-1", "unavailable");
+  it("offers a retry when the answer failed on the way, which loads the page again", async () => {
+    const { reload } = renderAt("?code=c-1&state=st-1", "unavailable");
     expect(await screen.findByText("The sign-in didn't finish.")).toBeTruthy();
-    expect(screen.getByRole("button", { name: /try again/i })).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: /try again/i }));
+    expect(reload).toHaveBeenCalledTimes(1);
+  });
+
+  it("hands the answer back once when React runs its effect twice", async () => {
+    const { handedBack } = renderAt("?code=c-1&state=st-1", "accepts", true);
+    expect(await screen.findByRole("heading", { name: "You're signed in at Sentry" })).toBeTruthy();
+    expect(handedBack).toHaveLength(1);
   });
 
   it.each([

@@ -8,6 +8,9 @@
  *   - a person's startSignIn and completeSignIn on VaultCommandController,
  *     from an address with no MCP server involved, save into their My vault
  *     at that address, and a second sign-in reuses the registered client;
+ *   - the login page's answer handed back on the public handBackSignIn is
+ *     collected by completeSignIn with no code, which answers pending until
+ *     then;
  *   - a Connect link made with createConnectLink, for an address the
  *     organization's own login app lists, works through the public
  *     ConnectLinkController, saves into its shared vault, answers its return
@@ -196,6 +199,18 @@ describe("a person's sign-in at an address", () => {
     // A second sign-in reuses the client registered for the first.
     await vaultCommand.startSignIn({ vault: { org: ORG, vault: { case: "mine", value: true } }, address });
     expect(login.registrations).toBe(1);
+  });
+
+  it("finishes from the login page's answer handed back, collected with no code", async () => {
+    const address = `${login.base}/handed-back`;
+    const started = await vaultCommand.startSignIn({ vault: { org: ORG, vault: { case: "mine", value: true } }, address });
+    expect(await vaultCommand.completeSignIn({ state: started.state })).toMatchObject({ pending: true });
+
+    const handed = await vaultCommand.handBackSignIn({ state: started.state, code: "code" });
+    expect(handed).toMatchObject({ address, providerName: new URL(login.base).host });
+    const done = await vaultCommand.completeSignIn({ state: started.state });
+    expect(done).toMatchObject({ pending: false, address });
+    expect((await vaultQuery.getMine({ org: ORG })).spec?.connections[address]?.description).toBe(done.description);
   });
 });
 
