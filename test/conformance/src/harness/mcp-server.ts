@@ -277,8 +277,16 @@ export class McpToolFixture {
     this.oauthChallenge = posture;
   }
 
-  // Binds to an ephemeral loopback port; resolves once listening.
-  async start(): Promise<void> {
+  // The origin the fixture names itself by, when a tunnel or proxy serves it
+  // at another address than its loopback port (a deployed server reaches
+  // only public addresses): url() and the protected-resource document then
+  // name this origin. Unset, they name the loopback port.
+  publicOrigin: string | undefined;
+
+  // Binds to loopback at `port` (an ephemeral one by default; a tunnel set
+  // up before the fixture starts needs a port known ahead); resolves once
+  // listening.
+  async start(port = 0): Promise<void> {
     const server = createServer((req, res) => {
       this.handle(req, res).catch(() => {
         // A handler failure (e.g. a client that vanished mid-stream) must never
@@ -291,7 +299,7 @@ export class McpToolFixture {
         }
       });
     });
-    await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
+    await new Promise<void>((resolve) => server.listen(port, "127.0.0.1", resolve));
     this.server = server;
   }
 
@@ -303,7 +311,7 @@ export class McpToolFixture {
       throw new Error("McpToolFixture.start() must be called before url()");
     }
     const { port } = this.server.address() as AddressInfo;
-    const base = `http://127.0.0.1:${port}/mcp`;
+    const base = `${this.publicOrigin ?? `http://127.0.0.1:${port}`}/mcp`;
     return tools === undefined ? base : `${base}/${tools.join(",")}`;
   }
 

@@ -47,6 +47,42 @@ and the questions before "done". Read it once per session under this gate.
 5. **Answer the questions before "done"** from the discipline reference. Any
    "no" and the work continues.
 
+## First-hour journeys
+
+A developer's first hour (sign-up, an agent, the chat in their app, a sign-in to
+their tool server, the agent calling the tool) is proven by
+`test/e2e/tests/first-hour`, in the Gate on every change it can break
+(`ci.first-hour.yaml`) and against a deployed Stigmer with the same specs, its
+target configured as a module (`test/e2e/helpers/first-hour/target.ts`). A
+change to any part of that hour adds to or changes that journey, and keeps its
+rules, each held by what is named:
+
+- **A real browser.** Playwright's Chromium drives every screen, the login pages
+  included; no step is a call standing in for a click a person makes
+  (`test/e2e/playwright.config.ts`, project `first-hour`).
+- **The host on its own origin.** The embedded chat runs in the embedding
+  tutorial's app on its own address, never on the console's
+  (`test/e2e/tests/first-hour/3-embedded-tool-call.spec.ts`,
+  `test/e2e/helpers/embed-tutorial.ts`).
+- **A real login server.** Tool servers sign in through an OAuth login server
+  with a consent page that carries an opener policy, as Sentry's does
+  (`test/conformance/src/harness/oauth-mcp-fixture-main.ts`); the CLI signs in
+  through the same browser (`test/e2e/helpers/cli.ts`, `BROWSER`).
+- **The docs run as written.** The steps come from the pages, tab by tab: the
+  quickstart's Stigmer Cloud tab and the embedding tutorial
+  (`test/install/lib/doc-steps.mjs`, `target`), so a renamed line turns the
+  journey red before it merges.
+- **The proof is the tool's answer.** Each tool step sends a fresh nonce and
+  asserts it in the tool's result (the console's and the app's tool row, the
+  CLI's NDJSON), never a screen appearing or the model saying it called
+  something (`test/e2e/helpers/first-hour/steps.ts`). A step the product cannot
+  yet finish is held as a known gap on its issue
+  (`test/support/src/known-gap.ts`), which fails the day the issue is fixed.
+- **A quarantine has an owner and an end date.**
+  `// quarantined: <repo>#<issue> owner=<login> until=<YYYY-MM-DD>`, at most 14
+  days out (`scripts/test-integrity.mjs`, rule `quarantine-terms`;
+  `test/README.md`, rule 3).
+
 ## Reporting
 
 Lead with the issues found; the reader wants what is broken before what works.

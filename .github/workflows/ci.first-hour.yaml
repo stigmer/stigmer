@@ -1,0 +1,115 @@
+# =============================================================================
+# A developer's first hour (Playwright, full local stack)
+# =============================================================================
+# One robot developer walks the hour a new developer lives through, in a real
+# browser, against a fresh stack: signs up through the console's sign-up
+# door; runs the quickstart's "Stigmer Cloud" tab with the CLI (signing in
+# through the browser, pointing at their Organization, applying the agent);
+# adds an OAuth tool server whose login page carries an opener policy, lists
+# its plugin in the agent's file and signs in from the plugin's page; sees
+# their conversation call the server's tool; puts the chat in the embedding
+# tutorial's app on its own address and signs its user in to the tool server;
+# and signs in again from the terminal (`stigmer connect plugin`), then
+# `stigmer run` calls the tool. Each tool step proves the tool's result
+# carries a nonce the step made (test/e2e/tests/first-hour).
+#
+# Its own workflow, not a job of ci.e2e-interactive.yaml: a lane's paths
+# belong to its workflow file (scripts/ci-lanes.mjs), and this journey runs
+# on changes to the CLI, the coding agents and the getting-started pages,
+# which every other interactive job does not need. Its stack is booted fresh
+# for this job alone, so the journey's sign-up is the server's first.
+#
+# Needs NO secrets: the issuer, the model and the tool server are hermetic.
+# The same specs can walk a deployed Stigmer, configured as a target
+# (test/e2e/helpers/first-hour/target.ts).
+#
+# Which changes need it is its list in scripts/ci-lanes.mjs; ci.gate.yaml
+# calls it for those, and a red job here turns `Gate`, the required check,
+# red.
+# =============================================================================
+
+name: ci.first-hour
+
+on:
+  # Called by ci.gate.yaml when scripts/ci-lanes.mjs finds the change needs
+  # this lane (the path list and its reasons live there); `Gate` is the
+  # required check.
+  workflow_call:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# Make `npm ci` resilient to transient registry drops (ECONNRESET). npm reads
+# these npm_config_* vars, so every install step retries with backoff instead
+# of failing the whole job on the first dropped download.
+env:
+  npm_config_fetch_retries: "5"
+  npm_config_fetch_retry_factor: "2"
+  npm_config_fetch_retry_mintimeout: "20000"
+  npm_config_fetch_retry_maxtimeout: "120000"
+  # Inside the gate a missing test dependency fails instead of skipping
+  # (the Postgres and Temporal helpers read it); a caller's env does not
+  # reach a called workflow, so each lane sets it itself.
+  STIGMER_TEST_GATE: "1"
+
+jobs:
+  first-hour:
+    name: A developer's first hour (OIDC posture, mock model, OAuth tool server)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+
+      - name: Restore the Turbo cache
+        uses: ./.github/actions/turbo-cache
+
+      - name: Setup Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version-file: ".nvmrc"
+
+      - name: Install npm workspace dependencies
+        run: npm ci
+
+      - name: Build SDK libraries
+        run: npm run build:libs
+
+      - name: Install Temporal CLI
+        uses: ./.github/actions/temporal-cli
+
+      - name: Build stigmer-server
+        run: make build-server
+
+      - name: Build unified runner
+        run: make build-runner
+
+      - name: Install Playwright browsers
+        uses: ./.github/actions/playwright-chromium
+
+      - name: Walk the first hour, sign-up to the agent's first tool call
+        working-directory: test/e2e
+        env:
+          STIGMER_E2E_OIDC: "1"
+          STIGMER_E2E_MOCK_LLM: "1"
+          STIGMER_E2E_FIRST_HOUR: "1"
+        run: npx playwright test --project=first-hour --workers=1
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: first-hour-test-results
+          path: test/e2e/test-results/
+          retention-days: 30
+
+      - name: Upload Playwright report
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: first-hour-playwright-report
+          path: test/e2e/playwright-report/
+          retention-days: 30

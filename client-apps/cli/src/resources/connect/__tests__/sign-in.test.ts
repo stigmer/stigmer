@@ -12,8 +12,8 @@
 // a sign-in that ended otherwise names the command to run again; the login
 // page's refusal ends the wait in its words; a missing My vault reads as
 // none; an unreachable local console is refused with the other ways, a
-// pasted key only where the server accepts one; and the browser opener per
-// platform.
+// pasted key only where the server accepts one. How the browser opens is
+// sign-in-defaults.test.ts's.
 
 import { create } from "@bufbuild/protobuf";
 import { Code, ConnectError } from "@connectrpc/connect";
@@ -30,7 +30,7 @@ import { StigmerError } from "@stigmer/client";
 import { describe, expect, it } from "vitest";
 import { UsageError } from "../../../errors/index.js";
 import { holdsLoginFor, toolAddress } from "../address.js";
-import { browserCommand, readMyVault, runSignIn, type SignInClient, type SignInDeps, waitForSignIn } from "../sign-in.js";
+import { readMyVault, runSignIn, type SignInClient, type SignInDeps, waitForSignIn } from "../sign-in.js";
 
 const ADDRESS = "https://mcp.linear.app/mcp";
 
@@ -81,6 +81,7 @@ function deps(client: SignInClient, overrides: Partial<SignInDeps> = {}): SignIn
     org: "acme",
     consoleURL: "https://app.stigmer.ai",
     probeLocalConsole: false,
+    canOpenBrowser: () => true,
     sleep: async () => {},
     log: () => {},
     ...overrides,
@@ -114,6 +115,20 @@ describe("holdsLoginFor", () => {
 });
 
 describe("runSignIn", () => {
+  it("says to open the address by hand when the browser does not open", async () => {
+    const { client } = fakeClient([SAVED]);
+    const lines: string[] = [];
+    await runSignIn(
+      deps(client, {
+        openBrowser: async () => {
+          throw new Error("no opener");
+        },
+        log: (line) => lines.push(line),
+      }),
+    );
+    expect(lines).toContain("  Could not open the browser automatically. Open the URL above in your browser.");
+  });
+
   it("starts the sign-in in My vault at the address, opens its login page, and finishes that sign-in", async () => {
     const { client, started, asks } = fakeClient([PENDING, SAVED]);
     const opened: string[] = [];
@@ -212,14 +227,5 @@ describe("readMyVault", () => {
     const vault = create(VaultSchema, { spec: { connections: { [ADDRESS]: {} } } });
     const client = { vault: { getMine: async () => vault } } as unknown as SignInClient;
     await expect(readMyVault(client, "acme")).resolves.toBe(vault);
-  });
-});
-
-describe("browserCommand", () => {
-  it("maps each supported platform to its opener and none to the rest", () => {
-    expect(browserCommand("darwin", "https://x")).toEqual(["open", ["https://x"]]);
-    expect(browserCommand("linux", "https://x")).toEqual(["xdg-open", ["https://x"]]);
-    expect(browserCommand("win32", "https://x")).toEqual(["rundll32", ["url.dll,FileProtocolHandler", "https://x"]]);
-    expect(browserCommand("aix", "https://x")[0]).toBeUndefined();
   });
 });

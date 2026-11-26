@@ -130,7 +130,11 @@
  * live lane, so a `liveSecret` skip in one is a new skip like any other. A
  * case quarantined by name carries its reason in a comment on the line above,
  * `// quarantined: <repo>#<issue>`; with --check-issues the issue must be
- * open.
+ * open. Under a tree that owns its quarantines (QUARANTINE_TERMS_TREES, the
+ * e2e first-hour journey, which stands for a developer's first hour and
+ * must not stay parked), the comment also names who owns the fix and when
+ * the quarantine ends, `owner=<login> until=<YYYY-MM-DD>`, the date today
+ * or later and at most QUARANTINE_MAX_DAYS away (rule quarantine-terms).
  *
  * Rule on a run (with --run-report <vitest JSON>): every case the run reports
  * as skipped, pending, todo or disabled must be explained by a skip site in its
@@ -223,6 +227,12 @@ export const BY_CONSTRUCTION = [
 ];
 
 const QUARANTINE_COMMENT = /quarantined:\s*((?:[\w.-]+\/)?[\w.-]+)?#(\d+)/i;
+const QUARANTINE_OWNER = /\bowner=@?([\w-]+)/;
+const QUARANTINE_UNTIL = /\buntil=(\d{4}-\d{2}-\d{2})\b/;
+/** The trees whose quarantines name an owner and an end date (rule quarantine-terms). */
+export const QUARANTINE_TERMS_TREES = ["test/e2e/tests/first-hour/"];
+/** The furthest a quarantine under those trees may end, in days from today. */
+export const QUARANTINE_MAX_DAYS = 14;
 const DECLARATION = /^\s*(Test-removal|Quarantine|Skip|RPC-waiver|Coverage-drop)\s*:\s*(.+?)\s+--\s+(.+?)\s*$/gim;
 
 /** The conformance suite's RPC waivers, read by the change rule on weakened waivers. */
@@ -379,10 +389,38 @@ function quarantineOf(ts, sf, node) {
   const text = sf.getFullText();
   const ranges = ts.getLeadingCommentRanges(text, statement.getFullStart()) ?? [];
   for (const range of ranges) {
-    const match = QUARANTINE_COMMENT.exec(text.slice(range.pos, range.end));
-    if (match) return { repo: match[1] ?? "", issue: Number(match[2]) };
+    const comment = text.slice(range.pos, range.end);
+    const match = QUARANTINE_COMMENT.exec(comment);
+    if (match) {
+      const owner = QUARANTINE_OWNER.exec(comment)?.[1];
+      const until = QUARANTINE_UNTIL.exec(comment)?.[1];
+      return { repo: match[1] ?? "", issue: Number(match[2]), ...(owner === undefined ? {} : { owner }), ...(until === undefined ? {} : { until }) };
+    }
   }
   return undefined;
+}
+
+/**
+ * The quarantines under QUARANTINE_TERMS_TREES that do not name an owner and
+ * an end date, or whose end date has passed or lies more than
+ * QUARANTINE_MAX_DAYS after `today` (YYYY-MM-DD), as findings.
+ */
+export function checkQuarantineTerms(inventories, today) {
+  const findings = [];
+  const latest = new Date(Date.parse(`${today}T00:00:00Z`) + QUARANTINE_MAX_DAYS * 86_400_000).toISOString().slice(0, 10);
+  for (const inventory of inventories) {
+    if (!QUARANTINE_TERMS_TREES.some((tree) => inventory.path.startsWith(tree))) continue;
+    for (const skip of inventory.skips) {
+      const q = skip.quarantine;
+      if (q === undefined) continue;
+      const finding = (message) => findings.push({ rule: "quarantine-terms", path: inventory.path, line: skip.line, message: `"${skip.title}" ${message}` });
+      if (q.owner === undefined) finding("names no owner: add `owner=<login>` to its quarantine comment");
+      if (q.until === undefined) finding(`names no end date: add \`until=<YYYY-MM-DD>\`, at most ${QUARANTINE_MAX_DAYS} days out`);
+      else if (q.until < today) finding(`was quarantined until ${q.until}, which has passed: fix it, or name a new owner and date`);
+      else if (q.until > latest) finding(`is quarantined until ${q.until}, more than ${QUARANTINE_MAX_DAYS} days out (${latest} at the latest)`);
+    }
+  }
+  return findings;
 }
 
 /** What must hold for a runtime skip to run (see `runsInGate`): its own condition argument, or the branch of the `if` around it. */
@@ -1406,6 +1444,7 @@ function main(argv) {
     head.set(path, inventory);
     findings.push(...inventory.findings);
   }
+  findings.push(...checkQuarantineTerms([...head.values()], new Date().toISOString().slice(0, 10)));
   const configs = git(root, ["ls-files", "--", ...CONFIG_PATHSPECS]).split("\n").filter(Boolean).map((path) => ({ path, text: read(path) }));
   for (const { path, text } of configs) findings.push(...checkConfig(ts, path, text));
 

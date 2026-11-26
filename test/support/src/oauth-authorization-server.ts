@@ -219,7 +219,15 @@ export class MockOAuthAuthorizationServer {
     this.tokenRequests = [];
   }
 
-  async start(): Promise<void> {
+  // The origin the fixture names itself by, when a tunnel or proxy serves it
+  // at another address than its loopback port (a deployed server reaches
+  // only public addresses): every document, endpoint and issuer it publishes
+  // then names this origin. Unset, it names its loopback port.
+  publicOrigin: string | undefined;
+
+  // Listens on loopback at `port` (an ephemeral one by default; a tunnel set
+  // up before the fixture starts needs a port known ahead).
+  async start(port = 0): Promise<void> {
     const server = createServer((req, res) => {
       this.handle(req, res).catch(() => {
         if (!res.headersSent) {
@@ -230,7 +238,7 @@ export class MockOAuthAuthorizationServer {
         }
       });
     });
-    await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
+    await new Promise<void>((resolve) => server.listen(port, "127.0.0.1", resolve));
     this.server = server;
   }
 
@@ -240,6 +248,7 @@ export class MockOAuthAuthorizationServer {
     if (this.server === undefined) {
       throw new Error("MockOAuthAuthorizationServer.start() must be called before origin()");
     }
+    if (this.publicOrigin !== undefined) return this.publicOrigin;
     const { port } = this.server.address() as AddressInfo;
     return `http://127.0.0.1:${port}`;
   }

@@ -1032,7 +1032,7 @@ tidy: ## Run go mod tidy on all Go modules
        lint-desktop typecheck-desktop verify-desktop kill-desktop launch-desktop build-desktop clean-build-desktop release-desktop-local \
        lint-docs lint-docs-audit format-docs format-docs-check check-links tsdoc-check \
        check-docs-inventory check-conformance-inventory \
-       test-web test-desktop test-runner-host test-e2e test-e2e-approval test-e2e-console-login test-e2e-single-org test-e2e-no-providers test-a11y check \
+       test-web test-desktop test-runner-host test-e2e test-e2e-approval test-e2e-console-login test-e2e-first-hour test-e2e-single-org test-e2e-no-providers test-a11y check \
        check-prep check-go check-node check-site check-rust check-java
 fix: ## Auto-fix linting and formatting issues
 	@gofmt -s -w .
@@ -1231,16 +1231,7 @@ test-e2e-approval: ## Run the deterministic HITL approval E2E (mock LLM, serial,
 		STIGMER_E2E_MOCK_LLM=1 npx playwright test --project=interactive-approval --workers=1 && \
 		STIGMER_E2E_MOCK_LLM=1 STIGMER_E2E_FILE_GATES=1 npx playwright test --project=interactive-approval-gate --workers=1
 
-test-e2e-oauth-mcp: ## Run the plugin journey's sign-in arm against a hosted OAuth MCP fixture (fresh stack, the console's callback as redirect)
-	# One stack shape of its own: the conformance harness's OAuth MCP server
-	# and login server as one process (oauth-mcp-fixture-main.ts), the
-	# server booted with STIGMER_OAUTH_REDIRECT_URI at the web dev server's
-	# callback page, so the journey signs in through a real popup. A running
-	# backend on the API port is refused by the global setup.
-	npm ci
-	cd test/e2e && npx playwright install --with-deps chromium && STIGMER_E2E_OAUTH_MCP=1 npx playwright test --project=functional plugin-install-journey
-
-test-e2e-console-login: ## Run the console sign-in E2E, the In your app handover, the embedding tutorial and its app's tool sign-in against a server in the OIDC posture (hermetic issuer, mock model, serial)
+test-e2e-console-login: ## Run the console sign-in E2E, the In your app handover and the embedding tutorial against a server in the OIDC posture (hermetic issuer, mock model, serial)
 	# One stack shape of its own: test/support's local OIDC issuer
 	# (local-oidc-issuer-main.ts) as a process, the server booted
 	# with STIGMER_OIDC_ISSUER pointed at it and its runner on the mock model,
@@ -1252,7 +1243,21 @@ test-e2e-console-login: ## Run the console sign-in E2E, the In your app handover
 	npm ci
 	npm run build:libs
 	cd test/e2e && npx playwright install --with-deps chromium && \
-		STIGMER_E2E_OIDC=1 STIGMER_E2E_MOCK_LLM=1 npx playwright test --project=console-login --project=in-your-app --project=embed-tutorial --project=embed-sign-in --workers=1
+		STIGMER_E2E_OIDC=1 STIGMER_E2E_MOCK_LLM=1 npx playwright test --project=console-login --project=in-your-app --project=embed-tutorial --workers=1
+
+test-e2e-first-hour: ## Run a developer's first hour, sign-up to the agent's first tool call, on a fresh OIDC stack (hermetic issuer, mock model, OAuth tool server, serial)
+	# One stack of its own, booted fresh so the journey's sign-up is the
+	# server's first: the OIDC shape with the mock model and the OAuth MCP
+	# fixture whose login page carries an opener policy, the server
+	# announcing a client for installed apps so the CLI signs in. The
+	# embedded step packs the built libraries, so they are built first;
+	# needs the built server and runner. A deployed target runs the same
+	# project with STIGMER_E2E_JOURNEY_TARGET and STIGMER_E2E_BASE_URL set
+	# (test/e2e/helpers/first-hour/target.ts).
+	npm ci
+	npm run build:libs
+	cd test/e2e && npx playwright install --with-deps chromium && \
+		STIGMER_E2E_OIDC=1 STIGMER_E2E_MOCK_LLM=1 STIGMER_E2E_FIRST_HOUR=1 npx playwright test --project=first-hour --workers=1
 
 test-e2e-single-org: ## Run the console E2E against the shipped server entry, which holds one organization (the open-source edition as a laptop runs it)
 	# One stack shape of its own: the shipped entry in the trusted-local

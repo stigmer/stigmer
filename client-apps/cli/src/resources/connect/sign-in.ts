@@ -18,6 +18,13 @@
 // with the reason SIGN_IN_ENDED right after one means that ask took it, so
 // its failure is the one reported.
 //
+// The login page opens the way every CLI sign-in opens a browser
+// (auth/browser.ts): `BROWSER` when it is set, else the system's opener.
+// Where no browser can open (an SSH session, no display), nothing is
+// launched: the address is printed for a browser on any device, since the
+// login page hands its answer to Stigmer, not to this machine, and the wait
+// is the same.
+//
 // The callback page is the console's, so a local backend's console must be
 // running; it is probed first, and when it is not, the user is pointed at
 // the two other ways (a key saved in the vault for a server that accepts
@@ -37,6 +44,7 @@ import {
 } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/io_pb";
 import type { Vault } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/api_pb";
 import { getErrorReason, isTransientStreamError, type Stigmer, StigmerError } from "@stigmer/client";
+import { canOpenBrowser, openBrowser } from "../../auth/browser.js";
 import { UsageError } from "../../errors/index.js";
 
 const ASK_INTERVAL_MS = 2000;
@@ -69,8 +77,10 @@ export interface SignInDeps {
   readonly probeLocalConsole: boolean;
   /** The login key a pasted key may be saved under, when the server accepts one. */
   readonly loginKey?: string;
-  /** Opens the page URL in the user's browser. Defaults to the OS opener. */
+  /** Opens the page URL in the user's browser. Defaults to auth/browser.ts's opener (`BROWSER`, else the system's). */
   readonly openBrowser?: (url: string) => Promise<void>;
+  /** Whether a browser can open here. Defaults to auth/browser.ts's `canOpenBrowser`. */
+  readonly canOpenBrowser?: () => boolean;
   /** Probes whether the local web console is reachable. Defaults to a 2s GET. */
   readonly probeConsole?: (url: string) => Promise<boolean>;
   /** Sleep helper. Injectable so tests don't wait real seconds. */
@@ -100,13 +110,16 @@ export async function runSignIn(deps: SignInDeps): Promise<void> {
   );
 
   log(`Sign in to '${deps.serverName}' with ${started.providerName || "its login server"}.`);
-  log("Opening the login page in your browser...");
-  log(`\n  If the browser doesn't open automatically, visit:\n  ${started.authorizationUrl}\n`);
-  const open = deps.openBrowser ?? openInBrowser;
-  try {
-    await open(started.authorizationUrl);
-  } catch {
-    log("  Could not open the browser automatically. Open the URL above in your browser.");
+  if ((deps.canOpenBrowser ?? canOpenBrowser)()) {
+    log("Opening the login page in your browser...");
+    log(`\n  If the browser doesn't open automatically, visit:\n  ${started.authorizationUrl}\n`);
+    try {
+      await (deps.openBrowser ?? openBrowser)(started.authorizationUrl);
+    } catch {
+      log("  Could not open the browser automatically. Open the URL above in your browser.");
+    }
+  } else {
+    log(`No browser can open here. Open this address in a browser on any device to sign in:\n  ${started.authorizationUrl}\n`);
   }
 
   await waitForSignIn(deps, started.state);
@@ -192,43 +205,6 @@ function consoleUnavailableError(deps: SignInDeps): UsageError {
       `To connect it${ways.length > 1 ? ", either" : ""}:\n` +
       ways.join("\n"),
   );
-}
-
-// Open a URL in the user's default browser: a platform-specific launcher, no
-// new dependency. Callers print the URL first so a launch failure still
-// leaves the user a way forward.
-function openInBrowser(url: string): Promise<void> {
-  return new Promise((resolve, reject) => {
-    void (async () => {
-      const { spawn } = await import("node:child_process");
-      const [command, args] = browserCommand(process.platform, url);
-      if (command === undefined) {
-        reject(new Error(`unsupported platform: ${process.platform}`));
-        return;
-      }
-      const child = spawn(command, args, { stdio: "ignore", detached: true });
-      child.once("error", reject);
-      child.unref();
-      resolve();
-    })().catch(reject);
-  });
-}
-
-/** The OS-specific command + args to open a URL. Exported for tests. */
-export function browserCommand(
-  platform: NodeJS.Platform,
-  url: string,
-): [string | undefined, string[]] {
-  switch (platform) {
-    case "darwin":
-      return ["open", [url]];
-    case "win32":
-      return ["rundll32", ["url.dll,FileProtocolHandler", url]];
-    case "linux":
-      return ["xdg-open", [url]];
-    default:
-      return [undefined, []];
-  }
 }
 
 function defaultSleep(ms: number): Promise<void> {

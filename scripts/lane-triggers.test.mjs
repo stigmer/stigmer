@@ -988,8 +988,8 @@ test("the action rule still finds the bodies and lanes it exists for", () => {
   });
   const callers = (name) =>
     [...laneCalls].filter(([, { actions: called }]) => called.includes(name)).map(([file]) => laneId(file));
-  assert.deepEqual(callers("playwright-chromium"), ["docs", "e2e-interactive", "ts-workspace"]);
-  assert.deepEqual(callers("temporal-cli"), ["agent-sandbox", "conformance-execution", "e2e-interactive"]);
+  assert.deepEqual(callers("playwright-chromium"), ["docs", "e2e-interactive", "first-hour", "ts-workspace"]);
+  assert.deepEqual(callers("temporal-cli"), ["agent-sandbox", "conformance-execution", "e2e-interactive", "first-hour"]);
 });
 
 test("every setup and install step in a gate lane is one this guard reads", () => {
@@ -1038,6 +1038,7 @@ test("the setup rule still finds the setups and installs it exists for", () => {
     "docs-snippets",
     "e2e-interactive",
     "ee",
+    "first-hour",
     "go-sdk",
     "java-sdk",
     "libs-install",
@@ -1111,6 +1112,7 @@ test("the make rule still finds the Makefiles, scripts and lanes it exists for",
     "docs-snippets",
     "e2e-interactive",
     "ee",
+    "first-hour",
     "libs-install",
     "operator",
     "plugins-static",

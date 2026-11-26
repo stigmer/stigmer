@@ -10,9 +10,12 @@
  * Every other fence (sample output, a fragment to splice into a file) is the
  * page talking, not a step.
  *
- * The pages show two targets in tabs, "On your machine" and "Stigmer Cloud".
- * The smoke runs the first; everything inside a `<Tab value="Stigmer Cloud">`
- * is skipped, files and commands alike.
+ * The pages show two targets in tabs, "On your machine" and "Stigmer Cloud"
+ * (TARGET_TABS). A run reads one of them (`target`, the machine's by
+ * default): everything inside the other target's `<Tab>` is skipped, files
+ * and commands alike. The getting-started smoke runs the machine's; the
+ * e2e first-hour journey runs the Cloud tab, against whichever server it
+ * targets, so neither tab goes unrun.
  *
  * A few lines are the install's, not the page's: they install the CLI or the
  * SDK, or hand Stigmer a model key. The page shows them; the harness performs
@@ -51,6 +54,9 @@ export const HARNESS_LINES = Object.freeze([
   { line: "npm install -g @stigmer/cli", performs: "cli" },
   { line: "npm install @stigmer/client @connectrpc/connect-node", performs: "sdk" },
   { line: "export ANTHROPIC_API_KEY=<your Anthropic API key>", performs: "model-key" },
+  // The quickstart's Stigmer Cloud tab, run by test/e2e's first-hour journey:
+  // the Organization the person just signed up to, which it reads, not types.
+  { line: "stigmer config context set --org <your-org>", performs: "org-context" },
   // The embedding tutorial (embed-agent.mdx), run by test/e2e's embed-tutorial project.
   { line: "npm create vite@latest my-app -- --template react-ts", performs: "vite-app" },
   { line: "npm install @stigmer/react-sdk @stigmer/client @stigmer/apis @bufbuild/protobuf @connectrpc/connect-node", performs: "react-sdk" },
@@ -80,8 +86,10 @@ export function registryPackagesOf(line) {
   return names.filter((name) => !name.startsWith("@stigmer/"));
 }
 
-/** The tab the smoke never runs: the hosted target, which needs an account. */
-export const SKIPPED_TAB = "Stigmer Cloud";
+/** The two targets a page shows in tabs; a run reads one and skips the other. */
+export const TARGET_TABS = Object.freeze(["On your machine", "Stigmer Cloud"]);
+/** The target a run reads unless it names one: the machine, which needs no account. */
+export const DEFAULT_TARGET = TARGET_TABS[0];
 
 const PLACEHOLDER = /<[^<>\s][^<>]*>|…/;
 const CLI_INSTALL = /\bbrew install\b|install\.sh|npm (?:install|i) (?:-g|--global)\b/;
@@ -94,9 +102,14 @@ const TAB_CLOSE = /<\/Tab>/;
  *   { kind: "file", path, content }      write `content` at `path`
  *   { kind: "command", line }            run `line` in bash
  *   { kind: "harness", line, performs }  the harness performs it (HARNESS_LINES' `performs`)
- * Throws on a fence left open, or a command the harness cannot run as written.
+ * `target` names the target tab the run reads (one of TARGET_TABS); the
+ * other target's tab is skipped.
+ * Throws on a fence left open, a command the harness cannot run as written,
+ * or a target that is not one of TARGET_TABS.
  */
-export function docSteps(mdx) {
+export function docSteps(mdx, { target = DEFAULT_TARGET } = {}) {
+  if (!TARGET_TABS.includes(target)) throw new Error(`no target tab "${target}": one of ${TARGET_TABS.join(", ")}`);
+  const skipped = TARGET_TABS.filter((tab) => tab !== target);
   const lines = mdx.split("\n");
   const steps = [];
   const tabs = [];
@@ -119,7 +132,7 @@ export function docSteps(mdx) {
       body.push(lines[i].startsWith(indent) ? lines[i].slice(indent.length) : lines[i]);
     }
     if (!closed) throw new Error(`the fence opened at line ${opened} never closes`);
-    if (tabs.includes(SKIPPED_TAB)) continue;
+    if (tabs.some((tab) => skipped.includes(tab))) continue;
     const { language, title } = parseInfo(info);
     if (title !== undefined) {
       // The reader copies what the page shows: a hidden setup above the

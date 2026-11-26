@@ -18,6 +18,19 @@ export const OIDC_STACK =
   process.env.STIGMER_E2E_OIDC === "1" ||
   process.env.STIGMER_E2E_OIDC === "true";
 
+/**
+ * The first-hour journey's own boot of the OIDC stack
+ * (STIGMER_E2E_FIRST_HOUR, `make test-e2e-first-hour`): its runner starts
+ * signed in, as a self-hosted server's does (the key the server stores as
+ * its `runner` service account's at boot), so listing a tool server's tools
+ * works as it does there. The console-login job's boot leaves it out: the
+ * In your app tab counts that account as the backend's
+ * (stigmer/stigmer#3478), which its spec would meet.
+ */
+export const FIRST_HOUR_STACK =
+  process.env.STIGMER_E2E_FIRST_HOUR === "1" ||
+  process.env.STIGMER_E2E_FIRST_HOUR === "true";
+
 /** The issuer's pinned port: the config must know the URL before the browser starts. */
 export const OIDC_ISSUER_PORT = Number(
   process.env.STIGMER_E2E_OIDC_PORT ?? "7299",
@@ -27,6 +40,12 @@ export const OIDC_ISSUER = `http://127.0.0.1:${OIDC_ISSUER_PORT}`;
 export const OIDC_AUDIENCE = "https://e2e.stigmer.test/api";
 /** The console's public PKCE client, as an operator would register it. */
 export const OIDC_CONSOLE_CLIENT_ID = "stigmer-console";
+/**
+ * The client for installed apps the server announces (getServerInfo), so
+ * `stigmer auth login` signs in on this stack as it does against any
+ * self-hosted server (the first-hour journey's CLI).
+ */
+export const OIDC_NATIVE_CLIENT_ID = "stigmer-cli";
 
 const REPO_ROOT = path.resolve(import.meta.dirname, "../../..");
 const ISSUER_MAIN = path.join(

@@ -14,7 +14,8 @@
 // file is read and which of its changes lower a floor; the layout rules (which
 // words a name may carry and when they are true, where a test may live, what
 // test/support may import) and the baseline that lists what does not follow
-// them yet; and, through a throwaway git repository, the command's exit codes
+// them yet; the owner and end date a first-hour journey quarantine names;
+// and, through a throwaway git repository, the command's exit codes
 // end to end.
 
 import assert from "node:assert/strict";
@@ -35,6 +36,7 @@ import {
   COVERAGE_FLOORS_NAME,
   checkConfig,
   checkLayout,
+  checkQuarantineTerms,
   compareInventories,
   explainRunSkips,
   formatReport,
@@ -1311,6 +1313,64 @@ it("the command: an unknown argument is a usage error, exit 2", () => {
   const r = repo();
   try {
     assert.equal(r.run("--nope").status, 2);
+  } finally {
+    rmSync(r.dir, { recursive: true, force: true });
+  }
+});
+
+it("a first-hour quarantine names an owner and an end date at most 14 days out; elsewhere the issue alone is enough", () => {
+  const path = "test/e2e/tests/first-hour/2-console-tool-call.spec.ts";
+  const file = (comment) => inv(`${comment}\ntest.skip("signs in from the plugin's page", async () => {});\n`, path);
+  const terms = (comment, today = "2026-11-26") => checkQuarantineTerms([file(comment)], today).map((f) => f.message);
+
+  assert.deepEqual(terms("// quarantined: stigmer/stigmer#1571 owner=whysosuresh until=2026-12-10"), []);
+  assert.deepEqual(terms("// quarantined: stigmer/stigmer#1571 owner=whysosuresh until=2026-11-26"), [], "ending today is still in force");
+  assert.deepEqual(terms("// quarantined: stigmer/stigmer#1571 until=2026-12-01"), [
+    `"signs in from the plugin's page" names no owner: add \`owner=<login>\` to its quarantine comment`,
+  ]);
+  assert.deepEqual(terms("// quarantined: stigmer/stigmer#1571 owner=whysosuresh"), [
+    `"signs in from the plugin's page" names no end date: add \`until=<YYYY-MM-DD>\`, at most 14 days out`,
+  ]);
+  assert.deepEqual(terms("// quarantined: stigmer/stigmer#1571 owner=whysosuresh until=2026-11-25"), [
+    `"signs in from the plugin's page" was quarantined until 2026-11-25, which has passed: fix it, or name a new owner and date`,
+  ]);
+  assert.deepEqual(terms("// quarantined: stigmer/stigmer#1571 owner=whysosuresh until=2026-12-11"), [
+    `"signs in from the plugin's page" is quarantined until 2026-12-11, more than 14 days out (2026-12-10 at the latest)`,
+  ]);
+  assert.deepEqual(terms("// quarantined: stigmer/stigmer#1571"), [
+    `"signs in from the plugin's page" names no owner: add \`owner=<login>\` to its quarantine comment`,
+    `"signs in from the plugin's page" names no end date: add \`until=<YYYY-MM-DD>\`, at most 14 days out`,
+  ]);
+  assert.equal(checkQuarantineTerms([file("// quarantined: stigmer/stigmer#1571")], "2026-11-26")[0].rule, "quarantine-terms");
+
+  const elsewhere = inv(`// quarantined: stigmer/stigmer#2482\ntest.skip("an environment", async () => {});\n`, "test/e2e/tests/functional/library-environments.spec.ts");
+  assert.deepEqual(checkQuarantineTerms([elsewhere], "2026-11-26"), []);
+  assert.deepEqual(file("// quarantined: stigmer/stigmer#1571 owner=@whysosuresh until=2026-12-10").skips[0].quarantine, {
+    repo: "stigmer/stigmer",
+    issue: 1571,
+    owner: "whysosuresh",
+    until: "2026-12-10",
+  });
+});
+
+it("the command: a first-hour quarantine with no owner or end date is refused, and passes once it names both", () => {
+  const r = repo();
+  const spec = "test/e2e/tests/first-hour/2-console-tool-call.spec.ts";
+  const until = new Date(Date.now() + 7 * 86_400_000).toISOString().slice(0, 10);
+  try {
+    r.write(spec, `test("signs in", async () => {});\n`);
+    r.git("add", ".");
+    r.git("commit", "-q", "-m", "base");
+
+    r.write(spec, `// quarantined: stigmer/stigmer#1571\ntest.skip("signs in", async () => {});\n`);
+    const refused = r.run();
+    assert.equal(refused.status, 1, refused.stdout);
+    assert.match(refused.stdout, /quarantine-terms .*"signs in" names no owner/);
+    assert.match(refused.stdout, /quarantine-terms .*"signs in" names no end date/);
+
+    r.write(spec, `// quarantined: stigmer/stigmer#1571 owner=whysosuresh until=${until}\ntest.skip("signs in", async () => {});\n`);
+    const named = r.run();
+    assert.doesNotMatch(named.stdout, /quarantine-terms/);
   } finally {
     rmSync(r.dir, { recursive: true, force: true });
   }

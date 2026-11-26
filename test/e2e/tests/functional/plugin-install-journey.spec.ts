@@ -7,17 +7,12 @@ import {
   HOSTED_REPO,
   HOSTED_SERVER,
   HOSTED_SKILL,
-  OAUTH_PLUGIN,
-  OAUTH_SERVER,
   UPLOADED_PLUGIN,
   UPLOADED_SERVER,
   UPLOADED_SKILL,
   routeHostedMarketplace,
   writeUploadPluginDir,
 } from "../../fixtures/hosted-marketplace";
-import { getOAuthMcpFixture } from "../../fixtures/oauth-mcp";
-
-const oauthMcp = getOAuthMcpFixture();
 
 /**
  * The console's plugin journeys, end to end and hermetic. A plugin is one
@@ -33,15 +28,6 @@ const oauthMcp = getOAuthMcpFixture();
  * plugin folder to the directory input as a browser would, read the same
  * preview, install, land on its page. No model is involved.
  *
- * The sign-in arm (STIGMER_E2E_OAUTH_MCP=1, `make test-e2e-oauth-mcp`): a
- * plugin whose one server is nothing but a URL installs; the control plane
- * completes its OAuth at save from the fixture's challenge; the plugin's
- * page carries Sign in; the popup consents through the fixture's login
- * server and the callback page; the row reads Signed in; Check tools lists
- * what the server offers now that the login is in My vault. No model runs
- * in this stack, so the tool call itself is the live proof's, not the
- * journey's. Skipped on a stack booted without the shape.
- *
  * Prerequisites:
  * - Local backend (auto-started by the Playwright global setup) and the web
  *   dev server (auto-started by the Playwright config).
@@ -51,7 +37,7 @@ test.describe("Plugin install journey", () => {
   test.describe.configure({ mode: "serial" });
 
   test.beforeEach(async ({ page, stigmerClient }) => {
-    await routeHostedMarketplace(page, oauthMcp?.mcpUrl);
+    await routeHostedMarketplace(page);
     // Each test is a fresh browser context, and with no organization stored
     // the console opens whichever its list answers first, newest first, so
     // one that another spec left behind would move the Marketplace's marks
@@ -165,58 +151,6 @@ test.describe("Plugin install journey", () => {
     const dialog = page.getByRole("dialog");
     await expect(dialog.getByText(/already installed; there is nothing to do/)).toBeVisible({ timeout: 15_000 });
     await expect(dialog.getByRole("button", { name: "Install", exact: true })).toBeDisabled();
-  });
-
-  // Flaky in the gate: it waits for "Signed in" after swallowing the sign-in
-  // popup's close timeout, and fails when the popup has not closed.
-  // quarantined: stigmer/stigmer#1571
-  test.skip("a URL-only OAuth server: completed at save, signed in from the plugin's page, its tools checked", async ({
-    page,
-    context,
-  }) => {
-    test.skip(oauthMcp === null, "Requires the OAuth MCP stack shape: run `make test-e2e-oauth-mcp` (STIGMER_E2E_OAUTH_MCP=1)");
-    test.setTimeout(120_000);
-
-    await page.goto("/marketplace");
-    await expect(page.getByRole("heading", { level: 1, name: "Marketplace" })).toBeVisible({ timeout: 15_000 });
-    await page.getByRole("button", { name: "Manage sources" }).click();
-    const sources = page.getByRole("dialog", { name: "Sources" });
-    await sources.getByText("Add your own catalogue").click();
-    await sources.getByRole("textbox", { name: "GitHub repository" }).fill(HOSTED_REPO);
-    await sources.getByRole("button", { name: "Add source" }).click();
-    await expect(sources.getByText(`Added source '${HOSTED_MARKETPLACE_NAME}'.`)).toBeVisible({ timeout: 15_000 });
-    await sources.getByRole("button", { name: "Close" }).click();
-
-    // The card wears the manifest's display name; the preview names one server and no agent.
-    const card = page.getByRole("listitem").filter({ has: page.getByRole("heading", { name: "Sign-in Kit" }) });
-    await expect(card).toBeVisible({ timeout: 15_000 });
-    await card.getByRole("button", { name: `Install ${OAUTH_PLUGIN}` }).click();
-    const dialog = page.getByRole("dialog", { name: `Install ${OAUTH_PLUGIN}` });
-    await expect(dialog.getByText(`1: ${OAUTH_SERVER} (http)`)).toBeVisible({ timeout: 15_000 });
-    const install = dialog.getByRole("button", { name: "Install", exact: true });
-    await expect(install).toBeEnabled({ timeout: 15_000 });
-    await install.click();
-
-    // The plugin's page: one server, not signed in, and Sign in beside it.
-    await page.waitForURL(new RegExp(`/library/plugins/[^/]+/${OAUTH_PLUGIN}$`), { timeout: 30_000 });
-    const signIn = page.getByRole("button", { name: `Sign in to ${OAUTH_SERVER}` });
-    await expect(signIn).toBeVisible({ timeout: 15_000 });
-    await expect(page.getByText("Not signed in")).toBeVisible();
-
-    // The popup: the fixture's login server consents by redirect to the
-    // console's callback page, which posts the code back and closes.
-    const popupPromise = context.waitForEvent("page");
-    await signIn.click();
-    const popup = await popupPromise;
-    await popup.waitForEvent("close", { timeout: 30_000 }).catch(() => undefined);
-    await expect(page.getByText("Signed in")).toBeVisible({ timeout: 30_000 });
-    await expect(page.getByRole("button", { name: `Sign in to ${OAUTH_SERVER}` })).toHaveCount(0);
-
-    // Check tools asks the server now, with the login My vault holds.
-    await page.getByRole("button", { name: "Check tools" }).click();
-    await expect(page.getByRole("list", { name: `Tools of ${OAUTH_SERVER}` }).getByRole("listitem").first()).toBeVisible({
-      timeout: 30_000,
-    });
   });
 
   test("Upload plugin: a folder handed to the directory input previews as the CLI would and installs", async ({ page }) => {

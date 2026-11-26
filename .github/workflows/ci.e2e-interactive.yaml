@@ -25,7 +25,7 @@
 # Needs NO secrets: the specs that need a model self-skip without an LLM key
 # (test.skip(!HAS_LLM_KEY)). Bringing those in via the mock-LLM proxy (the
 # interactive-approval pattern) is a tracked follow-up. The
-# functional job's OAuth MCP fixture is hermetic too (fixtures/oauth-mcp.ts).
+# console-login job's OAuth MCP fixture is hermetic too (fixtures/oauth-mcp.ts).
 #
 # Which changes need it is its list in scripts/ci-lanes.mjs; ci.gate.yaml
 # calls it for those, and a red job here turns `Gate`, the required check,
@@ -267,12 +267,12 @@ jobs:
       - name: Install Playwright browsers
         uses: ./.github/actions/playwright-chromium
 
-      - name: Run console-login suite, the In your app handover, the embedding tutorial and its tool sign-in (OIDC stack, mock model)
+      - name: Run console-login suite, the In your app handover and the embedding tutorial (OIDC stack, mock model)
         working-directory: test/e2e
         env:
           STIGMER_E2E_OIDC: "1"
           STIGMER_E2E_MOCK_LLM: "1"
-        run: npx playwright test --project=console-login --project=in-your-app --project=embed-tutorial --project=embed-sign-in --workers=1
+        run: npx playwright test --project=console-login --project=in-your-app --project=embed-tutorial --workers=1
 
       - name: Upload test results
         if: always()
@@ -422,17 +422,12 @@ jobs:
   # records. Its own jobs, not a project on the interactive step, for the
   # approval job's reason (the suites fail and re-run independently), and
   # because they run WITHOUT the mock LLM: that is the shape the tier was
-  # proven in, and no functional spec calls a model. Two stack shapes, each
-  # its own job (one Playwright run boots exactly one stack):
-  #   1. the plain stack, every functional spec, as two shards
-  #      (`--shard=<index>/2`): the specs are independent (the config's
-  #      fullyParallel), a serial describe stays whole within one shard, and
-  #      each shard boots its own stack on its own runner;
-  #   2. the OAuth MCP stack (`make test-e2e-oauth-mcp`), the plugin
-  #      journey's sign-in arm, which skips by name on the plain stack: the
-  #      conformance harness's OAuth MCP and login servers as one process,
-  #      the server's OAuth redirect at the console's callback page.
-  # Both stacks in one job, one after the other, would run 9 to 11 minutes.
+  # proven in, and no functional spec calls a model. The plain stack runs
+  # every functional spec, as two shards (`--shard=<index>/2`): the specs are
+  # independent (the config's fullyParallel), a serial describe stays whole
+  # within one shard, and each shard boots its own stack on its own runner.
+  # A sign-in to an OAuth tool server is the first-hour journey's
+  # (ci.first-hour.yaml).
   # scripts/ci-shards.test.mjs holds the shard matrix to the indices 1 and 2.
   e2e-functional:
     name: Functional E2E (plain stack, ${{ matrix.shard }}/2)
@@ -492,63 +487,5 @@ jobs:
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: e2e-functional-${{ matrix.shard }}-playwright-report
-          path: test/e2e/playwright-report/
-          retention-days: 30
-
-  e2e-functional-oauth:
-    name: Functional E2E (OAuth MCP stack)
-    runs-on: ubuntu-24.04
-    timeout-minutes: 30
-    steps:
-      - name: Checkout
-        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
-        with:
-          persist-credentials: false
-
-      - name: Restore the Turbo cache
-        uses: ./.github/actions/turbo-cache
-
-      - name: Setup Node.js
-        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
-        with:
-          node-version-file: ".nvmrc"
-
-      - name: Install npm workspace dependencies
-        run: npm ci
-
-      - name: Build SDK libraries
-        run: npm run build:libs
-
-      - name: Install Temporal CLI
-        uses: ./.github/actions/temporal-cli
-
-      - name: Build stigmer-server
-        run: make build-server
-
-      - name: Build unified runner
-        run: make build-runner
-
-      - name: Install Playwright browsers
-        uses: ./.github/actions/playwright-chromium
-
-      - name: Run the plugin journey's sign-in arm (OAuth MCP stack)
-        working-directory: test/e2e
-        env:
-          STIGMER_E2E_OAUTH_MCP: "1"
-        run: npx playwright test --project=functional plugin-install-journey
-
-      - name: Upload test results
-        if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
-        with:
-          name: e2e-functional-oauth-test-results
-          path: test/e2e/test-results/
-          retention-days: 30
-
-      - name: Upload Playwright report
-        if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
-        with:
-          name: e2e-functional-oauth-playwright-report
           path: test/e2e/playwright-report/
           retention-days: 30

@@ -1,12 +1,14 @@
 // The sign-in's own side effects, when no test double is injected: the
-// browser opens through the platform's launcher (spawned detached, its output
-// ignored), and a platform with none is told to open the URL itself; the
-// guidance goes to stderr; the wait asks every 2 seconds on the real clock;
-// the console probe counts any HTTP answer as serving and a refused
-// connection as not; and a vault read failing for any reason but a missing
-// My vault fails. The launcher is replaced at its module seam
-// (node:child_process), so no browser starts; the probe runs over a real
-// loopback listener.
+// browser opens the way every CLI sign-in opens one (auth/browser.ts):
+// `BROWSER` when it is set, run through the shell with the address as its
+// one argument, else the system's opener; where no browser can open (an SSH
+// session, no display), nothing is launched and the address is printed for
+// any device; the guidance goes to stderr; the wait asks every 2 seconds on
+// the real clock; the console probe counts any HTTP answer as serving and a
+// refused connection as not; and a vault read failing for any reason but a
+// missing My vault fails. The launchers are replaced at their module seams
+// (node:child_process and the `open` package), so no browser starts; the
+// probe runs over a real loopback listener.
 
 import { EventEmitter } from "node:events";
 import { createServer, type Server } from "node:http";
@@ -23,11 +25,21 @@ const launcher = vi.hoisted(() => ({
   calls: [] as { command: string; args: readonly string[]; options: unknown }[],
 }));
 
+const systemOpener = vi.hoisted(() => ({ opened: [] as string[] }));
+
+vi.mock("open", () => ({
+  default: async (url: string) => {
+    systemOpener.opened.push(url);
+  },
+}));
+
 vi.mock("node:child_process", () => ({
   spawn: (command: string, args: readonly string[], options: unknown) => {
     launcher.calls.push({ command, args, options });
     const child = new EventEmitter() as EventEmitter & { unref: () => void };
     child.unref = () => {};
+    // A launched command reports it started, as Node's spawn does.
+    queueMicrotask(() => child.emit("spawn"));
     return child;
   },
 }));
@@ -66,6 +78,8 @@ function deps(client: SignInClient, overrides: Partial<SignInDeps> = {}): SignIn
 }
 
 const originalPlatform = process.platform;
+/** The variables that decide whether and how a browser opens, cleared for each case. */
+const BROWSER_ENV = ["BROWSER", "SSH_CONNECTION", "SSH_TTY", "DISPLAY", "WAYLAND_DISPLAY"] as const;
 let stderr: string;
 
 function setPlatform(platform: NodeJS.Platform): void {
@@ -74,6 +88,8 @@ function setPlatform(platform: NodeJS.Platform): void {
 
 beforeEach(() => {
   launcher.calls.length = 0;
+  systemOpener.opened.length = 0;
+  for (const name of BROWSER_ENV) vi.stubEnv(name, "");
   stderr = "";
   vi.spyOn(process.stderr, "write").mockImplementation((chunk) => {
     stderr += String(chunk);
@@ -85,33 +101,66 @@ afterEach(() => {
   setPlatform(originalPlatform);
   vi.useRealTimers();
   vi.restoreAllMocks();
+  vi.unstubAllEnvs();
 });
 
 describe("runSignIn with its own effects", () => {
-  it("opens the login page with the platform's launcher, guides on stderr, and asks every 2 seconds", async () => {
+  it("opens the login page with the system's opener, guides on stderr, and asks every 2 seconds", async () => {
     setPlatform("darwin");
     vi.useFakeTimers();
     const { client, reads } = fakeClient(2);
     const done = runSignIn(deps(client));
 
+    // The system's opener loads on first use.
+    await vi.dynamicImportSettled();
     await vi.advanceTimersByTimeAsync(2000);
     expect(reads()).toBe(1);
     await vi.advanceTimersByTimeAsync(2000);
     await done;
 
     expect(reads()).toBe(2);
-    expect(launcher.calls).toEqual([{ command: "open", args: [LOGIN_PAGE], options: { stdio: "ignore", detached: true } }]);
+    expect(systemOpener.opened).toEqual([LOGIN_PAGE]);
+    expect(launcher.calls).toHaveLength(0);
     expect(stderr).toContain("Sign in to 'linear' with its login server.");
     expect(stderr).toContain(`If the browser doesn't open automatically, visit:\n  ${LOGIN_PAGE}`);
     expect(stderr).toContain(`Signed in to 'linear'. Saved in My vault as "Signed in at mcp.linear.app".`);
   });
 
-  it("tells the user to open the URL when the platform has no launcher", async () => {
-    setPlatform("aix");
+  it("opens it with BROWSER when it is set, the address as the command's one argument", async () => {
+    setPlatform("linux");
+    vi.stubEnv("BROWSER", "firefox --new-tab");
     const { client } = fakeClient(1);
     await runSignIn(deps(client, { sleep: async () => {} }));
+
+    expect(systemOpener.opened).toHaveLength(0);
+    expect(launcher.calls).toEqual([
+      {
+        command: "/bin/sh",
+        args: ["-c", 'firefox --new-tab "$1"', "stigmer-browser", LOGIN_PAGE],
+        options: { stdio: "ignore", detached: true },
+      },
+    ]);
+  });
+
+  it("launches nothing where no browser can open, and prints the address for any device", async () => {
+    setPlatform("linux");
+    const { client, reads } = fakeClient(1);
+    await runSignIn(deps(client, { sleep: async () => {} }));
+
+    expect(systemOpener.opened).toHaveLength(0);
     expect(launcher.calls).toHaveLength(0);
-    expect(stderr).toContain("Could not open the browser automatically. Open the URL above in your browser.");
+    expect(stderr).toContain(`No browser can open here. Open this address in a browser on any device to sign in:\n  ${LOGIN_PAGE}`);
+    expect(stderr).not.toContain("Opening the login page");
+    expect(reads()).toBe(1);
+  });
+
+  it("asks over SSH too, where a desktop's browser is not the person's", async () => {
+    setPlatform("darwin");
+    vi.stubEnv("SSH_CONNECTION", "10.0.0.1 22 10.0.0.2 22");
+    const { client } = fakeClient(1);
+    await runSignIn(deps(client, { sleep: async () => {} }));
+    expect(systemOpener.opened).toHaveLength(0);
+    expect(stderr).toContain("No browser can open here.");
   });
 });
 

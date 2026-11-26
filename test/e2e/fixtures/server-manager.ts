@@ -59,9 +59,8 @@ export interface ServerState {
   // file writes take the pre-execution approval gate instead of apply-then-review.
   // Specs read it to skip against the wrong stack shape.
   fileGateMode?: boolean;
-  // The OAuth MCP fixture's URLs, when the stack was booted in that shape
-  // (STIGMER_E2E_OAUTH_MCP); the spec reads them to name the server a fixture
-  // plugin installs.
+  // The OAuth MCP fixture's URLs, when the stack started it (the OIDC
+  // shape); the first-hour journey reads them to add the tool server.
   oauthMcp?: { readonly mcpUrl: string; readonly authorizationServer: string };
 }
 
@@ -108,6 +107,12 @@ export async function startBackendStack(opts: {
   // The shipped entry (one organization) instead of the library entry (any
   // number); the header says which shapes ask for it.
   singleOrg?: boolean;
+  // The runner's own credential (its STIGMER_TOKEN), for a server that signs
+  // its callers in: the key the operator also hands the server as
+  // STIGMER_RUNNER_API_KEY, which it stores as its `runner` service
+  // account's key at boot (boot/runner-key.ts), as Compose and the operator
+  // do. Unset, a placeholder the trusted-local server never checks.
+  runnerToken?: string;
 }): Promise<ServerState> {
   if (stack !== undefined) throw new Error("[e2e] the backend stack is already running");
   // Both entries run the built server; the library entry imports its body.
@@ -155,8 +160,9 @@ export async function startBackendStack(opts: {
       registryOrigin: server.baseUrl,
       ...(opts.mockLlmEndpoint !== undefined
         ? {
-            // The mock ignores the bearer and the OSS server is no-auth.
-            proxy: { endpoint: opts.mockLlmEndpoint, token: "e2e-mock-token" },
+            // The mock ignores the bearer; a trusted-local server checks
+            // none, and a signed-in one was handed this key at boot.
+            proxy: { endpoint: opts.mockLlmEndpoint, token: opts.runnerToken ?? "e2e-mock-token" },
             ...(opts.fileGates === true
               ? { artifactStore: "none" as const }
               : { artifactDir: server.artifactBaseDir }),
