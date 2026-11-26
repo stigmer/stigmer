@@ -31,6 +31,7 @@ import { test, expect } from "@playwright/test";
 import { create } from "@bufbuild/protobuf";
 import { createNodeClient } from "@stigmer/client/node";
 import { ApiResourceReferenceSchema } from "@stigmer/apis/ai/stigmer/commons/apiresource/io_pb";
+import { Computer } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
 import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { OIDC_STACK } from "../../fixtures/oidc";
 import { getOAuthMcpFixture } from "../../fixtures/oauth-mcp";
@@ -107,12 +108,15 @@ test.describe("a chat in an app on its own address signs in to the app's tool se
     await page.waitForURL(new RegExp(`/library/plugins/[^/]+/${SERVER}$`), { timeout: 60_000 });
     await expect(page.getByRole("button", { name: `Sign in to ${SERVER}` })).toBeVisible({ timeout: 30_000 });
 
-    // The tutorial's Agent uses it.
+    // The tutorial's Agent uses it. The fixture listens on this machine
+    // (loopback), which only an agent with a computer may reach; a host's
+    // tool server on the internet needs none.
     const bearer = await ownerBearer(page, API_PORT);
     const owner = createNodeClient({ baseUrl: API_URL, getAccessToken: () => bearer });
     const agent = await owner.agent.getByReference({ org: reader.org, slug: "variance-reporter" });
     agent.spec!.plugins = [create(ApiResourceReferenceSchema, { kind: ApiResourceKind.plugin, org: reader.org, slug: SERVER })];
-    await owner.agent.update(agent, ["spec.plugins"]);
+    agent.spec!.computer = Computer.REQUIRED;
+    await owner.agent.update(agent, ["spec.plugins", "spec.computer"]);
 
     // The tutorial's app, as its page writes it, on its own address.
     folder = mkdtempSync(join(tmpdir(), "stigmer-embed-sign-in-"));
