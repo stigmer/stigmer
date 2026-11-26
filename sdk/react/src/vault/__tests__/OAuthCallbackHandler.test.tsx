@@ -2,11 +2,12 @@
  * The callback page's handling of a login page's refusal: the page that
  * started the sign-in is told at once, on the broadcast channel and through
  * its opener, with the refusal and the state it belongs to, and the page
- * shows the refusal; a refusal with no state tells no one. A sign-in that
- * reaches no page to tell says it is connected, and to go back to the app the
- * host names; one handed back says it is connected and the window may close;
- * a page opened without the sign-in's code, or a window that started it but
- * can't be told, says the connection didn't finish.
+ * shows the refusal; a refusal with no state tells no one. A return that
+ * reaches no page to tell says so, and to go back to the app the host names;
+ * one sent says it was sent back and finishes in the app. Neither claims
+ * "Connected": the page cannot know the app finished. A page opened without
+ * the sign-in's code, or a window that started it but can't be told, says
+ * the connection didn't finish.
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render, screen } from "@testing-library/react";
@@ -60,7 +61,7 @@ describe("OAuthCallbackHandler when the login page refused", () => {
 });
 
 describe("OAuthCallbackHandler when no page can be told", () => {
-  it("says it is connected, and to go back to the app the host names", async () => {
+  it("says it could not reach the app, and to go back to it, never Connected", async () => {
     vi.stubGlobal("location", { ...window.location, search: "?code=c-1&state=st-1" });
     vi.stubGlobal("opener", null);
     vi.stubGlobal(
@@ -73,20 +74,24 @@ describe("OAuthCallbackHandler when no page can be told", () => {
     );
     render(<OAuthCallbackHandler appName="Stigmer" />);
 
-    expect(await screen.findByRole("heading", { name: "Connected" })).toBeTruthy();
-    expect(screen.getByText("Close this tab and go back to Stigmer to carry on.")).toBeTruthy();
+    expect(await screen.findByRole("heading", { name: "Go back to Stigmer" })).toBeTruthy();
+    expect(
+      screen.getByText("This window couldn't reach Stigmer, so nothing was finished here. Close this tab and try again from Stigmer."),
+    ).toBeTruthy();
+    expect(screen.queryByText("Connected")).toBeNull();
   });
 });
 
 describe("OAuthCallbackHandler handing the sign-in back", () => {
-  it("says it is connected once the window that started the sign-in is told", async () => {
+  it("says it was sent back once the window that started it is told, never Connected", async () => {
     const opener = { closed: false, postMessage: vi.fn() };
     at("?code=c-1&state=st-1", opener);
     vi.stubGlobal("close", vi.fn());
     render(<OAuthCallbackHandler />);
 
-    expect(await screen.findByRole("heading", { name: "Connected" })).toBeTruthy();
-    expect(screen.getByText("You can close this window.")).toBeTruthy();
+    expect(await screen.findByRole("heading", { name: "Sent back to the app" })).toBeTruthy();
+    expect(screen.getByText("It finishes in the app. You can close this window.")).toBeTruthy();
+    expect(screen.queryByText("Connected")).toBeNull();
     expect(opener.postMessage).toHaveBeenCalled();
   });
 

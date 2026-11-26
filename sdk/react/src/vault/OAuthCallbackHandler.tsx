@@ -1,11 +1,15 @@
 "use client";
 
 /**
- * The page a login page sends a person back to: it hands the `code` and
- * `state` to the page that started the sign-in (a vault sign-in at an
- * address, a Slack connect) and closes. It knows nothing of what was
- * signed in to; the page that started the flow completes it
- * (`useVaultSignIn`'s `completeSignIn`, the Slack connect's own call).
+ * The Slack install's return page: it hands the `code` and `state` to the
+ * page that started the install, in the same browser and on the same
+ * address, and closes. It knows nothing of what was installed; the page
+ * that started the flow completes it (the Slack connect's own call).
+ *
+ * A sign-in at an address returns to `SignInReturn` instead, which hands
+ * the answer to Stigmer, so it finishes from an app on any address. This
+ * page only sends: it never says "Connected", since it cannot know the
+ * page it sent to finished.
  */
 
 import { useEffect, useRef, useState } from "react";
@@ -42,7 +46,7 @@ export interface OAuthCallbackHandlerProps {
   readonly onFallback?: (params: OAuthCallbackParams) => void;
   /**
    * The app the person goes back to, as they know it ("Stigmer"), in the
-   * page's lines: "Close this tab and go back to Stigmer to carry on."
+   * page's lines: "Sent back to Stigmer".
    *
    * @default "the app"
    */
@@ -71,17 +75,18 @@ function announce(message: OAuthCallbackMessage): void {
 /**
  * Lightweight component for OAuth callback pages.
  *
- * Render this component at the URL configured as your OAuth redirect
- * URI (`STIGMER_OAUTH_REDIRECT_URI`). It extracts the `code` and
- * `state` query parameters from the current URL, posts them back to
- * the opener window via `window.postMessage`, and closes the popup.
+ * Render this component at the Slack install's redirect URI. It extracts
+ * the `code` and `state` query parameters from the current URL, posts them
+ * back to the opener window via `window.postMessage`, and closes the
+ * popup. A sign-in at an address (`STIGMER_OAUTH_REDIRECT_URI`) renders
+ * `SignInReturn`.
  *
  * The component handles three scenarios:
  * 1. **Popup with opener** (primary): posts the message and closes.
  * 2. **No opener, `onFallback` provided**: calls the fallback with
  *    the extracted parameters so the host app can handle them.
- * 3. **No opener, no fallback**: shows a message asking the user to
- *    return to the main window.
+ * 3. **No opener, no fallback**: says the window could not reach the app,
+ *    and to go back to it.
  *
  * When the login page refused (`error`), the refusal is passed to the
  * page that started the sign-in, so its wait ends at once, and shown here.
@@ -91,10 +96,10 @@ function announce(message: OAuthCallbackMessage): void {
  *
  * @example
  * ```tsx
- * // app/auth/oauth/callback/page.tsx (Next.js)
+ * // app/oauth/slack/callback/page.tsx (Next.js)
  * import { OAuthCallbackHandler } from "@stigmer/react-sdk";
  *
- * export default function OAuthCallbackPage() {
+ * export default function SlackCallbackPage() {
  *   return <OAuthCallbackHandler />;
  * }
  * ```
@@ -199,15 +204,22 @@ export function OAuthCallbackHandler({
     );
   }
   if (status === "done") {
-    return <ScreenColumn className={className} headingLevel={1} title="Connected" lead="You can close this window." />;
+    return (
+      <ScreenColumn
+        className={className}
+        headingLevel={1}
+        title={`Sent back to ${appName}`}
+        lead={`It finishes in ${appName}. You can close this window.`}
+      />
+    );
   }
   if (status === "no-opener") {
     return (
       <ScreenColumn
         className={className}
         headingLevel={1}
-        title="Connected"
-        lead={`Close this tab and go back to ${appName} to carry on.`}
+        title={`Go back to ${appName}`}
+        lead={`This window couldn't reach ${appName}, so nothing was finished here. Close this tab and try again from ${appName}.`}
       />
     );
   }

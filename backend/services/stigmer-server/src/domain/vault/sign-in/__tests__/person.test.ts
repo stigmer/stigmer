@@ -64,7 +64,8 @@ import type { CallerIdentity } from "../../../../extensions/identity.js";
 import { testCallerIdentity } from "../../../../pipeline/__tests__/support.js";
 import { MAX_VAULT_ENTRIES } from "../../constants.js";
 import { VaultConnectionSource } from "../../service.js";
-import { completePersonSignIn, handBackSignIn, startPersonSignIn } from "../person.js";
+import { errorReasonOf } from "../../../../pipeline/errors.js";
+import { SIGN_IN_ENDED_REASON, completePersonSignIn, handBackSignIn, startPersonSignIn } from "../person.js";
 import { SignInRenewalError } from "../../resolve.js";
 import { newSignInFreshener } from "../refresh.js";
 import {
@@ -306,7 +307,9 @@ describe("a sign-in saves into the signer's own vault", () => {
     await seedOrganizationApp(rig);
     const started = await start(alice);
     await complete(alice, started.state);
-    await expectRefusal(complete(alice, started.state), Code.FailedPrecondition, "expired or was already used");
+    const used = await expectRefusal(complete(alice, started.state), Code.FailedPrecondition, "expired or was already used");
+    // The reason a client asking after a failed ask reads as "that ask took it".
+    expect(errorReasonOf(used)).toBe(SIGN_IN_ENDED_REASON);
   });
 });
 
@@ -387,7 +390,8 @@ describe("the login page's answer, handed back and collected", () => {
 
   it("refuses an unknown or expired state, and a Connect link's, at the hand-back", async () => {
     await seedOrganizationApp(rig);
-    await expectRefusal(handBack("never-started"), Code.FailedPrecondition, "expired or was already used");
+    const unknown = await expectRefusal(handBack("never-started"), Code.FailedPrecondition, "expired or was already used");
+    expect(errorReasonOf(unknown)).toBe(SIGN_IN_ENDED_REASON);
 
     const started = await start(alice);
     const row = (await rig.store.pendingOAuthStates.getAndDelete(started.state))!;
@@ -395,7 +399,8 @@ describe("the login page's answer, handed back and collected", () => {
     await expectRefusal(handBack("aged"), Code.FailedPrecondition, "expired or was already used");
 
     await rig.store.pendingOAuthStates.save({ ...row, state: "link", identityAccountId: "", connectLink: "link-hash", createdAt: 0 });
-    await expectRefusal(handBack("link"), Code.FailedPrecondition, "started by a Connect link");
+    const link = await expectRefusal(handBack("link"), Code.FailedPrecondition, "started by a Connect link");
+    expect(errorReasonOf(link)).toBeUndefined();
     expect((await rig.store.pendingOAuthStates.find("link"))?.answer).toBeUndefined();
   });
 

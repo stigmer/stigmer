@@ -24,6 +24,11 @@
  * code passed after one, is refused. A sign-in a Connect link started is
  * not a person's: its own public completion finishes it (connect-link.ts).
  *
+ * An unknown, expired or used sign-in is refused with the reason
+ * SIGN_IN_ENDED, so an app asking again after an ask that failed (a token
+ * exchange the provider refused, which already took the sign-in) can tell
+ * that the earlier failure is the outcome, without reading the message.
+ *
  * Proven by __tests__/person.test.ts and the sign-in conformance suite.
  */
 import { create } from "@bufbuild/protobuf";
@@ -258,8 +263,17 @@ async function readPending<T>(read: () => Promise<T>): Promise<T> {
   }
 }
 
+/**
+ * The reason an unknown, expired or used sign-in is refused with, documented
+ * on completeSignIn and handBackSignIn. A client asking after a failed ask
+ * reads it as "that ask took the sign-in" and reports the earlier failure.
+ */
+export const SIGN_IN_ENDED_REASON = "SIGN_IN_ENDED";
+
 function spentSignIn(): Error {
-  return failedPreconditionError("this sign-in has expired or was already used: start it again");
+  return failedPreconditionError("this sign-in has expired or was already used: start it again", {
+    reason: SIGN_IN_ENDED_REASON,
+  });
 }
 
 function connectLinksOwnPage(): Error {

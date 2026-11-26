@@ -408,6 +408,7 @@ export {
   CreateVaultForm,
   VaultPicker,
   EnvVarForm,
+  SignInReturn,
   OAuthCallbackHandler,
 } from "./vault/index.js";
 export type {
@@ -416,6 +417,7 @@ export type {
   CreateVaultFormProps,
   VaultPickerProps,
   EnvVarFormProps,
+  SignInReturnProps,
   OAuthCallbackHandlerProps,
 } from "./vault/index.js";
 

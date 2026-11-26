@@ -46,10 +46,11 @@
 // Every network counterparty is the suite-owned mock login server
 // (test/support/src/oauth-authorization-server.ts), which serves the
 // protected-resource documents of the addresses on its own origin.
-import { Code } from "@connectrpc/connect";
+import { Code, type ConnectError } from "@connectrpc/connect";
 import { VaultConnectionSource } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/spec_pb";
 import { SignInReturn } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/io_pb";
 import { TokenEndpointAuthMethod, VendorApprovalStatus } from "@stigmer/apis/ai/stigmer/iam/oauthapp/v1/spec_pb";
+import { ErrorInfoSchema } from "@stigmer/apis/google/rpc/error_details_pb";
 import { createHash } from "node:crypto";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import { expectGrpcCode } from "../contract/errors";
@@ -123,6 +124,13 @@ async function myVault(org: string) {
   const mine = await clients.vaultQuery.getMine({ org });
   fixtures.defer(() => clients.vaultCommand.delete({ resourceId: mine.metadata!.id }));
   return mine;
+}
+
+// The ErrorInfo reason a refusal carries, if any: what a client asking
+// after a failed ask branches on.
+function reasonOf(error: ConnectError): { reason: string; domain: string } | undefined {
+  const [info] = error.findDetails(ErrorInfoSchema);
+  return info === undefined ? undefined : { reason: info.reason, domain: info.domain };
 }
 
 describe("vault sign-in conformance — the request's own rules", () => {
@@ -455,6 +463,7 @@ describe("vault sign-in conformance — completion", () => {
       "completeSignIn with an unknown state",
     );
     expect(unknown.rawMessage).toBe("this sign-in has expired or was already used: start it again");
+    expect(reasonOf(unknown)).toEqual({ reason: "SIGN_IN_ENDED", domain: "stigmer.ai" });
 
     const started = await clients.vaultCommand.startSignIn({ vault: myVaultTarget(org), address: discoveredAddress() });
     await clients.vaultCommand.completeSignIn({ state: started.state, code: "first-code" });
@@ -465,6 +474,7 @@ describe("vault sign-in conformance — completion", () => {
       "completeSignIn with a used state",
     );
     expect(reused.rawMessage).toBe("this sign-in has expired or was already used: start it again");
+    expect(reasonOf(reused)).toEqual({ reason: "SIGN_IN_ENDED", domain: "stigmer.ai" });
   });
 
   it("[rpc:VaultCommandController.completeSignIn] rejects an empty state (InvalidArgument)", async () => {
@@ -515,6 +525,7 @@ describe("vault sign-in conformance — completion", () => {
       "handBackSignIn for an answered sign-in",
     );
     expect(second.rawMessage).toBe("this sign-in has expired or was already used: start it again");
+    expect(reasonOf(second)).toEqual({ reason: "SIGN_IN_ENDED", domain: "stigmer.ai" });
     const ended = await expectGrpcCode(
       () => clients.vaultCommand.completeSignIn({ state: refused.state }),
       Code.FailedPrecondition,
@@ -523,6 +534,7 @@ describe("vault sign-in conformance — completion", () => {
     expect(ended.rawMessage).toBe(
       "The login page did not sign you in: The user denied the request. Nothing was saved",
     );
+    expect(reasonOf(ended)).toBeUndefined();
     expect(mockAs.capturedTokenRequests()).toHaveLength(0);
 
     const unknown = await expectGrpcCode(
@@ -531,6 +543,7 @@ describe("vault sign-in conformance — completion", () => {
       "handBackSignIn with an unknown state",
     );
     expect(unknown.rawMessage).toBe("this sign-in has expired or was already used: start it again");
+    expect(reasonOf(unknown)).toEqual({ reason: "SIGN_IN_ENDED", domain: "stigmer.ai" });
   });
 
   it("[rpc:VaultCommandController.handBackSignIn] rejects an empty state, and an answer that is both or neither a code and an error (InvalidArgument)", async () => {

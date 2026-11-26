@@ -1,12 +1,12 @@
 "use client";
 
-import { Suspense, useEffect, useMemo, useState, useSyncExternalStore } from "react";
+import { Suspense, useEffect, useMemo, useState, useSyncExternalStore, type ReactNode } from "react";
 import { useSearchParams } from "next/navigation";
 import { useTheme } from "next-themes";
 import { Stigmer } from "@stigmer/client";
 import {
   ConnectLinkCallback,
-  OAuthCallbackHandler,
+  SignInReturn,
   StigmerProvider,
   pendingConnectLinkToken,
 } from "@stigmer/react-sdk";
@@ -25,8 +25,9 @@ const BRIDGE_FALLBACK_MS = 3000;
  * The one page every sign-in's login page returns to
  * (`STIGMER_OAUTH_REDIRECT_URI`), whoever started it. It is public
  * (`PUBLIC_ROUTES` in `providers/Providers.tsx`): a Connect link's customer
- * has no Stigmer session, and a popup needs none. Three cases, decided in
- * the browser once the page has loaded:
+ * has no Stigmer session, and a sign-in started by an app on another
+ * address, or by the CLI, has none here either. Three cases, decided in the
+ * browser once the page has loaded:
  *
  * - `source=desktop`: the sign-in was started by Stigmer Desktop in the
  *   system browser. The page hands the code and state on to the app through
@@ -37,8 +38,11 @@ const BRIDGE_FALLBACK_MS = 3000;
  *   on to the integrator's return URL. The state decides, never
  *   `window.opener`: an integrator may open the link in a window of its
  *   own, whose opener a browser lets this page see.
- * - Otherwise a popup: the SDK's `OAuthCallbackHandler` posts the code and
- *   state back to the page that opened it.
+ * - Otherwise a sign-in at an address: the SDK's `SignInReturn` hands the
+ *   login page's answer to Stigmer (public; the state is the authority),
+ *   and the app or terminal that started the sign-in collects it under its
+ *   own session. Nothing goes between windows, so it works for an app on
+ *   any address and a login page that cuts the window off from its opener.
  */
 export default function OAuthCallbackPage() {
   return (
@@ -49,7 +53,7 @@ export default function OAuthCallbackPage() {
 }
 
 /** What finishes this return, read in the browser only (the export prerenders nothing of it). */
-type CallbackMode = "desktop" | "popup" | `connect-link:${string}`;
+type CallbackMode = "desktop" | "sign-in" | `connect-link:${string}`;
 
 const CONNECT_LINK_MODE = "connect-link:";
 
@@ -67,21 +71,25 @@ function CallbackRouter() {
     () => {
       if (fromDesktop) return "desktop";
       const token = pendingConnectLinkToken(state);
-      return token !== null ? `${CONNECT_LINK_MODE}${token}` : "popup";
+      return token !== null ? `${CONNECT_LINK_MODE}${token}` : "sign-in";
     },
     () => null,
   );
 
   if (mode === null) return null;
   if (mode === "desktop") return <DesktopSignInBridge />;
-  if (mode === "popup") {
+  if (mode === "sign-in") {
     return (
-      <StandaloneScreen mark={<StigmerLogo size={40} />}>
-        <OAuthCallbackHandler appName="Stigmer" />
-      </StandaloneScreen>
+      <PublicCall>
+        <SignInReturn />
+      </PublicCall>
     );
   }
-  return <ConnectLinkCompletion token={mode.slice(CONNECT_LINK_MODE.length)} />;
+  return (
+    <PublicCall help>
+      <ConnectLinkCallback token={mode.slice(CONNECT_LINK_MODE.length)} />
+    </PublicCall>
+  );
 }
 
 /**
@@ -127,15 +135,19 @@ function DesktopSignInBridge() {
   );
 }
 
-/** A Connect link's completion, with its own client and no token: the call is public. */
-function ConnectLinkCompletion({ token }: { readonly token: string }) {
+/**
+ * A return finished by a public call (a Connect link's completion, a
+ * sign-in's hand-back), with its own client and no token: the person may
+ * have no Stigmer session on this address.
+ */
+function PublicCall({ children, help }: { readonly children: ReactNode; readonly help?: boolean }) {
   const { resolvedTheme } = useTheme();
   const colorMode: ResolvedColorMode = resolvedTheme === "dark" ? "dark" : "light";
   const client = useMemo(() => new Stigmer({ baseUrl: getApiBaseUrl(), getAccessToken: () => null }), []);
   return (
     <StigmerProvider client={client} colorMode={colorMode}>
-      <StandaloneScreen mark={<StigmerLogo size={40} />} help>
-        <ConnectLinkCallback token={token} />
+      <StandaloneScreen mark={<StigmerLogo size={40} />} help={help}>
+        {children}
       </StandaloneScreen>
     </StigmerProvider>
   );

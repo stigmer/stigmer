@@ -25,7 +25,7 @@
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { create } from "@bufbuild/protobuf";
-import { isTransientStreamError, type Stigmer } from "@stigmer/client";
+import { getErrorReason, isTransientStreamError, type Stigmer } from "@stigmer/client";
 import {
   CompleteSignInInputSchema,
   SignInReturn,
@@ -96,6 +96,13 @@ export function completeSignInInput(state: string, code = "") {
   return create(CompleteSignInInputSchema, { state, code });
 }
 
+/**
+ * The reason `completeSignIn` refuses a sign-in that is unknown, expired or
+ * already finished with (FAILED_PRECONDITION, a `google.rpc.ErrorInfo` of
+ * domain "stigmer.ai"): it is over, start it again.
+ */
+export const SIGN_IN_ENDED = "SIGN_IN_ENDED";
+
 /** How long a sign-in asks every second before it settles to every two: a person signing in usually takes less. */
 const ASK_QUICKLY_FOR_MS = 30_000;
 const QUICK_ASK_MS = 1_000;
@@ -112,9 +119,10 @@ const SETTLED_ASK_MS = 2_000;
  * aborts. A transient failure (a dropped connection, a server restarting:
  * `isTransientStreamError`) is retried with full-jitter backoff and never
  * ends the wait. A failure that is not transient ends it, with one reading:
- * the ask that found the answer takes the sign-in, so a refusal saying it is
- * spent, right after a failed ask, means that ask spent it, and its failure
- * is the one reported.
+ * the ask that found the answer takes the sign-in, so a refusal with the
+ * reason {@link SIGN_IN_ENDED} right after a failed ask (a token exchange the
+ * login server refused answers UNAVAILABLE) means that ask took it, and its
+ * failure is the one reported.
  *
  * @param now - The clock; injectable so tests need not wait.
  */
@@ -137,7 +145,8 @@ export async function awaitSignIn(
       await sleep(now() - began < ASK_QUICKLY_FOR_MS ? QUICK_ASK_MS : SETTLED_ASK_MS, signal);
     } catch (err) {
       if (err instanceof AbortError || signal.aborted) throw new AbortError();
-      if (!isTransientStreamError(err)) throw lastFailure ?? err;
+      if (lastFailure !== undefined && getErrorReason(err)?.reason === SIGN_IN_ENDED) throw lastFailure;
+      if (!isTransientStreamError(err)) throw err;
       failedInARow += 1;
       lastFailure = err;
       await sleep(computeBackoffDelay(failedInARow, { baseDelayMs: QUICK_ASK_MS, maxDelayMs: 10_000 }), signal);

@@ -2,11 +2,20 @@
 //
 // The login is saved in the caller's My vault at the server's address, by
 // the vault's own sign-in: `startSignIn` answers the login page, the browser
-// signs in there, and the console's callback page finishes the sign-in
-// (`completeSignIn`) as the same person. The CLI only opens the page and
-// waits until My vault holds a login at the address, reading connection
-// names and never a token. The wait polls every 3 seconds for at most 10
-// minutes, the life of a started sign-in.
+// signs in there, and the console's callback page hands the login page's
+// answer to Stigmer (`handBackSignIn`, public). The CLI collects it as the
+// person who started the sign-in, by asking `completeSignIn` with the
+// sign-in's state and no code every 2 seconds: the server answers pending
+// until the answer is there, then saves the login in that same ask. The
+// server's ten-minute life of a sign-in governs the wait, not a clock here.
+// The CLI prints whose login was saved ("GitHub @ana", or the host), so a
+// login that is not the person's shows itself.
+//
+// The ask that finds the answer takes the sign-in, so a failure there (a
+// token exchange the login server refused answers UNAVAILABLE) is the
+// sign-in's outcome: a transient failure is asked again, and a refusal
+// with the reason SIGN_IN_ENDED right after one means that ask took it, so
+// its failure is the one reported.
 //
 // The callback page is the console's, so a local backend's console must be
 // running; it is probed first, and when it is not, the user is pointed at
@@ -20,18 +29,25 @@
 import { create } from "@bufbuild/protobuf";
 import { Code } from "@connectrpc/connect";
 import {
+  CompleteSignInInputSchema,
   GetMyVaultInputSchema,
   SignInReturn,
   StartSignInInputSchema,
 } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/io_pb";
 import type { Vault } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/api_pb";
-import { type Stigmer, StigmerError } from "@stigmer/client";
+import { getErrorReason, isTransientStreamError, type Stigmer, StigmerError } from "@stigmer/client";
 import { UsageError } from "../../errors/index.js";
-import { holdsLoginFor } from "./address.js";
 
-const POLL_INTERVAL_MS = 3000;
-const POLL_TIMEOUT_MS = 10 * 60 * 1000;
+const ASK_INTERVAL_MS = 2000;
+/** The longest pause between asks while the server keeps failing on the way. */
+const MAX_RETRY_DELAY_MS = 10_000;
 const CONSOLE_PROBE_TIMEOUT_MS = 2000;
+
+/**
+ * The reason `completeSignIn` refuses a sign-in that is unknown, expired or
+ * already finished with (its google.rpc.ErrorInfo, domain "stigmer.ai").
+ */
+const SIGN_IN_ENDED = "SIGN_IN_ENDED";
 
 /** The vault reads and the sign-in start this flow needs. */
 export type SignInClient = Pick<Stigmer, "vault">;
@@ -56,8 +72,6 @@ export interface SignInDeps {
   readonly openBrowser?: (url: string) => Promise<void>;
   /** Probes whether the local web console is reachable. Defaults to a 2s GET. */
   readonly probeConsole?: (url: string) => Promise<boolean>;
-  /** Current epoch ms. Injectable for deterministic timeout tests. */
-  readonly now?: () => number;
   /** Sleep helper. Injectable so tests don't wait real seconds. */
   readonly sleep?: (ms: number) => Promise<void>;
   /** Human-facing log sink (stderr by default, so stdout stays machine-clean). */
@@ -65,9 +79,9 @@ export interface SignInDeps {
 }
 
 /**
- * Start the sign-in, open its login page, and wait until My vault holds a
- * login at the address. Throws a {@link UsageError} when the local console
- * is unreachable or the wait times out.
+ * Start the sign-in, open its login page, and wait until it is finished
+ * ({@link waitForSignIn}). Throws a {@link UsageError} when the local
+ * console is unreachable or the sign-in ended unfinished.
  */
 export async function runSignIn(deps: SignInDeps): Promise<void> {
   const log = deps.log ?? stderrLog;
@@ -94,30 +108,45 @@ export async function runSignIn(deps: SignInDeps): Promise<void> {
     log("  Could not open the browser automatically. Open the URL above in your browser.");
   }
 
-  await waitForLogin(deps);
+  await waitForSignIn(deps, started.state);
 }
 
 /**
- * Poll My vault every 3s until it holds a login at the address, or the
- * 10-minute life of a sign-in elapses. Throws a {@link UsageError} on
- * timeout.
+ * Ask the server every 2s to finish the sign-in (`completeSignIn` with no
+ * code) until it is saved, then print whose login it is. A transient
+ * failure is asked again after a growing pause; the login page's refusal
+ * ends the wait in its words; a sign-in that ended (expired after its ten
+ * minutes, or already used) ends it with a {@link UsageError}, unless an
+ * ask just failed, which is then the failure reported.
  */
-export async function waitForLogin(deps: SignInDeps): Promise<void> {
+export async function waitForSignIn(deps: SignInDeps, state: string): Promise<void> {
   const log = deps.log ?? stderrLog;
-  const now = deps.now ?? Date.now;
   const sleep = deps.sleep ?? defaultSleep;
-  const deadline = now() + POLL_TIMEOUT_MS;
+  let failedInARow = 0;
+  let lastFailure: unknown;
 
   log("Waiting for the sign-in... (press Ctrl+C to cancel)");
   for (;;) {
-    await sleep(POLL_INTERVAL_MS);
-    if (now() >= deadline) {
-      throw new UsageError(`timed out waiting for the sign-in to '${deps.serverName}'; run ${deps.rerun} to try again`);
-    }
-    const vault = await readMyVault(deps.client, deps.org);
-    if (vault !== undefined && holdsLoginFor(vault.spec?.connections ?? {}, deps.address)) {
-      log("Signed in.\n");
+    await sleep(failedInARow === 0 ? ASK_INTERVAL_MS : Math.min(ASK_INTERVAL_MS * 2 ** failedInARow, MAX_RETRY_DELAY_MS));
+    try {
+      const answer = await deps.client.vault.completeSignIn(create(CompleteSignInInputSchema, { state }));
+      if (answer.pending) {
+        failedInARow = 0;
+        lastFailure = undefined;
+        continue;
+      }
+      log(`Signed in: ${answer.description || answer.address}\n`);
       return;
+    } catch (err) {
+      if (getErrorReason(err)?.reason === SIGN_IN_ENDED) {
+        if (lastFailure !== undefined) throw lastFailure;
+        throw new UsageError(
+          `the sign-in to '${deps.serverName}' expired or was already used; run ${deps.rerun} to try again`,
+        );
+      }
+      if (!isTransientStreamError(err)) throw err;
+      failedInARow += 1;
+      lastFailure = err;
     }
   }
 }
