@@ -5,7 +5,12 @@
  * token pasted at the server's own URL in My vault satisfies it; a sign-in
  * at the server's address kept in a vault the conversation lists satisfies
  * it too; a conversation that leaves My vault out counts none of its
- * logins; an agent of another organization never reads My vault.
+ * logins; an agent of another organization never reads My vault. A chat
+ * that names its organization by slug with no organization list mounted
+ * (an embedded chat: `agent="acme/reviewer"`) finds the id among the
+ * person's own organizations, so its organization's agent reads My vault
+ * and saves its sign-ins there; a slug the person's organizations do not
+ * hold is judged as named.
  *
  * And where an owed sign-in can be saved (`signInVaults`), on the state and
  * the result alike: My vault for a run that may read it, whether or not the
@@ -34,6 +39,8 @@ import { VaultConnectionSource } from "@stigmer/apis/ai/stigmer/agentic/vault/v1
 import { EnvVarDeclarationSchema } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/declaration_pb";
 import { GrantQueryController } from "@stigmer/apis/ai/stigmer/iam/grant/v1/query_pb";
 import { CheckAuthorizationResultSchema } from "@stigmer/apis/ai/stigmer/iam/grant/v1/io_pb";
+import { OrganizationQueryController } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/query_pb";
+import { OrganizationsSchema } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/io_pb";
 
 import { StigmerContext } from "@stigmer/react-core";
 import { FetchCacheContext } from "@stigmer/react-core/internal";
@@ -98,7 +105,12 @@ interface World {
   readonly agentOrg?: string;
   /** The answer to "may I edit this vault?": yes, no, or a failed check. */
   readonly canEdit?: boolean | "fails";
+  /** How the chat names its organization: its id (the default) or a slug. */
+  readonly chatOrg?: string;
 }
+
+/** The person's own organizations, as `listMine` answers them: acme, by id and slug. */
+const ACME_SLUG = "acme";
 
 /** Each permission the hook asked, as `kind/id:relation`. */
 const asked: string[] = [];
@@ -135,6 +147,10 @@ function client(world: World) {
           return world.shared;
         },
       });
+      service(OrganizationQueryController, {
+        listMine: () =>
+          create(OrganizationsSchema, { entries: [{ metadata: { id: ORG, slug: ACME_SLUG } }], nextPageToken: "" }),
+      });
       service(GrantQueryController, {
         checkMyPermission: (input) => {
           asked.push(`${input.resource?.kind}/${input.resource?.id}:${input.relation}`);
@@ -169,7 +185,8 @@ async function resolveWith(
     includeMyVault: world.includeMyVault ?? MY_VAULT_ONLY.includeMyVault,
     vaults: world.shared === undefined ? [] : [{ org: ORG, slug: "team" }],
   };
-  const { result } = renderHook(() => ({ setup: useAgentSetup(ORG, undefined, choice), mine: useMyVault(ORG) }), {
+  const chatOrg = world.chatOrg ?? ORG;
+  const { result } = renderHook(() => ({ setup: useAgentSetup(chatOrg, undefined, choice), mine: useMyVault(chatOrg) }), {
     wrapper: wrapper(client(world)),
   });
   await waitFor(() => expect(result.current.mine.isLoading).toBe(false));
@@ -210,6 +227,24 @@ describe("useAgentSetup counts the logins a run reads", () => {
       mine: vaultWithLogin("mine"),
       agentOrg: "org_globex",
     });
+    expect(state).toMatchObject({ status: "needsEnvVars", pendingSignIns: [expect.objectContaining({ address: LINEAR_URL })] });
+  });
+});
+
+describe("useAgentSetup with a chat that names its organization by slug", () => {
+  it("counts My vault's login for its own organization's agent, found among the person's organizations", async () => {
+    const state = await resolveSettled({ mine: vaultWithLogin("mine"), chatOrg: ACME_SLUG });
+    expect(state).toMatchObject({ status: "ready", resolution: { mode: "direct" } });
+  });
+
+  it("saves its owed sign-ins in My vault, asking no vault's permission", async () => {
+    const { state } = await resolveWith({ mine: null, chatOrg: ACME_SLUG });
+    expect(state).toMatchObject({ status: "needsEnvVars", signInVaults: { kind: "my-vault" } });
+    expect(asked).toEqual([]);
+  });
+
+  it("judges a slug the person's organizations do not hold as named: another organization's run", async () => {
+    const state = await resolveSettled({ mine: vaultWithLogin("mine"), chatOrg: "globex" });
     expect(state).toMatchObject({ status: "needsEnvVars", pendingSignIns: [expect.objectContaining({ address: LINEAR_URL })] });
   });
 });
