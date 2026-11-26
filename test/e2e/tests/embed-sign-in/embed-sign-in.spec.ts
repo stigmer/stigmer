@@ -111,7 +111,8 @@ test.describe("a chat in an app on its own address signs in to the app's tool se
 
     // The callback page says where the person signed in, never "Connected",
     // and the chat finishes the sign-in itself.
-    await expect(app.getByText("Signed in")).toBeVisible({ timeout: 60_000 });
+    // Exact: "Not signed in" holds the words too.
+    await expect(app.getByText("Signed in", { exact: true })).toBeVisible({ timeout: 60_000 });
     await expect(app.getByRole("button", { name: `Sign in to ${SERVER}` })).toHaveCount(0);
     if (!popup.isClosed()) {
       await expect(popup.getByRole("heading", { name: /^You're signed in at / })).toBeVisible();
