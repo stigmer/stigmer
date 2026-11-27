@@ -3,7 +3,7 @@
     "react-sdk/provider": 12000,
     "react-sdk/session": 540672,
     "react-sdk/chat": 326656,
-    "react-sdk/styles": 14772,
+    "react-sdk/styles": 15028,
     "embed/loader": 1558
   },
   "images": {

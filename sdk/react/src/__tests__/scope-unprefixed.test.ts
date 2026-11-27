@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import postcss from "postcss";
-import { scopeUnprefixedSelectors } from "../../scripts/lib/scope-unprefixed";
+import { CHILD_UTILITY_SPECIFICITY, raiseChildUtilities, scopeUnprefixedSelectors } from "../../scripts/lib/scope-unprefixed";
 
 /**
  * Fixture-level pins for the build's scoping pass (stage 2 of
@@ -69,6 +69,19 @@ describe("scopeUnprefixedSelectors", () => {
     expect(transform(base)).toBe(base);
   });
 
+  it("leaves the kit's own unlayered stg: utilities untouched (#3491)", () => {
+    // Their names already keep them off host elements; a guard would stop
+    // them applying to a kit part rendered outside a `.stgm` container.
+    const utility = ".stg\\:flex{display:flex}";
+    expect(transform(utility)).toBe(utility);
+    const variant = ".stg\\:peer-checked\\:opacity-100:is(:where(.stg\\:peer):checked~*){opacity:1}";
+    expect(transform(variant)).toBe(variant);
+    // A list that mixes in an unprefixed alternative is still scoped whole.
+    expect(transform(".stg\\:flex,.vendor{display:flex}")).toBe(
+      ".stg\\:flex:where(.stgm, .stgm *),.vendor:where(.stgm, .stgm *){display:flex}",
+    );
+  });
+
   it("leaves keyframe steps untouched", () => {
     const kf = "@keyframes spin{to{transform:rotate(360deg)}}";
     expect(transform(kf)).toBe(kf);
@@ -84,3 +97,34 @@ describe("scopeUnprefixedSelectors", () => {
     expect(transform(once)).toBe(once);
   });
 });
+
+function raise(css: string): string {
+  const root = postcss.parse(css);
+  raiseChildUtilities(root);
+  return root.toString();
+}
+
+describe("raiseChildUtilities (#3491)", () => {
+  it("lifts a parent's zero-specificity child rule to (0,0,3), matching the same elements", () => {
+    expect(raise(":where(.stg\\:space-y-2>:not(:last-child)){margin-block-end:8px}")).toBe(
+      `:where(.stg\\:space-y-2>:not(:last-child))${CHILD_UTILITY_SPECIFICITY}{margin-block-end:8px}`,
+    );
+  });
+
+  it("leaves ordinary utilities, layered rules and host-shaped selectors alone", () => {
+    for (const css of [
+      ".stg\\:flex{display:flex}",
+      "@layer base{:where(.stg\\:space-y-2>:not(:last-child)){margin:0}}",
+      ":where(.vendor>*){margin:0}",
+      ":where(.stg\\:x)::placeholder{color:red}",
+    ]) {
+      expect(raise(css)).toBe(css);
+    }
+  });
+
+  it("is idempotent", () => {
+    const once = raise(":where(.stg\\:divide-y>:not(:last-child)){border-bottom-width:1px}");
+    expect(raise(once)).toBe(once);
+  });
+});
+

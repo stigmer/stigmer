@@ -10,10 +10,12 @@ import { compileSdkStylesheet } from "./helpers/compile-sdk-styles";
  *
  * Since #454 the SDK stylesheet is a self-contained compiled artifact (client
  * apps and hosts consume `dist/styles.css`; nobody recompiles the source), so
- * the cascade under test is the standalone build's own layer order: the reset
- * lives in `base`, the `stg:`-prefixed utilities live in `stgm`, and the
- * `@layer theme, base, components, utilities, stgm` declaration pins
- * `base` below `stgm` (#454).
+ * the cascade under test is the standalone build's own. Since #3491 it is a
+ * ladder (the header of `src/styles.css`): the resets live in `base`; the
+ * `stg:`-prefixed utilities ship unlayered, so they outrank every layer, the
+ * resets included, and meet a host's own unlayered CSS by specificity; and
+ * the one unlayered control rule only hands properties back to the layers
+ * (`revert-layer`), at a specificity below a utility's.
  */
 
 /** The nearest enclosing `@layer <name>` of a node, or null if unlayered. */
@@ -30,7 +32,7 @@ function enclosingLayer(node: Rule | AtRule): string | null {
 }
 
 describe("styles.css border-layer invariant", () => {
-  it("emits the .stgm border reset in `base`, below the utilities in `stgm`", async () => {
+  it("emits the .stgm border reset in `base`, below the unlayered utilities", async () => {
     const root = await compileSdkStylesheet();
 
     // 1) Scanning/generation works: the prominent border-color utility exists,
@@ -49,8 +51,8 @@ describe("styles.css border-layer invariant", () => {
     ).not.toBeNull();
     expect(
       enclosingLayer(prominentRule!),
-      "border utilities must live in @layer stgm (the standalone build's utility layer)",
-    ).toBe("stgm");
+      "border utilities must ship unlayered: a host's unlayered reset (`* { border-width: 0 }`) beats every layered rule (#3491)",
+    ).toBeNull();
 
     // 2) The reset (the rule that zeroes border-width on every .stgm
     //    descendant) must live in `base`, declared before `stgm`.
@@ -94,7 +96,7 @@ describe("styles.css border-layer invariant", () => {
   // in the SDK. Same harness, same invariant — pinned separately because the
   // rule is found by a different fingerprint (background-color on
   // `.stgm button`).
-  it("emits the .stgm form-control preflight in `base`, below the utilities in `stgm`", async () => {
+  it("emits the .stgm form-control preflight in `base`, below the unlayered utilities", async () => {
     const root = await compileSdkStylesheet();
 
     let controlRule: Rule | null = null;
@@ -127,4 +129,34 @@ describe("styles.css border-layer invariant", () => {
       ).toContain(`.stgm ${control}`);
     }
   });
+
+  // The one unlayered rule on the kit's controls (#3491) takes a host's bare
+  // `button {}` off them. It must stay a hand-back, never a value: any value
+  // it set, unlayered, would beat every class a Tailwind 4 host passes
+  // through `className` and every host control inside the provider; and its
+  // specificity must stay below a utility's (0,1,0), or it would beat the
+  // kit's own `stg:p-*` and `stg:bg-*` on every button.
+  it("hands the form-control properties back with revert-layer, unlayered, below a utility", async () => {
+    const root = await compileSdkStylesheet();
+
+    let handBack: Rule | null = null;
+    root.walkRules((rule) => {
+      if (rule.selector.includes(":where(.stgm)") && rule.selector.includes("button")) handBack = rule;
+    });
+    expect(handBack, "the unlayered control rule was not found").not.toBeNull();
+    expect(enclosingLayer(handBack!), "the control rule must be unlayered to outrank a host's bare element rules").toBeNull();
+    const declarations = handBack!.nodes.filter((node) => node.type === "decl");
+    expect(declarations.length).toBeGreaterThan(0);
+    for (const declaration of declarations) {
+      expect(declaration.value.trim(), `${declaration.prop} must be revert-layer`).toBe("revert-layer");
+    }
+    for (const property of ["padding", "background-color", "border", "border-radius"]) {
+      expect(declarations.map((declaration) => declaration.prop)).toContain(property);
+    }
+    expect(handBack!.selector, "only the kit's own controls (a stg: class)").toMatch(/:where\(\[class\*=("?)stg\\?:\1\]\)/);
+    // (0,0,2): two element-type compounds; `:where()` adds nothing.
+    const counted = handBack!.selector.replace(/:where\((?:[^()]|\([^()]*\))*\)/g, "");
+    expect(counted, "no class, attribute or id may count toward its specificity").not.toMatch(/[.#[]/);
+  });
 });
+

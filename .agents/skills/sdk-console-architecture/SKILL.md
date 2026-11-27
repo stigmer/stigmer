@@ -69,8 +69,9 @@ directive is not a framework import: it is part of the React Server Components
 specification and a no-op string for bundlers that do not know it.
 
 **Theme tokens only.** Every visual property flows through `--stgm-*` tokens,
-scoped to the `.stgm` container and `@layer stgm`, using the token family the
-rendering context calls for. The reference is
+scoped to the `.stgm` container (where each rule sits in the host's cascade: the
+header of `sdk/react/src/styles.css`), using the token family the rendering
+context calls for. The reference is
 [references/theme-tokens.md](references/theme-tokens.md).
 
 **Error messages are the interface.** Every error states what happened, why, and
@@ -146,8 +147,8 @@ gives hooks clean resets.
 rather than `0ms` so `animationEnd` and `transitionEnd` callbacks still fire.
 Class-based animation, not `@starting-style`, wherever virtualization recycles
 DOM nodes, because `@starting-style` fires on every insertion including a
-recycled mount. Animation CSS lives in `@layer stgm` with `--stgm-motion-*`
-properties.
+recycled mount. Animation CSS lives in `sdk/react/src/styles.css`, scoped to
+`.stgm`, with `--stgm-motion-*` properties.
 
 **Client-app parity.** Every client app consuming the same SDK component wires
 its props identically, allowing only platform differences such as routing or

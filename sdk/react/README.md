@@ -236,7 +236,7 @@ Returns `"light"` or `"dark"` — never `"system"`. The provider resolves `"syst
 
 `@stigmer/react-sdk` is designed to embed inside any host application without style conflicts.
 
-- **CSS layer scoping.** All Stigmer styles live inside `@layer stgm`. Host styles in higher-priority layers (or no layer) take precedence over Tailwind's base resets — Stigmer's reset only applies inside the `.stgm` container.
+- **Specificity, not layers.** Stigmer's utilities ship unlayered, so a host page's own resets (`* { padding: 0 }`, Tailwind 3's preflight, a `button { … }` rule) never strip what Stigmer draws; Stigmer's reset sits in `@layer base` and applies only inside the `.stgm` container, below every host rule and class. The ladder is in `src/styles.css`'s header.
 - **Container scoping.** `StigmerProvider` renders a `<div class="stgm">` wrapper. The CSS reset (`box-sizing`, `border-style`, font smoothing) is scoped to `.stgm` and its descendants. Host elements outside this container are unaffected.
 - **Token namespacing.** All design tokens use the `--stgm-*` prefix. No collision with host application CSS variables.
 

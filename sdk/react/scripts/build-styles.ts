@@ -28,7 +28,7 @@ import { createRequire } from "node:module";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import postcss from "postcss";
-import { scopeUnprefixedSelectors } from "./lib/scope-unprefixed.js";
+import { raiseChildUtilities, scopeUnprefixedSelectors } from "./lib/scope-unprefixed.js";
 
 const sdkRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const distFile = join(sdkRoot, "dist", "styles.css");
@@ -51,5 +51,6 @@ if (cli.status !== 0) process.exit(cli.status ?? 1);
 
 const root = postcss.parse(readFileSync(distFile, "utf8"));
 scopeUnprefixedSelectors(root);
+raiseChildUtilities(root);
 writeFileSync(distFile, root.toString());
 console.log(`build-styles: wrote ${distFile}`);
