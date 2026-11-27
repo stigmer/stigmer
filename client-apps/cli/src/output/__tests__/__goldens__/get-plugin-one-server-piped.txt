@@ -1,0 +1,25 @@
+
+linear  acme/linear
+
+  Digest:  3a9f00000000
+
+Servers
+  - linear  https://mcp.linear.app/mcp
+    Signed in. To sign in again:
+      stigmer connect plugin linear --sign-in-again
+    To sign out:
+      stigmer vault remove-connection https://mcp.linear.app/mcp
+    Tools: mcp__plugin_linear_linear__*
+
+Keys
+  - LINEAR_TOKEN (secret, required)
+    Filled when you sign in to linear. Saved in My vault.
+
+Change or remove
+  To change its address:
+    stigmer mcp add linear <new-address>
+  To remove it (refused while an agent lists it; logins you saved for its servers stay in My vault):
+    stigmer delete plugin linear
+
+Name
+  Its name is part of every tool name its agents use (mcp__plugin_linear_…), so it doesn't change. To use another name, add it again under that name, move your agents to it, and remove this one.

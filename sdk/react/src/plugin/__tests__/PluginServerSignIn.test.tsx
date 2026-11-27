@@ -11,8 +11,12 @@
  * colour the theme contract measures as text, with Sign out,
  * which asks once, can be cancelled, removes the login at the address, and
  * shows a refused removal; a login that serves the server from elsewhere
- * (the github.com login) reads Signed in without Sign out; a key-taking
- * server names its keys, leaving out a name the runner fills; an open
+ * (the github.com login) reads Signed in without Sign out; a login made by
+ * signing in offers Sign in again, which signs in at the same address
+ * (the vault replacing the login) and rereads My vault, while a pasted
+ * login and the github.com fallback offer none; a key-taking
+ * server names its keys, leaving out a name the runner fills, and on the
+ * plugin page points at the Keys below; an open
  * server renders nothing; and the hook held idle (no org or no server)
  * reads as loading and signs in nothing.
  *
@@ -237,7 +241,55 @@ describe("PluginServerSignIn: signed in", () => {
   });
 });
 
+describe("PluginServerSignIn: signing in again", () => {
+  it("signs in again at the address of a login made by signing in, then rereads My vault", async () => {
+    stubs.myVault.vault = vaultWithLogins([LINEAR_URL]);
+    const { onSignedIn } = renderCell(LINEAR);
+
+    fireEvent.click(screen.getByRole("button", { name: "Sign in to linear again" }));
+
+    expect(stubs.signIn.clearError).toHaveBeenCalled();
+    expect(stubs.signIn.signIn).toHaveBeenCalledWith(LINEAR_URL, { org: ORG });
+    await waitFor(() => expect(stubs.myVault.refetch).toHaveBeenCalled());
+    expect(onSignedIn).toHaveBeenCalledWith(LINEAR_URL);
+  });
+
+  it("names the phase while it runs, with Cancel and no Sign out", () => {
+    stubs.myVault.vault = vaultWithLogins([LINEAR_URL]);
+    stubs.signIn.isInProgress = true;
+    stubs.signIn.phase = "awaiting-callback";
+    renderCell(LINEAR);
+
+    expect(screen.getByRole("button", { name: "Sign in to linear again" }).textContent).toBe("Waiting for sign-in…");
+    expect(screen.getByRole("button", { name: "Cancel the sign-in to linear" })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Sign out of linear" })).toBeNull();
+  });
+
+  it("offers no Sign in again for a pasted login or the github.com fallback", () => {
+    stubs.myVault.vault = create(VaultSchema, {
+      metadata: { org: ORG, slug: "mine" },
+      spec: {
+        owner: { case: "person", value: "ida_1" },
+        connections: { [LINEAR_URL]: { source: VaultConnectionSource.pasted } },
+      },
+    });
+    renderCell(LINEAR);
+    expect(screen.getByText("Signed in")).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Sign in to linear again" })).toBeNull();
+    cleanup();
+
+    stubs.myVault.vault = vaultWithLogins(["github.com"]);
+    renderCell(GITHUB);
+    expect(screen.queryByRole("button", { name: "Sign in to github again" })).toBeNull();
+  });
+});
+
 describe("PluginServerSignIn: servers that do not sign in", () => {
+  it("points a key-taking server at the Keys below on the plugin page", () => {
+    render(<PluginServerSignIn org={ORG} server={SEARCH} keysSavedBelow />);
+    expect(screen.getByText(/Save it below, or paste it when a conversation that uses it asks\./)).toBeTruthy();
+  });
+
   it("names the keys a key-taking server reads", () => {
     renderCell(SEARCH);
     expect(screen.getByText("SEARCH_KEY, SEARCH_REGION")).toBeTruthy();

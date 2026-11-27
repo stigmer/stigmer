@@ -93,6 +93,9 @@ export type SceneId =
   | "plugin-detail"
   | "plugin-detail-remove"
   | "plugin-detail-evals"
+  | "plugin-detail-package"
+  | "plugin-detail-change-address"
+  | "plugin-detail-save-key"
   | "environment-detail"
   | "environment-detail-editing"
   | "environment-detail-member"
@@ -1536,7 +1539,28 @@ const LISTED: readonly Scene[] = [
   { id: "agent-page-loading", title: "Agent page: while the agent is read", widths: ["desktop"] },
   { id: "agent-page-failed", title: "Agent page: the agent could not be read", widths: ["desktop"] },
   { id: "agent-page-not-found", title: "Agent page: no agent at this address", widths: ["desktop"] },
-  { id: "plugin-detail", title: "Plugin page: acme's ledger tools, as an admin sees them", widths: ["desktop", "narrow"] },
+  {
+    id: "plugin-detail",
+    title: "Plugin page: acme's ledger tools, a plugin of one server, signed in, one key saved and one not",
+    widths: ["desktop", "narrow"],
+  },
+  {
+    id: "plugin-detail-package",
+    title: "Plugin page: the ledger tools pushed from a folder, which change by pushing it again",
+    widths: ["desktop", "narrow"],
+  },
+  {
+    id: "plugin-detail-change-address",
+    title: "Plugin page: Change address, the form started from the plugin's files",
+    widths: ["desktop", "narrow"],
+    opens: [{ press: "Change the address of ledger-tools", role: "button" }],
+  },
+  {
+    id: "plugin-detail-save-key",
+    title: "Plugin page: a key's Save to My vault form, open",
+    widths: ["desktop", "narrow"],
+    opens: [{ press: "Save LEDGER_COMPANY to My vault", role: "button" }],
+  },
   { id: "plugin-detail-remove", title: "Plugin page: Remove asked first, in the destructive confirm", widths: ["desktop"] },
   {
     id: "plugin-detail-evals",

@@ -23,9 +23,10 @@ function useAddMcpServer(): UseAddMcpServerReturn
 <TypeTable
   type={{
     add: { type: "(input: McpServerFormInput, options: AddMcpServerOptions) => Promise<Plugin>", description: "Build, check and install the one-server plugin. Resolves with the installed plugin; rejects with the reader's or the server's refusal." },
+    change: { type: "(input: McpServerFormInput, options: ChangeMcpServerOptions) => Promise<Plugin>", description: "Push a new version of a one-server plugin: the same name, the form's address, headers and description, at the plugin's current visibility. Refused without a push when the installed version is no longer the one the form was read from." },
     clearError: { type: "() => void", description: "" },
     error: { type: "Error | null", description: "The last refusal: a `PluginReadRefusal` for the reader's, an `Error` otherwise." },
-    isAdding: { type: "boolean", description: "" },
+    isAdding: { type: "boolean", description: "`true` while an add or a change is in flight." },
   }}
 />
 
@@ -520,6 +521,7 @@ function usePluginServerSignIn(org: string | null, server: McpServerEntry | null
   type={{
     address: { type: "string | null", description: "The address a login for this server is saved at; `null` for a local program." },
     cancelSignIn: { type: "() => void", description: "Cancel a sign-in in progress: the wait ends, its window closes and the row is back on \"Sign in\". A sign-in left in a closed window waits for the server's ten minutes otherwise, so a row that shows the wait offers this as its Cancel." },
+    canSignInAgain: { type: "boolean", description: "Whether `signInAgain` is offered: the row is `signed-in` through a login saved at exactly this address by signing in. A row served only by the github.com fallback login, or by a pasted token, has none." },
     connection: { type: "VaultConnection | null", description: "The login saved at exactly this address, when there is one: what \"Sign out\" removes." },
     declaredVariables: { type: "readonly string[]", description: "The variables an `api-key` server reads, in the plugin's order, leaving out any the runner fills." },
     error: { type: "Error | null", description: "The read error, or the last sign-in or sign-out error, or `null`." },
@@ -529,6 +531,7 @@ function usePluginServerSignIn(org: string | null, server: McpServerEntry | null
     phase: { type: "VaultSignInPhase", description: "The sign-in's phase; `idle` when none is running.", typeDescriptionLink: "/docs/sdk/react/vault#vaultsigninphase" },
     refetch: { type: "() => void", description: "Read My vault again." },
     signIn: { type: "() => void", description: "Start the sign-in. Call from a click handler so the popup is allowed. A no-op unless `kind` is `sign-in-needed` or `sign-in-available`." },
+    signInAgain: { type: "() => void", description: "Sign in again at this address, replacing the saved login. Call from a click handler so the popup is allowed. A no-op unless `canSignInAgain`." },
     signOut: { type: "() => Promise<void>", description: "Remove the login saved at this address from My vault." },
   }}
 />
@@ -887,6 +890,7 @@ declares, what the push warned about, and its versions.
     onResourceLoad: { type: "(meta: { id: string; name: string }) => void", description: "Called once when the plugin has been fetched, for breadcrumbs and titles. Not called on error or not-found." },
     onStartChat: { type: "(plugin: ResourceRef) => void", description: "Called from \"Start a chat\" with the plugin's reference: the host opens a new conversation with the assistant whose `plugins` list it. When provided, \"Start a chat\" is the header's primary action." },
     onTabChange: { type: "(tabId: string) => void", description: "" },
+    onUploadNewVersion: { type: "() => void", description: "Called from \"upload the new version\" in the \"Change or remove\" section of a plugin pushed from a folder; the host opens its upload page. The section shows the push command alone when omitted." },
     org: { type: "string", description: "Id of the organization the plugin is installed in (a slug is also accepted).", required: true },
     slug: { type: "string", description: "Plugin slug (the plugin's name).", required: true },
   }}
@@ -1024,6 +1028,8 @@ One plugin server: how it is reached, its sign-in, and its tools on demand.
 
 <TypeTable
   type={{
+    keysSavedBelow: { type: "boolean", description: "The page lists the plugin's keys below, each with Save to My vault; see PluginServerSignIn." },
+    onChangeAddress: { type: "() => void", description: "Opens the page's Change address form; the button shows only when given." },
     org: { type: "string", description: "The organization the plugin is used in: its runner lists the tools, and My vault there holds the login.", required: true },
     pluginId: { type: "string", description: "The plugin's id, for the tools listing.", required: true },
     pluginName: { type: "string", description: "The plugin's name, as a turn names its tools.", required: true },
@@ -1041,6 +1047,7 @@ Renders [`usePluginServerSignIn`](#usepluginserversignin) for one server.
 <TypeTable
   type={{
     className: { type: "string", description: "" },
+    keysSavedBelow: { type: "boolean", description: "Where the page offers to save a key the server reads: the plugin page lists its keys below the servers, each with Save to My vault, so the key-taking row says \"Save it below\". Elsewhere the row says the key is asked for when a conversation starts." },
     onSignedIn: { type: "(address: string) => void", description: "Called with the address when a sign-in started from this cell lands." },
     optionalSignIn: { type: "boolean", description: "Offer a sign-in to a server with no sign-in record that sends no `Authorization` header (an agent's own server); see usePluginServerSignIn." },
     org: { type: "string", description: "The organization whose My vault holds the login.", required: true },
@@ -1203,6 +1210,17 @@ One plugin a grid can show: the entry, and where it came from.
     entry: { type: "MarketplaceEntry", description: "", required: true },
     opened: { type: "OpenedMarketplace", description: "", required: true, typeDescriptionLink: "#openedmarketplace" },
     source: { type: "KnownMarketplace", description: "", required: true, typeDescriptionLink: "#knownmarketplace" },
+  }}
+/>
+
+
+### ChangeMcpServerOptions
+
+Which installed plugin a change replaces: the one the form was read from.
+
+<TypeTable
+  type={{
+    plugin: { type: "Plugin", description: "The plugin as the page read it; its organization, slug, visibility and digest are the change's.", required: true },
   }}
 />
 
@@ -1499,7 +1517,8 @@ What the form collects: the server's name, its address, and the headers sent wit
 
 ### mcpServerPluginFiles
 
-The plugin files for one HTTP server, by path, in the layout every client reads.
+The plugin files for one HTTP server, by path, in the layout every client
+reads: `oneServerPluginDocuments`, the builder the CLI shares.
 
 ```tsx
 function mcpServerPluginFiles(input: McpServerFormInput): Map<string, string>

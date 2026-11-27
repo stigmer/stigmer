@@ -39,6 +39,23 @@ Off an interactive terminal (CI, pipes) the command stops with these ways
 instead of waiting for a browser. `--env` is refused, naming the vault
 command: keys are never given on the command line.
 
+### Signing in again
+
+A saved login can stop working: it expired and could not be renewed, or you
+revoked it at the login server. The listing then fails in the server's words
+and ends with the way to a fresh one:
+
+```text
+If your login has expired or was revoked, run stigmer connect plugin linear --sign-in-again.
+```
+
+`--sign-in-again` runs the same browser sign-in even though My vault holds a
+login at the server's address, and the new login replaces the saved one. The
+console's plugin page offers the same as **Sign in again** beside a saved
+login. To remove a login without signing in again, run
+`stigmer vault remove-connection <address>`; `stigmer get plugin <name>` prints
+each server's address and whether you are signed in to it.
+
 ### Missing keys
 
 A key the server reads and none of your vaults hold fails the listing naming
@@ -73,6 +90,12 @@ stigmer connect plugin linear
 
 ```bash
 stigmer connect plugin acme-tools --server issues
+```
+
+### Replace a login that stopped working
+
+```bash
+stigmer connect plugin linear --sign-in-again
 ```
 
 ### Name the plugin's organization

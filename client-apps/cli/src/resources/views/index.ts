@@ -17,6 +17,7 @@ import { asObject, type RenderFieldsOptions, renderResource } from "../render.js
 import { agentView } from "./agent.js";
 import { environmentView } from "./environment.js";
 import { organizationView } from "./organization.js";
+import { pluginView } from "./plugin.js";
 import { routineView } from "./routine.js";
 import { runView } from "./run.js";
 import { sessionView } from "./session.js";
@@ -32,19 +33,19 @@ export const VIEWS: ReadonlyMap<ApiResourceKind, KindView> = new Map([
   [ApiResourceKind.organization, organizationView],
   [ApiResourceKind.routine, routineView],
   [ApiResourceKind.environment, environmentView],
+  [ApiResourceKind.plugin, pluginView],
 ]);
 
 /**
  * The kinds `get` serves through the generic field view, each by decision:
- * a configuration read mostly as YAML (vault, channel, channel app, plugin,
- * eval, API key) or a record read by id from another command's output
+ * a configuration read mostly as YAML (vault, channel, channel app, eval,
+ * API key) or a record read by id from another command's output
  * (score, scoring rule, eval run, file).
  */
 export const GENERIC_VIEW_KINDS: ReadonlySet<ApiResourceKind> = new Set([
   ApiResourceKind.vault,
   ApiResourceKind.channel,
   ApiResourceKind.channel_app,
-  ApiResourceKind.plugin,
   ApiResourceKind.eval,
   ApiResourceKind.api_key,
   ApiResourceKind.score,

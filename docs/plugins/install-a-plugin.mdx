@@ -161,6 +161,18 @@ and push it again; that is what an upgrade is. Your own Agent lists the plugin
 and adds its own instructions, Skills and tool lists around it, so it is yours
 to edit and survives every upgrade.
 
+A plugin of one server, added with `stigmer mcp add`, changes its address the
+same way it was added: `stigmer mcp add <name> <new-address>`, which keeps the
+plugin's visibility and description. `stigmer mcp add` never replaces a plugin
+pushed from a folder; it refuses, naming what the plugin holds.
+
+A plugin's name does not change: it is part of every tool name its Agents use
+(`mcp__plugin_<name>_<server>__<tool>`). To use another name, push it again
+under that name, move your Agents to it, and remove the old one.
+
+`stigmer get plugin <name>` prints all of this for one plugin: its servers and
+their sign-in, each key and how it is filled, and how it changes and is removed.
+
 ## Remove it
 
 ```bash
@@ -170,6 +182,8 @@ stigmer delete plugin thermos
 This removes the plugin. It is refused while an Agent of your Organization lists
 it, and the refusal names those Agents; take the plugin out of their `plugins`
 first. A conversation that listed it fails its next turn, naming the plugin.
+Sign-ins you saved for its servers stay in My vault
+(`stigmer vault remove-connection <address>` removes one).
 
 ## Stigmer settings in the manifest
 

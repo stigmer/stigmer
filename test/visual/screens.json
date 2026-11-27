@@ -135,7 +135,10 @@
     "/library/plugins/[org]/[slug]": {
       "scenes": [
         "plugin-detail",
-        "plugin-detail-evals"
+        "plugin-detail-evals",
+        "plugin-detail-package",
+        "plugin-detail-change-address",
+        "plugin-detail-save-key"
       ]
     },
     "/library/plugins/upload": {

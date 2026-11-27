@@ -1,6 +1,8 @@
 // Goldens of `get`'s designed views (CLI-09): what a person sees for an
 // agent, a skill, a session with its runs, a failed run, an organization, a
-// paused routine and a limited Environment, each at 80 columns (a terminal)
+// paused routine, a limited Environment, and a plugin pushed from a folder
+// and one of one server (each with the caller's My vault, and the first with
+// a vault that could not be read), each at 80 columns (a terminal)
 // and piped (no width: nothing wrapped or cut). Frozen as files in
 // `__goldens__` beside the other output goldens, so a change to a view is a
 // diff a reviewer reads; `npx vitest run -u` rewrites them. The inputs are
@@ -16,17 +18,24 @@ import { SessionSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/api_p
 import { SkillSchema } from "@stigmer/apis/ai/stigmer/agentic/skill/v1/api_pb";
 import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { OrganizationSchema } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/api_pb";
+import { PluginSchema } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/api_pb";
 import { describe, it } from "vitest";
 import { expectGolden } from "../../__test-utils__/golden.js";
 import { asObject } from "../../resources/render.js";
 import * as fixtures from "../../resources/views/__fixtures__/resources.js";
 import { VIEWS } from "../../resources/views/index.js";
-import { renderView } from "../../resources/views/view.js";
+import { renderView, type ViewContext } from "../../resources/views/view.js";
 import { protoToJsonValue } from "../proto.js";
 import { styler } from "../style.js";
 
 /** The kind's view of `message`, as acme's, at `width` columns (undefined: piped). */
-function draw(kind: ApiResourceKind, schema: DescMessage, message: Message, width: number | undefined): string {
+function draw(
+  kind: ApiResourceKind,
+  schema: DescMessage,
+  message: Message,
+  width: number | undefined,
+  related: Pick<ViewContext, "myVault"> = { myVault: fixtures.pluginVault },
+): string {
   const runs = fixtures.sessionRuns.map((run) => asObject(protoToJsonValue(RunSchema, run)));
   return renderView(VIEWS.get(kind)!, asObject(protoToJsonValue(schema, message)), {
     hideOrg: false,
@@ -35,6 +44,7 @@ function draw(kind: ApiResourceKind, schema: DescMessage, message: Message, widt
     style: styler(false),
     now: fixtures.FROZEN,
     runs: kind === ApiResourceKind.session ? runs : undefined,
+    ...(kind === ApiResourceKind.plugin ? related : {}),
   });
 }
 
@@ -46,11 +56,17 @@ const CASES: ReadonlyArray<[name: string, kind: ApiResourceKind, schema: DescMes
   ["organization", ApiResourceKind.organization, OrganizationSchema, fixtures.organization],
   ["routine", ApiResourceKind.routine, RoutineSchema, fixtures.routine],
   ["environment", ApiResourceKind.environment, EnvironmentSchema, fixtures.environment],
+  ["plugin", ApiResourceKind.plugin, PluginSchema, fixtures.plugin],
+  ["plugin-one-server", ApiResourceKind.plugin, PluginSchema, fixtures.oneServerPlugin],
 ];
 
 describe("CLI-09 get shows a view designed for each kind a person reads", () => {
   it.each(CASES)("draws the %s view at 80 columns and piped", async (name, kind, schema, message) => {
     await expectGolden(draw(kind, schema, message, 80), `get-${name}-80`);
     await expectGolden(draw(kind, schema, message, undefined), `get-${name}-piped`);
+  });
+
+  it("draws a plugin whose My vault could not be read without its saved states", async () => {
+    await expectGolden(draw(ApiResourceKind.plugin, PluginSchema, fixtures.plugin, 80, {}), "get-plugin-unread-80");
   });
 });

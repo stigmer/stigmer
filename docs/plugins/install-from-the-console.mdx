@@ -97,17 +97,19 @@ and nothing beside it, so the page is where everything it holds is listed: its
 MCP servers; its Skills and agents, by the names a turn uses
 (`<plugin>:<skill>`); its hooks, with every command each runs and, under **Not
 run on Stigmer**, the hooks Stigmer leaves out; the keys it reads; the
-manifest's version, format and author; and the push's other warnings.
+manifest's version, format and author; the push's other warnings; and, last,
+**Change or remove**, which says how this plugin changes and how it is removed.
 
 Each MCP server says, on its row, how it is reached and what stands between it
 and its first tool call. A server that signs in with OAuth and has no sign-in in
 your vault yet carries **Sign in**; choose it, grant access in the window that
 opens, and the row reads **Signed in**. The sign-in is saved in your own vault:
-it serves your conversations, and each teammate signs in for themselves. A
-server that wants an API key names the keys. **Check tools** asks the server for
-its tools right now, as you, and lists them, marking the ones the server calls
-destructive; nothing is stored, so check again whenever you want the current
-list.
+it serves your conversations, and each teammate signs in for themselves. Beside
+a saved sign-in, **Sign in again** replaces it, which is how you recover a login
+the server has expired or revoked. A server that wants an API key names the
+keys. **Check tools** asks the server for its tools right now, as you, and lists
+them, marking the ones the server calls destructive; nothing is stored, so check
+again whenever you want the current list.
 
 Under **Use this plugin**, the page offers the two ways in. **Start a chat**
 opens a conversation with the built-in assistant that lists the plugin, so its
@@ -121,17 +123,37 @@ covers the hooks.
 A conversation whose plugin's server nobody has signed in to yet asks for the
 sign-in before the first message, the way it asks for a missing key.
 
-A plugin's Skills, agents and servers live in its archive and are not edited in
-the console. To change one, change the plugin and install it again; to
-customise, write your own Agent that lists the plugin and adds its own
-instructions and tool lists.
+Under **Keys**, each key the plugin reads says how it is filled: a server's
+login key is filled when you sign in to that server (and, unless the server
+takes only a sign-in, you may paste one instead); any other key is pasted into
+My vault, or a vault the conversation lists. Each says whether My vault holds
+it, and **Save to My vault** saves it there. Saved values are never shown.
+
+## Change it
+
+A plugin changes only by a new version being installed. A plugin of one server,
+made with **Add MCP server** or `stigmer mcp add`, carries **Change address** on
+its server's row, for an admin of the Organization: the form starts from the
+plugin's files, and saving installs a new version at the plugin's visibility.
+Agents and conversations that use it reach the new address from their next
+message. A sign-in is kept per address, so you sign in again at the new one.
+
+Any other plugin's Skills, agents and servers live in its archive: change its
+folder and push it again (`stigmer push plugin <folder>`), or upload the new
+version. To customise one, write your own Agent that lists the plugin and adds
+its own instructions and tool lists.
+
+A plugin's name does not change. It is part of every tool name its Agents use
+(`mcp__plugin_<name>_<server>__<tool>`), so a new name would leave those Agents
+naming tools that no longer exist. To use another name, add the plugin again
+under that name, move your Agents to it, and remove the old one.
 
 ## Remove
 
 From the plugin's page, **Remove** deletes the plugin, the same act as
 `stigmer delete plugin`. The server refuses while an Agent of your Organization
 lists the plugin, and the console shows that refusal as the server phrases it,
-naming the Agents.
+naming the Agents. Sign-ins you saved for its servers stay in My vault.
 
 ## What the console does and does not do
 

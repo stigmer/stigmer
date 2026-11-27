@@ -1,0 +1,49 @@
+
+tracker  acme/tracker
+
+  Description:  Issues and the team's runbooks.
+  Version:      1.4.0
+  Digest:       7c1e9a0b3d5f
+
+Servers
+  - linear  https://mcp.linear.app/mcp
+    Signed in. To sign in again:
+      stigmer connect plugin tracker --server linear --sign-in-again
+    To sign out:
+      stigmer vault remove-connection https://mcp.linear.app/mcp
+    Tools: mcp__plugin_tracker_linear__*
+  - notion  https://mcp.notion.com/mcp
+    Not signed in. To sign in:
+      stigmer connect plugin tracker --server notion
+    Tools: mcp__plugin_tracker_notion__*
+  - runbooks  npx runbooks-mcp
+    Reads RUNBOOKS_KEY; see Keys.
+    Tools: mcp__plugin_tracker_runbooks__*
+
+Keys
+  - LINEAR_TOKEN (secret, required)
+    Filled when you sign in to linear, or paste one. Saved in My vault. To paste one:
+      stigmer vault set-secret LINEAR_TOKEN --mine
+  - NOTION_LOGIN (secret, required)
+    Filled when you sign in to notion. Not in My vault.
+  - RUNBOOKS_KEY (secret, required): The runbooks service's API key.
+    Paste it into My vault, or a vault the conversation lists. Saved in My vault. To replace it:
+      stigmer vault set-secret RUNBOOKS_KEY --mine
+  - RUNBOOKS_REGION (setting, optional)
+    Set by the plugin.
+
+Skills
+  tracker:triage   Sort new issues by how urgent they are.
+  tracker:runbook  Follow the team's runbook for an incident.
+
+Agents
+  tracker:on-call  Answers a page with the runbook.
+
+Change or remove
+  To change it, change its folder and push it again:
+    stigmer push plugin <folder>
+  To remove it (refused while an agent lists it; logins you saved for its servers stay in My vault):
+    stigmer delete plugin tracker
+
+Name
+  Its name is part of every tool name its agents use (mcp__plugin_tracker_…), so it doesn't change. To use another name, add it again under that name, move your agents to it, and remove this one.

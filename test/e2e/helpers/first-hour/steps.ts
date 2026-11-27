@@ -196,3 +196,37 @@ export async function expectConversationStarted(page: Page): Promise<void> {
   const outcome = await Promise.race([started, refused.catch(() => new Promise<never>(() => undefined))]);
   if (outcome !== null) throw new Error(`the console did not start the conversation; it said: ${outcome}`);
 }
+
+/** One event of `stigmer run -o ndjson`, as far as a tool step reads it. */
+export interface RunEvent {
+  readonly type?: string;
+  readonly id?: string;
+  readonly name?: string;
+  readonly mcp_server_name?: string;
+  readonly mcp_tool_use_id?: string;
+  readonly content?: readonly { readonly type?: string; readonly text?: string }[];
+}
+
+/**
+ * The run's tool results that answer a call to the tool `toolAsCalled`
+ * names (`mcp__<server>__<tool>`) and carry `value`: an
+ * `agent.mcp_tool_result` whose `mcp_tool_use_id` names an
+ * `agent.mcp_tool_use` of that tool on that server, its text holding the
+ * value. The call's own input holds the value too, so it is never read.
+ */
+export function toolResults(ndjson: string, value: string, toolAsCalled: string = TOOL_AS_CALLED): RunEvent[] {
+  const events = ndjson
+    .split("\n")
+    .filter((line) => line.trim().startsWith("{"))
+    .map((line) => JSON.parse(line) as RunEvent);
+  const server = toolAsCalled.slice("mcp__".length, -`__${TOOL}`.length);
+  const calls = new Set(
+    events.filter((event) => event.type === "agent.mcp_tool_use" && event.name === TOOL && event.mcp_server_name === server).map((event) => event.id),
+  );
+  return events.filter(
+    (event) =>
+      event.type === "agent.mcp_tool_result" &&
+      calls.has(event.mcp_tool_use_id) &&
+      (event.content ?? []).some((part) => part.type === "text" && (part.text ?? "").includes(value)),
+  );
+}

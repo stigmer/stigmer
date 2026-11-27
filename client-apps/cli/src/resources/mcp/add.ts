@@ -3,37 +3,39 @@
 //
 // Outside an agent's own `mcp_servers`, an MCP server lives in a plugin, so
 // a one-off server is a plugin holding nothing else: a Claude Code manifest
-// naming the plugin and a
-// `.mcp.json` naming the one server, both called `<name>`. The files are
-// built in memory and go through the same shared tail every push runs
-// (`preparePluginArchive`: read, validate, zip, digest), so the plugin is
-// validated by the library the server installs with, and a refusal reads
-// like any other plugin's. The headers are written as given; a value may
-// name a key in the caller's vault as `${NAME}`, which the plugin then
-// declares, exactly as a hand-written `.mcp.json` would.
+// naming the plugin and a `.mcp.json` naming the one server, both called
+// `<name>`. The two documents are `@stigmer/plugin-package`'s
+// `oneServerPluginDocuments`, the builder the console's "Add MCP server"
+// writes with too, so the same name, address, headers and description make
+// the same archive and the same digest from either surface: a second `mcp
+// add` of an unchanged server changes nothing. The files go through the same
+// shared tail every push runs (`preparePluginArchive`: read, validate, zip,
+// digest), so the plugin is validated by the library the server installs
+// with, and a refusal reads like any other plugin's. A header value may name
+// a key in the caller's vault as `${NAME}`, which the plugin then declares,
+// exactly as a hand-written `.mcp.json` would.
 //
-// The JSON is serialized with sorted keys, so the same name, address and
-// headers always make the same archive and the same digest: a second
-// `mcp add` of an unchanged server changes nothing.
+// Run again under a name already installed, it changes that plugin only when
+// the plugin is itself one server and nothing else, read from the installed
+// version's own files (never its status, which cannot see a README beside
+// them, and never with an eval suite, which the served files leave out):
+// anything pushed from a folder would be flattened into two files, so it is
+// refused, naming what the plugin holds and the push that changes it. A
+// change keeps what it does not name: the plugin's visibility and its
+// description, unless given again.
 
-import type { PluginFiles } from "@stigmer/plugin-package";
+import type { Plugin } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/api_pb";
+import {
+  hasOneServerPluginPaths,
+  oneServerPluginDocuments,
+  type OneServerPlugin,
+  type PluginFiles,
+  readOneServerPlugin,
+} from "@stigmer/plugin-package";
 import { preparePluginArchive } from "@stigmer/plugin-package/client";
+import { isNotFound, type Stigmer } from "@stigmer/client";
 import { UsageError } from "../../errors/index.js";
-import { pluginRefusal, type PreparedPluginPush } from "../plugin.js";
-
-/** The two documents of a one-server plugin, by path. */
-export function serverPluginDocuments(
-  name: string,
-  url: string,
-  headers: Readonly<Record<string, string>>,
-): ReadonlyMap<string, string> {
-  const server: Record<string, unknown> = { type: "http", url };
-  if (Object.keys(headers).length > 0) server.headers = sortedRecord(headers);
-  return new Map([
-    [".claude-plugin/plugin.json", `${JSON.stringify({ name }, null, 2)}\n`],
-    [".mcp.json", `${JSON.stringify({ mcpServers: { [name]: server } }, null, 2)}\n`],
-  ]);
-}
+import { count, pluginRefusal, type PreparedPluginPush } from "../plugin.js";
 
 /** Parse repeated `--header K=V` values; a name given twice is refused. */
 export function parseHeaders(values: readonly string[]): Record<string, string> {
@@ -55,12 +57,8 @@ export function parseHeaders(values: readonly string[]): Record<string, string> 
  * library's own sentences when the name or the address is not one a plugin
  * may carry.
  */
-export async function prepareServerPlugin(
-  name: string,
-  url: string,
-  headers: Readonly<Record<string, string>>,
-): Promise<PreparedPluginPush> {
-  const files = documentFiles(serverPluginDocuments(name, url, headers));
+export async function prepareServerPlugin(input: OneServerPlugin): Promise<PreparedPluginPush> {
+  const files = documentFiles(oneServerPluginDocuments(input));
   const stats = {
     filesIncluded: files.entries.length,
     filesIgnored: 0,
@@ -68,9 +66,9 @@ export async function prepareServerPlugin(
     totalSize: files.entries.reduce((sum, entry) => sum + entry.size, 0),
   };
   const outcome = await preparePluginArchive({ files, stats });
-  if (!outcome.ok) throw pluginRefusal(`mcp add ${name}`, outcome.errors, outcome.warnings);
+  if (!outcome.ok) throw pluginRefusal(`mcp add ${input.name}`, outcome.errors, outcome.warnings);
   return {
-    dir: name,
+    dir: input.name,
     files: outcome.prepared.files,
     stats,
     plugin: outcome.prepared.plugin,
@@ -100,6 +98,83 @@ export function documentFiles(documents: ReadonlyMap<string, string>): PluginFil
   };
 }
 
-function sortedRecord(record: Readonly<Record<string, string>>): Record<string, string> {
-  return Object.fromEntries(Object.entries(record).sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0)));
+/** What is installed under the name `mcp add` was given. */
+export type InstalledUnderName =
+  /** Nothing: the plugin is created. */
+  | { readonly kind: "none" }
+  /** A plugin of this one server and nothing else, as its files read: it may be changed. */
+  | { readonly kind: "one-server"; readonly plugin: Plugin; readonly server: OneServerPlugin }
+  /** Anything else (pushed from a folder): changing it here would flatten it. */
+  | { readonly kind: "other"; readonly plugin: Plugin };
+
+/** The client surface the installed plugin is read through. */
+export type InstalledPluginClient = Pick<Stigmer, "plugin">;
+
+/**
+ * Read what `org` holds under `name`: nothing, a one-server plugin (from the
+ * installed version's own files), or any other plugin.
+ */
+export async function readInstalledUnderName(
+  client: InstalledPluginClient,
+  org: string,
+  name: string,
+): Promise<InstalledUnderName> {
+  let plugin: Plugin;
+  try {
+    plugin = await client.plugin.getByReference({ org, slug: name });
+  } catch (err) {
+    if (isNotFound(err)) return { kind: "none" };
+    throw err;
+  }
+  const status = plugin.status;
+  const pluginId = plugin.metadata?.id ?? "";
+  const digest = status?.digest ?? "";
+  // The served files leave an eval suite out, so a plugin that has one is
+  // never read as one server, whatever its other files say.
+  if (status?.evals !== undefined || pluginId === "" || digest === "") return { kind: "other", plugin };
+  const listed = await client.plugin.listFiles({ pluginId, digest });
+  const paths = listed.files.map((file) => file.path);
+  if (!hasOneServerPluginPaths(paths)) return { kind: "other", plugin };
+  const decoder = new TextDecoder();
+  const documents = new Map<string, string>();
+  for (const path of paths) {
+    const file = await client.plugin.readFile({ pluginId, digest, path });
+    documents.set(path, decoder.decode(file.content));
+  }
+  const server = readOneServerPlugin(documents);
+  if (server === undefined || server.name !== (plugin.metadata?.slug ?? name)) return { kind: "other", plugin };
+  return { kind: "one-server", plugin, server };
+}
+
+/**
+ * The refusal for a plugin `mcp add` did not make: what it holds, and the
+ * way it changes.
+ */
+export function notOneServerRefusal(name: string, plugin: Plugin): UsageError {
+  return new UsageError(
+    `'${name}' was pushed from a folder and holds ${holdings(plugin)}; stigmer mcp add would replace all of it with one server.\n` +
+      "Change its folder and run stigmer push plugin <folder>, or remove it first with " +
+      `stigmer delete plugin ${name} and add the server again.`,
+  );
+}
+
+// What a plugin holds, in words: its skills, servers, agents, hooks and evals.
+function holdings(plugin: Plugin): string {
+  const status = plugin.status;
+  const parts: string[] = [];
+  const skills = status?.skills.length ?? 0;
+  const servers = status?.mcpServers.length ?? 0;
+  const agents = status?.agents.length ?? 0;
+  if (skills > 0) parts.push(count(skills, "skill"));
+  if (servers > 0) parts.push(count(servers, "server"));
+  if (agents > 0) parts.push(count(agents, "agent"));
+  if ((status?.hooks?.groups.length ?? 0) > 0) parts.push("hooks");
+  if (status?.evals !== undefined) parts.push("evals");
+  if (skills === 0 && agents === 0 && servers <= 1 && parts.length === (servers > 0 ? 1 : 0)) parts.push("other files");
+  return joinWords(parts);
+}
+
+function joinWords(parts: readonly string[]): string {
+  if (parts.length <= 1) return parts[0] ?? "";
+  return `${parts.slice(0, -1).join(", ")} and ${parts[parts.length - 1]}`;
 }

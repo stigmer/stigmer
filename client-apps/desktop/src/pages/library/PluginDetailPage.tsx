@@ -112,6 +112,7 @@ export default function PluginDetailPage() {
         onResourceLoad={handleResourceLoad}
         onStartChat={({ org: o, slug: s }) => navigate(pluginChatUrl(o, s))}
         onAgentClick={({ org: o, slug: s }) => navigate(`/library/agents/${slugForOrg(o)}/${s}`)}
+        onUploadNewVersion={() => navigate("/library/plugins/upload")}
         onNavigateToRun={setPendingRunId}
         actions={actions}
       />
