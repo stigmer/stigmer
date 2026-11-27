@@ -58,6 +58,10 @@ export type SceneId =
   | "models-hub-remove"
   | "models-hub-connect"
   | "models-hub-remove-refused"
+  | "models-hub-google-connect"
+  | "models-hub-local-google"
+  | "models-hub-runners"
+  | "models-hub-runners-no-google"
   | "launcher-ready"
   | "launcher-key-missing"
   | "launcher-hours-used"
@@ -641,7 +645,7 @@ const STORY_SCENES = [
   },
   {
     id: "story-keys",
-    title: "Story: the integrator's Stigmer console, Models & providers, Anthropic and OpenAI on the organization's own keys",
+    title: "Story: the integrator's Stigmer console, Models & providers, Anthropic, OpenAI and Google on the organization's own keys",
     widths: ["desktop", "narrow"],
   },
   {
@@ -1355,10 +1359,10 @@ const LISTED: readonly Scene[] = [
   { id: "models-hub-none", title: "Models & providers: an admin, nothing connected yet", widths: ["desktop", "narrow"] },
   {
     id: "models-hub-connected",
-    title: "Models & providers: Anthropic on the organization's key, OpenAI on its parent's",
+    title: "Models & providers: Anthropic and Google on the organization's keys, OpenAI on its parent's",
     widths: ["desktop"],
   },
-  { id: "models-hub-local", title: "Models & providers: a laptop whose runner has no key", widths: ["desktop"] },
+  { id: "models-hub-local", title: "Models & providers: a laptop whose runner has no key", widths: ["desktop", "narrow"] },
   { id: "models-hub-member", title: "Models & providers: a member, nothing connected yet", widths: ["desktop"] },
   {
     id: "models-hub-key-rejected",
@@ -1373,6 +1377,24 @@ const LISTED: readonly Scene[] = [
     title: "Models & providers: the removal of the Anthropic key refused, said in its dialog",
     widths: ["desktop"],
     opens: ["Remove", { press: "Remove key", role: "button", exact: true }],
+  },
+  {
+    id: "models-hub-google-connect",
+    title: "Models & providers: Connect Google open beside two connected providers, its endpoint given",
+    widths: ["desktop"],
+    opens: [
+      "Connect Google",
+      { fill: "Google API key", with: "AQ.gallery-key", exact: true },
+      "Use your own endpoint",
+      { fill: "Base URL (optional)", with: "https://gateway.acme.example/google", exact: true },
+    ],
+  },
+  { id: "models-hub-local-google", title: "Models & providers: a laptop whose runner holds Anthropic's and Google's keys", widths: ["desktop"] },
+  { id: "models-hub-runners", title: "Models & providers: a server whose runners reach every provider", widths: ["desktop"] },
+  {
+    id: "models-hub-runners-no-google",
+    title: "Models & providers: a server whose runners reach every provider but Google",
+    widths: ["desktop"],
   },
   { id: "launcher-ready", title: "Launcher: a model provider connected, ready to send", widths: ["desktop", "narrow"] },
   {

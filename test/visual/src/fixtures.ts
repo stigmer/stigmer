@@ -14,6 +14,7 @@
 import { create } from "@bufbuild/protobuf";
 import { timestampFromDate } from "@bufbuild/protobuf/wkt";
 import { Harness } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
+import { PROVIDER_KEY_PROVIDERS, type ProviderKeyProvider } from "@stigmer/react-sdk";
 import { IdentityAccountSchema } from "@stigmer/apis/ai/stigmer/iam/identityaccount/v1/api_pb";
 import {
   ProviderKeyCheck,
@@ -79,7 +80,7 @@ function model(
   costTier: "economy" | "standard" | "premium",
   featured: boolean,
   thinking: { readonly thinking?: boolean; readonly adaptiveThinking?: boolean },
-  provider: "anthropic" | "openai" = "anthropic",
+  provider: ProviderKeyProvider = "anthropic",
 ) {
   return {
     id,
@@ -127,6 +128,19 @@ export function ownAnthropicKey(savedBy = "ada@acme.example"): ProviderKey {
   });
 }
 
+/** The organization's own Google key, checked with Google, saved by Ada the day before the samples' instant and not used yet. */
+export function ownGoogleKey(): ProviderKey {
+  return create(ProviderKeySchema, {
+    org: ORG_ID,
+    provider: "google",
+    keyHint: "4kTw",
+    check: ProviderKeyCheck.checked,
+    createdBy: "ada@acme.example",
+    createdAt: timestampFromDate(sampleDate(-86_400_000)),
+    updatedAt: timestampFromDate(sampleDate(-86_400_000)),
+  });
+}
+
 /**
  * An OpenAI key the parent organization holds, served to this one
  * read-only, against the parent's own endpoint; OpenAI did not answer the
@@ -157,14 +171,13 @@ const HARNESS_OF: Readonly<Record<"stigmer" | "claude", Harness>> = { stigmer: H
  * provider's availability, and every registry model on its engine with its
  * provider's.
  */
-export function readiness(availability: {
-  readonly anthropic: ProviderAvailability;
-  readonly openai: ProviderAvailability;
-}): GetModelReadinessOutput {
+export function readiness(
+  availability: Readonly<Record<ProviderKeyProvider, ProviderAvailability>>,
+): GetModelReadinessOutput {
   const parentOf = (state: ProviderAvailability) =>
     state === ProviderAvailability.served_by_parent_organization ? PARENT_ORG : "";
   return create(GetModelReadinessOutputSchema, {
-    providers: (["anthropic", "openai"] as const).map((provider) => ({
+    providers: PROVIDER_KEY_PROVIDERS.map((provider) => ({
       provider,
       availability: availability[provider],
       parentOrg: parentOf(availability[provider]),
@@ -182,12 +195,14 @@ export function readiness(availability: {
 export const NOTHING_CONNECTED = readiness({
   anthropic: ProviderAvailability.missing_from_organization,
   openai: ProviderAvailability.missing_from_organization,
+  google: ProviderAvailability.missing_from_organization,
 });
 
 /** Readiness on a laptop whose runner has no key. */
 export const NOTHING_ON_THE_RUNNER = readiness({
   anthropic: ProviderAvailability.missing_from_runners,
   openai: ProviderAvailability.missing_from_runners,
+  google: ProviderAvailability.missing_from_runners,
 });
 
 /** The dashboard's figures for a busy week. */

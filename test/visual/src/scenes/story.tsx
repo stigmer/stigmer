@@ -39,7 +39,7 @@
 //   lives in its customer's own organization (`<AgentChat org>`), which the
 //   panel does not draw, so story-data.ts holds the wiring for a unit case.
 // - `keysScene`: the integrator's own Stigmer console, Models & providers,
-//   with Anthropic and OpenAI connected on the organization's own keys. The integrator
+//   with Anthropic, OpenAI and Google connected on the organization's own keys. The integrator
 //   is named here because the console names the organization it signs into.
 //
 // The walls and keys scenes lay out for their viewport, so one scene gives
@@ -540,30 +540,34 @@ export function wallsScene(): Drawing {
 /** The integrator's organization, as Stigmer's console names it, under the samples' organization's id. */
 const INTEGRATOR_ORG = samples.organization({ id: ORGANIZATION.metadata!.id, name: OTHERS.integrator, slug: "harbor-ledger" });
 
-/** Both providers on the integrator's own keys. */
-const BOTH_OWN = readiness({
+/** Every provider on the integrator's own keys. */
+const ALL_OWN = readiness({
   anthropic: ProviderAvailability.served_by_organization,
   openai: ProviderAvailability.served_by_organization,
+  google: ProviderAvailability.served_by_organization,
 });
 
-/** The integrator's own keys, saved by its admin: Anthropic's, and OpenAI's beside it. */
+/** The integrator's own keys, saved by its admin: Anthropic's, with OpenAI's and Google's beside it. */
 function integratorKeys(): ProviderKey[] {
   const anthropic = ownAnthropicKey(OTHERS.integratorAdmin);
   const openai = ownAnthropicKey(OTHERS.integratorAdmin);
   openai.provider = "openai";
   openai.keyHint = "Rk4e";
-  return [anthropic, openai];
+  const google = ownAnthropicKey(OTHERS.integratorAdmin);
+  google.provider = "google";
+  google.keyHint = "4kTw";
+  return [anthropic, openai, google];
 }
 
 /**
- * The integrator's own Stigmer console: Models & providers, with Anthropic
- * and OpenAI connected on the organization's own keys, saved by its admin.
+ * The integrator's own Stigmer console: Models & providers, with Anthropic,
+ * OpenAI and Google connected on the organization's own keys, saved by its admin.
  * This is the integrator's view, not its customers'.
  */
 export function keysScene(): Drawing {
   return {
     inOrganization: true,
-    routes: modelsRoutes(BOTH_OWN, integratorKeys(), "admin", INTEGRATOR_ORG),
+    routes: modelsRoutes(ALL_OWN, integratorKeys(), "admin", INTEGRATOR_ORG),
     render: () =>
       productWindow(
         <div style={{ height: "calc(100vh - 48px)", overflow: "hidden", background: "var(--stgm-background)" }}>

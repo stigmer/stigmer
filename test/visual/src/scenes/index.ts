@@ -4,7 +4,7 @@
 import { agentInAppScene } from "./in-app.tsx";
 import { bringOthersInScene } from "./bring-others-in.tsx";
 import { PRESETS, THREAD_STATES, type Preset, type SceneId, type ThreadState } from "../catalog.ts";
-import { inheritedOpenAiKey, NOTHING_CONNECTED, NOTHING_ON_THE_RUNNER, ownAnthropicKey } from "../fixtures.ts";
+import { inheritedOpenAiKey, NOTHING_CONNECTED, NOTHING_ON_THE_RUNNER, ownAnthropicKey, ownGoogleKey } from "../fixtures.ts";
 import { agentChatScene, agentChatSetupFailedScene } from "./agent-chat.tsx";
 import { agentComputerScene, agentProfileScene } from "./agent.tsx";
 import {
@@ -41,6 +41,7 @@ import { AROUND_CONSOLE_DRAWINGS } from "./around-console.tsx";
 import { DESKTOP_SCREEN_DRAWINGS } from "./desktop-screens.tsx";
 import type { Drawing } from "./drawing.ts";
 import {
+  ALL_CONNECTED,
   ANTHROPIC_ONLY,
   CONNECTED,
   launcherFirstQuestionScene,
@@ -50,9 +51,12 @@ import {
   modelSelectorNotReadyScene,
   modelsHubKeyRejectedScene,
   modelsHubRemoveRefusedScene,
+  modelsHubLocalGoogleScene,
   modelsHubLocalScene,
+  modelsHubRunnersScene,
   modelsHubScene,
 } from "./models.tsx";
+import { ProviderAvailability } from "@stigmer/apis/ai/stigmer/platform/v1/model_readiness_pb";
 import { agentChannelsScene, embedWidgetScene } from "./channel.tsx";
 import { channelAppsScene } from "./channel-app.tsx";
 import { oauthAppsScene, serviceAccountsScene } from "./access.tsx";
@@ -110,13 +114,18 @@ const presets = Object.fromEntries(PRESETS.map((preset) => [`preset-${preset}`, 
 export const DRAWINGS: Readonly<Record<SceneId, () => Drawing>> = {
   ...threads,
   "models-hub-none": () => modelsHubScene(NOTHING_CONNECTED, [], "admin"),
-  "models-hub-connected": () => modelsHubScene(CONNECTED, [ownAnthropicKey(), inheritedOpenAiKey()], "admin"),
+  "models-hub-connected": () =>
+    modelsHubScene(ALL_CONNECTED, [ownAnthropicKey(), inheritedOpenAiKey(), ownGoogleKey()], "admin"),
   "models-hub-local": modelsHubLocalScene,
   "models-hub-member": () => modelsHubScene(NOTHING_CONNECTED, [], "member"),
   "models-hub-key-rejected": modelsHubKeyRejectedScene,
   "models-hub-remove": () => modelsHubScene(CONNECTED, [ownAnthropicKey(), inheritedOpenAiKey()], "admin"),
   "models-hub-connect": () => modelsHubScene(NOTHING_CONNECTED, [], "admin"),
   "models-hub-remove-refused": () => modelsHubRemoveRefusedScene([ownAnthropicKey(), inheritedOpenAiKey()]),
+  "models-hub-google-connect": () => modelsHubScene(CONNECTED, [ownAnthropicKey(), inheritedOpenAiKey()], "admin"),
+  "models-hub-local-google": modelsHubLocalGoogleScene,
+  "models-hub-runners": () => modelsHubRunnersScene(ProviderAvailability.served_by_runners),
+  "models-hub-runners-no-google": () => modelsHubRunnersScene(ProviderAvailability.missing_from_runners),
   "launcher-ready": () => launcherScene(ANTHROPIC_ONLY, "admin"),
   "launcher-key-missing": () =>
     launcherRefusedScene(

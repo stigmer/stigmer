@@ -222,7 +222,7 @@ describe("ModelsHub", () => {
     expect(calls.checkMyPermission).not.toHaveBeenCalled();
   });
 
-  it("says whoever runs a remote server's runners gives them the key", async () => {
+  it("says whoever runs a remote server's runners gives them the key, and speaks of the server, not the organization's keys", async () => {
     renderHub(
       server({
         readiness: readiness({
@@ -240,6 +240,7 @@ describe("ModelsHub", () => {
     expect(within(anthropic).queryByText(/stigmer setup/)).toBeNull();
     expect(within(openai).getByText("Set on this server's runners")).toBeTruthy();
     expect(within(openai).getByText("This server's runners reach OpenAI.")).toBeTruthy();
+    expect(screen.getByText("Which models your agents can run on this server, and the providers behind them.")).toBeTruthy();
   });
 
   it("says a provider is configured where the runner runs when the server cannot see its runners", async () => {

@@ -1,6 +1,8 @@
 // The scenes of a new person's way to a first answer: Models & providers in
 // each face a provider card takes (an admin with nothing connected, two
-// providers connected, a laptop, a member), the launcher ready and in its
+// providers connected and Google being connected, a laptop with no key and
+// one with Google's, a server whose runners reach every provider or all but
+// Google, a member), the launcher ready and in its
 // connect step for each of those faces, its first question (asked in an
 // organization where nothing has run, an example picked before and after a
 // key, and the key step's two check answers after a save: refused in the
@@ -152,11 +154,55 @@ export function modelsHubLocalScene(): Drawing {
   };
 }
 
-/** Two providers connected: Anthropic by the organization's own key, OpenAI by its parent's. */
+/** Two providers connected: Anthropic by the organization's own key, OpenAI by its parent's; Google not. */
 export const CONNECTED = readiness({
   anthropic: ProviderAvailability.served_by_organization,
   openai: ProviderAvailability.served_by_parent_organization,
+  google: ProviderAvailability.missing_from_organization,
 });
+
+/** Every provider connected: Anthropic and Google by the organization's own keys, OpenAI by its parent's. */
+export const ALL_CONNECTED = readiness({
+  anthropic: ProviderAvailability.served_by_organization,
+  openai: ProviderAvailability.served_by_parent_organization,
+  google: ProviderAvailability.served_by_organization,
+});
+
+/** Models & providers on a laptop whose runner holds Anthropic's and Google's keys, and not OpenAI's. */
+export function modelsHubLocalGoogleScene(): Drawing {
+  return {
+    deploymentMode: "local",
+    inOrganization: true,
+    routes: modelsRoutes(
+      readiness({
+        anthropic: ProviderAvailability.served_by_runners,
+        openai: ProviderAvailability.missing_from_runners,
+        google: ProviderAvailability.served_by_runners,
+      }),
+      [],
+      "admin",
+    ),
+    render: () => <HubPage />,
+  };
+}
+
+/** Models & providers on a server elsewhere whose runners reach every provider, or every one but Google. */
+export function modelsHubRunnersScene(google: ProviderAvailability): Drawing {
+  return {
+    deploymentMode: "enterprise",
+    inOrganization: true,
+    routes: modelsRoutes(
+      readiness({
+        anthropic: ProviderAvailability.served_by_runners,
+        openai: ProviderAvailability.served_by_runners,
+        google,
+      }),
+      [],
+      "admin",
+    ),
+    render: () => <HubPage />,
+  };
+}
 
 /** The hub framed as the console frames it: a centred column. */
 function HubPage() {
@@ -273,12 +319,14 @@ export function launcherFirstQuestionScene(answer: GetModelReadinessOutput, keyS
 export const ANTHROPIC_ONLY = readiness({
   anthropic: ProviderAvailability.served_by_organization,
   openai: ProviderAvailability.missing_from_organization,
+  google: ProviderAvailability.missing_from_organization,
 });
 
 /** OpenAI connected and Anthropic not: OpenAI's model runs, Anthropic's need a key. */
 export const OPENAI_ONLY = readiness({
   anthropic: ProviderAvailability.missing_from_organization,
   openai: ProviderAvailability.served_by_organization,
+  google: ProviderAvailability.missing_from_organization,
 });
 
 /** The model picker on the Stigmer engine with OpenAI served and Anthropic missing; the case opens it. */

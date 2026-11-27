@@ -56,7 +56,7 @@ export const HERO_MOMENTS = {
     answer: "One agent, two customers: each conversation stays in its own customer's books.",
   },
   keys: {
-    alt: "Stigmer's console for the company that built the product, on Models & providers: Anthropic and OpenAI both connected on the company's own keys.",
+    alt: "Stigmer's console for the company that built the product, on Models & providers: Anthropic, OpenAI and Google all connected on the company's own keys.",
     answer: "In your Stigmer console, every model runs on your own provider key.",
   },
 } as const satisfies Readonly<Record<AgentGetId, HeroMoment>>;

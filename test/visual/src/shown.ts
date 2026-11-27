@@ -145,7 +145,7 @@ export const SHOWN: readonly Shown[] = [
   {
     name: "keys",
     scene: "story-keys",
-    title: "The integrator's Stigmer console, Models & providers: Anthropic and OpenAI on the organization's own keys",
+    title: "The integrator's Stigmer console, Models & providers: Anthropic, OpenAI and Google on the organization's own keys",
     viewport: { width: 1280, height: 1000 },
     // The console's window, as `in-product`.
     clip: { x: 23, y: 23, width: 1234, height: 954 },
