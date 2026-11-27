@@ -6,13 +6,18 @@
 //   - `stigmer mcp add` installs a plugin of one server, shared with the
 //     Organization and described; run again with a new address it upgrades
 //     that plugin, keeping its visibility and description;
-//   - `stigmer get plugin` prints the plugin's story: how to sign in again,
-//     how to save a key, and why its name is fixed;
+//   - `stigmer get plugin` prints the plugin's story: how it is removed
+//     and why its name is fixed, and, beside a saved sign-in, how to sign
+//     in again;
 //   - `stigmer connect plugin` signs in through the browser, after the
 //     login at the address was removed (`stigmer vault remove-connection`,
 //     the terminal's sign-out), and `--sign-in-again` replaces the login
 //     it saved: My vault's login at the address is saved again, later;
-//   - `stigmer vault set-secret --mine` saves the key the header names;
+//   - `stigmer vault set-secret --mine` saves the key a key-taking
+//     server's header names, the command its `get plugin` view gives (a
+//     second plugin: a server whose header names a key is the author
+//     speaking about authentication, so install never asks it whether it
+//     signs in, and it is not the plugin signed in to);
 //   - an agent file listing the plugin, applied, and `stigmer run` calls
 //     the tool, its result in the run's events carrying the step's nonce;
 //   - `stigmer delete plugin` is refused while the agent lists it, naming
@@ -35,18 +40,19 @@ import { agentFile, expect, manageSkipReason, test } from "../../fixtures/plugin
 import { askForTheTool, drainModel, expectCliSucceeded, nonce, resetModel, scriptToolCall, toolResults } from "../../helpers/first-hour/steps";
 
 const PLUGIN = "manage-term";
+const KEY_PLUGIN = "manage-term-key";
 const FOLDER_PLUGIN = "manage-folder";
 const AGENT = "manage-term-agent";
 const KEY = "TERM_TEAM";
 const TOOL_AS_CALLED = `mcp__plugin_${PLUGIN}_${PLUGIN}__echo`;
 
-/** `stigmer get plugin <name> -o json`, as far as these steps read it. */
+/** `stigmer get plugin <name> -o json` (proto JSON, snake_case), as far as these steps read it. */
 interface PluginJson {
   readonly metadata?: { readonly visibility?: string };
   readonly spec?: { readonly description?: string };
   readonly status?: {
     readonly digest?: string;
-    readonly mcpServers?: readonly { readonly http?: { readonly url?: string } }[];
+    readonly mcp_servers?: readonly { readonly http?: { readonly url?: string; readonly headers?: Readonly<Record<string, string>> } }[];
   };
 }
 
@@ -96,24 +102,24 @@ test.describe("a developer manages a plugin from the terminal", () => {
 
     await test.step("`stigmer mcp add` installs the server, shared and described", async () => {
       expectCliSucceeded(
-        await cli.line(`stigmer mcp add ${PLUGIN} ${first} --header 'X-Team=\${${KEY}}' --visibility org --description "Term tools."`),
+        await cli.line(`stigmer mcp add ${PLUGIN} ${first} --header X-Team=term --visibility org --description "Term tools."`),
       );
       const added = await getPluginJson(cli, PLUGIN);
-      expect(added.status?.mcpServers?.[0]?.http?.url).toBe(first);
+      expect(added.status?.mcp_servers?.[0]?.http?.url).toBe(first);
     });
 
     await test.step("`stigmer mcp add` again with a new address upgrades it, keeping its visibility and description", async () => {
-      expectCliSucceeded(await cli.line(`stigmer mcp add ${PLUGIN} ${second} --header 'X-Team=\${${KEY}}'`));
+      expectCliSucceeded(await cli.line(`stigmer mcp add ${PLUGIN} ${second} --header X-Team=term`));
       const changed = await getPluginJson(cli, PLUGIN);
-      expect(changed.status?.mcpServers?.[0]?.http?.url, "the installed version is at the new address").toBe(second);
+      expect(changed.status?.mcp_servers?.[0]?.http?.url, "the installed version is at the new address").toBe(second);
+      expect(changed.status?.mcp_servers?.[0]?.http?.headers?.["X-Team"], "the upgrade kept the header").toBe("term");
       expect(changed.metadata?.visibility, "the upgrade kept the plugin shared with the Organization").toBe("visibility_org");
       expect(changed.spec?.description, "the upgrade kept the description").toBe("Term tools.");
     });
 
-    await test.step("`stigmer get plugin` says how to sign in again, how to save the key, and why the name is fixed", async () => {
+    await test.step("`stigmer get plugin` says how it is removed and why the name is fixed", async () => {
       const view = await cli.line(`stigmer get plugin ${PLUGIN}`);
       expectCliSucceeded(view);
-      expect(view.stdout).toContain(`stigmer vault set-secret ${KEY} --mine`);
       expect(view.stdout).toContain(`stigmer delete plugin ${PLUGIN}`);
       expect(view.stdout).toMatch(/so it doesn't change\. To use another name, add it again under that name/);
     });
@@ -139,10 +145,15 @@ test.describe("a developer manages a plugin from the terminal", () => {
       expect(await loginSavedAt(person, org, second), "the login at the address is saved again, later").toBeGreaterThan(before ?? 0);
     });
 
-    await test.step("`stigmer vault set-secret --mine` saves the key the header names", async () => {
+    await test.step("`stigmer vault set-secret --mine`, as a key-taking server's view says, saves its key", async () => {
+      expectCliSucceeded(await cli.line(`stigmer mcp add ${KEY_PLUGIN} ${first} --header 'X-Team=\${${KEY}}'`));
+      const view = await cli.line(`stigmer get plugin ${KEY_PLUGIN}`);
+      expectCliSucceeded(view);
+      expect(view.stdout, "the view gives the command that saves the key").toContain(`stigmer vault set-secret ${KEY} --mine`);
       expectCliSucceeded(await cli.line(`printf team-term | stigmer vault set-secret ${KEY} --mine`));
       const mine = await person.vault.getMine({ org });
       expect(Object.keys(mine.spec?.secrets ?? {}), "My vault holds the key").toContain(KEY);
+      expectCliSucceeded(await cli.line(`stigmer delete plugin ${KEY_PLUGIN} --force`));
     });
 
     await test.step("an agent file lists the plugin, and `stigmer run` calls its tool, the result carrying the nonce", async () => {

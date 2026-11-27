@@ -31,7 +31,7 @@ test.describe("a developer signs in to their tool server from the terminal, and 
       await page.goto(`/library/plugins/${journey.found.org ?? ""}/${TOOL_SERVER}`);
       await page.getByRole("button", { name: `Sign out of ${TOOL_SERVER}` }).click({ timeout: 30_000 });
       await page.getByRole("button", { name: "Sign out", exact: true }).click();
-      await expect(page.getByRole("button", { name: `Sign in to ${TOOL_SERVER}` })).toBeVisible({ timeout: 30_000 });
+      await expect(page.getByRole("button", { name: `Sign in to ${TOOL_SERVER}`, exact: true })).toBeVisible({ timeout: 30_000 });
     });
 
     await test.step("`stigmer connect plugin` signs in through the person's browser and lists the tools", async () => {

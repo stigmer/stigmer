@@ -129,7 +129,7 @@ export async function addToolServer(page: Page, toolServer: JourneyToolServer): 
   await add.getByLabel("URL").fill(toolServer.mcpUrl);
   await add.getByRole("button", { name: "Add", exact: true }).click();
   await page.waitForURL(new RegExp(`/library/plugins/[^/]+/${TOOL_SERVER}$`), { timeout: 60_000 });
-  await expect(page.getByRole("button", { name: `Sign in to ${TOOL_SERVER}` })).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByRole("button", { name: `Sign in to ${TOOL_SERVER}`, exact: true })).toBeVisible({ timeout: 30_000 });
 }
 
 /**

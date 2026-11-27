@@ -4,12 +4,15 @@
 // person gets, never by a screen appearing.
 //
 // What it proves:
-//   - Add MCP server installs a plugin of one server, whose page reads the
-//     key its header names as not in My vault;
+//   - Add MCP server installs a plugin of one server, with a header the
+//     change keeps;
 //   - Change address, on a plugin shared with the Organization, moves it to
 //     a second address: its row asks for a sign-in there, and the plugin is
 //     still shared (a push that named no visibility would have reset it);
-//   - Save to My vault saves the key, which the page then reads as saved;
+//   - Save to My vault saves a key-taking server's key, which the page then
+//     reads as saved (a second plugin: a server whose header names a key is
+//     the author speaking about authentication, so install never asks it
+//     whether it signs in, and it is not the plugin signed in to);
 //   - Sign in, through the login window, at the new address; then an
 //     agent given the plugin with "Add to an agent" calls its tool in a
 //     conversation, the tool's result carrying the step's nonce;
@@ -40,6 +43,7 @@ import {
 } from "../../helpers/first-hour/steps";
 
 const PLUGIN = "manage-console";
+const KEY_PLUGIN = "manage-console-key";
 const AGENT = "manage-console-agent";
 const KEY = "MANAGE_TEAM";
 const TOOL_AS_CALLED = `mcp__plugin_${PLUGIN}_${PLUGIN}__echo`;
@@ -64,21 +68,12 @@ test.describe("a developer manages a plugin in the console", () => {
     const person = await manager.asPerson();
     const pluginPage = `/library/plugins/${org}/${PLUGIN}`;
 
-    await test.step("adds the server, its header naming a key", async () => {
-      await page.goto("/library/plugins?add=mcp-server");
-      const add = page.getByRole("dialog", { name: "Add MCP server" });
-      await expect(add).toBeVisible({ timeout: 30_000 });
-      await add.getByLabel("Name").fill(PLUGIN);
-      await add.getByLabel("URL").fill(first);
-      await add.getByRole("button", { name: "Add header" }).click();
-      await add.getByLabel("Header name").fill("X-Team");
-      await add.getByLabel("Header value").fill(`\${${KEY}}`);
-      await add.getByRole("button", { name: "Add", exact: true }).click();
-      await page.waitForURL(new RegExp(`/library/plugins/[^/]+/${PLUGIN}$`), { timeout: 60_000 });
+    await test.step("adds the server, with a header", async () => {
+      await addServer(page, PLUGIN, first, { "X-Team": "console" });
       // The journey's person may hold a login at the first address already, so
-      // the row's sign-in state is not this step's; the plugin is.
+      // the row's sign-in state is not this step's; the install's is.
       const added = await person.plugin.getByReference({ org, slug: PLUGIN });
-      expect(Object.keys(added.status?.env ?? {}), "the plugin declares the key its header names").toContain(KEY);
+      expect(added.status?.mcpServers[0]?.signIn, "install found the server signs in").toBeDefined();
     });
 
     await test.step("shares it with the Organization", async () => {
@@ -95,16 +90,25 @@ test.describe("a developer manages a plugin in the console", () => {
       await change.getByRole("button", { name: "Save", exact: true }).click();
       await expect(change).toHaveCount(0, { timeout: 60_000 });
       await expect(page.getByText(second, { exact: true })).toBeVisible({ timeout: 30_000 });
-      await expect(page.getByRole("button", { name: `Sign in to ${PLUGIN}` })).toBeVisible({ timeout: 30_000 });
+      await expect(page.getByRole("button", { name: `Sign in to ${PLUGIN}`, exact: true })).toBeVisible({ timeout: 30_000 });
 
       const changed = await person.plugin.getByReference({ org, slug: PLUGIN });
       const server = changed.status?.mcpServers[0];
       expect(server?.transport.case === "http" ? server.transport.value.url : "", "the installed version is at the new address").toBe(second);
+      expect(server?.transport.case === "http" ? server.transport.value.headers["X-Team"] : "", "the change kept the header").toBe("console");
+      await expect(
+        page.getByRole("list", { name: "Keys this plugin reads" }).getByText(`Filled when you sign in to ${PLUGIN}.`),
+        "the login key says the sign-in fills it",
+      ).toBeVisible();
       expect(changed.metadata?.visibility, "the change kept the plugin shared with the Organization").toBe(ApiResourceVisibility.visibility_org);
     });
 
-    await test.step("saves its key to My vault, and the page reads it as saved", async () => {
+    await test.step("saves a key-taking server's key to My vault, and the page reads it as saved", async () => {
+      await addServer(page, KEY_PLUGIN, first, { "X-Team": `\${${KEY}}` });
       const keys = page.getByRole("list", { name: "Keys this plugin reads" });
+      await expect(keys.getByRole("listitem").filter({ hasText: KEY }).getByText("Paste it into My vault, or a vault the conversation lists.")).toBeVisible({
+        timeout: 30_000,
+      });
       const row = keys.getByRole("listitem").filter({ hasText: KEY });
       await expect(row.getByText("Not in My vault")).toBeVisible({ timeout: 30_000 });
       await row.getByRole("button", { name: `Save ${KEY} to My vault` }).click();
@@ -113,11 +117,14 @@ test.describe("a developer manages a plugin in the console", () => {
       await expect(row.getByText("Saved in My vault")).toBeVisible({ timeout: 30_000 });
       const mine = await person.vault.getMine({ org });
       expect(Object.keys(mine.spec?.secrets ?? {}), "My vault holds the key").toContain(KEY);
+      const keyPlugin = await person.plugin.getByReference({ org, slug: KEY_PLUGIN });
+      await person.plugin.delete(keyPlugin.metadata?.id ?? "");
     });
 
     await test.step("signs in at the new address", async () => {
+      await page.goto(pluginPage);
       const opened = context.waitForEvent("page");
-      await page.getByRole("button", { name: `Sign in to ${PLUGIN}` }).click();
+      await page.getByRole("button", { name: `Sign in to ${PLUGIN}`, exact: true }).click();
       await consentInPopup(await opened);
       await expect(page.getByRole("button", { name: `Sign in to ${PLUGIN} again` })).toBeVisible({ timeout: 30_000 });
       expect(await loginSavedAt(person, org, second), "My vault holds a login at the new address").not.toBeNull();
@@ -193,6 +200,22 @@ test.describe("a developer manages a plugin in the console", () => {
     });
   });
 });
+
+/** Adds a server as the console adds one, and lands on its plugin's page. */
+async function addServer(page: import("@playwright/test").Page, name: string, url: string, headers: Readonly<Record<string, string>>): Promise<void> {
+  await page.goto("/library/plugins?add=mcp-server");
+  const add = page.getByRole("dialog", { name: "Add MCP server" });
+  await expect(add).toBeVisible({ timeout: 30_000 });
+  await add.getByLabel("Name").fill(name);
+  await add.getByLabel("URL").fill(url);
+  for (const [header, value] of Object.entries(headers)) {
+    await add.getByRole("button", { name: "Add header" }).click();
+    await add.getByLabel("Header name").last().fill(header);
+    await add.getByLabel("Header value").last().fill(value);
+  }
+  await add.getByRole("button", { name: "Add", exact: true }).click();
+  await page.waitForURL(new RegExp(`/library/plugins/[^/]+/${name}$`), { timeout: 60_000 });
+}
 
 /** Remove from the page's More actions, confirmed. */
 async function removeFromMenu(page: import("@playwright/test").Page): Promise<void> {
