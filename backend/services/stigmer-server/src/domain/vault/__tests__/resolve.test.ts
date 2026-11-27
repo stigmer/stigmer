@@ -3409,6 +3409,41 @@ describe("an app user's own sign-ins", () => {
       });
     });
 
+    it("fails, never answers short, when a vault's check faults rather than refuses", async () => {
+      await everyone();
+      const outage = newVaultResolver({
+        store: rig.store,
+        logger: silentLogger,
+        authorizer: {
+          authorize: async () => {
+            throw new Error("the authorization backend is down");
+          },
+        },
+        secretService: rig.secrets,
+        vaults: rig.vaults,
+        accounts: { findById: async (id) => accounts.get(id) },
+        freshener,
+      });
+      const reading = outage.planEmbeddingCoverage({
+        orgId: ORG,
+        mintedBy: MINTER,
+        agentSpec: agent({ A: KEY }),
+        agentName: "Helper",
+        agentId: "agt_helper",
+        agentVersion: "",
+        agentOrg: ORG,
+        agentServerSignIns: [],
+        subagents: [],
+        plugins: [],
+      });
+      await expect(reading).rejects.toThrow();
+      const failure: unknown = await reading.catch((error: unknown) => error);
+      // An outage is no refusal: the read fails as a whole, and the vault
+      // it was checking is not named.
+      expect(failure instanceof ConnectError && failure.code === Code.FailedPrecondition).toBe(false);
+      expect(String(failure)).not.toContain("everyone");
+    });
+
     it("still serves a run of another organization's agent, as the run's surface does", async () => {
       await everyone();
       expect(await coverage({ env: { A: KEY }, plugins: [linear()], agentOrg: "globex" })).toEqual({
