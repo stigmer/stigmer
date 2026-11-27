@@ -358,7 +358,7 @@ would act on it wrongly: a rollback that would not work, the security posture, a
 test plan quoting a check that does not cover the changed path. Wording, stale
 prose and preference are `minor`. A finding is `minor` when it is worth fixing
 but the change is sound without the fix. The verdict is `approve` exactly when
-no finding is blocking.
+no finding is blocking, and `changes-needed` when at least one is.
 
 **Answer** with one JSON object as your last message and nothing after it:
 
@@ -378,9 +378,11 @@ no finding is blocking.
 }
 ```
 
-`findings` is empty when there are none. Each summary is one sentence a
-maintainer can act on without asking you. `security` is `none found` followed by
-the questions you read the change against, or the concern in one sentence.
+`verdict` is `approve` or `changes-needed`, and nothing else: not GitHub's
+`request-changes`. `findings` is empty when there are none. Each summary is one
+sentence a maintainer can act on without asking you. `security` is `none found`
+followed by the questions you read the change against, or the concern in one
+sentence.
 
 ## What the fix-check does
 
