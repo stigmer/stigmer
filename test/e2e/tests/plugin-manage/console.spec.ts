@@ -126,7 +126,7 @@ test.describe("a developer manages a plugin in the console", () => {
       const opened = context.waitForEvent("page");
       await page.getByRole("button", { name: `Sign in to ${PLUGIN}`, exact: true }).click();
       await consentInPopup(await opened);
-      await expect(page.getByRole("button", { name: `Sign in to ${PLUGIN} again` })).toBeVisible({ timeout: 30_000 });
+      await expect(page.getByRole("button", { name: `Sign in again to ${PLUGIN}` })).toBeVisible({ timeout: 30_000 });
       expect(await loginSavedAt(person, org, second), "My vault holds a login at the new address").not.toBeNull();
     });
 
@@ -167,7 +167,7 @@ test.describe("a developer manages a plugin in the console", () => {
       const before = await loginSavedAt(person, org, second);
       await page.goto(pluginPage);
       const opened = context.waitForEvent("page");
-      await page.getByRole("button", { name: `Sign in to ${PLUGIN} again` }).click({ timeout: 30_000 });
+      await page.getByRole("button", { name: `Sign in again to ${PLUGIN}` }).click({ timeout: 30_000 });
       await consentInPopup(await opened);
       await expect
         .poll(() => loginSavedAt(person, org, second), { timeout: 30_000, message: "the login at the address is saved again, later" })

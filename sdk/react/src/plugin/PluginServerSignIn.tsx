@@ -155,7 +155,7 @@ function PluginServerSignInView({
               size="xs"
               onClick={signIn.signInAgain}
               disabled={signIn.isSigningIn}
-              aria-label={`Sign in to ${name} again`}
+              aria-label={`Sign in again to ${name}`}
             >
               {signIn.isSigningIn ? phaseLabel(signIn.phase) : "Sign in again"}
             </Button>

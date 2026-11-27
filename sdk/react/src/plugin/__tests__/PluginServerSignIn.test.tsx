@@ -246,7 +246,7 @@ describe("PluginServerSignIn: signing in again", () => {
     stubs.myVault.vault = vaultWithLogins([LINEAR_URL]);
     const { onSignedIn } = renderCell(LINEAR);
 
-    fireEvent.click(screen.getByRole("button", { name: "Sign in to linear again" }));
+    fireEvent.click(screen.getByRole("button", { name: "Sign in again to linear" }));
 
     expect(stubs.signIn.clearError).toHaveBeenCalled();
     expect(stubs.signIn.signIn).toHaveBeenCalledWith(LINEAR_URL, { org: ORG });
@@ -260,7 +260,7 @@ describe("PluginServerSignIn: signing in again", () => {
     stubs.signIn.phase = "awaiting-callback";
     renderCell(LINEAR);
 
-    expect(screen.getByRole("button", { name: "Sign in to linear again" }).textContent).toBe("Waiting for sign-in…");
+    expect(screen.getByRole("button", { name: "Sign in again to linear" }).textContent).toBe("Waiting for sign-in…");
     expect(screen.getByRole("button", { name: "Cancel the sign-in to linear" })).toBeTruthy();
     expect(screen.queryByRole("button", { name: "Sign out of linear" })).toBeNull();
   });
@@ -275,12 +275,12 @@ describe("PluginServerSignIn: signing in again", () => {
     });
     renderCell(LINEAR);
     expect(screen.getByText("Signed in")).toBeTruthy();
-    expect(screen.queryByRole("button", { name: "Sign in to linear again" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Sign in again to linear" })).toBeNull();
     cleanup();
 
     stubs.myVault.vault = vaultWithLogins(["github.com"]);
     renderCell(GITHUB);
-    expect(screen.queryByRole("button", { name: "Sign in to github again" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Sign in again to github" })).toBeNull();
   });
 });
 
