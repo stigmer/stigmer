@@ -11,7 +11,7 @@
  * a code and a refusal, hands nothing back.
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { StrictMode, type ReactNode } from "react";
 import { create } from "@bufbuild/protobuf";
 import { Code, ConnectError, createRouterTransport } from "@connectrpc/connect";
@@ -65,7 +65,8 @@ describe("SignInReturn", () => {
     expect(await screen.findByRole("heading", { name: "You're signed in at Sentry" })).toBeTruthy();
     expect(screen.getByText("Go back to where you started; it finishes there.")).toBeTruthy();
     expect(handedBack.map((input) => [input.state, input.code, input.error])).toEqual([["st-1", "c-1", ""]]);
-    expect(close).toHaveBeenCalledTimes(1);
+    // The window closes in an effect after the heading renders.
+    await waitFor(() => expect(close).toHaveBeenCalledTimes(1));
     expect(screen.queryByText(/Connected/)).toBeNull();
   });
 

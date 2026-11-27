@@ -3201,6 +3201,30 @@ describe("an app user's own sign-ins", () => {
     expect(failure.rawMessage).toContain("the service account that signed this user in is gone");
   });
 
+  it("serve an app user whose minter is of another organization (no embedding surface), for the organization's own agent only", async () => {
+    await ownVault(PRIYA, { address: LINEAR });
+    accounts.set(
+      MINTER,
+      create(IdentityAccountSchema, {
+        metadata: { id: MINTER, org: "parent" },
+        spec: { provisioningMode: IdentityAccountProvisioningMode.service_account },
+      }),
+    );
+    expect(await resolve({ run: appRun(PRIYA), session: appSession(PRIYA), plugins: [linear()] })).toEqual({
+      LINEAR_TOKEN: `fresh-${PRIYA}-login`,
+    });
+    const owed = await refusal(resolve({ run: appRun(OMAR), session: appSession(OMAR), plugins: [linear()] }));
+    expect(owed.rawMessage).toBe(
+      "plugin:linear:linear needs LINEAR_TOKEN: sign in to plugin:linear:linear, or list a vault that holds LINEAR_TOKEN on the conversation",
+    );
+    const foreign = await refusal(
+      resolve({ run: appRun(PRIYA), session: appSession(PRIYA), agentOrg: "globex", plugins: [linear()] }),
+    );
+    expect(foreign.rawMessage).toBe(
+      "plugin:linear:linear needs LINEAR_TOKEN: add LINEAR_TOKEN to one of this conversation's vaults: an agent of another organization never reads My vault",
+    );
+  });
+
   it("refuse to open when My vault was left out since the plan", async () => {
     await embedding();
     await ownVault(PRIYA, { address: LINEAR });
