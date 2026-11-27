@@ -52,6 +52,8 @@ interface ExecutionShape {
   sessionId?: string;
   agentId?: string;
   message?: string;
+  /** The model the server recorded for the turn (`status.run_config.model_name`). */
+  modelName?: string;
 }
 
 /** A turn as the server dispatches it: its session on the target, its agent stamped in status. */
@@ -61,7 +63,7 @@ function fakeExecution(shape: ExecutionShape = {}): Run {
       target: { case: "sessionId", value: shape.sessionId ?? SESSION_ID },
       message: shape.message ?? "Explain how database indexing works for PostgreSQL",
     },
-    status: { agentId: shape.agentId ?? AGENT_ID },
+    status: { agentId: shape.agentId ?? AGENT_ID, runConfig: { modelName: shape.modelName ?? "" } },
   } as unknown as Run;
 }
 
@@ -129,6 +131,23 @@ beforeEach(() => {
 // ─────────────────────────────────────────────────────────────────────────────
 // Happy path + persistence
 // ─────────────────────────────────────────────────────────────────────────────
+
+describe("the model a title is written by", () => {
+  it("follows the run's own model, not the runner's", async () => {
+    const { client } = fakeClient({ execution: fakeExecution({ modelName: "google:gemini-3-flash" }) });
+
+    await generateSessionSubject(EXECUTION_ID, client, OPTIONS);
+
+    expect(vi.mocked(buildChatModel).mock.calls[0]?.[0].modelName).toBe("google:gemini-3-flash");
+  });
+
+  it("is the operator's model for a run that names none, and the harness's default when the operator names none either", async () => {
+    await generateSessionSubject(EXECUTION_ID, fakeClient().client, OPTIONS);
+    await generateSessionSubject(EXECUTION_ID, fakeClient().client, { ...OPTIONS, primaryModel: "" });
+
+    expect(vi.mocked(buildChatModel).mock.calls.map((call) => call[0].modelName)).toEqual(["claude-sonnet-4.6", ""]);
+  });
+});
 
 describe("generateSessionSubject", () => {
   it("replaces the sentinel subject with the LLM title", async () => {

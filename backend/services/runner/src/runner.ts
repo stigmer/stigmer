@@ -106,7 +106,7 @@ export interface StigmerRunnerOptions {
    */
   readonly proxyEndpoint?: string;
 
-  /** Default LLM model identifier. @default "gpt-4.1" */
+  /** The model a run that names none is titled on; empty, the Stigmer harness's default. @default "" */
   readonly primaryModel?: string;
 
   /** No-progress bound for every harness's engine stream (ms). An open operation holds it. @default 180000 */
@@ -618,7 +618,7 @@ export function mapOptionsToConfig(
     artifactProxyEndpoint: options.artifactProxyEndpoint
       ?? options.proxyEndpoint
       ?? null,
-    primaryModel: options.primaryModel ?? "gpt-4.1",
+    primaryModel: options.primaryModel ?? "",
     cursorStreamStallTimeoutMs:
       options.cursorStreamStallTimeoutMs ?? DEFAULT_CURSOR_STREAM_STALL_TIMEOUT_MS,
     openOperationMaxMs: options.openOperationMaxMs ?? DEFAULT_OPEN_OPERATION_MAX_MS,

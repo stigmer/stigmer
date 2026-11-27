@@ -238,19 +238,19 @@ export async function getSummarizationModel(primaryModel: string): Promise<strin
  * answers.
  */
 export async function getEconomyModel(primaryModel: string): Promise<string> {
+  // A turn that names no model runs the harness's default (`getDefaultModel`).
+  const named = primaryModel === "" || primaryModel === "default" ? await getDefaultModel("stigmer") : primaryModel;
   const registry = await getRegistry();
   if (registry.length === 0) {
     // Registry unavailable: keep the caller's chosen model rather than
     // switching to a hardcoded economy model on a possibly-unconfigured
     // provider. Summarization degrades gracefully to the primary model.
     console.warn(
-      `Model registry empty — falling back to primary model "${primaryModel}" for economy tier`,
+      `Model registry empty — falling back to primary model "${named}" for economy tier`,
     );
-    return primaryModel;
+    return named;
   }
 
-  // A turn that names no model runs the harness's default (`getDefaultModel`).
-  const named = primaryModel === "" || primaryModel === "default" ? await getDefaultModel("stigmer") : primaryModel;
   const primary = registry.find((m) => m.id === named || m.apiModelId === named);
   const targetProvider = primary?.provider ?? tryInferProvider(named);
 

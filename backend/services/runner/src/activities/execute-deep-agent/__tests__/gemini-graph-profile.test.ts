@@ -88,8 +88,12 @@ describe("a Gemini graph and the Stigmer harness profile", () => {
       .enqueue(anthropicText("Done."));
     const seen: string[] = [];
 
-    await (await geminiGraph([gated], seen)).invoke({ messages: [new HumanMessage("Go")] }).catch(() => undefined);
+    const refused = await (await geminiGraph([gated], seen)).invoke({ messages: [new HumanMessage("Go")] }).then(
+      () => undefined,
+      (err: unknown) => (err instanceof Error ? err.message : String(err)),
+    );
 
+    expect(refused, "deepagents refuses the type: the graph holds no such sub-agent").toMatch(/invoked agent of type general-purpose, the only allowed types are/);
     expect(ran, "the gated tool ran outside the parent's middleware").toBe(0);
     expect(seen).not.toContain("gated_action");
   });
