@@ -1205,11 +1205,13 @@ export function buildThreadItems(
       }
     }
 
-    // A completed turn that wrote messages but has no final answer (it
-    // ended on a step, or Stigmer stopped it) still carries its scores (the
-    // thumbs, the run-health, judge and eval chips, Make a test case): at
-    // its foot, since no answer leads.
-    if (turn.status?.phase === "completed" && planMessageId === undefined && finalAnswer === undefined && lastMessageId(turn.items) !== undefined) {
+    // A completed turn with no final answer (it ended on a step, Stigmer
+    // stopped it, or it ran steps and wrote no message at all) still
+    // carries its scores (the thumbs, the run-health, judge and eval chips,
+    // Make a test case): at its foot, since no answer leads. The run-health
+    // chip matters most on exactly these turns (stigmer/stigmer#3299). A
+    // final answer carries them itself, so no turn carries them twice.
+    if (turn.status?.phase === "completed" && planMessageId === undefined && finalAnswer === undefined) {
       items.push({ kind: "turn-scores", runId, key: `${runId}-scores` });
     }
 

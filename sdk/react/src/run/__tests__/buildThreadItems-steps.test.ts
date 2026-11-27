@@ -295,9 +295,9 @@ describe("buildThreadItems finished turn", () => {
     expect(keys(build(events, { includeOutcomes: true }))).toEqual([`${R}-spec`, m(R, 0), `outcome-${R}`, `${R}-how`]);
   });
 
-  it("keeps its outcome first when it wrote no answer", () => {
+  it("keeps its outcome first when it wrote no answer, its scores at its foot", () => {
     const events = [user(R, "go"), status(R, "running"), call(R, "c1", "read_file", { path: "a.ts" }), status(R, "completed")];
-    expect(keys(build(events, { includeOutcomes: true }))).toEqual([`${R}-spec`, `outcome-${R}`, `${R}-how`]);
+    expect(keys(build(events, { includeOutcomes: true }))).toEqual([`${R}-spec`, `outcome-${R}`, `${R}-how`, `${R}-scores`]);
   });
 
   it("keeps its plan card outside the fold, after the outcome", () => {
