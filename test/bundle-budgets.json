@@ -1,8 +1,8 @@
 {
   "budgets": {
-    "react-sdk/provider": 11747,
-    "react-sdk/session": 538624,
-    "react-sdk/chat": 325632,
+    "react-sdk/provider": 12000,
+    "react-sdk/session": 540672,
+    "react-sdk/chat": 326656,
     "react-sdk/styles": 14772,
     "embed/loader": 1558
   },
