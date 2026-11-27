@@ -126,7 +126,11 @@ const COMPUTED_READS_ALLOWED: ReadonlyMap<string, string> = new Map([
   [`${join("shared", "model-client.ts")}#transportFor`, "reads a provider's key variable from the provider table (`llm-proxy.ts` LLM_PROVIDERS), whose every name the README's credential rows name"],
   [
     `${join("environment", "install.ts")}#commandEnvironment`,
-    "copies the PATH, proxy and CA names it lists into one install command's environment; each is a sandbox setting the README's rows name",
+    "copies the PATH, proxy and CA names it lists into one install command's environment; each is a sandbox setting the README names",
+  ],
+  [
+    `${join("shared", "mcp-manager.ts")}#gatewayTrust`,
+    "copies the egress gateway's CA variables (`GATEWAY_TRUST_VARIABLES`, which the README's agent-separation paragraph names) into a stdio MCP server's environment",
   ],
   ["otel-export.ts#protocolOf", "reads the standard's per-signal form of OTEL_EXPORTER_OTLP_PROTOCOL (`..._TRACES_PROTOCOL`, `..._METRICS_PROTOCOL`), which the README's row names"],
   ["otel-export.ts#signalEndpointSet", "reads the standard's per-signal endpoints (`..._TRACES_ENDPOINT`, `..._METRICS_ENDPOINT`), which the README's OTEL_EXPORTER_OTLP_ENDPOINT row names"],

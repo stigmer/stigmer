@@ -7,7 +7,8 @@
  * not separate, everything else the agent's tools have always seen passes
  * unchanged (the operator's settings, a local user's own environment); on a
  * separating runner only the allow-list passes, a cloud credential never,
- * and the operator's pass-through names too. With an Environment that has
+ * and the operator's pass-through names too; the allow-list holds every
+ * variable the sandbox's egress gateway is trusted by (stigmer#3392). With an Environment that has
  * packages, the install's folders go first on the host's PATH (the Python
  * venv's, then the shared bin, in the prefix the runner's identity names);
  * without one, or with no packages, the environment is unchanged.
@@ -15,6 +16,7 @@
 
 import { homedir } from "node:os";
 import { delimiter, join } from "node:path";
+import { GATEWAY_TRUST_VARIABLES } from "@stigmer/outbound/egress";
 import { describe, expect, it } from "vitest";
 
 import { ENVIRONMENT_PREFIX } from "../../environment/prefix.js";
@@ -82,6 +84,8 @@ describe("the agent host's environment", () => {
       REQUESTS_CA_BUNDLE: "/run/ate/trust-bundle.pem",
     };
     expect(agentHostEnvironment({ PATH: "/usr/bin", ...trust }, true)).toEqual({ PATH: "/usr/bin", ...trust });
+    const shared = Object.fromEntries(GATEWAY_TRUST_VARIABLES.map((name) => [name, "/run/ate/trust-bundle.pem"]));
+    expect(agentHostEnvironment(shared, true), "every name of the list the sandbox template sets").toEqual(shared);
   });
 
   it("passes a credential the operator names for the agent", () => {

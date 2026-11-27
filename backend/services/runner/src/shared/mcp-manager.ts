@@ -49,14 +49,19 @@
  *
  * Stdio env contract (oss#256): a subprocess receives exactly the
  * variables declared in the server's spec.env (resolved upstream by
- * filterEnvToDeclaredKeys) plus the MCP SDK's minimal base environment
+ * filterEnvToDeclaredKeys), the MCP SDK's minimal base environment
  * (HOME, LOGNAME, PATH, SHELL, TERM, USER — getDefaultEnvironment in
- * @modelcontextprotocol/sdk, merged under whatever we pass). The
- * runner's own process env is never passed: it carries runner-internal
+ * @modelcontextprotocol/sdk, merged under whatever we pass), and the
+ * egress gateway's trust variables the building process holds
+ * (`GATEWAY_TRUST_VARIABLES` in `@stigmer/outbound/egress`, a declared
+ * value winning), which are paths to a public CA, never a secret: in a
+ * sandbox whose gateway re-signs HTTPS, a server started by `npx` or
+ * `uvx` must trust it to fetch itself and call its API (stigmer#3506).
+ * No other name of the process env is passed: it carries runner-internal
  * credentials (enumerated in runner-credential-keys.ts) that no
  * third-party MCP subprocess may see. A declared-empty env and an
  * undeclared env are deliberately equivalent — both yield the SDK base
- * environment.
+ * environment and the trust variables.
  *
  * This manager serves LangGraph-based deep agent executions, and a tools listing
  * (shared/mcp-tool-listing.ts) builds its spawn config through
@@ -73,6 +78,7 @@ import {
   checkEgress,
   describeRefusal,
   egressPolicyForPosture,
+  GATEWAY_TRUST_VARIABLES,
   nodeLookup,
   type LookupFn,
 } from "@stigmer/outbound/egress";
@@ -83,12 +89,16 @@ import { McpToolIndex, engineToolName } from "./mcp-tool-names.js";
 
 /**
  * Convert harness-agnostic ResolvedMcpServer[] into the
- * MultiServerMCPClient connection config format.
+ * MultiServerMCPClient connection config format. `env` is the environment
+ * a stdio server's trust variables are read from (the header's stdio env
+ * contract); nothing else is read from it.
  */
 export function toMcpClientConfig(
   servers: ResolvedMcpServer[],
+  env: NodeJS.ProcessEnv = process.env,
 ): Record<string, Connection> {
   const config: Record<string, Connection> = {};
+  const trust = gatewayTrust(env);
 
   for (const server of servers) {
     if (server.connectionType === "stdio") {
@@ -96,15 +106,17 @@ export function toMcpClientConfig(
       if (!server.env || Object.keys(server.env).length === 0) {
         console.log(
           `[MCP] Server '${server.slug}' declares no env — its subprocess ` +
-          `starts with the minimal base environment only. Declare variables ` +
-          `the server reads in its plugin's MCP configuration to pass them.`,
+          `starts with the minimal base environment and the egress gateway's ` +
+          `trust settings only. Declare variables the server reads in its ` +
+          `plugin's MCP configuration to pass them.`,
         );
       }
+      const serverEnv = { ...trust, ...server.env };
       config[server.slug] = {
         transport: "stdio",
         command: server.command,
         args: server.args ?? [],
-        env: server.env,
+        env: Object.keys(serverEnv).length === 0 ? server.env : serverEnv,
         cwd: server.cwd,
       };
     } else if (server.connectionType === "http" || server.connectionType === "sse") {
@@ -126,6 +138,16 @@ export function toMcpClientConfig(
   }
 
   return config;
+}
+
+/** The egress gateway's trust variables `env` holds (the header's stdio env contract). */
+function gatewayTrust(env: NodeJS.ProcessEnv): Record<string, string> {
+  const trust: Record<string, string> = {};
+  for (const name of GATEWAY_TRUST_VARIABLES) {
+    const value = env[name];
+    if (value !== undefined) trust[name] = value;
+  }
+  return trust;
 }
 
 /** Each HTTP server's URL by its name in `config`, for a failed connect's network error (`mcp-network-errors.ts`). */
