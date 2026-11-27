@@ -209,6 +209,18 @@ export const CONTRAST_PAIRS: readonly ContrastPair[] = [
   pair("--stgm-muted-foreground", "--stgm-card", "text", "supporting text inside cards"),
   pair(
     "--stgm-muted-foreground",
+    "--stgm-accent",
+    "text",
+    "grey lines on a hovered or highlighted row (ConversationListPane rows, List rows, the highlighted option of AgentPicker, PluginPicker and SkillPicker)",
+  ),
+  pair(
+    "--stgm-muted-foreground",
+    "--stgm-accent-hover",
+    "text",
+    "grey lines on a row hovered with the hover fill (the other options of AgentPicker, PluginPicker and SkillPicker)",
+  ),
+  pair(
+    "--stgm-muted-foreground",
     "--stgm-popover",
     "text",
     "supporting text in a dialog (ChatLinkDialog notes, ChannelConversationsDialog ages, FederationIssuerWizard pending steps)",
@@ -247,6 +259,12 @@ export const CONTRAST_PAIRS: readonly ContrastPair[] = [
   pair("--stgm-sidebar-muted-foreground", "--stgm-sidebar", "text", "sidebar resting nav labels, section headers, secondary labels"),
   pair("--stgm-sidebar-primary-foreground", "--stgm-sidebar-primary", "text", "sidebar primary actions"),
   pair("--stgm-sidebar-accent-foreground", "--stgm-sidebar-accent", "text", "sidebar active/hovered items"),
+  pair(
+    "--stgm-sidebar-muted-foreground",
+    "--stgm-sidebar-accent",
+    "text",
+    "grey lines on a hovered or active sidebar row (OrgSwitcher slugs, UserMenu email and name, WorkspaceSidebar recent sessions' times)",
+  ),
 
   // ── Status badges (StatusBadge: status text on its subtle fill) ─────
   ...STATUSES.flatMap((status) =>
