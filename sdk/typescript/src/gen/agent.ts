@@ -7,7 +7,7 @@ import { create, type MessageInitShape } from "@bufbuild/protobuf";
 import { createClient, type Client, type Transport } from "@connectrpc/connect";
 import { AgentSchema, type Agent } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb";
 import { AgentCommandController } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/command_pb";
-import { AgentIdSchema, UpdateAgentInputSchema, ListAgentsRequestSchema, AgentListSchema, type ListAgentsRequest, type AgentList } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/io_pb";
+import { AgentIdSchema, UpdateAgentInputSchema, ListAgentsRequestSchema, AgentListSchema, CheckEmbeddingCoverageInputSchema, EmbeddingCoverageSchema, type ListAgentsRequest, type AgentList, type CheckEmbeddingCoverageInput, type EmbeddingCoverage } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/io_pb";
 import { AgentQueryController } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/query_pb";
 import { AgentSpecSchema, HookSourceSchema, AgentMcpServerSchema, type HookSource, type AgentMcpServer } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/spec_pb";
 import { TagAgentVersionInputSchema, ListAgentVersionsInputSchema, ListAgentVersionsResponseSchema, GetAgentVersionInputSchema, AgentVersionEntrySchema, type TagAgentVersionInput, type ListAgentVersionsInput, type ListAgentVersionsResponse, type GetAgentVersionInput, type AgentVersionEntry } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/version_pb";
@@ -128,6 +128,12 @@ export class AgentClient {
   async getVersion(input: MessageInitShape<typeof GetAgentVersionInputSchema>): Promise<AgentVersionEntry> {
     try {
       return await this.query.getVersion(input);
+    } catch (e) { throw wrapError(e); }
+  }
+
+  async checkEmbeddingCoverage(input: MessageInitShape<typeof CheckEmbeddingCoverageInputSchema>): Promise<EmbeddingCoverage> {
+    try {
+      return await this.query.checkEmbeddingCoverage(input);
     } catch (e) { throw wrapError(e); }
   }
 }

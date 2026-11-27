@@ -36,6 +36,7 @@ Rows read `| Service.method | <field>, <field>, … |`.
 | AgentQueryController.getByReference | `org` |
 | AgentQueryController.list | `org` |
 | AgentQueryController.listVersions | `org` |
+| AgentQueryController.checkEmbeddingCoverage | `org`, `agent.org` |
 
 ## `ai.stigmer.agentic.channel.v1`
 

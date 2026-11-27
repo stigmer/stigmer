@@ -170,6 +170,37 @@ public final class AgentQueryControllerGrpc {
     return getGetVersionMethod;
   }
 
+  private static volatile io.grpc.MethodDescriptor<ai.stigmer.agentic.agent.v1.CheckEmbeddingCoverageInput,
+      ai.stigmer.agentic.agent.v1.EmbeddingCoverage> getCheckEmbeddingCoverageMethod;
+
+  @io.grpc.stub.annotations.RpcMethod(
+      fullMethodName = SERVICE_NAME + '/' + "checkEmbeddingCoverage",
+      requestType = ai.stigmer.agentic.agent.v1.CheckEmbeddingCoverageInput.class,
+      responseType = ai.stigmer.agentic.agent.v1.EmbeddingCoverage.class,
+      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
+  public static io.grpc.MethodDescriptor<ai.stigmer.agentic.agent.v1.CheckEmbeddingCoverageInput,
+      ai.stigmer.agentic.agent.v1.EmbeddingCoverage> getCheckEmbeddingCoverageMethod() {
+    io.grpc.MethodDescriptor<ai.stigmer.agentic.agent.v1.CheckEmbeddingCoverageInput, ai.stigmer.agentic.agent.v1.EmbeddingCoverage> getCheckEmbeddingCoverageMethod;
+    if ((getCheckEmbeddingCoverageMethod = AgentQueryControllerGrpc.getCheckEmbeddingCoverageMethod) == null) {
+      synchronized (AgentQueryControllerGrpc.class) {
+        if ((getCheckEmbeddingCoverageMethod = AgentQueryControllerGrpc.getCheckEmbeddingCoverageMethod) == null) {
+          AgentQueryControllerGrpc.getCheckEmbeddingCoverageMethod = getCheckEmbeddingCoverageMethod =
+              io.grpc.MethodDescriptor.<ai.stigmer.agentic.agent.v1.CheckEmbeddingCoverageInput, ai.stigmer.agentic.agent.v1.EmbeddingCoverage>newBuilder()
+              .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
+              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "checkEmbeddingCoverage"))
+              .setSampledToLocalTracing(true)
+              .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.agentic.agent.v1.CheckEmbeddingCoverageInput.getDefaultInstance()))
+              .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.agentic.agent.v1.EmbeddingCoverage.getDefaultInstance()))
+              .setSchemaDescriptor(new AgentQueryControllerMethodDescriptorSupplier("checkEmbeddingCoverage"))
+              .build();
+        }
+      }
+    }
+    return getCheckEmbeddingCoverageMethod;
+  }
+
   /**
    * Creates a new async stub that supports all call types for the service
    */
@@ -298,6 +329,24 @@ public final class AgentQueryControllerGrpc {
         io.grpc.stub.StreamObserver<ai.stigmer.agentic.agent.v1.AgentVersionEntry> responseObserver) {
       io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getGetVersionMethod(), responseObserver);
     }
+
+    /**
+     * <pre>
+     * Check which of an agent's keys and sign-ins the organization's embedding
+     * settings fill for the calling app user.
+     * An app user (a person signed in to an organization's own product
+     * through a user token its backend mints) runs an agent on the vaults the
+     * organization's embedding settings name, which the app user cannot read.
+     * This answers, by name only, which of the agent's keys and which tool
+     * sign-ins those vaults fill, so a chat asks the app user only for what
+     * they would still miss. Any other caller gets an empty answer: a run of
+     * theirs never reads the embedding settings.
+     * </pre>
+     */
+    default void checkEmbeddingCoverage(ai.stigmer.agentic.agent.v1.CheckEmbeddingCoverageInput request,
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.agent.v1.EmbeddingCoverage> responseObserver) {
+      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getCheckEmbeddingCoverageMethod(), responseObserver);
+    }
   }
 
   /**
@@ -400,6 +449,25 @@ public final class AgentQueryControllerGrpc {
       io.grpc.stub.ClientCalls.asyncUnaryCall(
           getChannel().newCall(getGetVersionMethod(), getCallOptions()), request, responseObserver);
     }
+
+    /**
+     * <pre>
+     * Check which of an agent's keys and sign-ins the organization's embedding
+     * settings fill for the calling app user.
+     * An app user (a person signed in to an organization's own product
+     * through a user token its backend mints) runs an agent on the vaults the
+     * organization's embedding settings name, which the app user cannot read.
+     * This answers, by name only, which of the agent's keys and which tool
+     * sign-ins those vaults fill, so a chat asks the app user only for what
+     * they would still miss. Any other caller gets an empty answer: a run of
+     * theirs never reads the embedding settings.
+     * </pre>
+     */
+    public void checkEmbeddingCoverage(ai.stigmer.agentic.agent.v1.CheckEmbeddingCoverageInput request,
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.agent.v1.EmbeddingCoverage> responseObserver) {
+      io.grpc.stub.ClientCalls.asyncUnaryCall(
+          getChannel().newCall(getCheckEmbeddingCoverageMethod(), getCallOptions()), request, responseObserver);
+    }
   }
 
   /**
@@ -483,6 +551,24 @@ public final class AgentQueryControllerGrpc {
       return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
           getChannel(), getGetVersionMethod(), getCallOptions(), request);
     }
+
+    /**
+     * <pre>
+     * Check which of an agent's keys and sign-ins the organization's embedding
+     * settings fill for the calling app user.
+     * An app user (a person signed in to an organization's own product
+     * through a user token its backend mints) runs an agent on the vaults the
+     * organization's embedding settings name, which the app user cannot read.
+     * This answers, by name only, which of the agent's keys and which tool
+     * sign-ins those vaults fill, so a chat asks the app user only for what
+     * they would still miss. Any other caller gets an empty answer: a run of
+     * theirs never reads the embedding settings.
+     * </pre>
+     */
+    public ai.stigmer.agentic.agent.v1.EmbeddingCoverage checkEmbeddingCoverage(ai.stigmer.agentic.agent.v1.CheckEmbeddingCoverageInput request) throws io.grpc.StatusException {
+      return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
+          getChannel(), getCheckEmbeddingCoverageMethod(), getCallOptions(), request);
+    }
   }
 
   /**
@@ -565,6 +651,24 @@ public final class AgentQueryControllerGrpc {
     public ai.stigmer.agentic.agent.v1.AgentVersionEntry getVersion(ai.stigmer.agentic.agent.v1.GetAgentVersionInput request) {
       return io.grpc.stub.ClientCalls.blockingUnaryCall(
           getChannel(), getGetVersionMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
+     * Check which of an agent's keys and sign-ins the organization's embedding
+     * settings fill for the calling app user.
+     * An app user (a person signed in to an organization's own product
+     * through a user token its backend mints) runs an agent on the vaults the
+     * organization's embedding settings name, which the app user cannot read.
+     * This answers, by name only, which of the agent's keys and which tool
+     * sign-ins those vaults fill, so a chat asks the app user only for what
+     * they would still miss. Any other caller gets an empty answer: a run of
+     * theirs never reads the embedding settings.
+     * </pre>
+     */
+    public ai.stigmer.agentic.agent.v1.EmbeddingCoverage checkEmbeddingCoverage(ai.stigmer.agentic.agent.v1.CheckEmbeddingCoverageInput request) {
+      return io.grpc.stub.ClientCalls.blockingUnaryCall(
+          getChannel(), getCheckEmbeddingCoverageMethod(), getCallOptions(), request);
     }
   }
 
@@ -654,6 +758,25 @@ public final class AgentQueryControllerGrpc {
       return io.grpc.stub.ClientCalls.futureUnaryCall(
           getChannel().newCall(getGetVersionMethod(), getCallOptions()), request);
     }
+
+    /**
+     * <pre>
+     * Check which of an agent's keys and sign-ins the organization's embedding
+     * settings fill for the calling app user.
+     * An app user (a person signed in to an organization's own product
+     * through a user token its backend mints) runs an agent on the vaults the
+     * organization's embedding settings name, which the app user cannot read.
+     * This answers, by name only, which of the agent's keys and which tool
+     * sign-ins those vaults fill, so a chat asks the app user only for what
+     * they would still miss. Any other caller gets an empty answer: a run of
+     * theirs never reads the embedding settings.
+     * </pre>
+     */
+    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.agent.v1.EmbeddingCoverage> checkEmbeddingCoverage(
+        ai.stigmer.agentic.agent.v1.CheckEmbeddingCoverageInput request) {
+      return io.grpc.stub.ClientCalls.futureUnaryCall(
+          getChannel().newCall(getCheckEmbeddingCoverageMethod(), getCallOptions()), request);
+    }
   }
 
   private static final int METHODID_GET = 0;
@@ -661,6 +784,7 @@ public final class AgentQueryControllerGrpc {
   private static final int METHODID_LIST = 2;
   private static final int METHODID_LIST_VERSIONS = 3;
   private static final int METHODID_GET_VERSION = 4;
+  private static final int METHODID_CHECK_EMBEDDING_COVERAGE = 5;
 
   private static final class MethodHandlers<Req, Resp> implements
       io.grpc.stub.ServerCalls.UnaryMethod<Req, Resp>,
@@ -698,6 +822,10 @@ public final class AgentQueryControllerGrpc {
         case METHODID_GET_VERSION:
           serviceImpl.getVersion((ai.stigmer.agentic.agent.v1.GetAgentVersionInput) request,
               (io.grpc.stub.StreamObserver<ai.stigmer.agentic.agent.v1.AgentVersionEntry>) responseObserver);
+          break;
+        case METHODID_CHECK_EMBEDDING_COVERAGE:
+          serviceImpl.checkEmbeddingCoverage((ai.stigmer.agentic.agent.v1.CheckEmbeddingCoverageInput) request,
+              (io.grpc.stub.StreamObserver<ai.stigmer.agentic.agent.v1.EmbeddingCoverage>) responseObserver);
           break;
         default:
           throw new AssertionError();
@@ -752,6 +880,13 @@ public final class AgentQueryControllerGrpc {
               ai.stigmer.agentic.agent.v1.GetAgentVersionInput,
               ai.stigmer.agentic.agent.v1.AgentVersionEntry>(
                 service, METHODID_GET_VERSION)))
+        .addMethod(
+          getCheckEmbeddingCoverageMethod(),
+          io.grpc.stub.ServerCalls.asyncUnaryCall(
+            new MethodHandlers<
+              ai.stigmer.agentic.agent.v1.CheckEmbeddingCoverageInput,
+              ai.stigmer.agentic.agent.v1.EmbeddingCoverage>(
+                service, METHODID_CHECK_EMBEDDING_COVERAGE)))
         .build();
   }
 
@@ -805,6 +940,7 @@ public final class AgentQueryControllerGrpc {
               .addMethod(getListMethod())
               .addMethod(getListVersionsMethod())
               .addMethod(getGetVersionMethod())
+              .addMethod(getCheckEmbeddingCoverageMethod())
               .build();
         }
       }

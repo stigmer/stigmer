@@ -2169,6 +2169,7 @@ export async function composeServer(
       routineClock: () => routineSyncer,
       archiveFileReads: { skill: skillFileReads, plugin: pluginFileReads },
       outboundFetch,
+      vaultResolver,
     });
     registerSessionServices(router, {
       store,

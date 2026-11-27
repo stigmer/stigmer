@@ -206,6 +206,9 @@ function deps(opts: {
       openConnect: async () => {
         throw new Error("the planner never opens a value");
       },
+      planEmbeddingCoverage: async () => {
+        throw new Error("the planner never reads coverage");
+      },
     },
   };
 }

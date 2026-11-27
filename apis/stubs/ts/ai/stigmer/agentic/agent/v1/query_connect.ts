@@ -3,7 +3,7 @@
 /* eslint-disable */
 // @ts-nocheck
 
-import { AgentId, AgentList, ListAgentsRequest } from "./io_pbjs";
+import { AgentId, AgentList, CheckEmbeddingCoverageInput, EmbeddingCoverage, ListAgentsRequest } from "./io_pbjs";
 import { Agent } from "./api_pbjs";
 import { MethodKind } from "@bufbuild/protobuf";
 import { ApiResourceReference } from "../../../commons/apiresource/io_pbjs";
@@ -87,6 +87,26 @@ export const AgentQueryController = {
       name: "getVersion",
       I: GetAgentVersionInput,
       O: AgentVersionEntry,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * Check which of an agent's keys and sign-ins the organization's embedding
+     * settings fill for the calling app user.
+     *
+     * An app user (a person signed in to an organization's own product
+     * through a user token its backend mints) runs an agent on the vaults the
+     * organization's embedding settings name, which the app user cannot read.
+     * This answers, by name only, which of the agent's keys and which tool
+     * sign-ins those vaults fill, so a chat asks the app user only for what
+     * they would still miss. Any other caller gets an empty answer: a run of
+     * theirs never reads the embedding settings.
+     *
+     * @generated from rpc ai.stigmer.agentic.agent.v1.AgentQueryController.checkEmbeddingCoverage
+     */
+    checkEmbeddingCoverage: {
+      name: "checkEmbeddingCoverage",
+      I: CheckEmbeddingCoverageInput,
+      O: EmbeddingCoverage,
       kind: MethodKind.Unary,
     },
   }

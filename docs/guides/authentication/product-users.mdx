@@ -460,7 +460,10 @@ does a recovery of that run. The Agent stays as it is.
 - **Their own sign-ins.** When such a user signs in to a tool's server from the
   embedded chat, the login is saved to their own My vault and serves their own
   runs, for that tool only, after every vault you chose: a login you set for
-  everyone still wins.
+  everyone still wins. The chat offers that sign-in only where nothing you set
+  fills it: it asks Stigmer which sign-ins and keys your embedding settings'
+  vaults hold (by name, never their values or which vault), and leaves those
+  out.
 - **Same Organization.** The vaults must belong to the Organization, and they
   are used only by its runs.
 - **Kept up to date.** Stigmer reads the settings when each run starts, so an

@@ -23,11 +23,13 @@ _sym_db = _symbol_database.Default()
 
 
 from ai.stigmer.agentic.agent.v1 import api_pb2 as ai_dot_stigmer_dot_agentic_dot_agent_dot_v1_dot_api__pb2
+from ai.stigmer.commons.apiresource import field_options_pb2 as ai_dot_stigmer_dot_commons_dot_apiresource_dot_field__options__pb2
+from ai.stigmer.commons.apiresource import io_pb2 as ai_dot_stigmer_dot_commons_dot_apiresource_dot_io__pb2
 from buf.validate import validate_pb2 as buf_dot_validate_dot_validate__pb2
 from google.protobuf import field_mask_pb2 as google_dot_protobuf_dot_field__mask__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n$ai/stigmer/agentic/agent/v1/io.proto\x12\x1b\x61i.stigmer.agentic.agent.v1\x1a%ai/stigmer/agentic/agent/v1/api.proto\x1a\x1b\x62uf/validate/validate.proto\x1a google/protobuf/field_mask.proto\"\'\n\x07\x41gentId\x12\x1c\n\x05value\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05value\"\xdf\x02\n\x10UpdateAgentInput\x12\x46\n\x08resource\x18\x01 \x01(\x0b\x32\".ai.stigmer.agentic.agent.v1.AgentB\x06\xbaH\x03\xd8\x01\x03R\x08resource\x12\x43\n\x0bupdate_mask\x18\x02 \x01(\x0b\x32\x1a.google.protobuf.FieldMaskB\x06\xbaH\x03\xc8\x01\x01R\nupdateMask:\xbd\x01\xbaH\xb9\x01\x1a\xb6\x01\n\x17update_names_its_target\x12\x45resource.metadata.id is required: an update names the agent by its id\x1aThas(this.resource) && has(this.resource.metadata) && this.resource.metadata.id != \'\'\"\x8c\x02\n\x11ListAgentsRequest\x12\x19\n\x03org\x18\x01 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x03org\x12$\n\tpage_size\x18\x02 \x01(\x05\x42\x07\xbaH\x04\x1a\x02(\x00R\x08pageSize\x12\'\n\npage_token\x18\x03 \x01(\tB\x08\xbaH\x05r\x03\x18\x80\x08R\tpageToken\x12R\n\x06labels\x18\x04 \x03(\x0b\x32:.ai.stigmer.agentic.agent.v1.ListAgentsRequest.LabelsEntryR\x06labels\x1a\x39\n\x0bLabelsEntry\x12\x10\n\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n\x05value\x18\x02 \x01(\tR\x05value:\x02\x38\x01\"q\n\tAgentList\x12<\n\x07\x65ntries\x18\x01 \x03(\x0b\x32\".ai.stigmer.agentic.agent.v1.AgentR\x07\x65ntries\x12&\n\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageTokenB\xbb\x01\n\x1f\x63om.ai.stigmer.agentic.agent.v1B\x07IoProtoP\x01\xa2\x02\x04\x41SAA\xaa\x02\x1b\x41i.Stigmer.Agentic.Agent.V1\xca\x02\x1b\x41i\\Stigmer\\Agentic\\Agent\\V1\xe2\x02\'Ai\\Stigmer\\Agentic\\Agent\\V1\\GPBMetadata\xea\x02\x1f\x41i::Stigmer::Agentic::Agent::V1b\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n$ai/stigmer/agentic/agent/v1/io.proto\x12\x1b\x61i.stigmer.agentic.agent.v1\x1a%ai/stigmer/agentic/agent/v1/api.proto\x1a\x32\x61i/stigmer/commons/apiresource/field_options.proto\x1a\'ai/stigmer/commons/apiresource/io.proto\x1a\x1b\x62uf/validate/validate.proto\x1a google/protobuf/field_mask.proto\"\'\n\x07\x41gentId\x12\x1c\n\x05value\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05value\"\xdf\x02\n\x10UpdateAgentInput\x12\x46\n\x08resource\x18\x01 \x01(\x0b\x32\".ai.stigmer.agentic.agent.v1.AgentB\x06\xbaH\x03\xd8\x01\x03R\x08resource\x12\x43\n\x0bupdate_mask\x18\x02 \x01(\x0b\x32\x1a.google.protobuf.FieldMaskB\x06\xbaH\x03\xc8\x01\x01R\nupdateMask:\xbd\x01\xbaH\xb9\x01\x1a\xb6\x01\n\x17update_names_its_target\x12\x45resource.metadata.id is required: an update names the agent by its id\x1aThas(this.resource) && has(this.resource.metadata) && this.resource.metadata.id != \'\'\"\x8c\x02\n\x11ListAgentsRequest\x12\x19\n\x03org\x18\x01 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x03org\x12$\n\tpage_size\x18\x02 \x01(\x05\x42\x07\xbaH\x04\x1a\x02(\x00R\x08pageSize\x12\'\n\npage_token\x18\x03 \x01(\tB\x08\xbaH\x05r\x03\x18\x80\x08R\tpageToken\x12R\n\x06labels\x18\x04 \x03(\x0b\x32:.ai.stigmer.agentic.agent.v1.ListAgentsRequest.LabelsEntryR\x06labels\x1a\x39\n\x0bLabelsEntry\x12\x10\n\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n\x05value\x18\x02 \x01(\tR\x05value:\x02\x38\x01\"q\n\tAgentList\x12<\n\x07\x65ntries\x18\x01 \x03(\x0b\x32\".ai.stigmer.agentic.agent.v1.AgentR\x07\x65ntries\x12&\n\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"\x90\x01\n\x1b\x43heckEmbeddingCoverageInput\x12V\n\x05\x61gent\x18\x01 \x01(\x0b\x32\x34.ai.stigmer.commons.apiresource.ApiResourceReferenceB\n\xbaH\x03\xc8\x01\x01\xe0\x85,(R\x05\x61gent\x12\x19\n\x03org\x18\x02 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x03org\"S\n\x11\x45mbeddingCoverage\x12\x12\n\x04keys\x18\x01 \x03(\tR\x04keys\x12*\n\x11sign_in_addresses\x18\x02 \x03(\tR\x0fsignInAddressesB\xbb\x01\n\x1f\x63om.ai.stigmer.agentic.agent.v1B\x07IoProtoP\x01\xa2\x02\x04\x41SAA\xaa\x02\x1b\x41i.Stigmer.Agentic.Agent.V1\xca\x02\x1b\x41i\\Stigmer\\Agentic\\Agent\\V1\xe2\x02\'Ai\\Stigmer\\Agentic\\Agent\\V1\\GPBMetadata\xea\x02\x1f\x41i::Stigmer::Agentic::Agent::V1b\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -51,14 +53,22 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_LISTAGENTSREQUEST'].fields_by_name['page_size']._serialized_options = b'\272H\004\032\002(\000'
   _globals['_LISTAGENTSREQUEST'].fields_by_name['page_token']._loaded_options = None
   _globals['_LISTAGENTSREQUEST'].fields_by_name['page_token']._serialized_options = b'\272H\005r\003\030\200\010'
-  _globals['_AGENTID']._serialized_start=171
-  _globals['_AGENTID']._serialized_end=210
-  _globals['_UPDATEAGENTINPUT']._serialized_start=213
-  _globals['_UPDATEAGENTINPUT']._serialized_end=564
-  _globals['_LISTAGENTSREQUEST']._serialized_start=567
-  _globals['_LISTAGENTSREQUEST']._serialized_end=835
-  _globals['_LISTAGENTSREQUEST_LABELSENTRY']._serialized_start=778
-  _globals['_LISTAGENTSREQUEST_LABELSENTRY']._serialized_end=835
-  _globals['_AGENTLIST']._serialized_start=837
-  _globals['_AGENTLIST']._serialized_end=950
+  _globals['_CHECKEMBEDDINGCOVERAGEINPUT'].fields_by_name['agent']._loaded_options = None
+  _globals['_CHECKEMBEDDINGCOVERAGEINPUT'].fields_by_name['agent']._serialized_options = b'\272H\003\310\001\001\340\205,('
+  _globals['_CHECKEMBEDDINGCOVERAGEINPUT'].fields_by_name['org']._loaded_options = None
+  _globals['_CHECKEMBEDDINGCOVERAGEINPUT'].fields_by_name['org']._serialized_options = b'\272H\004r\002\020\001'
+  _globals['_AGENTID']._serialized_start=264
+  _globals['_AGENTID']._serialized_end=303
+  _globals['_UPDATEAGENTINPUT']._serialized_start=306
+  _globals['_UPDATEAGENTINPUT']._serialized_end=657
+  _globals['_LISTAGENTSREQUEST']._serialized_start=660
+  _globals['_LISTAGENTSREQUEST']._serialized_end=928
+  _globals['_LISTAGENTSREQUEST_LABELSENTRY']._serialized_start=871
+  _globals['_LISTAGENTSREQUEST_LABELSENTRY']._serialized_end=928
+  _globals['_AGENTLIST']._serialized_start=930
+  _globals['_AGENTLIST']._serialized_end=1043
+  _globals['_CHECKEMBEDDINGCOVERAGEINPUT']._serialized_start=1046
+  _globals['_CHECKEMBEDDINGCOVERAGEINPUT']._serialized_end=1190
+  _globals['_EMBEDDINGCOVERAGE']._serialized_start=1192
+  _globals['_EMBEDDINGCOVERAGE']._serialized_end=1275
 # @@protoc_insertion_point(module_scope)

@@ -86,6 +86,8 @@ agent = client.agents.get("agt_01j5q3k7m8r2s4tnz2hfp0q0c3")
 import ai.stigmer.agentic.agent.v1.Agent;
 import ai.stigmer.agentic.agent.v1.AgentList;
 import ai.stigmer.agentic.agent.v1.AgentVersionEntry;
+import ai.stigmer.agentic.agent.v1.CheckEmbeddingCoverageInput;
+import ai.stigmer.agentic.agent.v1.EmbeddingCoverage;
 import ai.stigmer.agentic.agent.v1.GetAgentVersionInput;
 import ai.stigmer.agentic.agent.v1.ListAgentVersionsInput;
 import ai.stigmer.agentic.agent.v1.ListAgentVersionsResponse;
@@ -93,6 +95,7 @@ import ai.stigmer.agentic.agent.v1.ListAgentsRequest;
 import ai.stigmer.agentic.agent.v1.TagAgentVersionInput;
 import ai.stigmer.agentic.session.v1.Computer;
 import ai.stigmer.agentic.session.v1.Harness;
+import ai.stigmer.commons.apiresource.ApiResourceReference;
 import ai.stigmer.commons.apiresource.ApiResourceVisibility;
 import ai.stigmer.commons.apiresource.RenameInput;
 import ai.stigmer.commons.apiresource.UpdateVisibilityInput;
@@ -121,6 +124,7 @@ Agent agent = client.agent.get("agt_01j5q3k7m8r2s4tnz2hfp0q0c3");
 | [`update`](#update) | Update an agent: the fields update_mask names change, every other field keeps its stored value. |
 | [`updateVisibility`](#updatevisibility) | Update the visibility of an existing agent. |
 | [`delete`](#delete) | Delete an agent. |
+| [`checkEmbeddingCoverage`](#checkembeddingcoverage) | Check which of an agent's keys and sign-ins the organization's embedding settings fill for the calling app user. |
 | [`rename`](#rename) | Rename an agent: change its slug, the name people type. |
 | [`tagVersion`](#tagversion) | Assign or move a tag to a specific agent version. |
 
@@ -704,6 +708,51 @@ Agent agent = client.agent.delete("agt_01j5q3k7m8r2s4tnz2hfp0q0c3");
 
 **Returns**: [`Agent`](#agent)
 
+### checkEmbeddingCoverage
+
+Check which of an agent's keys and sign-ins the organization's embedding settings fill for the calling app user.
+
+An app user (a person signed in to an organization's own product through a user token its backend mints) runs an agent on the vaults the organization's embedding settings name, which the app user cannot read. This answers, by name only, which of the agent's keys and which tool sign-ins those vaults fill, so a chat asks the app user only for what they would still miss. Any other caller gets an empty answer: a run of theirs never reads the embedding settings.
+
+<SDKTabs>
+<Tab value="TypeScript">
+```typescript
+const embeddingCoverage = await stigmer.agent.checkEmbeddingCoverage({
+  agent: {},
+  org: "acme",
+});
+```
+</Tab>
+<Tab value="Go">
+```go
+embeddingCoverage, err := client.Agent.CheckEmbeddingCoverage(ctx, &agentv1.CheckEmbeddingCoverageInput{
+  Agent: &apiresource.ApiResourceReference{},
+  Org:   "acme",
+})
+```
+</Tab>
+<Tab value="Python">
+```python
+embedding_coverage = client.agents.check_embedding_coverage(io_pb2.CheckEmbeddingCoverageInput(
+    agent=apiresource_io_pb2.ApiResourceReference(),
+    org="acme",
+))
+```
+</Tab>
+<Tab value="Java">
+```java
+EmbeddingCoverage embeddingCoverage = client.agent.checkEmbeddingCoverage(CheckEmbeddingCoverageInput.newBuilder()
+    .setAgent(ApiResourceReference.getDefaultInstance())
+    .setOrg("acme")
+    .build());
+```
+</Tab>
+</SDKTabs>
+
+**Parameters**: [`CheckEmbeddingCoverageInput`](#checkembeddingcoverageinput)
+
+**Returns**: [`EmbeddingCoverage`](#embeddingcoverage)
+
 ### rename
 
 Rename an agent: change its slug, the name people type.
@@ -1048,6 +1097,28 @@ AgentVersionEntry is one historical version of an agent.
     isCurrent: { type: "boolean", description: "Whether this is the agent's current version." },
     message: { type: "string", description: "Human-readable message describing what changed in this version, from metadata.version.message at apply time." },
     specSnapshot: { type: "AgentSpecInput", description: "The agent spec exactly as this version stored it: the instructions, subagent pins, skill and plugin references, declared keys and vaults a turn on this version runs with." },
+  }}
+/>
+
+### CheckEmbeddingCoverageInput
+
+Input for asking which of an agent's keys and sign-ins the organization's embedding settings fill for the calling app user.
+
+<TypeTable
+  type={{
+    agent: { type: "ResourceRef", description: "The agent a conversation would run, by id or by org and slug.", typeDescriptionLink: "#resourceref", required: true },
+    org: { type: "string", description: "The organization the conversation would run in, by id or slug." },
+  }}
+/>
+
+### EmbeddingCoverage
+
+What the organization's embedding settings fill for a run of an agent by the calling app user: names only, never where they are kept or their values.
+
+<TypeTable
+  type={{
+    keys: { type: "string[]", description: "The keys a run of the agent reads that a vault of the embedding settings holds by name." },
+    signInAddresses: { type: "string[]", description: "The tool addresses whose sign-in a vault of the embedding settings holds, so the app user need not sign in to them." },
   }}
 />
 

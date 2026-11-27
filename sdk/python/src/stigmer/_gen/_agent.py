@@ -132,6 +132,12 @@ class AgentClient:
         except grpc.RpcError as e:
             raise wrap_error(e) from e
 
+    def check_embedding_coverage(self, input: io_pb2.CheckEmbeddingCoverageInput) -> io_pb2.EmbeddingCoverage:
+        try:
+            return self._query.checkEmbeddingCoverage(input)
+        except grpc.RpcError as e:
+            raise wrap_error(e) from e
+
 
 @dataclass
 class AgentInput:

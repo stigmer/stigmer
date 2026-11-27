@@ -74,6 +74,7 @@ function agentCommand(store: Store): Client<typeof AgentCommandController> {
         channelRuntime: undefined,
         archiveFileReads: { skill: UNREAD_FILES, plugin: UNREAD_FILES },
         outboundFetch: () => Promise.reject(new TypeError("no network in this test")),
+        vaultResolver: { planEmbeddingCoverage: () => Promise.reject(new Error("not used")) },
       });
     },
     {
