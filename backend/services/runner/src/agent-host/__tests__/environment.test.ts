@@ -73,6 +73,17 @@ describe("the agent host's environment", () => {
     });
   });
 
+  it("passes every variable the sandbox's egress gateway is trusted by, on a runner that starts its host as the agent user (stigmer#3392)", () => {
+    const trust = {
+      NODE_EXTRA_CA_CERTS: "/run/ate/trust-bundle.pem",
+      SSL_CERT_FILE: "/run/ate/trust-bundle.pem",
+      GIT_SSL_CAINFO: "/run/ate/trust-bundle.pem",
+      CURL_CA_BUNDLE: "/run/ate/trust-bundle.pem",
+      REQUESTS_CA_BUNDLE: "/run/ate/trust-bundle.pem",
+    };
+    expect(agentHostEnvironment({ PATH: "/usr/bin", ...trust }, true)).toEqual({ PATH: "/usr/bin", ...trust });
+  });
+
   it("passes a credential the operator names for the agent", () => {
     const runner = { PATH: "/usr/bin", NODE_AUTH_TOKEN: "npm-token", STIGMER_AGENT_ENV_PASSTHROUGH: "NODE_AUTH_TOKEN" };
     expect(agentHostEnvironment(runner, true)).toEqual(runner);

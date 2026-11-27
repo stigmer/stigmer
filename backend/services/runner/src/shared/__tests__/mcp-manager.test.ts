@@ -164,6 +164,29 @@ describe("toMcpClientConfig — stdio env isolation (oss#256)", () => {
     }
   });
 
+  it("gives a stdio server the egress gateway's trust variables the environment holds, and none of its other names", () => {
+    const trust = {
+      NODE_EXTRA_CA_CERTS: "/run/ate/trust-bundle.pem",
+      SSL_CERT_FILE: "/run/ate/trust-bundle.pem",
+      GIT_SSL_CAINFO: "/run/ate/trust-bundle.pem",
+      CURL_CA_BUNDLE: "/run/ate/trust-bundle.pem",
+      REQUESTS_CA_BUNDLE: "/run/ate/trust-bundle.pem",
+    };
+    const credentials = Object.fromEntries(RUNNER_CREDENTIAL_ENV_KEYS.map((key) => [key, `leaked-${key}`]));
+    const env = { ...credentials, ...trust, PATH: "/usr/bin", STIGMER_TEST_LEAK_SENTINEL: "canary" };
+
+    const config = toMcpClientConfig(
+      [
+        makeServer({ slug: "bare", command: "npx", env: undefined }),
+        makeServer({ slug: "declared", command: "uvx", env: { REQUESTS_CA_BUNDLE: "/srv/own-ca.pem", API_KEY: "user-value" } }),
+      ],
+      env,
+    );
+
+    expect(stdioEnv(config, "bare")).toEqual(trust);
+    expect(stdioEnv(config, "declared")).toEqual({ ...trust, REQUESTS_CA_BUNDLE: "/srv/own-ca.pem", API_KEY: "user-value" });
+  });
+
   it("passes a declared env through exactly, without merging process.env", () => {
     vi.stubEnv("STIGMER_TOKEN", "runner-secret");
 
