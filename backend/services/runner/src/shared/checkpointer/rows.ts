@@ -87,7 +87,11 @@ export interface CheckpointRows {
   getRow(threadId: string | undefined, checkpointNs: string, checkpointId: string | undefined): Promise<StoredCheckpoint | undefined>;
   /** Newest first. */
   listRows(query: CheckpointRowsQuery): Promise<readonly StoredCheckpoint[]>;
-  /** Insert or replace. */
+  /**
+   * Insert or replace, then remove the thread's superseded rows: a namespace
+   * keeps its newest checkpoints only, as the file saver does
+   * (`SqliteCheckpointRows.putRow` states the rule and its reasons).
+   */
   putRow(row: CheckpointRow): Promise<void>;
   /**
    * Store a batch in one transaction: `replace` when every write is to a
@@ -122,7 +126,8 @@ export class RowsCheckpointSaver extends BaseCheckpointSaver {
     const limit = options?.limit;
     // The supported filters mirror HttpCheckpointSaver's (thread, namespace,
     // before, limit). The runner's resume path reads through getState ->
-    // getTuple, so metadata filtering is never exercised here.
+    // getTuple, so metadata filtering is never exercised here. A namespace
+    // lists at most the checkpoints a save keeps (`putRow`).
     const stored = await this.rows.listRows({
       ...(threadId !== undefined ? { threadId } : {}),
       ...(checkpointNs !== undefined ? { checkpointNs } : {}),

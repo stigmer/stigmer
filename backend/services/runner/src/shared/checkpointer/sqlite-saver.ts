@@ -31,6 +31,23 @@
  *   (`relayed-rows.ts`), so both write the same rows into the same file.
  * - WAL journaling plus a busy timeout make the file safe to open from more than
  *   one process at once (the CLI daemon and the desktop runner can share a HOME).
+ *
+ * A thread keeps only its recent checkpoints (stigmer/stigmer#3117). LangGraph
+ * saves a whole copy of the state every step, and before this the file kept
+ * every copy: a chat with a few pictures grew it by hundreds of MiB in a
+ * handful of turns. Each save now removes what no reader can reach: resume
+ * reads the newest checkpoint of a namespace (LangGraph's loop), and the
+ * runner never asks for an older one (it reads state through
+ * `graph.getState`, and lists nothing). So `list` serves only the few
+ * checkpoints a namespace keeps; going back to an older point of a
+ * conversation is not something this file serves. A conversation that grew
+ * before this is trimmed at its next turn's first save; the pages its rows
+ * freed are reused by later saves, so its file stops growing but does not
+ * shrink. Pruning is sound only while the runner's graphs use no LangGraph
+ * delta channel: those rebuild a value by walking parent checkpoints
+ * (`channelsFromCheckpoint`), which a pruned thread no longer holds. A runner
+ * change that adopts one must change this saver, and the hosted store that
+ * prunes the same way, first.
  */
 
 import { DatabaseSync, type StatementSync, type SQLInputValue } from "node:sqlite";
@@ -49,6 +66,20 @@ import {
 
 /** Milliseconds SQLite waits on a locked database before erroring (WAL busy handler). */
 const DEFAULT_BUSY_TIMEOUT_MS = 5_000;
+
+/**
+ * How many checkpoints a namespace keeps: the newest, which resume reads, and
+ * the one before it, whose writes may still be in flight. LangGraph chains
+ * checkpoint saves but stores a step's writes as their own call keyed to the
+ * checkpoint they belong to, and the engine's `sync` durability waits for
+ * both only before the next step; so while checkpoint N+1's save lands,
+ * writes for N can still arrive, and never writes for anything older. With
+ * one kept, those writes would land after their checkpoint was gone.
+ */
+export const KEEP_CHECKPOINTS = 2;
+
+/** The namespace LangGraph gives a thread's main graph; helpers nest under their own. */
+const MAIN_NAMESPACE = "";
 
 const CHECKPOINT_COLUMNS = "thread_id, checkpoint_ns, checkpoint_id, parent_checkpoint_id, type, checkpoint, metadata";
 
@@ -136,15 +167,44 @@ export class SqliteCheckpointRows implements CheckpointRows {
     return rows.map((row) => ({ row, writes: this.writesOf(row) }));
   }
 
+  /**
+   * Insert or replace the checkpoint, then remove the thread's superseded
+   * rows, checkpoints and writes alike: everything in the saved namespace
+   * older than its `KEEP_CHECKPOINTS`-th newest checkpoint and, for a save in
+   * the main namespace, everything in every helper namespace older than that
+   * same bound. A helper (a sub-agent the `task` tool runs) saves under a
+   * namespace of its own, and the main graph saves its next checkpoint only
+   * once every task of its step has finished; so a helper still running or
+   * waiting on an approval has checkpoints newer than the main graph's newest
+   * and is kept, and a finished one goes one main step later.
+   *
+   * One transaction, so the save and its prune land or fail together; it
+   * sees its own insert, so the bound counts the row just saved. `BEGIN
+   * IMMEDIATE` takes the write lock up front, so a second process on the file
+   * (the open agent host serving a locked host's rows) waits on the busy
+   * timeout rather than failing mid-transaction. Fewer than
+   * `KEEP_CHECKPOINTS` rows find no bound and delete nothing. Ids compare in
+   * byte order (SQLite's default text collation), and LangGraph mints them
+   * time-ordered (`uuid6`) across namespaces from one clock, which the helper
+   * scope relies on.
+   */
   async putRow(row: CheckpointRow): Promise<void> {
     this.setup();
-    this.db
-      .prepare(
-        `INSERT OR REPLACE INTO checkpoints
-           (thread_id, checkpoint_ns, checkpoint_id, parent_checkpoint_id, type, checkpoint, metadata)
-         VALUES (?, ?, ?, ?, ?, ?, ?)`,
-      )
-      .run(row.thread_id, row.checkpoint_ns, row.checkpoint_id, row.parent_checkpoint_id, row.type, row.checkpoint, row.metadata);
+    this.db.exec("BEGIN IMMEDIATE");
+    try {
+      this.db
+        .prepare(
+          `INSERT OR REPLACE INTO checkpoints
+             (thread_id, checkpoint_ns, checkpoint_id, parent_checkpoint_id, type, checkpoint, metadata)
+           VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        )
+        .run(row.thread_id, row.checkpoint_ns, row.checkpoint_id, row.parent_checkpoint_id, row.type, row.checkpoint, row.metadata);
+      this.pruneSuperseded(row.thread_id, row.checkpoint_ns);
+      this.db.exec("COMMIT");
+    } catch (err) {
+      this.db.exec("ROLLBACK");
+      throw err;
+    }
   }
 
   async putWriteRows(key: WriteBatchKey, writes: readonly WriteRowInput[], replace: boolean): Promise<void> {
@@ -183,6 +243,19 @@ export class SqliteCheckpointRows implements CheckpointRows {
       this.db.close();
     } catch {
       /* already closed */
+    }
+  }
+
+  /** The prune {@link putRow} promises, inside its transaction. */
+  private pruneSuperseded(threadId: string, checkpointNs: string): void {
+    const bound = this.db
+      .prepare("SELECT checkpoint_id FROM checkpoints WHERE thread_id = ? AND checkpoint_ns = ? ORDER BY checkpoint_id DESC LIMIT 1 OFFSET ?")
+      .get(threadId, checkpointNs, KEEP_CHECKPOINTS - 1) as { checkpoint_id: string } | undefined;
+    if (bound === undefined) return;
+    for (const table of ["writes", "checkpoints"]) {
+      this.db
+        .prepare(`DELETE FROM ${table} WHERE thread_id = ? AND (checkpoint_ns = ? OR ? = ?) AND checkpoint_id < ?`)
+        .run(threadId, checkpointNs, checkpointNs, MAIN_NAMESPACE, bound.checkpoint_id);
     }
   }
 
