@@ -337,7 +337,25 @@ export function AgentChat({
     );
 
   if (variant === "page") {
-    return <div className={cn("stg:h-full stg:w-full stg:bg-background stg:text-foreground", className)}>{body}</div>;
+    // The thread and the composer inside are size containers, which give no
+    // width of their own: in a parent that sizes to its content (a flex row,
+    // an old create-vite app's body) the chat would collapse to a few
+    // pixels. The page is a grid of two columns the chat spans: the first
+    // grows to the reading column's width, the second takes the rest. Asked
+    // for its widest, the grid answers that width; asked for its narrowest,
+    // nothing; so a parent that sizes to its content gives the chat its
+    // reading width, or all the room there is when that is less, and a
+    // parent that sets a width is filled.
+    return (
+      <div
+        className={cn(
+          "stg:grid stg:h-full stg:w-full stg:grid-cols-[minmax(0,48rem)_minmax(0,1fr)] stg:grid-rows-[minmax(0,1fr)] stg:bg-background stg:text-foreground",
+          className,
+        )}
+      >
+        <div className="stg:col-span-full stg:min-h-0 stg:min-w-0">{body}</div>
+      </div>
+    );
   }
 
   const newConversation = sessionId === null ? undefined : () => setSession(null);
