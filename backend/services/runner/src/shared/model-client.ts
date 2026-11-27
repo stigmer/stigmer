@@ -555,7 +555,7 @@ async function buildGoogle(context: BuildContext): Promise<{ readonly model: Bas
   const { baseUrl, headers, apiKey, viaStigmer } = transportFor("google", "public", context);
   const thinking = opts.thinking ? toGoogleThinking(opts.thinking.mode, opts.thinking.profile) : undefined;
   const { ChatGoogle } = await import("@langchain/google");
-  const GoogleModel = retriedStreamOf(ChatGoogle);
+  const GoogleModel = stigmerGoogleModelOf(ChatGoogle);
   const model = new GoogleModel({
     model: apiModelId,
     // The transport carries the credential (the module header). An empty key
@@ -580,29 +580,52 @@ async function buildGoogle(context: BuildContext): Promise<{ readonly model: Bas
 }
 
 /**
- * `ChatGoogle` whose event stream starts inside LangChain's retry caller.
- * The agent loop streams through `streamEvents`, which asks a model for its
- * events (`_streamChatModelEvents`). The client fetches that stream outside
- * its caller (`@langchain/google` 0.2.12
- * `GenerateContentApiHandler.streamChatModelEvents`; its chunk and
- * whole-reply paths fetch inside it), so a Google 429 or 503 would skip the
- * runner's request loop (`model-retry.ts`), the one loop for a request that
- * fails before its reply begins. Here the stream is started inside the
- * caller, with the model's own retries and `onFailedAttempt`, until its
- * first event: an attempt that fails before then is a new request, and
- * nothing of it has reached the loop. Core's own default (events bridged
- * from the chunk path) is no answer: it carries the client's function calls
- * as the client's own content blocks, not as tool calls, so the agent would
- * stop after a tool call (measured on core 1.2.20).
+ * `ChatGoogle` with three corrections the agent loop needs from LangChain's
+ * Google client, each deleted once the library or deepagents makes it
+ * (`__tests__/google-client.test.ts` and
+ * `activities/execute-deep-agent/__tests__/gemini-graph-profile.test.ts`
+ * pin them). The class keeps the library's name: nothing else differs.
  *
- * The class keeps the library's name: nothing else differs. Pinned by
- * `__tests__/google-client.test.ts` (the 503 case); deleted once the client
- * starts its own event stream inside its caller.
+ *  - Its event stream starts inside LangChain's retry caller. The agent loop
+ *    streams through `streamEvents`, which asks a model for its events
+ *    (`_streamChatModelEvents`). The client fetches that stream outside its
+ *    caller (`@langchain/google` 0.2.12
+ *    `GenerateContentApiHandler.streamChatModelEvents`; its chunk and
+ *    whole-reply paths fetch inside it), so a Google 429 or 503 would skip
+ *    the runner's request loop (`model-retry.ts`), the one loop for a
+ *    request that fails before its reply begins. Here the stream is started
+ *    inside the caller, with the model's own retries and `onFailedAttempt`,
+ *    until its first event: an attempt that fails before then is a new
+ *    request, and nothing of it has reached the loop. Core's own default
+ *    (events bridged from the chunk path) is no answer: it carries the
+ *    client's function calls as the client's own content blocks, not as tool
+ *    calls, so the agent would stop after a tool call (measured on core
+ *    1.2.20).
+ *  - Its usage counts the thinking. On that event stream the client reports
+ *    `output_tokens` as Google's `candidatesTokenCount`, without
+ *    `thoughtsTokenCount`, which Google bills as output; its chunk path counts
+ *    both. Google's `totalTokenCount` is the prompt, the answer and the
+ *    thinking (and the prompts of Google's built-in tools, which the runner
+ *    never sends), so the output is the total less the input. Cached input
+ *    is not reported on that stream at all, so it is priced at the input
+ *    rate: over, never under.
+ *  - It names itself `google:<id>` (`modelName`), deepagents' own
+ *    `provider:model` form. deepagents places a model's harness profile by its
+ *    class, from a table of three names that does not hold `ChatGoogle`
+ *    (deepagents 1.14.1 to 1.17.1), and falls back to that identifier; without
+ *    it a Gemini graph would get deepagents' own `general-purpose` sub-agent,
+ *    outside the approval gate, and the `delete` tool
+ *    (`deepagents-profiles.ts`).
  */
-function retriedStreamOf(base: typeof import("@langchain/google").ChatGoogle) {
+function stigmerGoogleModelOf(base: typeof import("@langchain/google").ChatGoogle) {
   return class ChatGoogle extends base {
     static override lc_name(): string {
       return "ChatGoogle";
+    }
+
+    /** The model's `provider:model` name, which deepagents places a harness profile by. */
+    get modelName(): string {
+      return `google:${this.model}`;
     }
 
     override async *_streamChatModelEvents(
@@ -614,10 +637,19 @@ function retriedStreamOf(base: typeof import("@langchain/google").ChatGoogle) {
         return { events, first: await events.next() };
       });
       if (started.first.done === true) return;
-      yield started.first.value;
-      yield* started.events;
+      yield withThinkingCounted(started.first.value);
+      for await (const event of started.events) yield withThinkingCounted(event);
     }
   };
+}
+
+type ChatModelStreamEvent = Awaited<ReturnType<ReturnType<BaseChatModel["_streamChatModelEvents"]>["next"]>> extends IteratorResult<infer E> ? E : never;
+
+/** An event whose usage counts the thinking as output (`stigmerGoogleModelOf`). */
+function withThinkingCounted(event: ChatModelStreamEvent): ChatModelStreamEvent {
+  const usage = (event as { usage?: { input_tokens: number; output_tokens: number; total_tokens: number } }).usage;
+  if (usage === undefined || usage.total_tokens <= usage.input_tokens + usage.output_tokens) return event;
+  return { ...event, usage: { ...usage, output_tokens: usage.total_tokens - usage.input_tokens } } as ChatModelStreamEvent;
 }
 
 /** The conventions' provider name for where an Anthropic model is served from. */

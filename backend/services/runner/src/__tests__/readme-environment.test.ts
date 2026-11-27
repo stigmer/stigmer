@@ -122,6 +122,8 @@ const COMPUTED_READS_ALLOWED: ReadonlyMap<string, string> = new Map([
   ],
   [`${join("shared", "runner-credential-store.ts")}#getRunnerSecret`, "its callers name the setting, and rule 3 reads it there"],
   [`${join("shared", "llm-backend.ts")}#preflightLlmBackends`, "loops over two constants the same file reads directly (rule 2)"],
+  [`${join("shared", "llm-backend.ts")}#checkDirectCredentials`, "reads a provider's key variable from the provider table (`llm-proxy.ts` LLM_PROVIDERS), whose every name the README's credential rows name"],
+  [`${join("shared", "model-client.ts")}#transportFor`, "reads a provider's key variable from the provider table (`llm-proxy.ts` LLM_PROVIDERS), whose every name the README's credential rows name"],
   [
     `${join("environment", "install.ts")}#commandEnvironment`,
     "copies the PATH, proxy and CA names it lists into one install command's environment; each is a sandbox setting the README's rows name",

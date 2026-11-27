@@ -155,6 +155,7 @@ describe("explicitProvider", () => {
   it("reads only anthropic and openai prefixes with a non-empty name", () => {
     expect(explicitProvider("openai:x")).toBe("openai");
     expect(explicitProvider("Anthropic:x")).toBe("anthropic");
+    expect(explicitProvider("google:gemini-3-flash")).toBe("google");
     expect(explicitProvider("openai/x")).toBeUndefined();
     expect(explicitProvider("x")).toBeUndefined();
   });

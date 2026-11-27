@@ -518,6 +518,12 @@ describe("checkDirectCredentials", () => {
       expect(message).not.toContain("STIGMER_OPENAI_BACKEND");
     });
 
+    it("google: is satisfied by GEMINI_API_KEY alone, never a person's own GOOGLE_API_KEY", () => {
+      expect(checkDirectCredentials("google", { GEMINI_API_KEY: "g-x" })).toBeNull();
+      const message = checkDirectCredentials("google", { GOOGLE_API_KEY: "a-persons-own-key" });
+      expect(message).toContain("GEMINI_API_KEY is not set and no proxy is configured");
+    });
+
     it("ignores the anthropic key and backend when checking openai", () => {
       const message = checkDirectCredentials("openai", {
         ANTHROPIC_API_KEY: "sk-ant-x",

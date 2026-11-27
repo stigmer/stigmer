@@ -35,6 +35,11 @@ describe("buildShellEnv", () => {
     }
   });
 
+  it("denies the runner's Gemini key, and leaves a person's own GOOGLE_API_KEY to the agent", () => {
+    expect(SHELL_ENV_DENYLIST).toContain("GEMINI_API_KEY");
+    expect(SHELL_ENV_DENYLIST).not.toContain("GOOGLE_API_KEY");
+  });
+
   it("overlays the run values on top of the base env", () => {
     const base = { PATH: "/usr/bin", PLATFORM_CLI: "old" };
     const env = buildShellEnv({ PLATFORM_CLI: "planton", API_URL: "https://api.test" }, base);

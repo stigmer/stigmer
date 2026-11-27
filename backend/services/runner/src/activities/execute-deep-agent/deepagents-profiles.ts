@@ -26,13 +26,13 @@
 import { registerHarnessProfile } from "deepagents";
 
 /**
- * deepagents resolves a graph's profile from its model's class, by a closed
- * table of three names (`ChatAnthropic`, `ChatOpenAI`,
- * `ChatGoogleGenerativeAI`) at deepagents 1.14.1, so a Gemini graph built on
- * LangChain's current Google client (`ChatGoogle`) resolves no profile and
- * keeps both defaults: `google` is registered for the release that maps
- * that class. What such a graph exposes until then is pinned by
- * `__tests__/hermetic/gemini-graph-profile.test.ts`.
+ * deepagents places a graph's profile by its model's class, from a table of
+ * three names (`ChatAnthropic`, `ChatOpenAI`, `ChatGoogleGenerativeAI`) at
+ * deepagents 1.14.1, and otherwise by the model's `provider:model` name. A
+ * Gemini graph's model is LangChain's current Google client (`ChatGoogle`),
+ * which the table does not hold, so the runner's Google model states that
+ * name (`google:<id>`, `shared/model-client.ts`) and `google` is registered
+ * here. Pinned by `__tests__/gemini-graph-profile.test.ts`.
  */
 const PROVIDERS_WITH_STIGMER_PROFILE = ["anthropic", "openai", "google"] as const;
 

@@ -21,7 +21,10 @@
 // held call its caller hangs up is stamped hungUpAt at the hang-up, and one
 // releaseHolds() ends is served and never stamped; describeTraffic() names
 // each request's offset, disposition, run and path under a whole count, at
-// most its sample limit of lines.
+// most its sample limit of lines; on Google's path the same queued turn is
+// answered in Gemini's shape, streamed by the URL's method, a titling call
+// is recognized by Gemini's system instruction, and a function call sent
+// back without its thought signature is refused as Google refuses it.
 import { readFileSync } from "node:fs";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import {
@@ -35,6 +38,7 @@ import {
   SUMMARY_PROMPT_OPENING,
   TRAFFIC_SAMPLE_LIMIT,
 } from "../mock-llm.ts";
+import { anthropicToolUse, mockThoughtSignature } from "../llm-wire.ts";
 
 const mock = new MockLlmProxy();
 
@@ -484,5 +488,63 @@ describe("MockLlmProxy retired runs", () => {
     mock.enqueue(anthropicText("this test's turn"));
     expect((await postFor("run_unscripted")).status).toBe(410);
     expect(mock.remaining()).toBe(1);
+  });
+});
+
+describe("MockLlmProxy on Google's path", () => {
+  const GOOGLE_STREAM = "/v1/proxy/llm/google/v1beta/models/gemini-3-flash:streamGenerateContent?alt=sse";
+  const GOOGLE_WHOLE = "/v1/proxy/llm/google/v1beta/models/gemini-3-flash:generateContent";
+  const ASK = { contents: [{ role: "user", parts: [{ text: "Hello" }] }] };
+
+  it("answers the queued turn in Gemini's shape, whole or streamed by the URL's method", async () => {
+    mock.enqueue(anthropicText("whole")).enqueue(anthropicText("streamed"));
+
+    const whole = (await (await post(GOOGLE_WHOLE, ASK)).json()) as { candidates: Array<{ content: { parts: Array<{ text: string }> } }> };
+    const streamed = await (await post(GOOGLE_STREAM, ASK)).text();
+
+    expect(whole.candidates[0]?.content.parts[0]?.text).toBe("whole");
+    expect(streamed).toMatch(/^data: \{"candidates":\[\{"content":\{"role":"model","parts":\[\{"text":"streamed"\}\]\}/);
+    expect(mock.requestModels()).toEqual(["gemini-3-flash", "gemini-3-flash"]);
+    expect(mock.consumed()).toBe(2);
+  });
+
+  it("answers a titling call out of band, by Gemini's system instruction", async () => {
+    const response = await post(GOOGLE_WHOLE, { ...ASK, systemInstruction: { parts: [{ text: "You are a session title generator." }] } });
+
+    expect(response.status).toBe(200);
+    expect(mock.titleRequests()).toBe(1);
+    expect(mock.requests().map((r) => r.disposition)).toEqual(["out-of-band"]);
+  });
+
+  it("refuses a function call sent back without its signature, as Google does, and keeps the queued turn", async () => {
+    mock.enqueue(anthropicText("after the tool"));
+    const unsigned = { contents: [...ASK.contents, { role: "model", parts: [{ functionCall: { name: "lookup", args: {} } }] }, { role: "user", parts: [{ functionResponse: { name: "lookup", response: {} } }] }] };
+    const signed = { contents: [...ASK.contents, { role: "model", parts: [{ functionCall: { name: "lookup", args: {} }, thoughtSignature: mockThoughtSignature("call_1") }] }, { role: "user", parts: [{ functionResponse: { name: "lookup", response: {} } }] }] };
+
+    const refused = await post(GOOGLE_WHOLE, unsigned);
+    const answered = await post(GOOGLE_WHOLE, signed);
+
+    expect(refused.status).toBe(400);
+    expect(((await refused.json()) as { error: { status: string } }).error.status).toBe("INVALID_ARGUMENT");
+    expect(answered.status).toBe(200);
+    expect(mock.requests().map((r) => r.disposition)).toEqual(["refused", "scripted"]);
+  });
+
+  it("signs the function call a scripted tool turn makes", async () => {
+    mock.enqueue(anthropicToolUse("call_7", "lookup", { q: "x" }));
+
+    const reply = (await (await post(GOOGLE_WHOLE, ASK)).json()) as { candidates: Array<{ content: { parts: Array<Record<string, unknown>> } }> };
+
+    expect(reply.candidates[0]?.content.parts[0]).toEqual({
+      functionCall: { id: "call_7", name: "lookup", args: { q: "x" } },
+      thoughtSignature: mockThoughtSignature("call_7"),
+    });
+  });
+
+  it("still fences a provider it does not speak", async () => {
+    const response = await post("/v1/proxy/llm/mistral/v1/chat/completions", { model: "m", messages: [] });
+
+    expect(response.status).toBe(500);
+    expect(mock.requests().map((r) => r.disposition)).toEqual(["fenced"]);
   });
 });

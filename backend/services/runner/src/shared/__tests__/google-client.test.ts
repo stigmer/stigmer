@@ -15,10 +15,12 @@
  *    signed.
  *  - Structured output by function calling, with thinking on.
  *  - An image sent as a data-URL block.
- *  - Usage on the stream's `message-finish`, thinking counted as output.
+ *  - Usage on the stream's `message-finish`, thinking counted as output
+ *    (the client's event stream leaves it out; the runner's model adds it).
  *  - A refused key, as the client raises it.
  *  - A passing failure (503) before the reply begins, retried by the request
- *    loop on the path the agent loop streams through.
+ *    loop on the path the agent loop streams through (the client's event
+ *    stream fetches outside it; the runner's model starts it inside).
  *
  * The live twin, `google-client.live.test.ts`, asks Google itself the
  * questions only Google answers.
@@ -204,12 +206,11 @@ describe("the Google client as the runner builds it", () => {
 
     const finishes = events.map(usageOf).filter((one): one is V3UsagePayload => one !== undefined);
     expect(finishes).toHaveLength(2);
-    expect(finishes[0]).toMatchObject({
-      input_tokens: 70,
-      output_tokens: 9 + MOCK_THOUGHT_TOKENS_PER_BLOCK,
-      input_token_details: { cache_read: 30 },
-    });
+    expect(finishes[0]).toMatchObject({ input_tokens: 70, output_tokens: 9 + MOCK_THOUGHT_TOKENS_PER_BLOCK });
     expect(finishes[1]).toMatchObject({ input_tokens: 70, output_tokens: 9 });
+    // The client's event stream reports no cached input: the 30 cached tokens
+    // are counted in the input, at the input rate (`model-client.ts`).
+    expect(finishes[0]?.input_token_details?.cache_read).toBeUndefined();
   });
 
   it("raises a refused key with its status and Google's reason", async () => {

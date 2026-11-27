@@ -15,6 +15,7 @@ import {
   FakeLlmUpstream,
   type FakeLlmUpstreamOptions,
 } from "../fake-llm-upstream.ts";
+import { anthropicText, mockThoughtSignature } from "../llm-wire.ts";
 
 const ERROR_MESSAGE = "the fake is in error mode";
 
@@ -197,5 +198,51 @@ describe("FakeLlmUpstream in the install journeys' modes", () => {
     expect(() => new FakeLlmUpstream({ defaultReply: true, defaultError: { message: ERROR_MESSAGE } })).toThrow(
       "defaultReply and defaultError exclude each other",
     );
+  });
+});
+
+describe("FakeLlmUpstream on Google's Gemini API", () => {
+  const STREAM = "/v1beta/models/gemini-3-flash:streamGenerateContent?alt=sse";
+  const WHOLE = "/v1beta/models/gemini-3-flash:generateContent";
+  const ASK = { contents: [{ role: "user", parts: [{ text: "Hello" }] }] };
+
+  it("answers a scripted Google turn, whole or streamed by the method", async () => {
+    const upstream = await started({});
+    upstream.enqueue({ kind: "google", body: anthropicText("whole") }).enqueue({ kind: "google", body: anthropicText("streamed") });
+
+    const whole = (await (await post(upstream, WHOLE, ASK)).json()) as { candidates: Array<{ content: { parts: Array<{ text: string }> } }> };
+    const streamed = await (await post(upstream, STREAM, ASK)).text();
+
+    expect(whole.candidates[0]?.content.parts[0]?.text).toBe("whole");
+    expect(streamed).toContain('"text":"streamed"');
+    expect(upstream.requests().map((r) => r.provider)).toEqual(["google", "google"]);
+  });
+
+  it("refuses an unsigned function call as Google does, without taking a queued answer", async () => {
+    const upstream = await started({});
+    upstream.enqueue({ kind: "google", body: anthropicText("kept") });
+    const unsigned = { contents: [...ASK.contents, { role: "model", parts: [{ functionCall: { name: "f", args: {} } }] }] };
+    const signed = { contents: [...ASK.contents, { role: "model", parts: [{ functionCall: { name: "f", args: {} }, thoughtSignature: mockThoughtSignature("c") }] }] };
+
+    expect((await post(upstream, WHOLE, unsigned)).status).toBe(400);
+    expect((await post(upstream, WHOLE, signed)).status).toBe(200);
+  });
+
+  it("answers in Google's shape in default-reply and default-error modes", async () => {
+    const replying = await started({ defaultReply: true });
+    const reply = (await (await post(replying, WHOLE, ASK)).json()) as { candidates: Array<{ content: { parts: Array<{ text: string }> } }> };
+    expect(reply.candidates[0]?.content.parts[0]?.text).toBe(DEFAULT_REPLY_TEXT);
+    await replying.close();
+
+    const failing = await started({ defaultError: { message: ERROR_MESSAGE } });
+    const refused = await post(failing, WHOLE, ASK);
+    expect(refused.status).toBe(400);
+    expect(await refused.json()).toEqual({ error: { code: 400, status: "INVALID_ARGUMENT", message: ERROR_MESSAGE } });
+  });
+
+  it("answers no other path of Google's API", async () => {
+    const upstream = await started({ defaultReply: true });
+
+    expect((await post(upstream, "/v1beta/models/gemini-3-flash:embedContent", ASK)).status).toBe(404);
   });
 });

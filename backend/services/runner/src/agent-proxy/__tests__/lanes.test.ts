@@ -18,6 +18,9 @@
  *  - with an Azure identity and no Foundry key, the call carries the
  *    identity's token;
  *  - the Vertex endpoint for each kind of region, as the Vertex SDK names it;
+ *  - Google's lane: to Gemini's API with the operator's key in
+ *    `x-goog-api-key`, or forwarded to the platform's Google path with the
+ *    turn's credential as a bearer;
  *  - a path that names another origin (a scheme, or `//`) stays on the
  *    lane's own host: the runner's key never leaves for a host the agent
  *    host names.
@@ -53,7 +56,9 @@ vi.mock("@azure/identity", () => ({
 import { testConfig } from "../../__test-utils__/config-fixture.js";
 import { FakeUpstream } from "../../__test-utils__/fake-upstream.js";
 import type { Config } from "../../config.js";
-import { laneUrl, vertexBase } from "../lanes.js";
+import { laneUrl, modelUpstream, vertexBase } from "../lanes.js";
+import { resetRunnerSecretsForTests, setRunnerSecret } from "../../shared/runner-credential-store.js";
+import type { IncomingMessage } from "node:http";
 import { AgentProxy } from "../server.js";
 
 const HOST_TOKEN = "host-token-lanes";
@@ -136,6 +141,10 @@ describe("a lane the runner's settings cannot serve", () => {
       ["/v1/proxy/llm/bedrock/model/x/list", "/model/x/list"],
       ["/v1/proxy/llm/vertex/projects/p/locations/us-east5/datasets", "/projects/p/locations/us-east5/datasets"],
       ["/v1/proxy/llm/foundry/v1/files", "/v1/files"],
+      ["/v1/proxy/llm/google/v1beta/files", "/v1beta/files"],
+      ["/v1/proxy/llm/google/v1beta/models/m:embedContent", "/v1beta/models/m:embedContent"],
+      ["/v1/proxy/llm/google/v1beta/cachedContents", "/v1beta/cachedContents"],
+      ["/v1/proxy/llm/google/v1/models/m:generateContent", "/v1/models/m:generateContent"],
     ] as const) {
       const lane = path.split("/")[4];
       expect(await ask(path), path).toEqual({ status: 404, message: `the ${lane} lane serves model calls only, not ${refused}` });
@@ -254,5 +263,32 @@ describe("the Vertex endpoint", () => {
     expect(vertexBase("us")).toBe("https://aiplatform.us.rep.googleapis.com/v1");
     expect(vertexBase("eu")).toBe("https://aiplatform.eu.rep.googleapis.com/v1");
     expect(vertexBase("us-east5")).toBe("https://us-east5-aiplatform.googleapis.com/v1");
+  });
+});
+
+describe("the Google lane", () => {
+  const rest = "/v1beta/models/gemini-3-flash:streamGenerateContent?alt=sse";
+  const fromHost = { method: "POST", headers: { authorization: `Bearer ${HOST_TOKEN}`, "x-goog-api-key": "a-key-the-host-sent", "content-type": "application/json" } } as unknown as IncomingMessage;
+  const turn = { executionId: EXECUTION, credential: "run-credential" };
+
+  afterEach(() => resetRunnerSecretsForTests());
+
+  it("calls Gemini's API with the operator's key, never the host's token", async () => {
+    setRunnerSecret("GEMINI_API_KEY", "operator-gemini-key");
+
+    const upstreamCall = await modelUpstream(testConfig({ proxyEndpoint: null }), "google", rest, fromHost, Buffer.from("{}"), turn);
+
+    expect(upstreamCall.url.toString()).toBe("https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash:streamGenerateContent?alt=sse");
+    expect(upstreamCall.headers["x-goog-api-key"]).toBe("operator-gemini-key");
+    expect(upstreamCall.headers.authorization).toBeUndefined();
+  });
+
+  it("forwards to the platform's Google path with the turn's credential as a bearer", async () => {
+    const upstreamCall = await modelUpstream(testConfig({ proxyEndpoint: "https://api.example.test" }), "google", rest, fromHost, Buffer.from("{}"), turn);
+
+    expect(upstreamCall.url.toString()).toBe(`https://api.example.test/v1/proxy/llm/google${rest}`);
+    expect(upstreamCall.headers.authorization).toBe("Bearer run-credential");
+    expect(upstreamCall.headers["x-stigmer-execution-id"]).toBe(EXECUTION);
+    expect(upstreamCall.headers["x-goog-api-key"], "a key the host names never leaves").toBeUndefined();
   });
 });

@@ -6,7 +6,9 @@
 // stands in for the PROVIDER behind the real proxy. The proxy is transparent,
 // so the bytes both must produce are the same bytes — Anthropic's `messages`
 // SSE sequence, OpenAI's `chat.completion.chunk` SSE sequence with its final
-// usage chunk, and the plain-JSON non-streaming bodies. They live here once,
+// usage chunk, Gemini's `streamGenerateContent` frames (a turn scripted with
+// the Anthropic builders, in Google's shape), and the plain-JSON
+// non-streaming bodies. They live here once,
 // so a change to either fake's understanding of a provider cannot drift from
 // the other's.
 //
