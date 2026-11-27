@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useMemo, useRef } from "react";
 import type { Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 import { create } from "@bufbuild/protobuf";
 import {
@@ -11,6 +11,7 @@ import {
 } from "@stigmer/apis/ai/stigmer/agentic/run/v1/io_pb";
 import { useStigmer } from "../hooks.js";
 import { toError } from "../internal/toError.js";
+import { useKeyedState } from "../internal/useKeyedState.js";
 
 /** Options for {@link useRunActions}. */
 export interface UseRunActionsOptions {
@@ -38,9 +39,13 @@ export interface UseRunActionsReturn {
    * is unfinished.
    */
   readonly recover: () => Promise<Run | null>;
-  /** `true` while any action is in flight. */
+  /** `true` while an action on this run is in flight. */
   readonly isSubmitting: boolean;
-  /** Error from the last failed action, or `null`. */
+  /**
+   * Error from the last failed action on this run, or `null`. Both belong
+   * to the run the hook was called for: another run starts clean, and an
+   * action that settles after the run changed writes neither.
+   */
   readonly error: Error | null;
   /** Reset `error` to `null`. */
   readonly clearError: () => void;
@@ -77,8 +82,12 @@ export function useRunActions(
   options?: UseRunActionsOptions,
 ): UseRunActionsReturn {
   const stigmer = useStigmer();
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [error, setError] = useState<Error | null>(null);
+  // Keyed by the run: a host that keeps this hook mounted while the run
+  // changes (the session viewer, moving between conversations) never shows
+  // one run's failure or action in flight on another (stigmer/stigmer#3226).
+  const runKey = executionId ?? "";
+  const [isSubmitting, setIsSubmitting] = useKeyedState(runKey, false);
+  const [error, setError] = useKeyedState<Error | null>(runKey, null);
 
   const executionIdRef = useRef(executionId);
   executionIdRef.current = executionId;
@@ -87,7 +96,7 @@ export function useRunActions(
   const onSuccessRef = useRef(options?.onSuccess);
   onSuccessRef.current = options?.onSuccess;
 
-  const clearError = useCallback(() => setError(null), []);
+  const clearError = useCallback(() => setError(null), [setError]);
 
   const wrap = useCallback(
     async (
@@ -107,7 +116,7 @@ export function useRunActions(
         setIsSubmitting(false);
       }
     },
-    [],
+    [setIsSubmitting, setError],
   );
 
   const terminate = useCallback(
@@ -160,13 +169,8 @@ export function useRunActions(
     [wrap],
   );
 
-  return {
-    terminate,
-    pause,
-    resume,
-    recover,
-    isSubmitting,
-    error,
-    clearError,
-  };
+  return useMemo(
+    () => ({ terminate, pause, resume, recover, isSubmitting, error, clearError }),
+    [terminate, pause, resume, recover, isSubmitting, error, clearError],
+  );
 }
