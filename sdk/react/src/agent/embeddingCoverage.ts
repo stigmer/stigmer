@@ -1,3 +1,11 @@
+/**
+ * What an app user's run would find filled by the organization's embedding
+ * settings, asked of the server before any conversation exists, so the
+ * embedded chat offers a sign-in or asks for a key only where neither those
+ * vaults nor the chat's own reading fills it. The answer is names only; a
+ * server without the read leaves the chat to its own reading.
+ */
+
 import type { Stigmer } from "@stigmer/client";
 import type { Agent } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb";
 import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
