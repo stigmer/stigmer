@@ -81,7 +81,7 @@
     "directory": "backend/libs/ts/outbound"
   },
   "peerDependencies": {
-    "undici": "8.12.3"
+    "undici": "8.13.1"
   },
   "peerDependenciesMeta": {
     "undici": {
@@ -91,7 +91,7 @@
   "devDependencies": {
     "@types/node": "^22.13.1",
     "typescript": "^5.7.0",
-    "undici": "8.12.3",
-    "vitest": "^3.2.4"
+    "undici": "^8.13.1",
+    "vitest": "^5.1.2"
   }
 }

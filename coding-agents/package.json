@@ -43,6 +43,6 @@
     "@stigmer/mcp-server": "*",
     "@stigmer/plugin-package": "*",
     "@types/node": "^22.0.0",
-    "vitest": "^3.2.4"
+    "vitest": "^5.1.2"
   }
 }
