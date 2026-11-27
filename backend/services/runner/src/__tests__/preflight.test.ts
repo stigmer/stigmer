@@ -82,6 +82,7 @@ describe("assertLlmBackendsPreflight", () => {
     vi.stubEnv("ANTHROPIC_BASE_URL", "");
     vi.stubEnv("ANTHROPIC_API_KEY", "");
     vi.stubEnv("OPENAI_API_KEY", "");
+    vi.stubEnv("GEMINI_API_KEY", "");
     for (const [key, value] of Object.entries(vars)) {
       vi.stubEnv(key, value);
     }
@@ -118,7 +119,14 @@ describe("assertLlmBackendsPreflight", () => {
     stubBackendEnv({});
     const log = vi.spyOn(console, "log").mockImplementation(() => {});
     assertLlmBackendsPreflight("https://api.stigmer.ai");
-    expect(log).toHaveBeenCalledWith("[runner] reaches: anthropic (proxy), openai (proxy)");
+    expect(log).toHaveBeenCalledWith("[runner] reaches: anthropic (proxy), openai (proxy), google (proxy)");
+  });
+
+  it("logs Google reached by the runner's own Gemini key", () => {
+    stubBackendEnv({ GEMINI_API_KEY: "test-gemini-key" });
+    const log = vi.spyOn(console, "log").mockImplementation(() => {});
+    assertLlmBackendsPreflight(null);
+    expect(log).toHaveBeenCalledWith("[runner] reaches: google (key)");
   });
 
   it("warns instead of throwing when an options-supplied proxy makes the var inert", () => {

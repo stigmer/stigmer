@@ -372,8 +372,8 @@ function useProviderKeyActions(): UseProviderKeyActionsReturn
     clearError: { type: "() => void", description: "Reset `error` to `null`." },
     error: { type: "Error | null", description: "Error from the last failed attempt, or `null` when healthy." },
     isSubmitting: { type: "boolean", description: "`true` while a save or a removal is in flight." },
-    removeKey: { type: "(org: string, provider: ProviderKeyProvider) => Promise<ProviderKey>", description: "Remove the organization's key for a provider." },
-    setKey: { type: "(org: string, provider: ProviderKeyProvider, apiKey: string, baseUrl?: string) => Promise<ProviderKey>", description: "Save the organization's key for a provider, replacing any it holds, optionally against an own endpoint (`baseUrl`: an `https` URL as the provider's SDK takes it; omitted or empty for the provider's own API). The provider (or the endpoint) is asked about the key once first, and a key it rejects is refused, as is an endpoint that is not `https` or not on a public address. Resolves with the saved key, without its secret." },
+    removeKey: { type: "(org: string, provider: \"anthropic\" | \"openai\" | \"google\") => Promise<ProviderKey>", description: "Remove the organization's key for a provider." },
+    setKey: { type: "(org: string, provider: \"anthropic\" | \"openai\" | \"google\", apiKey: string, baseUrl?: string) => Promise<ProviderKey>", description: "Save the organization's key for a provider, replacing any it holds, optionally against an own endpoint (`baseUrl`: an `https` URL as the provider's SDK takes it; omitted or empty for the provider's own API). The provider (or the endpoint) is asked about the key once first, and a key it rejects is refused, as is an endpoint that is not `https` or not on a public address. Resolves with the saved key, without its secret." },
   }}
 />
 
@@ -921,6 +921,19 @@ function planUpgradeFeature(error: unknown): Feature | null
 ```
 
 
+### PROVIDER_KEY_PROVIDERS
+
+The providers an organization holds a key for, by their wire names, in the
+order the server reports them. `anthropic` is Anthropic's API or any
+endpoint that speaks it, `openai` is OpenAI's or any endpoint that speaks
+it, `google` is Google's Gemini API or any endpoint that speaks it. The
+contract's own list: a test holds the two equal.
+
+```tsx
+<select>{PROVIDER_KEY_PROVIDERS.map((p) => <option key={p}>{p}</option>)}</select>
+```
+
+
 ### PROVIDER_KEY_REQUIRED
 
 The reason a server refuses a run that needs a provider nothing serves:
@@ -930,9 +943,7 @@ reach it (`PlatformQueryController.getModelReadiness` reports the same).
 
 ### ProviderKeyProvider
 
-The providers an organization holds a key for, by their wire names.
-`anthropic` is Anthropic's API or any endpoint that speaks it, `openai` is
-OpenAI's or any endpoint that speaks it.
+A provider an organization holds a key for: one of [`PROVIDER_KEY_PROVIDERS`](#provider_key_providers).
 
 
 ### providerKeyRequired
@@ -953,7 +964,7 @@ What a `PROVIDER_KEY_REQUIRED` refusal names.
   type={{
     model: { type: "string", description: "The model the run would have used; empty when it names none.", required: true },
     org: { type: "string", description: "The organization the run was refused in.", required: true },
-    provider: { type: "string", description: "The provider it has no key for: `anthropic` or `openai`.", required: true },
+    provider: { type: "string", description: "The provider it has no key for: `anthropic`, `openai` or `google`.", required: true },
   }}
 />
 

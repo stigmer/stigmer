@@ -60,9 +60,12 @@ describe("ModelsHub", () => {
     renderHub(server());
 
     const cards = await screen.findAllByRole("article");
-    expect(cards.map((element) => element.getAttribute("aria-labelledby") !== null)).toEqual([true, true]);
+    expect(cards.map((element) => element.getAttribute("aria-labelledby") !== null)).toEqual([true, true, true]);
     expect(within(cards[0]).getByRole("heading", { name: "Anthropic" })).toBeTruthy();
     expect(within(cards[1]).getByRole("heading", { name: "OpenAI" })).toBeTruthy();
+    expect(within(cards[2]).getByRole("heading", { name: "Google" })).toBeTruthy();
+    // No catalog model needs Google here, so its card unlocks nothing to list.
+    expect(within(cards[2]).queryByText("Unlocks")).toBeNull();
     expect(within(cards[0]).getByText("Unlocks")).toBeTruthy();
     expect(within(cards[0]).getByText("Claude Sonnet 4.6")).toBeTruthy();
     expect(within(cards[0]).getByText("Claude Sonnet 5")).toBeTruthy();
@@ -97,6 +100,32 @@ describe("ModelsHub", () => {
     expect(calls.listKeys.mock.calls.length).toBeGreaterThan(listsBefore);
     expect(within(anthropic).getByText(/Key ending in x7Qa · Checked with Anthropic/)).toBeTruthy();
     expect(within(anthropic).getByText("Ready to run")).toBeTruthy();
+  });
+
+  it("saves a Google key under google, against the organization's own endpoint when given, with Google's mark", async () => {
+    const calls = renderHub(server());
+    const google = await card("Google");
+    expect(within(google).getByText("Runs that need Google are refused until a key is added.")).toBeTruthy();
+    expect(google.querySelector('[data-provider-mark="logo"]')).not.toBeNull();
+    await waitFor(() => expect(within(google).getByRole("button", { name: "Connect Google" })).toBeTruthy());
+
+    fireEvent.click(within(google).getByRole("button", { name: "Connect Google" }));
+    const key = within(google).getByLabelText("Google API key");
+    expect(key.getAttribute("placeholder")).toBe("AQ.…");
+    fireEvent.change(key, { target: { value: "AQ.test-key" } });
+    fireEvent.click(within(google).getByRole("button", { name: "Use your own endpoint" }));
+    fireEvent.change(within(google).getByLabelText("Base URL (optional)"), {
+      target: { value: "https://gateway.acme.example/google" },
+    });
+    fireEvent.click(within(google).getByRole("button", { name: "Connect Google" }));
+
+    await waitFor(() => expect(calls.setKey).toHaveBeenCalledTimes(1));
+    expect(calls.setKey.mock.calls[0][0]).toMatchObject({
+      org: ORG_ID,
+      provider: "google",
+      apiKey: "AQ.test-key",
+      baseUrl: "https://gateway.acme.example/google",
+    });
   });
 
   it("saves a new key against the organization's own endpoint when the admin gives one", async () => {
@@ -181,6 +210,12 @@ describe("ModelsHub", () => {
     expect(within(anthropic).getByRole("button", { name: "Copy" })).toBeTruthy();
     expect(within(openai).getByText("Set OPENAI_API_KEY in the shell you start Stigmer from, then restart Stigmer:")).toBeTruthy();
     expect(within(openai).getByText(/export OPENAI_API_KEY=<your key>\s+stigmer down && stigmer up/)).toBeTruthy();
+    const google = await card("Google");
+    expect(within(google).getByText("Set GEMINI_API_KEY in the shell you start Stigmer from, then restart Stigmer:")).toBeTruthy();
+    expect(within(google).getByText(/export GEMINI_API_KEY=<your key>\s+stigmer down && stigmer up/)).toBeTruthy();
+    expect(within(google).getByRole("link", { name: /Get a key at aistudio.google.com/ }).getAttribute("href")).toBe(
+      "https://aistudio.google.com/api-keys",
+    );
     // A laptop's keys belong to the machine: no form, no key list read, no permission asked.
     expect(screen.queryByLabelText("Anthropic API key")).toBeNull();
     expect(calls.listKeys).not.toHaveBeenCalled();
@@ -193,6 +228,7 @@ describe("ModelsHub", () => {
         readiness: readiness({
           anthropic: ProviderAvailability.missing_from_runners,
           openai: ProviderAvailability.served_by_runners,
+          google: ProviderAvailability.missing_from_runners,
         }),
       }),
       "enterprise",
@@ -212,6 +248,7 @@ describe("ModelsHub", () => {
         readiness: readiness({
           anthropic: ProviderAvailability.availability_unknown,
           openai: ProviderAvailability.availability_unknown,
+          google: ProviderAvailability.availability_unknown,
         }),
       }),
       "local",
@@ -229,6 +266,7 @@ describe("ModelsHub", () => {
         readiness: readiness({
           anthropic: { availability: ProviderAvailability.served_by_parent_organization, parentOrg: PARENT_ID },
           openai: ProviderAvailability.served_by_organization,
+          google: ProviderAvailability.missing_from_organization,
         }),
         keys: [
           storedKey("anthropic", {

@@ -54,6 +54,7 @@ const TOUCHED = [
   // Every other variable the reach rule reads, so the shell's own cannot leak in.
   "ANTHROPIC_BASE_URL",
   "OPENAI_API_KEY",
+  "GEMINI_API_KEY",
   "STIGMER_ANTHROPIC_BACKEND",
   "STIGMER_OPENAI_BACKEND",
   "STIGMER_PROXY_ENDPOINT",

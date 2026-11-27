@@ -6,6 +6,7 @@
 // presented plainly by `presentationOf`, so a provider added on the server
 // shows up before any client knows it.
 
+import type { ProviderKeyProvider } from "../billing/useProviderKeys.js";
 import { providerName } from "./provider-name.js";
 
 /** How one provider is presented. */
@@ -52,7 +53,9 @@ export interface RunnerSetup {
 /** The restart that makes a laptop's runner read a new key. */
 const RESTART = "stigmer down && stigmer up";
 
-const PRESENTATIONS: Readonly<Record<string, ProviderPresentation>> = {
+// Every provider the organization holds a key for has a row: a provider added
+// to the key list without one fails to compile here.
+const PRESENTATIONS: Readonly<Record<ProviderKeyProvider, ProviderPresentation>> = {
   anthropic: {
     name: "Anthropic",
     placeholder: "sk-ant-…",
@@ -81,12 +84,28 @@ const PRESENTATIONS: Readonly<Record<string, ProviderPresentation>> = {
       inline: ["Set ", { code: "OPENAI_API_KEY" }, " in the shell you start Stigmer from, then run ", { code: RESTART }, "."],
     },
   },
+  google: {
+    name: "Google",
+    placeholder: "AQ.…",
+    keysUrl: "https://aistudio.google.com/api-keys",
+    keysUrlLabel: "aistudio.google.com",
+    billingUrl: "https://aistudio.google.com/billing",
+    statusUrl: "https://aistudio.google.com/status",
+    baseUrlExample: "https://gateway.example.com",
+    runnerSetup: {
+      lead: "Set GEMINI_API_KEY in the shell you start Stigmer from, then restart Stigmer:",
+      commands: ["export GEMINI_API_KEY=<your key>", RESTART],
+      inline: ["Set ", { code: "GEMINI_API_KEY" }, " in the shell you start Stigmer from, then run ", { code: RESTART }, "."],
+    },
+  },
 };
+
+const KNOWN: Readonly<Record<string, ProviderPresentation>> = PRESENTATIONS;
 
 /** How `provider` is presented; a provider this table does not know gets its own name and no links. */
 export function presentationOf(provider: string): ProviderPresentation {
   return (
-    PRESENTATIONS[provider] ?? {
+    KNOWN[provider] ?? {
       name: providerName(provider),
       placeholder: "",
       keysUrl: null,

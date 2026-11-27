@@ -385,7 +385,7 @@ The caller needs `can_manage_billing`.
     onCancel: { type: "() => void", description: "" },
     onSaved: { type: "() => void", description: "", required: true },
     org: { type: "string", description: "", required: true },
-    provider: { type: "ProviderKeyProvider", description: "The provider the key is for.", required: true, typeDescriptionLink: "/docs/sdk/react/billing#providerkeyprovider" },
+    provider: { type: "\"anthropic\" | \"openai\" | \"google\"", description: "The provider the key is for.", required: true },
     submitLabel: { type: "string", description: "The submit button's words; \"Save key\" by default." },
   }}
 />
@@ -741,7 +741,7 @@ One provider's report, in the server's order.
 <TypeTable
   type={{
     availability: { type: "ProviderAvailability", description: "", required: true, typeDescriptionLink: "#provideravailability" },
-    provider: { type: "string", description: "The server's name for the provider: `anthropic`, `openai`.", required: true },
+    provider: { type: "string", description: "The server's name for the provider: `anthropic`, `openai`, `google`.", required: true },
   }}
 />
 

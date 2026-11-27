@@ -1123,6 +1123,7 @@ export {
   useEntitlements,
   usePeriodEstimate,
   useAgentHours,
+  PROVIDER_KEY_PROVIDERS,
   useProviderKeys,
   useProviderKeyActions,
   useChangePlan,

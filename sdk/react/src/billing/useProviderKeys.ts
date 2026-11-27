@@ -14,11 +14,21 @@ import { LIST_PAGE_MAX, readEveryPage } from "@stigmer/react-core/internal";
 import { useFetch } from "@stigmer/react-core/internal";
 
 /**
- * The providers an organization holds a key for, by their wire names.
- * `anthropic` is Anthropic's API or any endpoint that speaks it, `openai` is
- * OpenAI's or any endpoint that speaks it.
+ * The providers an organization holds a key for, by their wire names, in the
+ * order the server reports them. `anthropic` is Anthropic's API or any
+ * endpoint that speaks it, `openai` is OpenAI's or any endpoint that speaks
+ * it, `google` is Google's Gemini API or any endpoint that speaks it. The
+ * contract's own list: a test holds the two equal.
+ *
+ * @example
+ * ```tsx
+ * <select>{PROVIDER_KEY_PROVIDERS.map((p) => <option key={p}>{p}</option>)}</select>
+ * ```
  */
-export type ProviderKeyProvider = "anthropic" | "openai";
+export const PROVIDER_KEY_PROVIDERS = ["anthropic", "openai", "google"] as const;
+
+/** A provider an organization holds a key for: one of {@link PROVIDER_KEY_PROVIDERS}. */
+export type ProviderKeyProvider = (typeof PROVIDER_KEY_PROVIDERS)[number];
 
 /** Options for {@link useProviderKeys}. */
 export interface UseProviderKeysOptions {

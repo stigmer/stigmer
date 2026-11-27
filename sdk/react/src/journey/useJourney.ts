@@ -104,7 +104,7 @@ export interface UseJourneyReturn {
 /** The six steps' names and what taking each means, in order. */
 const STEPS: readonly { readonly id: JourneyStepId; readonly title: string; readonly todo: string }[] = [
   { id: "describe", title: "Say what it should do", todo: "Pick an example job or describe your own. It runs on a sample file." },
-  { id: "key", title: "Add a model key", todo: "Add an Anthropic or OpenAI key, so your agent has a model to think with." },
+  { id: "key", title: "Add a model key", todo: "Add a model provider's key (Anthropic, OpenAI or Google), so your agent has a model to think with." },
   { id: "watch", title: "Watch it work", todo: "Send it the sample and watch it work, step by step. A file comes back." },
   { id: "make-yours", title: "Make it yours", todo: "Change its instructions, run it on your own file, give it a skill." },
   { id: "in-app", title: "Put it in your app", todo: "Give your users the chat, from the agent's In your app tab." },
