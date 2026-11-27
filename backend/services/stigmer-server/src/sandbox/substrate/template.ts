@@ -102,6 +102,7 @@
 import { createHash } from "node:crypto";
 
 import { create, toBinary } from "@bufbuild/protobuf";
+import { GATEWAY_TRUST_VARIABLES } from "@stigmer/outbound/egress";
 
 import type { SandboxDriverConfig } from "../provisioner.js";
 import { ARTIFACT_LANE_ENDPOINT_ENV } from "../provisioner.js";
@@ -138,19 +139,6 @@ const ACTOR_NAME_FILE = "actor-name";
 /** The egress gateway's CA, projected when HTTPS egress is on. */
 const TRUST_BUNDLE_NAME = "egress-mitm.ate.dev";
 const TRUST_BUNDLE_FILE = "trust-bundle.pem";
-/**
- * The variables through which each common tool trusts a CA file: Node,
- * OpenSSL-based tools, git, curl (which ignores SSL_CERT_FILE), Python's
- * requests. Go reads SSL_CERT_FILE. Every agent tool must trust the
- * gateway's CA, because the gateway re-signs every HTTPS connection.
- */
-const TRUST_VARIABLES = [
-  "NODE_EXTRA_CA_CERTS",
-  "SSL_CERT_FILE",
-  "GIT_SSL_CAINFO",
-  "CURL_CA_BUNDLE",
-  "REQUESTS_CA_BUNDLE",
-];
 /** Every template this driver writes carries this prefix; nothing else may. */
 export const TEMPLATE_NAME_PREFIX = "stigmer-runner-";
 
@@ -203,7 +191,10 @@ export function buildRunnerTemplate(input: RunnerTemplateInput): ActorTemplate {
     env[SERVER_RELEASE_ENV] = config.serverRelease;
   }
   if (https) {
-    for (const name of TRUST_VARIABLES) env[name] = trustBundlePath;
+    // Every agent tool must trust the gateway's CA, because the gateway
+    // re-signs every HTTPS connection; the runner passes the same list on to
+    // the agent's processes (`GATEWAY_TRUST_VARIABLES`' header).
+    for (const name of GATEWAY_TRUST_VARIABLES) env[name] = trustBundlePath;
   }
 
   const template = create(ActorTemplateSchema, {
