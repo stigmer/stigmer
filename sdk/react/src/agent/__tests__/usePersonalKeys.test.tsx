@@ -29,7 +29,7 @@ import type { Stigmer } from "@stigmer/client";
 import { StigmerContext } from "@stigmer/react-core";
 import { FetchCacheContext } from "@stigmer/react-core/internal";
 import { OrgProvider, useOrg } from "../../organization/OrgProvider";
-import { organizationIdOf, useOrganizationId, usePersonalKeys } from "../usePersonalKeys";
+import { lookUpOrganization, organizationIdOf, useOrganizationId, usePersonalKeys } from "../usePersonalKeys";
 
 const ORG = "org_acme";
 
@@ -235,6 +235,35 @@ describe("organizationIdOf", () => {
     await expect(organizationIdOf(unread, "acme", known)).resolves.toBe(ORG);
     await expect(organizationIdOf(unread, "globex", known)).resolves.toBe("globex");
     expect(unread.organization.listMineAll).not.toHaveBeenCalled();
+  });
+});
+
+describe("lookUpOrganization", () => {
+  function listing(slugs: readonly string[] | Error): Stigmer {
+    return {
+      organization: {
+        listMineAll: async function* () {
+          if (slugs instanceof Error) throw slugs;
+          for (const slug of slugs) yield { metadata: { id: `org_${slug}`, slug } };
+        },
+      },
+    } as unknown as Stigmer;
+  }
+
+  it("tells one of the caller's organizations, none of them, and a list it could not read apart", async () => {
+    await expect(lookUpOrganization(listing(["acme"]), "acme", undefined)).resolves.toEqual({ id: "org_acme", mine: true });
+    await expect(lookUpOrganization(listing(["acme"]), "globex", undefined)).resolves.toEqual({ id: "globex", mine: false });
+    await expect(lookUpOrganization(listing(new Error("unavailable")), "acme", undefined)).resolves.toEqual({ id: "acme", mine: null });
+  });
+
+  it("reads a provider's list without listing", async () => {
+    const known = [{ metadata: { id: ORG, slug: "acme" } }] as Organization[];
+    await expect(lookUpOrganization(listing(new Error("never read")), "acme", known)).resolves.toEqual({ id: ORG, mine: true });
+    await expect(lookUpOrganization(listing(new Error("never read")), "globex", known)).resolves.toEqual({ id: "globex", mine: false });
+  });
+
+  it("answers unread for a provider whose list is loading or failed, without listing", async () => {
+    await expect(lookUpOrganization(listing(new Error("never read")), "globex", null)).resolves.toEqual({ id: "globex", mine: null });
   });
 });
 

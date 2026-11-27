@@ -36,8 +36,7 @@ afterEach(cleanup);
 
 const LINEAR_ADDRESS = "https://mcp.linear.app/mcp";
 const LINEAR = {
-  plugin: { org: "org_globex", slug: "linear" },
-  pluginName: "linear",
+  home: { kind: "plugin" as const, ref: { org: "org_globex", slug: "linear" }, pluginName: "linear" },
   server: create(McpServerEntrySchema, { name: "linear", transport: { case: "http", value: { url: LINEAR_ADDRESS } }, signIn: {} }),
   address: LINEAR_ADDRESS,
   name: "Linear",

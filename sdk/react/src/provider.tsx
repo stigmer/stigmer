@@ -29,7 +29,7 @@ import { MermaidLoaderContext, type MermaidLoader } from "./mermaid-loader-conte
 import { ToolCardsContext, type ToolCards } from "./run/tool-cards-context.js";
 import { ModelRegistryContext } from "./models/ModelRegistryContext.js";
 import type { ModelRegistryState } from "./models/ModelRegistryContext.js";
-import { fetchModelRegistryDocument } from "@stigmer/react-core";
+import { fetchModelRegistryDocument, ModelRegistryFetchError } from "@stigmer/react-core";
 
 /** Props for {@link StigmerProvider}. */
 export interface StigmerProviderProps {
@@ -466,6 +466,16 @@ function sameEntries<T>(a: Readonly<Record<string, T>> | undefined, b: Readonly<
 const RETRY_DELAYS_MS = [1_000, 2_000, 4_000];
 const TOKEN_POLL_INTERVAL_MS = 500;
 const TOKEN_POLL_MAX_MS = 10_000;
+/** How often a list refused for want of a credential asks the host for one again. */
+const CREDENTIAL_WAIT_INTERVAL_MS = 2_000;
+
+/**
+ * Whether a failed registry read failed for want of a credential: refused
+ * 401, or sent with none. Such a read succeeds only once the host has one.
+ */
+function wantsCredential(err: unknown, token: string | null): boolean {
+  return (err instanceof ModelRegistryFetchError && err.status === 401) || token === null;
+}
 
 /**
  * Fetches the model registry from the authenticated API and caches
@@ -476,6 +486,13 @@ const TOKEN_POLL_MAX_MS = 10_000;
  * a fresh localStorage). When the initial token is `null`, polls for
  * a valid token before giving up. Retries on transient failures with
  * exponential backoff. Exposes `refetch` for manual retry from the UI.
+ *
+ * A read refused for want of a credential (401, or sent with none and
+ * failed) is a host whose user has not signed in yet, not a failure that
+ * stays: the client has no event for a credential arriving, so the
+ * provider asks the host's token provider every 2 s while mounted and reads
+ * the list again once a new credential appears. A stack with no sign-in,
+ * whose tokenless read succeeds, never waits.
  */
 function useModelRegistryFetch(client: Stigmer): ModelRegistryState {
   const [version, setVersion] = useState(0);
@@ -490,6 +507,8 @@ function useModelRegistryFetch(client: Stigmer): ModelRegistryState {
   clientRef.current = client;
 
   const fetchAttemptRef = useRef(0);
+  // The credential the last read was sent with, so a refusal is judged by it.
+  const sentTokenRef = useRef<string | null>(null);
 
   const doFetch = useCallback(async (signal: AbortSignal) => {
     const c = clientRef.current;
@@ -505,6 +524,7 @@ function useModelRegistryFetch(client: Stigmer): ModelRegistryState {
       }
     }
 
+    sentTokenRef.current = token ?? null;
     return fetchModelRegistryDocument(c.baseUrl, token, c.fetch);
   }, []);
 
@@ -533,10 +553,13 @@ function useModelRegistryFetch(client: Stigmer): ModelRegistryState {
       } catch (err: unknown) {
         if (signal.aborted) return;
 
+        const sent = sentTokenRef.current;
+        const refused = err instanceof ModelRegistryFetchError && err.status === 401;
         const retryIdx = fetchAttemptRef.current;
         fetchAttemptRef.current = retryIdx + 1;
 
-        if (retryIdx < RETRY_DELAYS_MS.length) {
+        // A refused credential is refused again however often it is sent.
+        if (!refused && retryIdx < RETRY_DELAYS_MS.length) {
           setTimeout(() => { if (!signal.aborted) attempt(); }, RETRY_DELAYS_MS[retryIdx]);
         } else {
           setState({
@@ -544,8 +567,31 @@ function useModelRegistryFetch(client: Stigmer): ModelRegistryState {
             isLoading: false,
             error: err instanceof Error ? err : new Error(String(err)),
           });
+          if (wantsCredential(err, sent)) waitForCredential(sent);
         }
       }
+    };
+
+    // Ask the host for a credential other than the one the read was sent
+    // with (none, or one refused), and read again once there is one.
+    const waitForCredential = (sent: string | null) => {
+      const ask = async () => {
+        if (signal.aborted) return;
+        let next: string | null = null;
+        try {
+          next = await clientRef.current.getAuthCredential();
+        } catch {
+          next = null;
+        }
+        if (signal.aborted) return;
+        if (next && next !== sent) {
+          fetchAttemptRef.current = 0;
+          void attempt();
+        } else {
+          setTimeout(() => void ask(), CREDENTIAL_WAIT_INTERVAL_MS);
+        }
+      };
+      setTimeout(() => void ask(), CREDENTIAL_WAIT_INTERVAL_MS);
     };
 
     attempt();

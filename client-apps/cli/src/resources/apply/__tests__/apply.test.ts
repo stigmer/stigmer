@@ -24,6 +24,7 @@
 import { create, type Message } from "@bufbuild/protobuf";
 import { Code, ConnectError } from "@connectrpc/connect";
 import { AgentSchema } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb";
+import { AgentSpecSchema } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/spec_pb";
 import { AgentStatusSchema } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/status_pb";
 import { SessionSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/api_pb";
 import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
@@ -466,6 +467,29 @@ describe("applyMessage the save's own warnings", () => {
     const outcome = await applyMessage(controller, handler, agent(ApiResourceVisibility.api_resource_visibility_unspecified), "acme", false);
 
     expect(outcome.warning).toBe(message);
+  });
+
+  it("names each of the agent's own servers that signs in, where its address still is, and where to sign in", async () => {
+    const saved = agent(ApiResourceVisibility.visibility_org);
+    saved.spec = create(AgentSpecSchema, {
+      mcpServers: [
+        { name: "app-tools", url: "https://tools.acme.test/mcp" },
+        { name: "docs", url: "https://docs.acme.test/mcp" },
+        { name: "moved", url: "https://new.acme.test/mcp" },
+      ],
+    });
+    saved.status = create(AgentStatusSchema, {
+      serverSignIns: [
+        { name: "app-tools", url: "https://tools.acme.test/mcp", signIn: { oauthOnly: true } },
+        { name: "docs", url: "https://docs.acme.test/mcp" },
+        { name: "moved", url: "https://old.acme.test/mcp", signIn: { oauthOnly: true } },
+      ],
+    });
+    const { handler } = handlerWith({ applyReturns: saved });
+
+    const outcome = await applyMessage(controller, handler, agent(ApiResourceVisibility.api_resource_visibility_unspecified), "acme", false);
+
+    expect(outcome.warning).toBe("app-tools signs in: sign in from the chat, or from the agent's page in the console");
   });
 });
 

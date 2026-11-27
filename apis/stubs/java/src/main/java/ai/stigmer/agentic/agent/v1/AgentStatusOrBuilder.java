@@ -132,4 +132,63 @@ public interface AgentStatusOrBuilder extends
    */
   ai.stigmer.agentic.agent.v1.AgentWarningOrBuilder getWarningsOrBuilder(
       int index);
+
+  /**
+   * <pre>
+   * How each of the agent's own MCP servers asked to be signed in to, as
+   * its address answered when the agent was saved. A server listed here
+   * with a sign-in is signed in to as a plugin's server is: a run needs the
+   * login and is refused until there is one, and the chat offers Sign in.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.agent.v1.AgentServerSignIn server_sign_ins = 5 [json_name = "serverSignIns"];</code>
+   */
+  java.util.List<ai.stigmer.agentic.agent.v1.AgentServerSignIn> 
+      getServerSignInsList();
+  /**
+   * <pre>
+   * How each of the agent's own MCP servers asked to be signed in to, as
+   * its address answered when the agent was saved. A server listed here
+   * with a sign-in is signed in to as a plugin's server is: a run needs the
+   * login and is refused until there is one, and the chat offers Sign in.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.agent.v1.AgentServerSignIn server_sign_ins = 5 [json_name = "serverSignIns"];</code>
+   */
+  ai.stigmer.agentic.agent.v1.AgentServerSignIn getServerSignIns(int index);
+  /**
+   * <pre>
+   * How each of the agent's own MCP servers asked to be signed in to, as
+   * its address answered when the agent was saved. A server listed here
+   * with a sign-in is signed in to as a plugin's server is: a run needs the
+   * login and is refused until there is one, and the chat offers Sign in.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.agent.v1.AgentServerSignIn server_sign_ins = 5 [json_name = "serverSignIns"];</code>
+   */
+  int getServerSignInsCount();
+  /**
+   * <pre>
+   * How each of the agent's own MCP servers asked to be signed in to, as
+   * its address answered when the agent was saved. A server listed here
+   * with a sign-in is signed in to as a plugin's server is: a run needs the
+   * login and is refused until there is one, and the chat offers Sign in.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.agent.v1.AgentServerSignIn server_sign_ins = 5 [json_name = "serverSignIns"];</code>
+   */
+  java.util.List<? extends ai.stigmer.agentic.agent.v1.AgentServerSignInOrBuilder> 
+      getServerSignInsOrBuilderList();
+  /**
+   * <pre>
+   * How each of the agent's own MCP servers asked to be signed in to, as
+   * its address answered when the agent was saved. A server listed here
+   * with a sign-in is signed in to as a plugin's server is: a run needs the
+   * login and is refused until there is one, and the chat offers Sign in.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.agent.v1.AgentServerSignIn server_sign_ins = 5 [json_name = "serverSignIns"];</code>
+   */
+  ai.stigmer.agentic.agent.v1.AgentServerSignInOrBuilder getServerSignInsOrBuilder(
+      int index);
 }

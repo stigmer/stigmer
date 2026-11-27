@@ -38,6 +38,7 @@ export {
   DISABLED_PROVIDERS,
   fetchModelRegistry,
   fetchModelRegistryDocument,
+  ModelRegistryFetchError,
   modelKey,
   parseModelKey,
   parseRegistryDocument,

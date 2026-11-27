@@ -74,6 +74,7 @@ vi.mock("../../agent/useAgent", () => ({
 }));
 
 import { AgentChat } from "../AgentChat";
+import { AgentChatSetupError } from "../setup-error";
 
 beforeEach(() => {
   vi.useFakeTimers({ toFake: ["Date"] });
@@ -149,6 +150,15 @@ describe("AgentChat, the page", () => {
     startConversation();
     expect(onSessionChange).toHaveBeenCalledWith("ses_1");
     expect(screen.getByTestId("new-session-probe")).toBeTruthy();
+  });
+
+  it("tells the host why the chat could not start, leaving the end user's line to the launcher", () => {
+    const onError = vi.fn();
+    render(<AgentChat agent="acme/billing-agent" onError={onError} />);
+    const error = new AgentChatSetupError("no-access", "your app signs its users in with no role in acme", "Your account can't use this agent yet.", null);
+    act(() => (newSessionViewerProps.at(-1)!.onError as (m: string, e: Error) => void)(error.message, error));
+    expect(onError).toHaveBeenCalledWith(error.message, error);
+    expect(screen.queryByRole("alert")).toBeNull();
   });
 
   it("shows why the first message was refused under its box, and tells the host", () => {

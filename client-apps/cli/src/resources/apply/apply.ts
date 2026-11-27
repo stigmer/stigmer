@@ -369,12 +369,20 @@ async function applyNamingSlug(controller: ControllerFn, handler: ApplyHandler, 
 /**
  * What the server's save warned of on the applied resource, each a
  * sentence: an agent's `status.warnings` (a skill whose scripts an agent
- * without a computer cannot run). Printed beside the command's own
- * warnings; a save never fails over one.
+ * without a computer cannot run), then each of its own MCP servers whose
+ * address asked for a sign-in when it was saved (`status.serverSignIns`,
+ * read where the server's address still is): its runs need that sign-in,
+ * which the chat and the agent's page in the console offer. Printed beside
+ * the command's own warnings; a save never fails over one.
  */
 function savedWarnings(handler: ApplyHandler, applied: Message): string[] {
   if (handler.kind !== ApiResourceKind.agent) return [];
-  return ((applied as Agent).status?.warnings ?? []).map((warning) => warning.message);
+  const agent = applied as Agent;
+  const signIns = (agent.status?.serverSignIns ?? [])
+    .filter((answer) => answer.signIn !== undefined)
+    .filter((answer) => (agent.spec?.mcpServers ?? []).some((server) => server.name === answer.name && server.url === answer.url))
+    .map((answer) => `${answer.name} signs in: sign in from the chat, or from the agent's page in the console`);
+  return [...(agent.status?.warnings ?? []).map((warning) => warning.message), ...signIns];
 }
 
 function combineWarnings(...warnings: (string | undefined)[]): string | undefined {

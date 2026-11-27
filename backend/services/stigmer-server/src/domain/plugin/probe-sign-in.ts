@@ -23,38 +23,22 @@
  * stored entries and asks nothing: the install is a pure function of the
  * archive and the answers it already recorded.
  *
- * The probe: one `initialize` to the URL with the author's literal headers,
- * through the server's egress-guarded fetch, under a 3 s deadline that
- * covers DNS; servers are probed in parallel. No tool is called, no
- * metadata document is fetched, no redirect is followed. A thrown probe is
- * logged and read as unreachable; the install never fails on it.
+ * The question and the completion are the shared probe's
+ * (domain/mcp/sign-in-probe.ts), which an agent's save asks of the agent's
+ * own servers too; servers are probed in parallel, and the install never
+ * fails on an answer.
  *
  * Tests: __tests__/probe-sign-in.test.ts.
  */
-import { clone, create } from "@bufbuild/protobuf";
+import { create } from "@bufbuild/protobuf";
 
-import type { OutboundFetch } from "@stigmer/outbound/egress";
-import { probeEndpointAuth } from "@stigmer/outbound/mcp-oauth";
-import { McpServerEntrySchema, McpServerSignInSchema } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/status_pb";
 import type { McpServerEntry, PluginStatus } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/status_pb";
 import { EnvVarDeclarationSchema } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/declaration_pb";
 import type { EnvVarDeclaration } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/declaration_pb";
 import { accessTokenVariable } from "@stigmer/tool-vocabulary";
 
-import type { Logger } from "../../boot/logger.js";
-
-/** The install waits on the probe; a real endpoint answers well within this, DNS included. */
-export const ENDPOINT_PROBE_TIMEOUT_MS = 3_000;
-
-/** How the control plane names itself in the handshake's `clientInfo`. */
-const PROBE_CLIENT_NAME = "stigmer-server";
-
-const AUTHORIZATION_HEADER = "authorization";
-
-export interface ProbeSignInDeps {
-  readonly outboundFetch: OutboundFetch;
-  readonly logger: Logger;
-}
+import { askSignIn, authorShapeUrl, completeSignIn } from "../mcp/sign-in-probe.js";
+import type { SignInProbeDeps } from "../mcp/sign-in-probe.js";
 
 /** The entries and variables after the probe. */
 export interface ProbedServers {
@@ -68,7 +52,7 @@ export interface ProbedServers {
  * and variables are returned as they are, and nothing is probed.
  */
 export async function probeSignIns(
-  deps: ProbeSignInDeps,
+  deps: SignInProbeDeps,
   planned: { readonly mcpServers: readonly McpServerEntry[]; readonly env: Readonly<Record<string, EnvVarDeclaration>> },
   digest: string,
   installed: PluginStatus | undefined,
@@ -83,7 +67,8 @@ export async function probeSignIns(
       if (url === undefined) {
         return entry;
       }
-      if ((await probe(url, entry, deps)) !== "oauth") {
+      const headers = entry.transport.case === "http" ? entry.transport.value.headers : {};
+      if ((await askSignIn(url, headers, deps)) !== "oauth") {
         return entry;
       }
       const variable = accessTokenVariable(entry.name);
@@ -92,56 +77,8 @@ export async function probeSignIns(
         optional: false,
         description: `OAuth access token for the '${entry.name}' MCP server; Sign in fills it`,
       });
-      return completed(entry, variable);
+      return completeSignIn(entry, variable);
     }),
   );
   return { mcpServers, env };
-}
-
-/**
- * The URL when the entry is the author's shape (an `http` server that says
- * nothing about authentication); undefined otherwise.
- */
-function authorShapeUrl(entry: McpServerEntry): string | undefined {
-  if (entry.transport.case !== "http") return undefined;
-  if (entry.env.length > 0) return undefined;
-  for (const [name, value] of Object.entries(entry.transport.value.headers)) {
-    if (name.toLowerCase() === AUTHORIZATION_HEADER) return undefined;
-    if (value.includes("${")) return undefined;
-  }
-  return entry.transport.value.url;
-}
-
-/** The entry with its sign-in, the header that sends the login and the variable it reads. */
-function completed(entry: McpServerEntry, variable: string): McpServerEntry {
-  const copy = clone(McpServerEntrySchema, entry);
-  copy.env.push(variable);
-  copy.signIn = create(McpServerSignInSchema, { oauthOnly: true });
-  if (copy.transport.case === "http") {
-    copy.transport.value.headers["Authorization"] = `Bearer \${${variable}}`;
-  }
-  return copy;
-}
-
-async function probe(url: string, entry: McpServerEntry, deps: ProbeSignInDeps): Promise<"oauth" | "other"> {
-  const headers = entry.transport.case === "http" ? entry.transport.value.headers : {};
-  try {
-    const outcome = await probeEndpointAuth(url, headers, {
-      fetchImpl: deps.outboundFetch,
-      timeoutMs: ENDPOINT_PROBE_TIMEOUT_MS,
-      clientName: PROBE_CLIENT_NAME,
-    });
-    if (outcome.kind === "unreachable") {
-      deps.logger.debug("MCP endpoint probe got no answer; the server is installed as written", { url, error: outcome.error });
-    }
-    return outcome.kind === "oauth" ? "oauth" : "other";
-  } catch (error) {
-    // probeEndpointAuth never throws by contract; a throw here is a defect
-    // in the fetch it was handed, and an install must not fail on it.
-    deps.logger.warn("MCP endpoint probe threw; the server is installed as written", {
-      url,
-      error: error instanceof Error ? error.message : String(error),
-    });
-    return "other";
-  }
 }

@@ -22,10 +22,11 @@ _runtime_version.ValidateProtobufRuntimeVersion(
 _sym_db = _symbol_database.Default()
 
 
+from ai.stigmer.agentic.plugin.v1 import status_pb2 as ai_dot_stigmer_dot_agentic_dot_plugin_dot_v1_dot_status__pb2
 from ai.stigmer.commons.apiresource import status_pb2 as ai_dot_stigmer_dot_commons_dot_apiresource_dot_status__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n(ai/stigmer/agentic/agent/v1/status.proto\x12\x1b\x61i.stigmer.agentic.agent.v1\x1a+ai/stigmer/commons/apiresource/status.proto\"\xbf\x01\n\x0b\x41gentStatus\x12\x46\n\x05\x61udit\x18\x63 \x01(\x0b\x32\x30.ai.stigmer.commons.apiresource.ApiResourceAuditR\x05\x61udit\x12!\n\x0cversion_hash\x18\x03 \x01(\tR\x0bversionHash\x12\x45\n\x08warnings\x18\x04 \x03(\x0b\x32).ai.stigmer.agentic.agent.v1.AgentWarningR\x08warnings\"R\n\x0c\x41gentWarning\x12\x12\n\x04kind\x18\x01 \x01(\tR\x04kind\x12\x18\n\x07message\x18\x02 \x01(\tR\x07message\x12\x14\n\x05skill\x18\x03 \x01(\tR\x05skillB\xbf\x01\n\x1f\x63om.ai.stigmer.agentic.agent.v1B\x0bStatusProtoP\x01\xa2\x02\x04\x41SAA\xaa\x02\x1b\x41i.Stigmer.Agentic.Agent.V1\xca\x02\x1b\x41i\\Stigmer\\Agentic\\Agent\\V1\xe2\x02\'Ai\\Stigmer\\Agentic\\Agent\\V1\\GPBMetadata\xea\x02\x1f\x41i::Stigmer::Agentic::Agent::V1b\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n(ai/stigmer/agentic/agent/v1/status.proto\x12\x1b\x61i.stigmer.agentic.agent.v1\x1a)ai/stigmer/agentic/plugin/v1/status.proto\x1a+ai/stigmer/commons/apiresource/status.proto\"\x97\x02\n\x0b\x41gentStatus\x12\x46\n\x05\x61udit\x18\x63 \x01(\x0b\x32\x30.ai.stigmer.commons.apiresource.ApiResourceAuditR\x05\x61udit\x12!\n\x0cversion_hash\x18\x03 \x01(\tR\x0bversionHash\x12\x45\n\x08warnings\x18\x04 \x03(\x0b\x32).ai.stigmer.agentic.agent.v1.AgentWarningR\x08warnings\x12V\n\x0fserver_sign_ins\x18\x05 \x03(\x0b\x32..ai.stigmer.agentic.agent.v1.AgentServerSignInR\rserverSignIns\"\x81\x01\n\x11\x41gentServerSignIn\x12\x12\n\x04name\x18\x01 \x01(\tR\x04name\x12\x10\n\x03url\x18\x02 \x01(\tR\x03url\x12\x46\n\x07sign_in\x18\x03 \x01(\x0b\x32-.ai.stigmer.agentic.plugin.v1.McpServerSignInR\x06signIn\"R\n\x0c\x41gentWarning\x12\x12\n\x04kind\x18\x01 \x01(\tR\x04kind\x12\x18\n\x07message\x18\x02 \x01(\tR\x07message\x12\x14\n\x05skill\x18\x03 \x01(\tR\x05skillB\xbf\x01\n\x1f\x63om.ai.stigmer.agentic.agent.v1B\x0bStatusProtoP\x01\xa2\x02\x04\x41SAA\xaa\x02\x1b\x41i.Stigmer.Agentic.Agent.V1\xca\x02\x1b\x41i\\Stigmer\\Agentic\\Agent\\V1\xe2\x02\'Ai\\Stigmer\\Agentic\\Agent\\V1\\GPBMetadata\xea\x02\x1f\x41i::Stigmer::Agentic::Agent::V1b\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -33,8 +34,10 @@ _builder.BuildTopDescriptorsAndMessages(DESCRIPTOR, 'ai.stigmer.agentic.agent.v1
 if not _descriptor._USE_C_DESCRIPTORS:
   _globals['DESCRIPTOR']._loaded_options = None
   _globals['DESCRIPTOR']._serialized_options = b'\n\037com.ai.stigmer.agentic.agent.v1B\013StatusProtoP\001\242\002\004ASAA\252\002\033Ai.Stigmer.Agentic.Agent.V1\312\002\033Ai\\Stigmer\\Agentic\\Agent\\V1\342\002\'Ai\\Stigmer\\Agentic\\Agent\\V1\\GPBMetadata\352\002\037Ai::Stigmer::Agentic::Agent::V1'
-  _globals['_AGENTSTATUS']._serialized_start=119
-  _globals['_AGENTSTATUS']._serialized_end=310
-  _globals['_AGENTWARNING']._serialized_start=312
-  _globals['_AGENTWARNING']._serialized_end=394
+  _globals['_AGENTSTATUS']._serialized_start=162
+  _globals['_AGENTSTATUS']._serialized_end=441
+  _globals['_AGENTSERVERSIGNIN']._serialized_start=444
+  _globals['_AGENTSERVERSIGNIN']._serialized_end=573
+  _globals['_AGENTWARNING']._serialized_start=575
+  _globals['_AGENTWARNING']._serialized_end=657
 # @@protoc_insertion_point(module_scope)

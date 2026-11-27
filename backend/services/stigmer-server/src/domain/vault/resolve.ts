@@ -158,6 +158,7 @@ import type { DescMessage, MessageShape } from "@bufbuild/protobuf";
 import { Code, ConnectError } from "@connectrpc/connect";
 
 import type { AgentSpec } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/spec_pb";
+import type { AgentServerSignIn } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/status_pb";
 import { ChannelSchema } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/api_pb";
 import { PluginSchema } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/api_pb";
 import type { McpServerEntry, PluginStatus } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/status_pb";
@@ -421,6 +422,12 @@ export interface RunCredentialInput {
    * unreadable one) reads no My vault, for any requirement.
    */
   readonly agentOrg: string | undefined;
+  /**
+   * How the agent's own servers answered at its save
+   * (`AgentStatus.server_sign_ins`; read by name and address, so the head's
+   * answers serve an older version's unchanged servers); none when unread.
+   */
+  readonly agentServerSignIns?: readonly AgentServerSignIn[];
   /** The subagents the agent lists, at their pinned versions (domain/run/run-subagents.ts). */
   readonly subagents: readonly RunSubagent[];
   /** Every plugin the run lists (its agent's, its conversation's and its subagents'), each once. */
@@ -692,7 +699,13 @@ export function runRequirements(input: RunCredentialInput): Requirement[] {
     agent:
       input.agentSpec === undefined
         ? undefined
-        : { id: input.agentId, name: input.agentName, version: input.agentVersion, spec: input.agentSpec },
+        : {
+            id: input.agentId,
+            name: input.agentName,
+            version: input.agentVersion,
+            spec: input.agentSpec,
+            serverSignIns: input.agentServerSignIns ?? [],
+          },
     subagents: input.subagents,
     plugins: input.plugins,
   });
@@ -1536,7 +1549,7 @@ export function newVaultResolver(deps: VaultResolverDeps): VaultResolver {
         case "agent": {
           const agent = (await loadVersion(deps.store, agentVersionBinding, home.agentId, home.agentVersion)).resource;
           const written = agent.spec?.mcpServers.find((entry) => entry.name === server);
-          return written === undefined ? undefined : agentServerEntry(written);
+          return written === undefined ? undefined : agentServerEntry(written, agent.status?.serverSignIns ?? []);
         }
         /* v8 ignore next -- @preserve: the exhaustiveness guard over a closed union; no value reaches it */
         default: {

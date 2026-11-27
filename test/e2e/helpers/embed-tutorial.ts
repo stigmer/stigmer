@@ -272,6 +272,8 @@ export async function runTutorial(
   tarballs: Kit,
   env: TutorialEnv,
   pages: readonly string[] = [EMBED_PAGE],
+  /** A reader's own edit of a page's file, as they write it (the file's path and the page's text). */
+  rewrite: (path: string, content: string) => string = (_path, content) => content,
 ): Promise<TutorialRun> {
   const shellEnv: NodeJS.ProcessEnv = {
     ...process.env,
@@ -294,7 +296,7 @@ export async function runTutorial(
     for (const step of steps) {
       if (step.kind === "file") {
         mkdirSync(dirname(join(cwd, step.path)), { recursive: true });
-        writeFileSync(join(cwd, step.path), step.content);
+        writeFileSync(join(cwd, step.path), rewrite(step.path, step.content));
       } else if (step.kind === "command") {
         const cd = /^cd\s+(\S+)$/.exec(step.line);
         if (cd) cwd = join(cwd, cd[1]!);

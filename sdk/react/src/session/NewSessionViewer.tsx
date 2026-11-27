@@ -34,6 +34,8 @@ import type { SessionLaunch } from "./launch.js";
 import type { JourneyLinks } from "../journey/links.js";
 import { useStartFromExample, type FirstChoice } from "./first-question/useStartFromExample.js";
 import { claudeNotOfferedCopy } from "../agent/computer.js";
+import { reportSetupFailure } from "../agent-chat/setup-error.js";
+import { useAgentSetupFailure } from "../agent-chat/useAgentSetupFailure.js";
 // The first question and its chosen bar, with the example list they carry,
 // load only when a launcher shows them: an embed or a returning person never
 // downloads them.
@@ -47,8 +49,6 @@ const ProviderKeyNotice = lazy(() => import("../billing/ProviderKeyNotice.js").t
 const AgentHoursNotice = lazy(() => import("../billing/AgentHoursNotice.js").then((m) => ({ default: m.AgentHoursNotice })));
 const JourneyLauncherLine = lazy(() => import("../journey/JourneyNextLine.js").then((m) => ({ default: m.JourneyLauncherLine })));
 
-/** What an end user reads when the agent their launcher is pinned to cannot be found. */
-const PIN_UNAVAILABLE = "This agent isn't available. It may have been renamed or removed.";
 /** Why Send waits while the agent the conversation is for is still being read. */
 const AGENT_LOADING = "Loading the agent\u2026";
 
@@ -62,7 +62,10 @@ export interface NewSessionViewerProps {
    * Called on error (for toast notifications or other UI feedback), with
    * the message and the error itself. A refusal the launcher already shows
    * in place (a `PROVIDER_KEY_REQUIRED` one, through `providerKeyRequired`)
-   * is the host's to skip, so it shows once.
+   * is the host's to skip, so it shows once. An end user's launcher pinned
+   * to an agent that cannot be set up calls it once per failure too, with
+   * the developer's words and an `AgentChatSetupError` naming the cause
+   * (its `reason`); the launcher shows the end user's words under its box.
    */
   readonly onError?: (message: string, error: Error) => void;
 
@@ -470,14 +473,26 @@ export function NewSessionViewer({
   // never opened.
   const pinsAgent = audience === "endUser" && initialAgentRef != null;
   const pinWaits = pinsAgent && flow.agentRef == null;
+  // Why the pin cannot resolve, by its cause: the end user's words under
+  // the box, the developer's to the host's onError and once to the console.
+  const setupFailure = useAgentSetupFailure(pinWaits ? pinError : null, org, initialAgentRef?.slug ?? "");
+  // The host's onError, read when a failure arrives: a new callback never
+  // reports the same failure again.
+  const onErrorRef = useRef(onError);
+  onErrorRef.current = onError;
+  useEffect(() => {
+    if (setupFailure === null) return;
+    reportSetupFailure(setupFailure);
+    onErrorRef.current?.(setupFailure.message, setupFailure);
+  }, [setupFailure]);
   // For every audience, Send also waits while the picked agent's engine and
   // run defaults are read, which the flow refuses a send for meanwhile
   // (stigmer#3481): a held Send says why, a refusal after the click only
   // tells the person to try again.
   const agentLoads = !isGuest && flow.agentRef != null && flow.isAgentLoading === true;
   const sendBlockedReason = pinWaits
-    ? pinError !== null
-      ? PIN_UNAVAILABLE
+    ? setupFailure !== null
+      ? setupFailure.endUserMessage
       : AGENT_LOADING
     : agentLoads
       ? AGENT_LOADING
@@ -844,12 +859,6 @@ export function NewSessionViewer({
             the one-click way off. Guests never inherit either seed. */}
         {!isGuest && flow.autoApproveAll && (
           <AutoApproveIndicator onTurnOff={() => flow.setAutoApproveAll(false)} />
-        )}
-
-        {pinWaits && pinError !== null && (
-          <p role="alert" className="stg:text-center stg:text-xs stg:text-destructive">
-            {PIN_UNAVAILABLE}
-          </p>
         )}
 
         {footerContent}

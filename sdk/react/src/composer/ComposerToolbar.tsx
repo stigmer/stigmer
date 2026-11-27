@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useLayoutEffect, useRef, useState, type ReactNode, type RefObject } from "react";
+import { useLayoutEffect, useRef, useState, type ReactNode, type RefObject } from "react";
 import { cn } from "@stigmer/design-tokens";
 import { CountBadge } from "../internal/surface/CountBadge.js";
 import {
@@ -31,11 +31,12 @@ export interface ComposerToolbarProps {
   readonly isSubmitting: boolean;
   readonly canSend: boolean;
   /**
-   * Why Send is held though the message could be sent (the chosen model
-   * cannot run here yet). The disabled Send button carries it as its
-   * accessible description.
+   * The id of the line under the composer's box that says why Send is held
+   * (the chosen model cannot run here yet, the agent is still being read).
+   * The disabled Send button names it as its accessible description, so the
+   * words a sighted person reads are the ones a screen reader hears.
    */
-  readonly sendBlockedReason?: string;
+  readonly sendBlockedReasonId?: string;
   readonly onSend: () => void;
   /**
    * When provided, the primary button becomes a Stop control (enabled even
@@ -127,7 +128,7 @@ export function ComposerToolbar({
   disabled,
   isSubmitting,
   canSend,
-  sendBlockedReason,
+  sendBlockedReasonId,
   onSend,
   onStop,
   isStopping = false,
@@ -162,7 +163,6 @@ export function ComposerToolbar({
   thinkingMode,
   onThinkingModeChange,
 }: ComposerToolbarProps) {
-  const sendBlockedId = useId();
   const showHarnessSeparate = showHarnessSelector && !showModelSelector;
 
   const narrowRef = useRef<HTMLDivElement>(null);
@@ -203,21 +203,14 @@ export function ComposerToolbar({
               className="stg:rounded-full"
             />
           ) : (
-            <>
-              <IconButton
-                variant="primary"
-                label="Send message"
-                icon={isSubmitting ? <SpinnerIcon /> : <ArrowUpIcon />}
-                disabled={!canSend}
-                onClick={onSend}
-                aria-describedby={sendBlockedReason === undefined ? undefined : sendBlockedId}
-              />
-              {sendBlockedReason !== undefined && (
-                <span id={sendBlockedId} className="stg:sr-only">
-                  {sendBlockedReason}
-                </span>
-              )}
-            </>
+            <IconButton
+              variant="primary"
+              label="Send message"
+              icon={isSubmitting ? <SpinnerIcon /> : <ArrowUpIcon />}
+              disabled={!canSend}
+              onClick={onSend}
+              aria-describedby={sendBlockedReasonId}
+            />
           );
 
   const workspaceButton = showWorkspace && (

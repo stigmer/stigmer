@@ -230,13 +230,17 @@ vault as a connection at the server's address, refreshed automatically before
 each run. If it expires and cannot be refreshed, they sign in again from the
 plugin's page. A local program has no sign-in: it takes its keys from secrets.
 
-A server in an Agent's own `mcp_servers` is not probed. A run logs in to it with
-the connection saved in its vaults at the server's address, else a secret named
-`<SERVER>_ACCESS_TOKEN` (the server's name upper-cased, each other character
-written as `_`), else it calls the server with no login. A header that names
-`Authorization` takes the login from its `${NAME}` instead, and the run then
-needs that key. For a server that asks for one, **Sign in** sits beside it on
-the Agent's page.
+A server in an Agent's own `mcp_servers` with no key in its headers is probed
+the same way when the Agent is saved, and again whenever its address or headers
+change. If it answers with an OAuth challenge, the Agent records that the server
+signs in, and the server is signed in to as a plugin's is: a run needs the login
+and is refused with "sign in to …" until there is one, the chat and the Agent's
+page offer **Sign in**, and `stigmer apply` names the server. A server that asks
+for no sign-in is called with the connection saved in the run's vaults at its
+address, else a secret named `<SERVER>_ACCESS_TOKEN` (the server's name
+upper-cased, each other character written as `_`), else with no login. A header
+that names `Authorization` takes the login from its `${NAME}` instead, and the
+run then needs that key.
 
 An Organization that needs its own OAuth app for an address — for a vendor
 Stigmer cannot sign in to on its own, or for tighter control — adds a login app

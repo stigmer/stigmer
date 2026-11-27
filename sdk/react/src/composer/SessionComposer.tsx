@@ -1,6 +1,6 @@
 "use client";
 
-import { forwardRef, memo, useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState, type ClipboardEvent, type DragEvent, type KeyboardEvent } from "react";
+import { forwardRef, memo, useCallback, useEffect, useId, useImperativeHandle, useMemo, useRef, useState, type ClipboardEvent, type DragEvent, type KeyboardEvent } from "react";
 import { cn } from "@stigmer/design-tokens";
 import { getUserMessage, type ResourceRef } from "@stigmer/client";
 import type { EnvVarInput } from "../vault/types.js";
@@ -280,8 +280,9 @@ export interface SessionComposerProps {
   /**
    * Why Send is held while the message can still be written, in words (the
    * chosen model cannot run here yet: "Connect Anthropic to run Claude
-   * Sonnet 4.6."). Send stays disabled while it is set, and carries it as
-   * its accessible description.
+   * Sonnet 4.6."). Send stays disabled while it is set; the reason prints
+   * as a line under the box, which Send names as its accessible
+   * description.
    */
   readonly sendBlockedReason?: string;
   /**
@@ -1694,6 +1695,7 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
   // phases (see its doc — same drop class).
   const uploadsBlocked = enableFiles && uploads.isUploading;
   const heldReason = sendBlockedReason ?? (initialAgentPending ? AGENT_LOADING_REASON : undefined);
+  const heldReasonId = useId();
   const canSend = composer.canSubmit && !uploadsBlocked && heldReason === undefined;
 
   // True when the upload gate is the OPERATIVE blocker — the message would
@@ -2180,7 +2182,7 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
           disabled={isDisabled}
           isSubmitting={isSubmitting}
           canSend={canSend}
-          sendBlockedReason={heldReason}
+          sendBlockedReasonId={heldReason === undefined ? undefined : heldReasonId}
           onSend={composer.submit}
           onStop={onStop}
           isStopping={isStopping}
@@ -2234,6 +2236,14 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
           onThinkingModeChange={setThinkingModePick}
         />
       </div>
+      {/* Why Send is held, where anyone can read it: under the box, the one
+          element Send names as its description, so a sighted person and a
+          screen reader get the same words, printed once. */}
+      {heldReason !== undefined && (
+        <p id={heldReasonId} role="status" className="stg:mt-2 stg:px-1 stg:text-xs stg:text-muted-foreground">
+          {heldReason}
+        </p>
+      )}
       {disclosePersonalKeys && shownVaults.includeMyVault && agentRef && org && (
         <PersonalKeyDisclosure
           agentRef={agentRef}

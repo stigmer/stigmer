@@ -119,6 +119,8 @@ describe("SessionComposer — opened for an agent", () => {
     type("Review this quarter's ledger.");
     expect(sendButton().disabled).toBe(true);
     expect(sendDescription()).toBe(HOLD);
+    // A sighted person reads the same words under the box.
+    expect(screen.getByText(HOLD).className).not.toContain("stg:sr-only");
     fireEvent.keyDown(screen.getByRole("textbox"), { key: "Enter" });
     expect(onSubmit).not.toHaveBeenCalled();
 

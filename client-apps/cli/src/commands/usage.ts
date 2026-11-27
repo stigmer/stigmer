@@ -62,8 +62,8 @@ export function registerUsage(program: Command): void {
   usage
     .command("org")
     .description("view the organization-wide usage report")
-    .option("--from <date>", `${FROM_HELP}, required`)
-    .option("--to <date>", `${TO_HELP}, required`)
+    .requiredOption("--from <date>", FROM_HELP)
+    .requiredOption("--to <date>", TO_HELP)
     .option("-o, --output <format>", "output format: table, json, or yaml")
     .action((options: UsageFlags, command: Command) => runOrgUsage(options, command));
 
