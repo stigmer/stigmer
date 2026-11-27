@@ -40,16 +40,22 @@ const SESSION_QUEUE = "session:ses_01m3zkdb7wxbe2gx0ezmf8fmaq";
 const SESSION_SANDBOX = "sbx-ses-4e918096d317";
 
 // Records its environment under OUT_DIR as <pid>.json, then stays until
-// SIGTERM, logging it.
+// SIGTERM, logging it. It announces itself only once it is ready
+// (stigmer/stigmer#3276): the SIGTERM handler goes first, so a test that
+// sees the record and closes never kills it before it can log; and the
+// record is written aside and renamed into place, so a test never reads
+// it half-written.
 const FAKE_RUNNER = `
-const { writeFileSync, appendFileSync } = require("node:fs");
+const { writeFileSync, appendFileSync, renameSync } = require("node:fs");
 const { join } = require("node:path");
 const pick = (k) => process.env[k];
-writeFileSync(join(process.env.OUT_DIR, process.pid + ".json"), JSON.stringify({
+process.on("SIGTERM", () => { appendFileSync(join(process.env.OUT_DIR, "sigterm.log"), process.pid + "\\n"); process.exit(0); });
+const record = join(process.env.OUT_DIR, process.pid + ".json");
+writeFileSync(record + ".tmp", JSON.stringify({
   queue: pick("STIGMER_TASK_QUEUE"), token: pick("STIGMER_TOKEN"), key: pick("STIGMER_PAYLOAD_ENCRYPTION_KEY"),
   base: pick("TEMPLATE_VALUE"), port: pick("STIGMER_ATTACH_PORT"), nameFile: pick("STIGMER_SANDBOX_NAME_FILE"),
 }));
-process.on("SIGTERM", () => { appendFileSync(join(process.env.OUT_DIR, "sigterm.log"), process.pid + "\\n"); process.exit(0); });
+renameSync(record + ".tmp", record);
 setInterval(() => {}, 1 << 30);
 `;
 
