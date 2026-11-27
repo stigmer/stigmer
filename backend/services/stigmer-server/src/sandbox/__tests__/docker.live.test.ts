@@ -18,7 +18,9 @@
  * local tag of the same image, so nothing is pulled) to the configured
  * image the way a server upgrade does (stigmer#1843): its files come over,
  * an agent-owned file keeping its owner and mode in the `--user 0:0`
- * container the driver creates (stigmer#3155). It reads the files with
+ * container the driver creates (stigmer#3155), and the agent's home with
+ * them, back at its own path, so the conversation's state survives
+ * (stigmer#3361). It reads the files with
  * `docker cp`, so it holds whether the runner is still up or has exited.
  *
  * It needs a Docker daemon and fails without one, never skips: the live
@@ -30,6 +32,7 @@ import { afterAll, describe, expect, it } from "vitest";
 
 import { createLogger } from "../../boot/logger.js";
 import { newDockerSandboxProvisioner } from "../docker.js";
+import { AGENT_HOME } from "../runner-launch.js";
 import { sandboxBaseName } from "../naming.js";
 import type { SandboxDriverConfig, SandboxFacts } from "../provisioner.js";
 
@@ -220,7 +223,7 @@ describe("docker driver moving a container to another image (stigmer#1843)", () 
     return execFileSync("docker", args, { stdio: "pipe", ...(input !== undefined ? { input } : {}) });
   }
 
-  it("recreates it from the configured image with its files, an agent-owned file keeping its owner and mode", async () => {
+  it("recreates it from the configured image with its files and the agent's home, an agent-owned file keeping its owner and mode", async () => {
     docker(["tag", config.runnerImage, earlierImage]);
     const earlier = newDockerSandboxProvisioner({
       config: { ...config, runnerImage: earlierImage },
@@ -232,6 +235,13 @@ describe("docker driver moving a container to another image (stigmer#1843)", () 
       tarOf([
         { name: "workspace/carried.txt", uid: 1500, gid: 1500, mode: 0o640, body: "the agent's file" },
         { name: "root/carried.txt", uid: 0, gid: 0, mode: 0o600, body: "the runner's file" },
+        {
+          name: `${AGENT_HOME.slice(1)}/.stigmer/sessions/carried.txt`,
+          uid: 10001,
+          gid: 10001,
+          mode: 0o600,
+          body: "the agent's state",
+        },
       ]),
     );
     const before = docker(["inspect", "--format", "{{.Id}}", containerName]).toString().trim();
@@ -250,6 +260,10 @@ describe("docker driver moving a container to another image (stigmer#1843)", () 
       body: "the agent's file",
     });
     expect(firstFileOf(docker(["cp", `${containerName}:/root/carried.txt`, "-"])).body).toBe("the runner's file");
+    expect(
+      firstFileOf(docker(["cp", `${containerName}:${AGENT_HOME}/.stigmer/sessions/carried.txt`, "-"])),
+      "the agent's home came back at its own path",
+    ).toEqual({ uid: 10001, gid: 10001, mode: 0o600, body: "the agent's state" });
 
     // On the configured image now: the next such ensure leaves it as it is.
     const moved = docker(["inspect", "--format", "{{.Id}}", containerName]).toString().trim();
