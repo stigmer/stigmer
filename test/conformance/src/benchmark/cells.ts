@@ -290,6 +290,8 @@ export interface PlanEnvironment {
   anthropicKey: boolean;
   /** OPENAI_API_KEY, the key an OpenAI-provider Stigmer-harness model is served with (whatever OPENAI_BASE_URL names). */
   openaiKey: boolean;
+  /** GEMINI_API_KEY, the key a Google-provider Stigmer-harness model is served with. */
+  geminiKey: boolean;
   /** `stigmer` is on PATH (the working agent's memory spawns `stigmer mcp-server`). */
   stigmerCli: boolean;
 }
@@ -329,12 +331,19 @@ function armModel(harness: BenchmarkHarness, stigmerModel: string): string {
 }
 
 /** The providers the Stigmer harness serves a model through. */
-export type StigmerProvider = "anthropic" | "openai";
+export type StigmerProvider = "anthropic" | "openai" | "google";
 
-const OPENAI_NAME_PREFIXES = ["gpt", "o1", "o3", "o4", "chatgpt"] as const;
+const STIGMER_PROVIDERS: readonly StigmerProvider[] = ["anthropic", "openai", "google"];
+
+/** Each provider's name prefixes, in the runner's order (runner shared/llm-proxy.ts `LLM_PROVIDERS`). */
+const NAME_PREFIXES: Readonly<Record<StigmerProvider, readonly string[]>> = {
+  anthropic: ["claude"],
+  openai: ["gpt", "o1", "o3", "o4", "chatgpt"],
+  google: ["gemini"],
+};
 
 /**
- * The provider of an explicit `openai:<name>` / `anthropic:<name>` model,
+ * The provider of an explicit `openai:<name>` / `anthropic:<name>` / `google:<name>` model,
  * case-insensitive, with a non-empty name after the colon; `undefined` for
  * any other name. The server's rule (modelcatalog/document-catalog.ts
  * `explicitProvider`), copied rather than imported: this suite never imports
@@ -344,25 +353,26 @@ export function explicitProvider(model: string): StigmerProvider | undefined {
   const colon = model.indexOf(":");
   if (colon <= 0 || colon === model.length - 1) return undefined;
   const prefix = model.slice(0, colon).toLowerCase();
-  return prefix === "anthropic" || prefix === "openai" ? prefix : undefined;
+  return STIGMER_PROVIDERS.find((provider) => provider === prefix);
 }
 
 /**
  * The provider the runner serves `model` through, in the runner's own order
  * (runner shared/llm-proxy.ts `inferProvider`): the explicit prefix, then a
  * name starting `claude`, then one starting `gpt`, `o1`, `o3`, `o4` or
- * `chatgpt`; `undefined` where the runner would refuse the name.
+ * `chatgpt`, then one starting `gemini`; `undefined` where the runner would
+ * refuse the name.
  */
 export function stigmerProvider(model: string): StigmerProvider | undefined {
   const explicit = explicitProvider(model);
   if (explicit !== undefined) return explicit;
   const lower = model.toLowerCase();
-  if (lower.startsWith("claude")) return "anthropic";
-  return OPENAI_NAME_PREFIXES.some((prefix) => lower.startsWith(prefix)) ? "openai" : undefined;
+  return STIGMER_PROVIDERS.find((provider) => NAME_PREFIXES[provider].some((prefix) => lower.startsWith(prefix)));
 }
 
 /**
- * The API a Stigmer-harness model is called on: Anthropic's Messages API, or for an
+ * The API a Stigmer-harness model is called on: Anthropic's Messages API,
+ * Gemini's `generateContent` for a Google-provider model, or for an
  * OpenAI-provider model the one LangChain's ChatOpenAI picks by the name
  * (@langchain/openai utils/misc.js `_modelPrefersResponsesAPI`: a name
  * containing `gpt-5.2-pro`, `gpt-5.4-pro`, `gpt-5.5-pro` or `codex` goes to
@@ -373,6 +383,7 @@ export function stigmerApi(model: string): StigmerApi | undefined {
   const provider = stigmerProvider(model);
   if (provider === undefined) return undefined;
   if (provider === "anthropic") return "messages";
+  if (provider === "google") return "generate-content";
   const prefersResponses = ["gpt-5.2-pro", "gpt-5.4-pro", "gpt-5.5-pro", "codex"].some((marker) => model.includes(marker));
   return prefersResponses ? "responses" : "chat-completions";
 }
@@ -388,7 +399,8 @@ export interface EndpointEnvironment {
  * Where the runner the benchmark spawns sends a Stigmer-harness model's calls, as a
  * host and never a key or a path: OPENAI_BASE_URL's host for an OpenAI-provider
  * model (the OpenAI SDK reads it when the runner passes no base URL, which in
- * direct mode it never does; default api.openai.com); for an Anthropic model,
+ * direct mode it never does; default api.openai.com); Google's Gemini API
+ * for a Google-provider model (the runner always names it); for an Anthropic model,
  * the backend STIGMER_ANTHROPIC_BACKEND names when it is not `public`
  * (runner shared/llm-backend.ts), else ANTHROPIC_BASE_URL's host (default
  * api.anthropic.com). An unparseable URL is recorded as "invalid
@@ -399,6 +411,7 @@ export function stigmerEndpoint(model: string, env: EndpointEnvironment): string
   const provider = stigmerProvider(model);
   if (provider === undefined) return "unknown";
   if (provider === "openai") return hostOf(env.OPENAI_BASE_URL, "OPENAI_BASE_URL", "api.openai.com");
+  if (provider === "google") return "generativelanguage.googleapis.com";
   const backend = env.STIGMER_ANTHROPIC_BACKEND?.trim() ?? "";
   if (backend !== "" && backend !== "public") return backend;
   return hostOf(env.ANTHROPIC_BASE_URL, "ANTHROPIC_BASE_URL", "api.anthropic.com");
@@ -441,6 +454,7 @@ export function planCells(env: PlanEnvironment, flags: PlanFlags): CellPlan {
       const provider = model === null ? "anthropic" : stigmerProvider(model);
       if (provider === undefined) return "model provider unknown";
       if (provider === "openai") return env.openaiKey ? undefined : "missing OPENAI_API_KEY";
+      if (provider === "google") return env.geminiKey ? undefined : "missing GEMINI_API_KEY";
       return env.anthropicKey ? undefined : "missing ANTHROPIC_API_KEY";
     },
     claude: () => (env.anthropicKey ? undefined : "missing ANTHROPIC_API_KEY"),

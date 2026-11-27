@@ -344,7 +344,7 @@ export async function spawnRunner(opts: RunnerOptions): Promise<RunningRunner> {
         ? {
             STIGMER_PROXY_ENDPOINT: opts.proxy.endpoint,
             ...(opts.cloudBootstrap === undefined ? { STIGMER_TOKEN: opts.proxy.token } : {}),
-            // The mock proxy speaks ONLY Anthropic. Background LLM callers
+            // The mock proxy speaks Anthropic and Gemini only. Background LLM callers
             // (session titling, #690) route by config.primaryModel, whose
             // baked default is an OpenAI model — without this pin their
             // requests leave on the OpenAI proxy path, where the mock cannot

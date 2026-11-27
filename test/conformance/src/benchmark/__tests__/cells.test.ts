@@ -36,7 +36,7 @@ import {
   qualityTargets,
 } from "../cells";
 
-const ALL = { anthropicKey: true, openaiKey: true, stigmerCli: true };
+const ALL = { anthropicKey: true, openaiKey: true, geminiKey: true, stigmerCli: true };
 
 /** Every scenario's cell id on `harnesses`, in the planner's order: scenario by scenario, each harness in turn. */
 const idsOn = (harnesses: readonly string[], scenarios = SCENARIOS.map((scenario) => scenario.name)): string[] =>
@@ -265,10 +265,19 @@ describe("--stigmer-model", () => {
     expect(noAnthropic.refused).toContainEqual({ cell: "quality/stigmer", reason: "missing ANTHROPIC_API_KEY" });
   });
 
+  it("a Google-provider model needs GEMINI_API_KEY, and its quality target the Anthropic key too, for the judge", () => {
+    const noGemini = planCells({ ...ALL, geminiKey: false }, { stigmerModel: "google:gemini-3-pro", only: "stigmer" });
+    expect(noGemini.cells).toEqual([]);
+    expect(noGemini.refused.filter((r) => r.reason === "missing GEMINI_API_KEY")).toHaveLength(10);
+    const withGemini = planCells({ ...ALL, openaiKey: false, anthropicKey: false }, { stigmerModel: "google:gemini-3-pro", only: "stigmer" });
+    expect(withGemini.cells, "the timing cells need the Gemini key alone").toHaveLength(9);
+    expect(withGemini.refused).toContainEqual({ cell: "quality/stigmer", reason: "missing ANTHROPIC_API_KEY" });
+  });
+
   it("a Claude model needs the Anthropic key alone, and a name the runner cannot place is refused as unknown", () => {
     const claude = planCells({ ...ALL, openaiKey: false }, { stigmerModel: "anthropic:claude-x", only: "stigmer" });
     expect(claude.cells).toHaveLength(9);
-    const unknown = planCells(ALL, { stigmerModel: "gemini-3-pro", only: "stigmer" });
+    const unknown = planCells(ALL, { stigmerModel: "llama-3.3-70b", only: "stigmer" });
     expect(unknown.cells).toEqual([]);
     expect(unknown.quality).toEqual([]);
     expect(unknown.refused.filter((r) => r.reason === "model provider unknown")).toHaveLength(10);
@@ -298,7 +307,8 @@ describe("stigmerProvider", () => {
     ["o3", "openai"],
     ["o4-mini", "openai"],
     ["chatgpt-4o-latest", "openai"],
-    ["gemini-3-pro", undefined],
+    ["gemini-3-pro", "google"],
+    ["google:gemini-3-flash", "google"],
     ["mistral:large", undefined],
     ["openai:", undefined],
     [":gpt", undefined],
@@ -307,12 +317,13 @@ describe("stigmerProvider", () => {
     expect(stigmerProvider(model)).toBe(provider);
   });
 
-  it("only the two explicit prefixes, with a name after the colon, count as explicit", () => {
+  it("only the three explicit prefixes, with a name after the colon, count as explicit", () => {
     expect(explicitProvider("openai:gpt-5.5")).toBe("openai");
     expect(explicitProvider("ANTHROPIC:claude")).toBe("anthropic");
     expect(explicitProvider("gpt-5.5")).toBeUndefined();
     expect(explicitProvider("openai:")).toBeUndefined();
-    expect(explicitProvider("google:gemini")).toBeUndefined();
+    expect(explicitProvider("google:gemini")).toBe("google");
+    expect(explicitProvider("mistral:large")).toBeUndefined();
   });
 });
 
@@ -327,7 +338,8 @@ describe("stigmerApi", () => {
     expect(stigmerApi("openai:gpt-5.4-pro-2026")).toBe("responses");
     expect(stigmerApi("openai:gpt-5.3-codex")).toBe("responses");
     expect(stigmerApi("openai:gpt-5-pro"), "a -pro name LangChain does not list").toBe("chat-completions");
-    expect(stigmerApi("gemini-3-pro")).toBeUndefined();
+    expect(stigmerApi("gemini-3-pro"), "Gemini's own protocol").toBe("generate-content");
+    expect(stigmerApi("llama-3.3-70b")).toBeUndefined();
   });
 });
 
@@ -342,6 +354,10 @@ describe("stigmerEndpoint", () => {
     expect(stigmerEndpoint("openai:x", { OPENAI_BASE_URL: "not a url" })).toBe("invalid OPENAI_BASE_URL");
   });
 
+  it("records Google's Gemini API for a Google-provider model, whatever OPENAI_BASE_URL says", () => {
+    expect(stigmerEndpoint("google:gemini-3-pro", { OPENAI_BASE_URL: "http://127.0.0.1:8080/v1" })).toBe("generativelanguage.googleapis.com");
+  });
+
   it("records the Anthropic backend's name when it is not public, else ANTHROPIC_BASE_URL's host", () => {
     expect(stigmerEndpoint("claude-sonnet-4.6", {})).toBe("api.anthropic.com");
     expect(stigmerEndpoint("claude-sonnet-4.6", { STIGMER_ANTHROPIC_BACKEND: "public", ANTHROPIC_BASE_URL: "https://gw.example/anthropic" })).toBe(
@@ -349,7 +365,7 @@ describe("stigmerEndpoint", () => {
     );
     expect(stigmerEndpoint("claude-sonnet-4.6", { STIGMER_ANTHROPIC_BACKEND: "vertex", ANTHROPIC_BASE_URL: "https://gw.example" })).toBe("vertex");
     expect(stigmerEndpoint("anthropic:claude-x", { OPENAI_BASE_URL: "https://elsewhere.example" })).toBe("api.anthropic.com");
-    expect(stigmerEndpoint("gemini-3-pro", {})).toBe("unknown");
+    expect(stigmerEndpoint("llama-3.3-70b", {})).toBe("unknown");
   });
 });
 
