@@ -83,9 +83,11 @@ export interface AgentChatProps {
    */
   readonly org?: string;
   /**
-   * The frame: `"page"` (default) fills its box; `"panel"` fills the box
-   * you dock it in, under a header; `"popup"` is a button in the corner
-   * that opens the chat beside it.
+   * The frame: `"page"` (default) fills its box, and in a box that sizes
+   * to its content (a flex row) takes its reading width, 48rem, or all the
+   * room there is when that is less; `"panel"` fills the box you dock it
+   * in, under a header; `"popup"` is a button in the corner that opens the
+   * chat beside it.
    */
   readonly variant?: AgentChatVariant;
   /**
