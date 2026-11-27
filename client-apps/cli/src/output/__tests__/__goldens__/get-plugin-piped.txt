@@ -10,7 +10,7 @@ Servers
     Signed in. To sign in again:
       stigmer connect plugin tracker --server linear --sign-in-again
     To sign out:
-      stigmer vault remove-connection https://mcp.linear.app/mcp
+      stigmer vault remove-connection https://mcp.linear.app/mcp --mine
     Tools: mcp__plugin_tracker_linear__*
   - notion  https://mcp.notion.com/mcp
     Not signed in. To sign in:

@@ -8,7 +8,7 @@ Servers
     Signed in. To sign in again:
       stigmer connect plugin linear --sign-in-again
     To sign out:
-      stigmer vault remove-connection https://mcp.linear.app/mcp
+      stigmer vault remove-connection https://mcp.linear.app/mcp --mine
     Tools: mcp__plugin_linear_linear__*
 
 Keys

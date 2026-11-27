@@ -36,15 +36,15 @@ install the MCP server at `<url>` as a plugin named `<name>`
 stigmer mcp add <name> <url> [flags]
 ```
 
-| Flag             | Type     | Default | Description                                                                                         |
-| ---------------- | -------- | ------- | --------------------------------------------------------------------------------------------------- |
-| `--description`  | `string` |         | what the server is for, shown on the plugin's page; an existing plugin keeps its own when omitted   |
-| `--dry-run`      | `bool`   |         | show whether the plugin would install, change or be refused, without pushing                        |
-| `--header`       | `string` |         | a header sent with every request (repeatable); a value may name a key in your vault as $\{NAME\}    |
-| `--json`         | `bool`   |         | emit the result as JSON                                                                             |
-| `--output`, `-o` | `string` |         | output format: table or json                                                                        |
-| `--quiet`        | `bool`   |         | print only the status line                                                                          |
-| `--visibility`   | `string` |         | visibility for the plugin (private, org, child-orgs); an existing plugin keeps its own when omitted |
+| Flag             | Type     | Default | Description                                                                                                                                                   |
+| ---------------- | -------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `--description`  | `string` |         | what the server is for, shown on the plugin's page; an existing plugin keeps its own when omitted                                                             |
+| `--dry-run`      | `bool`   |         | show whether the plugin would install, change or be refused, without pushing                                                                                  |
+| `--header`       | `string` |         | a header sent with every request (repeatable); a value may name a key in your vault as $\{NAME\}; an existing plugin keeps its own headers when none is given |
+| `--json`         | `bool`   |         | emit the result as JSON                                                                                                                                       |
+| `--output`, `-o` | `string` |         | output format: table or json                                                                                                                                  |
+| `--quiet`        | `bool`   |         | print only the status line                                                                                                                                    |
+| `--visibility`   | `string` |         | visibility for the plugin (private, org, child-orgs); an existing plugin keeps its own when omitted                                                           |
 
 ### Headers and keys
 

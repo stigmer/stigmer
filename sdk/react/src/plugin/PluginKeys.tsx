@@ -11,8 +11,9 @@
  * address fills it, and a server that is not `oauth_only` also takes a
  * pasted key of that name. Every other key is pasted, into My vault or a
  * vault the conversation lists; a value the plugin sets is replaced by one
- * saved under the same name. The sentences are the ones `stigmer get
- * plugin` prints, so the two surfaces say the same thing. A name the runner fills itself is no key
+ * saved under the same name. A key both surfaces list is described in the
+ * words `stigmer get plugin` prints; the terminal leaves out the names the
+ * runner fills, which the page lists as filled by Stigmer. A name the runner fills itself is no key
  * the person gives.
  *
  * Only My vault is read and written (`useMyVault`), as the server rows
@@ -53,14 +54,16 @@ export function pluginKeySource(key: string, servers: readonly McpServerEntry[])
 
 /** The sentence that says how a key is filled. */
 export function pluginKeyFilledBy(source: PluginKeySource, declaration: EnvVarDeclaration): string {
+  // The words `stigmer get plugin` prints for the same key, in its order: a
+  // value the plugin sets first.
+  if (source.kind !== "runner" && declaration.value !== "") return "Set by the plugin.";
   switch (source.kind) {
     case "runner":
       return "Filled by Stigmer when a conversation runs.";
     case "sign-in":
       return `Filled when you sign in to ${source.server.name}${source.pastable ? ", or paste one." : "."}`;
     case "paste":
-      // The words `stigmer get plugin` prints for the same key.
-      return declaration.value !== "" ? "Set by the plugin." : "Paste it into My vault, or a vault the conversation lists.";
+      return "Paste it into My vault, or a vault the conversation lists.";
     /* v8 ignore next -- @preserve: the exhaustiveness guard over PluginKeySource */
     default: {
       const exhaustive: never = source;

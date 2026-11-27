@@ -30,6 +30,7 @@ import type { Stigmer } from "@stigmer/client";
 import { describe, expect, it } from "vitest";
 import { protoToJsonValue, styler, terminalWidth } from "../../../output/index.js";
 import { defaultRegistry, Verb } from "../../../registry/index.js";
+import { renameSentence } from "../plugin.js";
 import { asObject, instant, type JsonObject, renderResource } from "../../render.js";
 import * as fixtures from "../__fixtures__/resources.js";
 import { GENERIC_VIEW_KINDS, renderGet, VIEWS } from "../index.js";
@@ -669,5 +670,12 @@ describe("CLI-09 get loads the views lazily, inside its action", () => {
     const source = readFileSync(new URL("../../../commands/get.ts", import.meta.url), "utf8");
     expect(source).not.toMatch(/^\s*import\s+(?!type\s)[^;]*?from\s+["'][^"']*resources\/views/m);
     expect(source).toContain('import("../resources/views/index.js")');
+  });
+});
+
+describe("the plugin view's name sentence", () => {
+  it("names the tool prefix as tool names write it, a dotted name's dot as an underscore", () => {
+    expect(renameSentence("acme.tools")).toContain("(mcp__plugin_acme_tools_…)");
+    expect(renameSentence("linear")).toContain("(mcp__plugin_linear_…)");
   });
 });

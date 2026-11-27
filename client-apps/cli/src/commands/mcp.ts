@@ -19,6 +19,7 @@
 // Heavy modules load lazily inside the action so `--help` stays fast.
 
 import type { Command } from "commander";
+import type { OneServerPlugin } from "@stigmer/plugin-package";
 import { ensureAuthenticated, resolveOrganization } from "../config/index.js";
 import { type OutputFlags, renderResult } from "../output/index.js";
 import { collect } from "./agent-exec-flags.js";
@@ -41,7 +42,7 @@ export function registerMcp(program: Command): void {
     .description("install the MCP server at <url> as a plugin named <name>")
     .option(
       "--header <name=value>",
-      "a header sent with every request (repeatable); a value may name a key in your vault as ${NAME}",
+      "a header sent with every request (repeatable); a value may name a key in your vault as ${NAME}; an existing plugin keeps its own headers when none is given",
       collect,
       [],
     )
@@ -87,13 +88,19 @@ async function runMcpAdd(
   const installed = await add.readInstalledUnderName(client.stigmer, org, prepared.plugin.name);
   if (installed.kind === "other") throw add.notOneServerRefusal(prepared.plugin.name, installed.plugin);
 
-  // A change keeps what it does not name: the description the plugin has,
-  // and its visibility.
+  // A change keeps what it does not name: the headers the plugin sends
+  // (unless --header is given), the description it has, and its visibility.
   let pushVisibility = visibility;
+  let next: OneServerPlugin = given;
   if (installed.kind === "one-server") {
-    if (options.description === undefined && installed.server.description !== undefined) {
-      prepared = await add.prepareServerPlugin({ ...given, description: installed.server.description });
-    }
+    const kept = {
+      ...given,
+      ...(options.header.length === 0 && installed.server.headers !== undefined && { headers: installed.server.headers }),
+      ...(options.description === undefined &&
+        installed.server.description !== undefined && { description: installed.server.description }),
+    };
+    if (kept.headers !== given.headers || kept.description !== given.description) prepared = await add.prepareServerPlugin(kept);
+    next = kept;
     pushVisibility = visibility ?? installed.plugin.metadata?.visibility;
   }
 
@@ -103,7 +110,7 @@ async function runMcpAdd(
         ? `Dry run: plugin '${prepared.plugin.name}' would install`
         : installed.plugin.status?.digest === prepared.digest && pushVisibility === installed.plugin.metadata?.visibility
           ? `Dry run: plugin '${prepared.plugin.name}' already is this server; nothing would change`
-          : `Dry run: plugin '${prepared.plugin.name}' would change (${installed.server.url} → ${url.trim()})`;
+          : `Dry run: plugin '${prepared.plugin.name}' would change ${add.describeChange(installed, next, pushVisibility)}`;
     const result = plugin.describePackageOn(
       CommandResult.success(headline),
       prepared.plugin,

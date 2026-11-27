@@ -36,7 +36,8 @@ import { ListPluginToolsInputSchema, type PluginTool } from "@stigmer/apis/ai/st
 import type { McpServerEntry } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/status_pb";
 import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import type { Stigmer } from "@stigmer/client";
-import { CliExitError, ExitCode, UsageError } from "../../errors/index.js";
+import { Code } from "@connectrpc/connect";
+import { classify, CliExitError, ExitCode, UsageError } from "../../errors/index.js";
 import { PlaceholderResolutionError } from "../mcp/placeholder-resolver.js";
 import { idPrefixOf, parseReference } from "../reference.js";
 import { toolAddress } from "./address.js";
@@ -123,10 +124,19 @@ export function signInAgainHint(command: string): string {
   return `If your login has expired or was revoked, run ${command}.`;
 }
 
-// The server's sentence, kept as its answer (its status stays the refusal's),
-// with the way to a fresh login after it.
+// The refusal as the CLI prints any refusal of its status (its words, its
+// exit code, its hints), with the way to a fresh login after it. A refusal
+// sent as Internal keeps the server's own sentence, which the generic
+// "Internal server error" would hide (stigmer#3511).
 function loginRefusedError(err: Error, command: string): CliExitError {
-  return new CliExitError(err.message, ExitCode.General, [signInAgainHint(command)], { cause: err });
+  const classified = classify(err);
+  const own = classified !== null && classified.code !== Code.Internal ? classified : null;
+  return new CliExitError(
+    own?.message ?? err.message,
+    classified?.exitCode ?? ExitCode.General,
+    [...(own?.hints ?? []), signInAgainHint(command)],
+    { cause: err },
+  );
 }
 
 /** The command that connects this server again, for guidance. */

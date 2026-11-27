@@ -163,7 +163,7 @@ to edit and survives every upgrade.
 
 A plugin of one server, added with `stigmer mcp add`, changes its address the
 same way it was added: `stigmer mcp add <name> <new-address>`, which keeps the
-plugin's visibility and description. `stigmer mcp add` never replaces a plugin
+plugin's headers, visibility and description unless you give them again. `stigmer mcp add` never replaces a plugin
 pushed from a folder; it refuses, naming what the plugin holds.
 
 A plugin's name does not change: it is part of every tool name its Agents use
@@ -183,7 +183,7 @@ This removes the plugin. It is refused while an Agent of your Organization lists
 it, and the refusal names those Agents; take the plugin out of their `plugins`
 first. A conversation that listed it fails its next turn, naming the plugin.
 Sign-ins you saved for its servers stay in My vault
-(`stigmer vault remove-connection <address>` removes one).
+(`stigmer vault remove-connection <address> --mine` removes one).
 
 ## Stigmer settings in the manifest
 

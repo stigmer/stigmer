@@ -43,7 +43,7 @@ import {
 import { Stigmer } from "@stigmer/client";
 import { fileURLToPath } from "node:url";
 import { beforeEach, describe, expect, it } from "vitest";
-import { CliExitError, UsageError } from "../../../errors/index.js";
+import { classify, CliExitError, ExitCode, UsageError } from "../../../errors/index.js";
 import { type ConnectOptions, connectPlugin } from "../connect.js";
 import { renderConnectResult } from "../display.js";
 
@@ -292,6 +292,22 @@ describe("connectPlugin: a listing refused for its login", () => {
     expect((err as CliExitError).hints).toEqual([
       "If your login has expired or was revoked, run stigmer connect plugin linear --sign-in-again.",
     ]);
+  });
+
+  it("keeps the exit code and words the CLI gives that refusal's status, adding the command that signs in again", async () => {
+    served = pluginWith([http("linear", "https://mcp.linear.app/mcp", { signIn: { oauthOnly: true } })]);
+    myVault = { secrets: [], connections: ["https://mcp.linear.app/mcp"] };
+    listFailure = new ConnectError(REFUSED, Code.FailedPrecondition);
+    const err = await connectPlugin(client, options()).catch((e: unknown) => e);
+    expect(err).toBeInstanceOf(CliExitError);
+    const own = classify((err as CliExitError).cause);
+    expect(own?.exitCode).toBe(ExitCode.Usage);
+    expect((err as CliExitError).exitCode).toBe(own?.exitCode);
+    expect((err as CliExitError).message).toBe(own?.message);
+    expect((err as CliExitError).message).toContain(REFUSED);
+    expect((err as CliExitError).hints?.at(-1)).toBe(
+      "If your login has expired or was revoked, run stigmer connect plugin linear --sign-in-again.",
+    );
   });
 
   it("matches the runner's sign-in challenge too, and leaves a server that does not sign in alone", async () => {

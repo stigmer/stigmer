@@ -73,7 +73,7 @@ export const pluginView: KindView = {
 /** Why a plugin's name never changes, and the way to another name. */
 export function renameSentence(name: string): string {
   return (
-    `Its name is part of every tool name its agents use (mcp__plugin_${name}_…), so it doesn't change. ` +
+    `Its name is part of every tool name its agents use (mcp__${toolServerSegment(name, "")}…), so it doesn't change. ` +
     "To use another name, add it again under that name, move your agents to it, and remove this one."
   );
 }
@@ -103,7 +103,7 @@ function serverLines(plugin: Plugin, server: McpServerEntry, ctx: ViewContext): 
       lines.push(login.savedSignIn ? "  Signed in. To sign in again:" : "  Signed in.");
       if (login.savedSignIn) lines.push(`    ${command} --sign-in-again`);
       if (login.savedLogin && login.address !== undefined) {
-        lines.push("  To sign out:", `    stigmer vault remove-connection ${login.address}`);
+        lines.push("  To sign out:", `    stigmer vault remove-connection ${login.address} --mine`);
       }
     }
   } else {

@@ -25,6 +25,7 @@
 // description, unless given again.
 
 import type { Plugin } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/api_pb";
+import type { ApiResourceVisibility } from "@stigmer/apis/ai/stigmer/commons/apiresource/enum_pb";
 import {
   hasOneServerPluginPaths,
   oneServerPluginDocuments,
@@ -177,4 +178,31 @@ function holdings(plugin: Plugin): string {
 function joinWords(parts: readonly string[]): string {
   if (parts.length <= 1) return parts[0] ?? "";
   return `${parts.slice(0, -1).join(", ")} and ${parts[parts.length - 1]}`;
+}
+
+/**
+ * What changing a one-server plugin to `next` at `visibility` would change,
+ * in words, for the dry run: its address (old and new), its headers, its
+ * description, its visibility.
+ */
+export function describeChange(
+  installed: Extract<InstalledUnderName, { kind: "one-server" }>,
+  next: OneServerPlugin,
+  visibility: ApiResourceVisibility | undefined,
+): string {
+  const was = installed.server;
+  const url = next.url.trim();
+  const parts: string[] = [];
+  if (was.url !== url) parts.push(`its address (${was.url} → ${url})`);
+  if (headersOf(was) !== headersOf(next)) parts.push("its headers");
+  if ((was.description ?? "") !== (next.description?.trim() ?? "")) parts.push("its description");
+  if (visibility !== undefined && visibility !== installed.plugin.metadata?.visibility) parts.push("its visibility");
+  return parts.join(", ");
+}
+
+/** A server's headers in the builder's own normal form (trimmed, in name order), for comparing. */
+function headersOf(server: OneServerPlugin): string {
+  const documents = oneServerPluginDocuments({ ...server, name: "x" });
+  const parsed = JSON.parse(documents.get(".mcp.json") ?? "{}") as { mcpServers?: { x?: { headers?: unknown } } };
+  return JSON.stringify(parsed.mcpServers?.x?.headers ?? {});
 }

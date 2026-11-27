@@ -132,8 +132,8 @@ describe("stigmer mcp add", () => {
 
     // A plugin `mcp add` (or the console's form) made: shared with the
     // organization, described, at the old address.
-    function oneServerInstalled(status: { digest?: string; evals?: { dir: string } } = {}): void {
-      const documents = oneServerPluginDocuments({ name: "linear", url: URL, description: "Linear's issues." });
+    function oneServerInstalled(status: { digest?: string; evals?: { dir: string }; headers?: Record<string, string> } = {}): void {
+      const documents = oneServerPluginDocuments({ name: "linear", url: URL, description: "Linear's issues.", headers: status.headers });
       backend.installedFiles = documents;
       backend.installed = create(PluginSchema, {
         metadata: { id: "plg_1", slug: "linear", org: "acme", visibility: ApiResourceVisibility.visibility_org },
@@ -155,6 +155,19 @@ describe("stigmer mcp add", () => {
       expect(Buffer.from(backend.pushes[0]?.artifact ?? []).equals(Buffer.from(expected.archive))).toBe(true);
       expect(backend.pushes[0]?.visibility).toBe(ApiResourceVisibility.visibility_org);
       expect(backend.pushes[0]?.message).toBe("changed with stigmer mcp add");
+    });
+
+    it("keeps the headers the plugin sends unless --header is given", async () => {
+      const headers = { Authorization: "Bearer ${LINEAR_API_KEY}", "X-Team": "eng" };
+      oneServerInstalled({ headers });
+      await runCli(["mcp", "add", "linear", NEW_URL, "--json"]);
+      const kept = await prepareServerPlugin({ name: "linear", url: NEW_URL, description: "Linear's issues.", headers });
+      expect(Buffer.from(backend.pushes[0]?.artifact ?? []).equals(Buffer.from(kept.archive))).toBe(true);
+
+      oneServerInstalled({ headers });
+      await runCli(["mcp", "add", "linear", NEW_URL, "--header", "X-Team=ops", "--json"]);
+      const replaced = await prepareServerPlugin({ name: "linear", url: NEW_URL, description: "Linear's issues.", headers: { "X-Team": "ops" } });
+      expect(Buffer.from(backend.pushes[1]?.artifact ?? []).equals(Buffer.from(replaced.archive))).toBe(true);
     });
 
     it("takes a new description and visibility when given", async () => {
@@ -210,7 +223,9 @@ describe("stigmer mcp add", () => {
     it("--dry-run says it would change the plugin, or that nothing would change", async () => {
       oneServerInstalled();
       const changed = JSON.parse((await runCli(["mcp", "add", "linear", NEW_URL, "--dry-run", "--json"])).stdout);
-      expect(changed.message).toBe(`Dry run: plugin 'linear' would change (${URL} → ${NEW_URL})`);
+      expect(changed.message).toBe(`Dry run: plugin 'linear' would change its address (${URL} → ${NEW_URL})`);
+      const header = JSON.parse((await runCli(["mcp", "add", "linear", URL, "--header", "X-Team=eng", "--dry-run", "--json"])).stdout);
+      expect(header.message).toBe("Dry run: plugin 'linear' would change its headers");
       const same = await prepareServerPlugin({ name: "linear", url: URL, description: "Linear's issues." });
       oneServerInstalled({ digest: same.digest });
       const unchanged = JSON.parse((await runCli(["mcp", "add", "linear", URL, "--dry-run", "--json"])).stdout);
