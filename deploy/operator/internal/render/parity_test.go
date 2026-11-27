@@ -146,9 +146,8 @@ var operatorOnly = map[string]operatorOnlyName{
 	"S3_SECRET_ACCESS_KEY":                     {"as above", []string{"bucket"}},
 	"STIGMER_ARTIFACT_PROXY_ENDPOINT":          {"as above: the runner reaches the bucket through the server's artifact lane", []string{"bucket"}},
 	"STIGMER_WEB_FETCH_ALLOW_PRIVATE":          {"the server's egress fence; Compose's runner is not fenced", []string{"fenced"}},
-	"OPENAI_API_KEY":                           {"the runner's other model providers, read from the same Secret", runnerProfiles},
-	"ANTHROPIC_FOUNDRY_API_KEY":                {"as above", runnerProfiles},
-	"AWS_BEARER_TOKEN_BEDROCK":                 {"as above", runnerProfiles},
+	"ANTHROPIC_FOUNDRY_API_KEY":                {"Anthropic through Azure AI Foundry, read from the model Secret; Compose carries only the providers a key alone reaches, and Foundry also needs STIGMER_ANTHROPIC_BACKEND and its resource", runnerProfiles},
+	"AWS_BEARER_TOKEN_BEDROCK":                 {"Anthropic through Amazon Bedrock, as above: Bedrock also needs STIGMER_ANTHROPIC_BACKEND and a region", runnerProfiles},
 }
 
 // onVolumeOnly are Compose's names for files on a shared volume, which an

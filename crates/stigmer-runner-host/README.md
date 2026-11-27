@@ -31,6 +31,7 @@ host.start(RunnerConfig {
     stigmer_token: None,
     anthropic_api_key: None,
     openai_api_key: None,
+    gemini_api_key: None,
     workspace_root_dir: None,
     proxy_endpoint: None,
     // OSS/local mode: point at the same artifact dir the stigmer-server uses
@@ -66,8 +67,8 @@ The runner resolves model credentials in one of two modes, decided by `proxy_end
   `stigmer_token`; do not pass provider keys. This is how the Stigmer desktop app runs
   against Stigmer Cloud.
 - **Direct mode** (`proxy_endpoint: None`) — the runner calls the providers itself with
-  keys you supply: `anthropic_api_key` and/or `openai_api_key`. Without them, executions
-  fail at model-call time with `LLM_MISSING_API_KEY`.
+  keys you supply: any of `anthropic_api_key`, `openai_api_key` and `gemini_api_key`.
+  Without them, executions fail at model-call time with `LLM_MISSING_API_KEY`.
 
 Pass credentials through these typed fields, not by mutating your own process
 environment before `start()` — the spawn env is composed from the config, so the typed

@@ -283,7 +283,7 @@ type HelpSpec struct {
 // RunnerSpec tunes the shared runner.
 type RunnerSpec struct {
 	// LLM names the Secret holding the model provider's key, read by key name:
-	// ANTHROPIC_API_KEY, ANTHROPIC_BASE_URL, OPENAI_API_KEY,
+	// ANTHROPIC_API_KEY, ANTHROPIC_BASE_URL, OPENAI_API_KEY, GEMINI_API_KEY,
 	// ANTHROPIC_FOUNDRY_API_KEY or AWS_BEARER_TOKEN_BEDROCK. Agents cannot run
 	// without one.
 	// +optional

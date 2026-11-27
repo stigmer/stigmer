@@ -270,7 +270,7 @@ func readModelSecret(ctx context.Context, env *Env) (held map[string][]byte, mis
 		}
 	}
 	r := Refused(stigmerv1.ReasonModelKeyMissing, ref,
-		fmt.Sprintf("agents cannot run: Secret %s holds no model key; add ANTHROPIC_API_KEY (or OPENAI_API_KEY, ANTHROPIC_FOUNDRY_API_KEY, AWS_BEARER_TOKEN_BEDROCK)", llm.SecretName))
+		fmt.Sprintf("agents cannot run: Secret %s holds no model key; add ANTHROPIC_API_KEY (or OPENAI_API_KEY, GEMINI_API_KEY, ANTHROPIC_FOUNDRY_API_KEY, AWS_BEARER_TOKEN_BEDROCK)", llm.SecretName))
 	return secret.Data, &r, nil
 }
 
