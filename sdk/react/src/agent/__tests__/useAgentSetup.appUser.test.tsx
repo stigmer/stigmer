@@ -13,6 +13,14 @@
  * beside an owed sign-in nor alone; a person with the same vault is still
  * asked and counted as before; and while `whoAmI` is unanswered the
  * resolution stays `resolving`, so no form is offered and then withdrawn.
+ *
+ * The organization's embedding settings' vaults serve an app user's run
+ * too, and only the server can read them (`checkEmbeddingCoverage`):
+ * a sign-in they fill, by a login at the server's address or by a secret
+ * of its login key's name, is not offered; a person is never asked; a
+ * server without the read (UNIMPLEMENTED, as every other arm here answers)
+ * leaves the offer to this client's own reading; any other failure of the
+ * read is the resolution's error.
  */
 
 import { afterEach, describe, expect, it } from "vitest";
@@ -24,6 +32,7 @@ import { Stigmer } from "@stigmer/client";
 import { AgentQueryController } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/query_pb";
 import { AgentSchema } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb";
 import { AgentSpecSchema } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/spec_pb";
+import { EmbeddingCoverageSchema } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/io_pb";
 import { PluginQueryController } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/query_pb";
 import { PluginSchema } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/api_pb";
 import { EnvVarDeclarationSchema } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/declaration_pb";
@@ -56,6 +65,13 @@ interface World {
   readonly logins: readonly string[];
   /** Whether the agent lists a plugin whose server signs in at LINEAR, reading SERVER_KEY besides its login. */
   readonly signsIn?: boolean;
+  /**
+   * What `checkEmbeddingCoverage` answers, or the error it fails with;
+   * absent, the server has no such read (UNIMPLEMENTED).
+   */
+  readonly coverage?: { readonly keys?: string[]; readonly signInAddresses?: string[] } | ConnectError;
+  /** Each coverage read's input, as the server received it. */
+  readonly asked?: { agentId: string; org: string }[];
 }
 
 function accountOf(mode: IdentityAccountProvisioningMode): IdentityAccount {
@@ -95,6 +111,15 @@ function client(world: World) {
     customTransport: createRouterTransport(({ service }) => {
       service(IdentityAccountQueryController, { whoAmI: () => world.account });
       service(AgentQueryController, {
+        ...(world.coverage === undefined
+          ? {}
+          : {
+              checkEmbeddingCoverage: (input) => {
+                world.asked?.push({ agentId: input.agent?.id ?? "", org: input.org });
+                if (world.coverage instanceof ConnectError) throw world.coverage;
+                return create(EmbeddingCoverageSchema, world.coverage);
+              },
+            }),
         getByReference: () =>
           create(AgentSchema, {
             metadata: create(ApiResourceMetadataSchema, { id: "agt_1", org: ORG, slug: REF.slug, name: "Reviewer" }),
@@ -198,6 +223,75 @@ describe("useAgentSetup for an app user", () => {
     expect(state.pendingSignIns.map((signIn) => signIn.address)).toEqual([LINEAR]);
     expect(state.signInVaults).toEqual({ kind: "my-vault" });
     expect(state.missingVariables).toEqual([]);
+  });
+
+  it("offers no sign-in the embedding settings fill: by a login at the server's address, or by a secret of its login key's name", async () => {
+    for (const coverage of [{ signInAddresses: [LINEAR] }, { keys: ["LINEAR_ACCESS_TOKEN"] }]) {
+      const asked: { agentId: string; org: string }[] = [];
+      const { result, unmount } = await renderSettled({
+        account: APP_USER,
+        secrets: [],
+        logins: [],
+        signsIn: true,
+        coverage,
+        asked,
+      });
+      await act(async () => {
+        await result.current.setup.resolveAgent(REF);
+      });
+      expect(result.current.setup.state, JSON.stringify(coverage)).toMatchObject({
+        status: "ready",
+        resolution: { mode: "direct" },
+      });
+      expect(asked).toEqual([{ agentId: "agt_1", org: ORG }]);
+      unmount();
+    }
+  });
+
+  it("still offers a sign-in the embedding settings fill for another address, and never asks the server for a person", async () => {
+    const other = await renderSettled({
+      account: APP_USER,
+      secrets: [],
+      logins: [],
+      signsIn: true,
+      coverage: { signInAddresses: ["https://other.example/mcp"], keys: ["SERVER_KEY"] },
+    });
+    await act(async () => {
+      await other.result.current.setup.resolveAgent(REF);
+    });
+    const state = other.result.current.setup.state;
+    if (state.status !== "needsEnvVars") throw new Error(`expected needsEnvVars, got ${state.status}`);
+    expect(state.pendingSignIns.map((signIn) => signIn.address)).toEqual([LINEAR]);
+    other.unmount();
+
+    const asked: { agentId: string; org: string }[] = [];
+    const person = await renderSettled({
+      account: PERSON,
+      secrets: ["API_TOKEN", "SERVER_KEY"],
+      logins: [],
+      signsIn: true,
+      coverage: { signInAddresses: [LINEAR] },
+      asked,
+    });
+    await act(async () => {
+      await person.result.current.setup.resolveAgent(REF);
+    });
+    expect(person.result.current.setup.state).toMatchObject({ status: "needsEnvVars" });
+    expect(asked, "a person's runs never read the embedding settings").toEqual([]);
+  });
+
+  it("makes any failure of the read but UNIMPLEMENTED the resolution's error", async () => {
+    const { result } = await renderSettled({
+      account: APP_USER,
+      secrets: [],
+      logins: [],
+      signsIn: true,
+      coverage: new ConnectError("the store is down", Code.Internal),
+    });
+    await act(async () => {
+      await result.current.setup.resolveAgent(REF).catch(() => undefined);
+    });
+    expect(result.current.setup.state.error?.message).toContain("the store is down");
   });
 
   it("stays resolving while whoAmI is unanswered, so no form is offered and then withdrawn", async () => {

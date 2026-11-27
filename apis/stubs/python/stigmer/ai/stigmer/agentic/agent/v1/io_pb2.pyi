@@ -1,4 +1,6 @@
 from ai.stigmer.agentic.agent.v1 import api_pb2 as _api_pb2
+from ai.stigmer.commons.apiresource import field_options_pb2 as _field_options_pb2
+from ai.stigmer.commons.apiresource import io_pb2 as _io_pb2
 from buf.validate import validate_pb2 as _validate_pb2
 from google.protobuf import field_mask_pb2 as _field_mask_pb2
 from google.protobuf.internal import containers as _containers
@@ -49,3 +51,19 @@ class AgentList(_message.Message):
     entries: _containers.RepeatedCompositeFieldContainer[_api_pb2.Agent]
     next_page_token: str
     def __init__(self, entries: _Optional[_Iterable[_Union[_api_pb2.Agent, _Mapping]]] = ..., next_page_token: _Optional[str] = ...) -> None: ...
+
+class CheckEmbeddingCoverageInput(_message.Message):
+    __slots__ = ("agent", "org")
+    AGENT_FIELD_NUMBER: _ClassVar[int]
+    ORG_FIELD_NUMBER: _ClassVar[int]
+    agent: _io_pb2.ApiResourceReference
+    org: str
+    def __init__(self, agent: _Optional[_Union[_io_pb2.ApiResourceReference, _Mapping]] = ..., org: _Optional[str] = ...) -> None: ...
+
+class EmbeddingCoverage(_message.Message):
+    __slots__ = ("keys", "sign_in_addresses")
+    KEYS_FIELD_NUMBER: _ClassVar[int]
+    SIGN_IN_ADDRESSES_FIELD_NUMBER: _ClassVar[int]
+    keys: _containers.RepeatedScalarFieldContainer[str]
+    sign_in_addresses: _containers.RepeatedScalarFieldContainer[str]
+    def __init__(self, keys: _Optional[_Iterable[str]] = ..., sign_in_addresses: _Optional[_Iterable[str]] = ...) -> None: ...

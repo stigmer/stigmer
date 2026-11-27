@@ -20,11 +20,12 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	AgentQueryController_Get_FullMethodName            = "/ai.stigmer.agentic.agent.v1.AgentQueryController/get"
-	AgentQueryController_GetByReference_FullMethodName = "/ai.stigmer.agentic.agent.v1.AgentQueryController/getByReference"
-	AgentQueryController_List_FullMethodName           = "/ai.stigmer.agentic.agent.v1.AgentQueryController/list"
-	AgentQueryController_ListVersions_FullMethodName   = "/ai.stigmer.agentic.agent.v1.AgentQueryController/listVersions"
-	AgentQueryController_GetVersion_FullMethodName     = "/ai.stigmer.agentic.agent.v1.AgentQueryController/getVersion"
+	AgentQueryController_Get_FullMethodName                    = "/ai.stigmer.agentic.agent.v1.AgentQueryController/get"
+	AgentQueryController_GetByReference_FullMethodName         = "/ai.stigmer.agentic.agent.v1.AgentQueryController/getByReference"
+	AgentQueryController_List_FullMethodName                   = "/ai.stigmer.agentic.agent.v1.AgentQueryController/list"
+	AgentQueryController_ListVersions_FullMethodName           = "/ai.stigmer.agentic.agent.v1.AgentQueryController/listVersions"
+	AgentQueryController_GetVersion_FullMethodName             = "/ai.stigmer.agentic.agent.v1.AgentQueryController/getVersion"
+	AgentQueryController_CheckEmbeddingCoverage_FullMethodName = "/ai.stigmer.agentic.agent.v1.AgentQueryController/checkEmbeddingCoverage"
 )
 
 // AgentQueryControllerClient is the client API for AgentQueryController service.
@@ -60,6 +61,17 @@ type AgentQueryControllerClient interface {
 	// recorded (RunStatus.agent_version_hash), and by clients to
 	// show what a past version said.
 	GetVersion(ctx context.Context, in *GetAgentVersionInput, opts ...grpc.CallOption) (*AgentVersionEntry, error)
+	// Check which of an agent's keys and sign-ins the organization's embedding
+	// settings fill for the calling app user.
+	//
+	// An app user (a person signed in to an organization's own product
+	// through a user token its backend mints) runs an agent on the vaults the
+	// organization's embedding settings name, which the app user cannot read.
+	// This answers, by name only, which of the agent's keys and which tool
+	// sign-ins those vaults fill, so a chat asks the app user only for what
+	// they would still miss. Any other caller gets an empty answer: a run of
+	// theirs never reads the embedding settings.
+	CheckEmbeddingCoverage(ctx context.Context, in *CheckEmbeddingCoverageInput, opts ...grpc.CallOption) (*EmbeddingCoverage, error)
 }
 
 type agentQueryControllerClient struct {
@@ -120,6 +132,16 @@ func (c *agentQueryControllerClient) GetVersion(ctx context.Context, in *GetAgen
 	return out, nil
 }
 
+func (c *agentQueryControllerClient) CheckEmbeddingCoverage(ctx context.Context, in *CheckEmbeddingCoverageInput, opts ...grpc.CallOption) (*EmbeddingCoverage, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(EmbeddingCoverage)
+	err := c.cc.Invoke(ctx, AgentQueryController_CheckEmbeddingCoverage_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // AgentQueryControllerServer is the server API for AgentQueryController service.
 // All implementations should embed UnimplementedAgentQueryControllerServer
 // for forward compatibility.
@@ -153,6 +175,17 @@ type AgentQueryControllerServer interface {
 	// recorded (RunStatus.agent_version_hash), and by clients to
 	// show what a past version said.
 	GetVersion(context.Context, *GetAgentVersionInput) (*AgentVersionEntry, error)
+	// Check which of an agent's keys and sign-ins the organization's embedding
+	// settings fill for the calling app user.
+	//
+	// An app user (a person signed in to an organization's own product
+	// through a user token its backend mints) runs an agent on the vaults the
+	// organization's embedding settings name, which the app user cannot read.
+	// This answers, by name only, which of the agent's keys and which tool
+	// sign-ins those vaults fill, so a chat asks the app user only for what
+	// they would still miss. Any other caller gets an empty answer: a run of
+	// theirs never reads the embedding settings.
+	CheckEmbeddingCoverage(context.Context, *CheckEmbeddingCoverageInput) (*EmbeddingCoverage, error)
 }
 
 // UnimplementedAgentQueryControllerServer should be embedded to have
@@ -176,6 +209,9 @@ func (UnimplementedAgentQueryControllerServer) ListVersions(context.Context, *Li
 }
 func (UnimplementedAgentQueryControllerServer) GetVersion(context.Context, *GetAgentVersionInput) (*AgentVersionEntry, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetVersion not implemented")
+}
+func (UnimplementedAgentQueryControllerServer) CheckEmbeddingCoverage(context.Context, *CheckEmbeddingCoverageInput) (*EmbeddingCoverage, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method CheckEmbeddingCoverage not implemented")
 }
 func (UnimplementedAgentQueryControllerServer) testEmbeddedByValue() {}
 
@@ -287,6 +323,24 @@ func _AgentQueryController_GetVersion_Handler(srv interface{}, ctx context.Conte
 	return interceptor(ctx, in, info, handler)
 }
 
+func _AgentQueryController_CheckEmbeddingCoverage_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CheckEmbeddingCoverageInput)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AgentQueryControllerServer).CheckEmbeddingCoverage(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AgentQueryController_CheckEmbeddingCoverage_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AgentQueryControllerServer).CheckEmbeddingCoverage(ctx, req.(*CheckEmbeddingCoverageInput))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // AgentQueryController_ServiceDesc is the grpc.ServiceDesc for AgentQueryController service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -313,6 +367,10 @@ var AgentQueryController_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "getVersion",
 			Handler:    _AgentQueryController_GetVersion_Handler,
+		},
+		{
+			MethodName: "checkEmbeddingCoverage",
+			Handler:    _AgentQueryController_CheckEmbeddingCoverage_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

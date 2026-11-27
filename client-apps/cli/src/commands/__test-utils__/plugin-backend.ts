@@ -4,7 +4,9 @@
 //
 // The backend records every push and answers with the plugin a test chose,
 // so a suite asserts both what reached the server and how the CLI renders
-// the server's answer. The config file lives under a temporary HOME that
+// the server's answer. It also serves the reads `mcp add` makes of a plugin
+// already installed under its name: nothing (NotFound) unless a test sets
+// `installed`, whose files at its digest are `installedFiles`. The config file lives under a temporary HOME that
 // points a selfhost backend at the listener; the program, the option
 // reading, the archive and the transport are all real.
 
@@ -13,11 +15,17 @@ import { createServer as createHttp2Server, type Http2Server, type ServerHttp2Se
 import type { AddressInfo } from "node:net";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import type { ConnectRouter } from "@connectrpc/connect";
+import { create } from "@bufbuild/protobuf";
+import { Code, ConnectError, type ConnectRouter } from "@connectrpc/connect";
 import { connectNodeAdapter } from "@connectrpc/connect-node";
 import type { Plugin } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/api_pb";
 import { PluginCommandController } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/command_pb";
-import type { PushPluginRequest } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/io_pb";
+import {
+  PluginFileContentSchema,
+  PluginFileListSchema,
+  type PushPluginRequest,
+} from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/io_pb";
+import { PluginQueryController } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/query_pb";
 import { vi } from "vitest";
 import { classify, ExitCode } from "../../errors/index.js";
 import { buildProgram } from "../../program.js";
@@ -28,6 +36,10 @@ export interface PluginBackend {
   readonly pushes: PushPluginRequest[];
   /** The plugin every push answers with; a test sets it before running. */
   answer: Plugin;
+  /** The plugin installed under any name `getByReference` asks for; none (NotFound) when unset. */
+  installed: Plugin | undefined;
+  /** The installed version's files, by path. */
+  installedFiles: ReadonlyMap<string, string>;
   close(): Promise<void>;
 }
 
@@ -37,12 +49,29 @@ export async function startPluginBackend(answer: Plugin): Promise<PluginBackend>
   const state = {
     answer,
     pushes: [] as PushPluginRequest[],
+    installed: undefined as Plugin | undefined,
+    installedFiles: new Map<string, string>() as ReadonlyMap<string, string>,
   };
   const routes = (router: ConnectRouter) => {
     router.service(PluginCommandController, {
       push: (req) => {
         state.pushes.push(req);
         return state.answer;
+      },
+    });
+    router.service(PluginQueryController, {
+      getByReference: () => {
+        if (state.installed === undefined) throw new ConnectError("plugin not found", Code.NotFound);
+        return state.installed;
+      },
+      listFiles: () =>
+        create(PluginFileListSchema, {
+          files: [...state.installedFiles.keys()].sort().map((path) => ({ path })),
+        }),
+      readFile: (req) => {
+        const text = state.installedFiles.get(req.path);
+        if (text === undefined) throw new ConnectError("file not found", Code.NotFound);
+        return create(PluginFileContentSchema, { content: new TextEncoder().encode(text) });
       },
     });
   };
@@ -63,6 +92,18 @@ export async function startPluginBackend(answer: Plugin): Promise<PluginBackend>
     },
     set answer(next: Plugin) {
       state.answer = next;
+    },
+    get installed() {
+      return state.installed;
+    },
+    set installed(next: Plugin | undefined) {
+      state.installed = next;
+    },
+    get installedFiles() {
+      return state.installedFiles;
+    },
+    set installedFiles(next: ReadonlyMap<string, string>) {
+      state.installedFiles = next;
     },
     close: async () => {
       for (const session of sessions) session.destroy();

@@ -1,5 +1,6 @@
 // Fixed resources for the designed `get` views' goldens and unit tests: one
-// of each kind carrying every field its view shows, plus the session's runs,
+// of each kind carrying every field its view shows, plus the session's runs
+// and the My vault a plugin's view reads,
 // all stamped from one frozen instant so nothing reads the clock. The
 // organization is filed under its id, as the server stores it; the views
 // name it by the label the caller passes ("acme").
@@ -17,6 +18,9 @@ import { Computer, EnvironmentSource, Harness } from "@stigmer/apis/ai/stigmer/a
 import { SkillSchema, type Skill } from "@stigmer/apis/ai/stigmer/agentic/skill/v1/api_pb";
 import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { OrganizationSchema, type Organization } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/api_pb";
+import { PluginSchema, type Plugin } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/api_pb";
+import { VaultSchema, type Vault } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/api_pb";
+import { VaultConnectionSource } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/spec_pb";
 
 /** The organization every fixture belongs to, by the id the server files it under. */
 export const ACME_ID = "org_01jaaaaaaaaaaaaaaaaaaaaaaa";
@@ -225,4 +229,84 @@ export const environment: Environment = create(EnvironmentSchema, {
     packages: { apt: ["graphviz"], npm: ["@mermaid-js/mermaid-cli", "prettier"], pip: ["mkdocs", "mkdocs-material"] },
   },
   status: { audit: audit(-20_160, -2880) },
+});
+
+/**
+ * A plugin pushed from a folder: a server that signs in or takes a pasted
+ * key, one that accepts only a sign-in, a local program reading a key, two
+ * skills, an agent, and keys of each kind (a login key, a pasted secret, an
+ * optional setting the plugin gives a value, a name the runner fills).
+ */
+export const plugin: Plugin = create(PluginSchema, {
+  metadata: { id: "plg_01jggggggggggggggggggggggg", org: ACME_ID, slug: "tracker", name: "tracker" },
+  spec: { name: "tracker", description: "Issues and the team's runbooks.", version: "1.4.0" },
+  status: {
+    digest: "7c1e9a0b3d5f".padEnd(64, "0"),
+    mcpServers: [
+      {
+        name: "linear",
+        transport: {
+          case: "http",
+          value: { url: "https://mcp.linear.app/mcp", headers: { Authorization: "Bearer ${LINEAR_TOKEN}" } },
+        },
+        env: ["LINEAR_TOKEN"],
+        signIn: { oauthOnly: false },
+      },
+      {
+        name: "notion",
+        transport: {
+          case: "http",
+          value: { url: "https://mcp.notion.com/mcp", headers: { Authorization: "Bearer ${NOTION_LOGIN}" } },
+        },
+        env: ["NOTION_LOGIN"],
+        signIn: { oauthOnly: true },
+      },
+      {
+        name: "runbooks",
+        transport: { case: "stdio", value: { command: "npx", args: ["runbooks-mcp"] } },
+        env: ["RUNBOOKS_KEY", "STIGMER_SESSION_ID"],
+      },
+    ],
+    skills: [
+      { name: "triage", description: "Sort new issues by how urgent they are." },
+      { name: "runbook", description: "Follow the team's runbook for an incident." },
+    ],
+    agents: [{ name: "on-call", description: "Answers a page with the runbook." }],
+    env: {
+      LINEAR_TOKEN: { isSecret: true },
+      NOTION_LOGIN: { isSecret: true },
+      RUNBOOKS_KEY: { isSecret: true, description: "The runbooks service's API key." },
+      RUNBOOKS_REGION: { optional: true, value: "eu" },
+      STIGMER_SESSION_ID: {},
+    },
+  },
+});
+
+/** A plugin of one server at an address, as `stigmer mcp add` makes it. */
+export const oneServerPlugin: Plugin = create(PluginSchema, {
+  metadata: { id: "plg_01jhhhhhhhhhhhhhhhhhhhhhhh", org: ACME_ID, slug: "linear", name: "linear" },
+  spec: { name: "linear" },
+  status: {
+    digest: "3a9f".padEnd(64, "0"),
+    mcpServers: [
+      {
+        name: "linear",
+        transport: {
+          case: "http",
+          value: { url: "https://mcp.linear.app/mcp", headers: { Authorization: "Bearer ${LINEAR_TOKEN}" } },
+        },
+        env: ["LINEAR_TOKEN"],
+        signIn: { oauthOnly: true },
+      },
+    ],
+    env: { LINEAR_TOKEN: { isSecret: true } },
+  },
+});
+
+/** The caller's My vault: signed in to Linear by a sign-in, and the runbooks key pasted. */
+export const pluginVault: Vault = create(VaultSchema, {
+  spec: {
+    connections: { "https://mcp.linear.app/mcp": { source: VaultConnectionSource.sign_in } },
+    secrets: { RUNBOOKS_KEY: {} },
+  },
 });

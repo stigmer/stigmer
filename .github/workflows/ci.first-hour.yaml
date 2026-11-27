@@ -11,7 +11,9 @@
 # tutorial's app on its own address and signs its user in to the tool server;
 # and signs in again from the terminal (`stigmer connect plugin`), then
 # `stigmer run` calls the tool. Each tool step proves the tool's result
-# carries a nonce the step made (test/e2e/tests/first-hour).
+# carries a nonce the step made (test/e2e/tests/first-hour). Then, on the same
+# stack, every way to manage a plugin, in the console and from the terminal
+# (test/e2e/tests/plugin-manage).
 #
 # Its own workflow, not a job of ci.e2e-interactive.yaml: a lane's paths
 # belong to its workflow file (scripts/ci-lanes.mjs), and this journey runs
@@ -96,7 +98,7 @@ jobs:
           STIGMER_E2E_OIDC: "1"
           STIGMER_E2E_MOCK_LLM: "1"
           STIGMER_E2E_FIRST_HOUR: "1"
-        run: npx playwright test --project=first-hour --workers=1
+        run: npx playwright test --project=first-hour --project=plugin-manage --workers=1
 
       - name: Upload test results
         if: always()

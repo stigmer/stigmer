@@ -43,6 +43,11 @@ class AgentQueryControllerStub(object):
                 request_serializer=ai_dot_stigmer_dot_agentic_dot_agent_dot_v1_dot_version__pb2.GetAgentVersionInput.SerializeToString,
                 response_deserializer=ai_dot_stigmer_dot_agentic_dot_agent_dot_v1_dot_version__pb2.AgentVersionEntry.FromString,
                 _registered_method=True)
+        self.checkEmbeddingCoverage = channel.unary_unary(
+                '/ai.stigmer.agentic.agent.v1.AgentQueryController/checkEmbeddingCoverage',
+                request_serializer=ai_dot_stigmer_dot_agentic_dot_agent_dot_v1_dot_io__pb2.CheckEmbeddingCoverageInput.SerializeToString,
+                response_deserializer=ai_dot_stigmer_dot_agentic_dot_agent_dot_v1_dot_io__pb2.EmbeddingCoverage.FromString,
+                _registered_method=True)
 
 
 class AgentQueryControllerServicer(object):
@@ -101,6 +106,22 @@ class AgentQueryControllerServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def checkEmbeddingCoverage(self, request, context):
+        """Check which of an agent's keys and sign-ins the organization's embedding
+        settings fill for the calling app user.
+
+        An app user (a person signed in to an organization's own product
+        through a user token its backend mints) runs an agent on the vaults the
+        organization's embedding settings name, which the app user cannot read.
+        This answers, by name only, which of the agent's keys and which tool
+        sign-ins those vaults fill, so a chat asks the app user only for what
+        they would still miss. Any other caller gets an empty answer: a run of
+        theirs never reads the embedding settings.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
 
 def add_AgentQueryControllerServicer_to_server(servicer, server):
     rpc_method_handlers = {
@@ -128,6 +149,11 @@ def add_AgentQueryControllerServicer_to_server(servicer, server):
                     servicer.getVersion,
                     request_deserializer=ai_dot_stigmer_dot_agentic_dot_agent_dot_v1_dot_version__pb2.GetAgentVersionInput.FromString,
                     response_serializer=ai_dot_stigmer_dot_agentic_dot_agent_dot_v1_dot_version__pb2.AgentVersionEntry.SerializeToString,
+            ),
+            'checkEmbeddingCoverage': grpc.unary_unary_rpc_method_handler(
+                    servicer.checkEmbeddingCoverage,
+                    request_deserializer=ai_dot_stigmer_dot_agentic_dot_agent_dot_v1_dot_io__pb2.CheckEmbeddingCoverageInput.FromString,
+                    response_serializer=ai_dot_stigmer_dot_agentic_dot_agent_dot_v1_dot_io__pb2.EmbeddingCoverage.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -266,6 +292,33 @@ class AgentQueryController(object):
             '/ai.stigmer.agentic.agent.v1.AgentQueryController/getVersion',
             ai_dot_stigmer_dot_agentic_dot_agent_dot_v1_dot_version__pb2.GetAgentVersionInput.SerializeToString,
             ai_dot_stigmer_dot_agentic_dot_agent_dot_v1_dot_version__pb2.AgentVersionEntry.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def checkEmbeddingCoverage(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/ai.stigmer.agentic.agent.v1.AgentQueryController/checkEmbeddingCoverage',
+            ai_dot_stigmer_dot_agentic_dot_agent_dot_v1_dot_io__pb2.CheckEmbeddingCoverageInput.SerializeToString,
+            ai_dot_stigmer_dot_agentic_dot_agent_dot_v1_dot_io__pb2.EmbeddingCoverage.FromString,
             options,
             channel_credentials,
             insecure,

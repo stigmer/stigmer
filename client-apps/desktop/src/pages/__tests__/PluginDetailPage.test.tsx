@@ -2,7 +2,8 @@
  * Pins how the desktop plugin page opens an eval try's run: a run is
  * viewed through its parent session, so the page resolves the run first
  * and navigates to `/sessions/<id>` only once the session is known; until
- * then it stays put. Remove asks first, deletes once confirmed and returns
+ * then it stays put. "upload the new version" opens the plugin upload page.
+ * Remove asks first, deletes once confirmed and returns
  * to the plugins list; a failed delete stays on the page (the delete hook
  * shows its own error), and a declined one deletes nothing. The detail
  * view is pinned in @stigmer/react-sdk; here it
@@ -16,6 +17,7 @@ import type { DetailAction } from "@stigmer/react-sdk";
 
 interface ViewProps {
   onNavigateToRun: (runId: string) => void;
+  onUploadNewVersion: () => void;
   actions: DetailAction[];
 }
 
@@ -108,6 +110,18 @@ async function removePlugin(): Promise<void> {
     await Promise.resolve(remove!.onAction());
   });
 }
+
+describe("desktop PluginDetailPage — a new version", () => {
+  it("opens the upload page from \"upload the new version\"", () => {
+    renderPage();
+    const view = page.view.at(-1);
+    expect(view, "PluginDetailView was never rendered").toBeDefined();
+
+    act(() => view!.onUploadNewVersion());
+
+    expect(screen.getByTestId("location").textContent).toBe("/library/plugins/upload");
+  });
+});
 
 describe("desktop PluginDetailPage — an eval try's run", () => {
   it("opens the run's session once it resolves", () => {

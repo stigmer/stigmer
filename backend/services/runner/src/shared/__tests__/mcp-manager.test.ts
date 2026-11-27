@@ -1,12 +1,14 @@
 /**
- * Pins the deep-agent MCP connection manager: the stdio env contract (only
- * declared variables, never the runner's credentials), the HTTP reconnect
+ * Pins the deep-agent MCP connection manager: the stdio env contract (the
+ * declared variables and the egress gateway's trust variables, a declared
+ * value winning, never the runner's credentials; stigmer#3506), the HTTP reconnect
  * shape, that every listed tool binds named by its server (stigmer#1860:
  * `mcp__<server>__<tool>`, the index answering which server and tool a name
  * stands for), and the unicode-pattern sanitization (issue #420).
  */
 import { describe, it, expect, vi, afterEach, beforeEach } from "vitest";
 import type { Connection } from "@langchain/mcp-adapters";
+import { GATEWAY_TRUST_VARIABLES } from "@stigmer/outbound/egress";
 import { connectMcpServers, toMcpClientConfig } from "../mcp-manager.js";
 import { McpToolIndex, McpToolNameCollisionError, engineToolName } from "../mcp-tool-names.js";
 import { RUNNER_CREDENTIAL_ENV_KEYS } from "../runner-credential-keys.js";
@@ -64,7 +66,7 @@ describe("toMcpClientConfig", () => {
         cwd: "/workspace",
       }),
     ];
-    const config = toMcpClientConfig(servers);
+    const config = toMcpClientConfig(servers, { PATH: "/usr/bin" });
     expect(config.postgres).toEqual({
       transport: "stdio",
       command: "npx",
@@ -127,63 +129,91 @@ describe("toMcpClientConfig", () => {
 });
 
 describe("toMcpClientConfig — stdio env isolation (oss#256)", () => {
-  afterEach(() => {
-    vi.unstubAllEnvs();
-  });
-
   it("gives a stdio server with no declared env none of the runner's variables", () => {
     // The canaries are the runner's real credential names (oss#385's single
     // source of truth), so a key added there is automatically covered here.
-    for (const key of RUNNER_CREDENTIAL_ENV_KEYS) {
-      vi.stubEnv(key, `leaked-${key}`);
-    }
-    vi.stubEnv("STIGMER_TEST_LEAK_SENTINEL", "canary");
+    const runner = Object.fromEntries(RUNNER_CREDENTIAL_ENV_KEYS.map((key) => [key, `leaked-${key}`]));
 
-    const config = toMcpClientConfig([
-      makeServer({ slug: "bare", command: "some-mcp-server", env: undefined }),
-    ]);
+    const config = toMcpClientConfig(
+      [makeServer({ slug: "bare", command: "some-mcp-server", env: undefined })],
+      { ...runner, STIGMER_TEST_LEAK_SENTINEL: "canary" },
+    );
 
     // Passing no env means the MCP SDK supplies its minimal base environment
-    // (HOME, LOGNAME, PATH, SHELL, TERM, USER) — the runner must add nothing.
+    // (HOME, LOGNAME, PATH, SHELL, TERM, USER) — with no gateway trust
+    // variable to carry, the runner must add nothing.
     expect(stdioEnv(config, "bare")).toBeUndefined();
   });
 
-  it("never copies process.env into a stdio config (fallback-reintroduction tripwire)", () => {
-    vi.stubEnv("STIGMER_TEST_LEAK_SENTINEL", "canary");
+  it("copies no name of the environment into a stdio config but the gateway's trust variables (fallback-reintroduction tripwire)", () => {
+    const planted: NodeJS.ProcessEnv = {
+      HOME: "/root",
+      PATH: "/usr/bin",
+      STIGMER_TEST_LEAK_SENTINEL: "canary",
+      SSL_CERT_DIR: "/etc/ssl/certs",
+      NODE_OPTIONS: "--max-old-space-size=2048",
+      ...Object.fromEntries(GATEWAY_TRUST_VARIABLES.map((name) => [name, "/run/ate/trust-bundle.pem"])),
+    };
 
-    const config = toMcpClientConfig([
-      makeServer({ slug: "bare", command: "some-mcp-server", env: undefined }),
-    ]);
+    const config = toMcpClientConfig(
+      [makeServer({ slug: "bare", command: "some-mcp-server", env: undefined })],
+      planted,
+    );
 
     const env = stdioEnv(config, "bare") ?? {};
-    for (const key of Object.keys(process.env)) {
+    expect(Object.keys(env).sort()).toEqual([...GATEWAY_TRUST_VARIABLES].sort());
+    for (const key of Object.keys(planted)) {
+      if ((GATEWAY_TRUST_VARIABLES as readonly string[]).includes(key)) continue;
       expect(
         env,
-        `process.env key '${key}' must not leak into an MCP stdio env`,
+        `environment key '${key}' must not leak into an MCP stdio env`,
       ).not.toHaveProperty(key);
     }
   });
 
-  it("passes a declared env through exactly, without merging process.env", () => {
-    vi.stubEnv("STIGMER_TOKEN", "runner-secret");
+  it("gives a stdio server the egress gateway's trust variables the environment holds, and none of its other names", () => {
+    const trust = {
+      NODE_EXTRA_CA_CERTS: "/run/ate/trust-bundle.pem",
+      SSL_CERT_FILE: "/run/ate/trust-bundle.pem",
+      GIT_SSL_CAINFO: "/run/ate/trust-bundle.pem",
+      CURL_CA_BUNDLE: "/run/ate/trust-bundle.pem",
+      REQUESTS_CA_BUNDLE: "/run/ate/trust-bundle.pem",
+    };
+    const credentials = Object.fromEntries(RUNNER_CREDENTIAL_ENV_KEYS.map((key) => [key, `leaked-${key}`]));
+    const env = { ...credentials, ...trust, PATH: "/usr/bin", STIGMER_TEST_LEAK_SENTINEL: "canary" };
 
-    const config = toMcpClientConfig([
-      makeServer({
-        slug: "declared",
-        command: "some-mcp-server",
-        env: { API_KEY: "user-value" },
-      }),
-    ]);
+    const config = toMcpClientConfig(
+      [
+        makeServer({ slug: "bare", command: "npx", env: undefined }),
+        makeServer({ slug: "declared", command: "uvx", env: { REQUESTS_CA_BUNDLE: "/srv/own-ca.pem", API_KEY: "user-value" } }),
+      ],
+      env,
+    );
+
+    expect(stdioEnv(config, "bare")).toEqual(trust);
+    expect(stdioEnv(config, "declared")).toEqual({ ...trust, REQUESTS_CA_BUNDLE: "/srv/own-ca.pem", API_KEY: "user-value" });
+  });
+
+  it("passes a declared env through exactly, without merging the environment", () => {
+    const config = toMcpClientConfig(
+      [
+        makeServer({
+          slug: "declared",
+          command: "some-mcp-server",
+          env: { API_KEY: "user-value" },
+        }),
+      ],
+      { STIGMER_TOKEN: "runner-secret", PATH: "/usr/bin" },
+    );
 
     expect(stdioEnv(config, "declared")).toEqual({ API_KEY: "user-value" });
   });
 
   it("passes an empty declared env through unchanged (same child env as undeclared)", () => {
-    vi.stubEnv("STIGMER_TOKEN", "runner-secret");
-
-    const config = toMcpClientConfig([
-      makeServer({ slug: "empty", command: "some-mcp-server", env: {} }),
-    ]);
+    const config = toMcpClientConfig(
+      [makeServer({ slug: "empty", command: "some-mcp-server", env: {} })],
+      { STIGMER_TOKEN: "runner-secret", PATH: "/usr/bin" },
+    );
 
     expect(stdioEnv(config, "empty")).toEqual({});
   });

@@ -16,6 +16,7 @@
 //
 // Precedent: `gh pr view` (a title line, fields, then titled sections).
 
+import type { Vault } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/api_pb";
 import type { Stigmer } from "@stigmer/client";
 import stringWidth from "string-width";
 import type { Styler } from "../../output/index.js";
@@ -47,9 +48,11 @@ export interface Title {
 /**
  * What a view reads beside its resource. `hideOrg` and `orgLabel` are the
  * generic view's (a server holding one organization never names it; where
- * it is named, by its slug); `now` dates a span still running; `runs` is the
- * session's run list, newest first, the one thing a view reads beyond the
- * resource; `width` is the terminal's (undefined piped).
+ * it is named, by its slug); `now` dates a span still running; `width` is
+ * the terminal's (undefined piped). The rest is what a view's `related`
+ * loader read beyond the resource: `runs`, the session's run list, newest
+ * first; `myVault`, the caller's My vault a plugin's servers and keys are
+ * judged by (null when they have none yet; undefined when it was not read).
  */
 export interface ViewContext {
   readonly hideOrg: boolean;
@@ -58,10 +61,11 @@ export interface ViewContext {
   readonly style: Styler;
   readonly now: number;
   readonly runs?: readonly JsonObject[];
+  readonly myVault?: Vault | null;
 }
 
 /** What a view's loader adds to its context. */
-export type Related = Pick<ViewContext, "runs">;
+export type Related = Pick<ViewContext, "runs" | "myVault">;
 
 /** A kind's designed view. */
 export interface KindView {

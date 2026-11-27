@@ -6,6 +6,9 @@ import type { GenFile, GenMessage } from "@bufbuild/protobuf/codegenv1";
 import { fileDesc, messageDesc } from "@bufbuild/protobuf/codegenv1";
 import type { Agent } from "./api_pb.js";
 import { file_ai_stigmer_agentic_agent_v1_api } from "./api_pb.js";
+import { file_ai_stigmer_commons_apiresource_field_options } from "../../../commons/apiresource/field_options_pb.js";
+import type { ApiResourceReference } from "../../../commons/apiresource/io_pb.js";
+import { file_ai_stigmer_commons_apiresource_io } from "../../../commons/apiresource/io_pb.js";
 import { file_buf_validate_validate } from "../../../../../buf/validate/validate_pb.js";
 import type { FieldMask } from "@bufbuild/protobuf/wkt";
 import { file_google_protobuf_field_mask } from "@bufbuild/protobuf/wkt";
@@ -15,7 +18,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/agent/v1/io.proto.
  */
 export const file_ai_stigmer_agentic_agent_v1_io: GenFile = /*@__PURE__*/
-  fileDesc("CiRhaS9zdGlnbWVyL2FnZW50aWMvYWdlbnQvdjEvaW8ucHJvdG8SG2FpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudC52MSIgCgdBZ2VudElkEhUKBXZhbHVlGAEgASgJQga6SAPIAQEiyQIKEFVwZGF0ZUFnZW50SW5wdXQSPAoIcmVzb3VyY2UYASABKAsyIi5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnQudjEuQWdlbnRCBrpIA9gBAxI3Cgt1cGRhdGVfbWFzaxgCIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5GaWVsZE1hc2tCBrpIA8gBATq9AbpIuQEatgEKF3VwZGF0ZV9uYW1lc19pdHNfdGFyZ2V0EkVyZXNvdXJjZS5tZXRhZGF0YS5pZCBpcyByZXF1aXJlZDogYW4gdXBkYXRlIG5hbWVzIHRoZSBhZ2VudCBieSBpdHMgaWQaVGhhcyh0aGlzLnJlc291cmNlKSAmJiBoYXModGhpcy5yZXNvdXJjZS5tZXRhZGF0YSkgJiYgdGhpcy5yZXNvdXJjZS5tZXRhZGF0YS5pZCAhPSAnJyLeAQoRTGlzdEFnZW50c1JlcXVlc3QSFAoDb3JnGAEgASgJQge6SARyAhABEhoKCXBhZ2Vfc2l6ZRgCIAEoBUIHukgEGgIoABIcCgpwYWdlX3Rva2VuGAMgASgJQgi6SAVyAxiACBJKCgZsYWJlbHMYBCADKAsyOi5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnQudjEuTGlzdEFnZW50c1JlcXVlc3QuTGFiZWxzRW50cnkaLQoLTGFiZWxzRW50cnkSCwoDa2V5GAEgASgJEg0KBXZhbHVlGAIgASgJOgI4ASJZCglBZ2VudExpc3QSMwoHZW50cmllcxgBIAMoCzIiLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudC52MS5BZ2VudBIXCg9uZXh0X3BhZ2VfdG9rZW4YAiABKAliBnByb3RvMw", [file_ai_stigmer_agentic_agent_v1_api, file_buf_validate_validate, file_google_protobuf_field_mask]);
+  fileDesc("CiRhaS9zdGlnbWVyL2FnZW50aWMvYWdlbnQvdjEvaW8ucHJvdG8SG2FpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudC52MSIgCgdBZ2VudElkEhUKBXZhbHVlGAEgASgJQga6SAPIAQEiyQIKEFVwZGF0ZUFnZW50SW5wdXQSPAoIcmVzb3VyY2UYASABKAsyIi5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnQudjEuQWdlbnRCBrpIA9gBAxI3Cgt1cGRhdGVfbWFzaxgCIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5GaWVsZE1hc2tCBrpIA8gBATq9AbpIuQEatgEKF3VwZGF0ZV9uYW1lc19pdHNfdGFyZ2V0EkVyZXNvdXJjZS5tZXRhZGF0YS5pZCBpcyByZXF1aXJlZDogYW4gdXBkYXRlIG5hbWVzIHRoZSBhZ2VudCBieSBpdHMgaWQaVGhhcyh0aGlzLnJlc291cmNlKSAmJiBoYXModGhpcy5yZXNvdXJjZS5tZXRhZGF0YSkgJiYgdGhpcy5yZXNvdXJjZS5tZXRhZGF0YS5pZCAhPSAnJyLeAQoRTGlzdEFnZW50c1JlcXVlc3QSFAoDb3JnGAEgASgJQge6SARyAhABEhoKCXBhZ2Vfc2l6ZRgCIAEoBUIHukgEGgIoABIcCgpwYWdlX3Rva2VuGAMgASgJQgi6SAVyAxiACBJKCgZsYWJlbHMYBCADKAsyOi5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnQudjEuTGlzdEFnZW50c1JlcXVlc3QuTGFiZWxzRW50cnkaLQoLTGFiZWxzRW50cnkSCwoDa2V5GAEgASgJEg0KBXZhbHVlGAIgASgJOgI4ASJZCglBZ2VudExpc3QSMwoHZW50cmllcxgBIAMoCzIiLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudC52MS5BZ2VudBIXCg9uZXh0X3BhZ2VfdG9rZW4YAiABKAkihAEKG0NoZWNrRW1iZWRkaW5nQ292ZXJhZ2VJbnB1dBJPCgVhZ2VudBgBIAEoCzI0LmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZVJlZmVyZW5jZUIKukgDyAEB4IUsKBIUCgNvcmcYAiABKAlCB7pIBHICEAEiPAoRRW1iZWRkaW5nQ292ZXJhZ2USDAoEa2V5cxgBIAMoCRIZChFzaWduX2luX2FkZHJlc3NlcxgCIAMoCWIGcHJvdG8z", [file_ai_stigmer_agentic_agent_v1_api, file_ai_stigmer_commons_apiresource_field_options, file_ai_stigmer_commons_apiresource_io, file_buf_validate_validate, file_google_protobuf_field_mask]);
 
 /**
  * AgentId wraps an agent identifier.
@@ -143,4 +146,65 @@ export type AgentList = Message<"ai.stigmer.agentic.agent.v1.AgentList"> & {
  */
 export const AgentListSchema: GenMessage<AgentList> = /*@__PURE__*/
   messageDesc(file_ai_stigmer_agentic_agent_v1_io, 3);
+
+/**
+ * Input for asking which of an agent's keys and sign-ins the organization's
+ * embedding settings fill for the calling app user.
+ *
+ * @generated from message ai.stigmer.agentic.agent.v1.CheckEmbeddingCoverageInput
+ */
+export type CheckEmbeddingCoverageInput = Message<"ai.stigmer.agentic.agent.v1.CheckEmbeddingCoverageInput"> & {
+  /**
+   * The agent a conversation would run, by id or by org and slug.
+   *
+   * @generated from field: ai.stigmer.commons.apiresource.ApiResourceReference agent = 1;
+   */
+  agent?: ApiResourceReference;
+
+  /**
+   * The organization the conversation would run in, by id or slug.
+   *
+   * @generated from field: string org = 2;
+   */
+  org: string;
+};
+
+/**
+ * Describes the message ai.stigmer.agentic.agent.v1.CheckEmbeddingCoverageInput.
+ * Use `create(CheckEmbeddingCoverageInputSchema)` to create a new message.
+ */
+export const CheckEmbeddingCoverageInputSchema: GenMessage<CheckEmbeddingCoverageInput> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_agentic_agent_v1_io, 4);
+
+/**
+ * What the organization's embedding settings fill for a run of an agent by
+ * the calling app user: names only, never where they are kept or their
+ * values.
+ *
+ * @generated from message ai.stigmer.agentic.agent.v1.EmbeddingCoverage
+ */
+export type EmbeddingCoverage = Message<"ai.stigmer.agentic.agent.v1.EmbeddingCoverage"> & {
+  /**
+   * The keys a run of the agent reads that a vault of the embedding
+   * settings holds by name.
+   *
+   * @generated from field: repeated string keys = 1;
+   */
+  keys: string[];
+
+  /**
+   * The tool addresses whose sign-in a vault of the embedding settings
+   * holds, so the app user need not sign in to them.
+   *
+   * @generated from field: repeated string sign_in_addresses = 2;
+   */
+  signInAddresses: string[];
+};
+
+/**
+ * Describes the message ai.stigmer.agentic.agent.v1.EmbeddingCoverage.
+ * Use `create(EmbeddingCoverageSchema)` to create a new message.
+ */
+export const EmbeddingCoverageSchema: GenMessage<EmbeddingCoverage> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_agentic_agent_v1_io, 5);
 

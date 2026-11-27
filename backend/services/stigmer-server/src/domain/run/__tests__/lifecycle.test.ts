@@ -366,6 +366,7 @@ function stubPlannerDeps(overrides?: {
       openRun: never,
       planConnect: never,
       openConnect: never,
+      planEmbeddingCoverage: never,
     },
   };
 }

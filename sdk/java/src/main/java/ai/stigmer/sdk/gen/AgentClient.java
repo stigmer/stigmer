@@ -8,6 +8,8 @@ import ai.stigmer.agentic.agent.v1.AgentId;
 import ai.stigmer.agentic.agent.v1.AgentList;
 import ai.stigmer.agentic.agent.v1.AgentQueryControllerGrpc;
 import ai.stigmer.agentic.agent.v1.AgentVersionEntry;
+import ai.stigmer.agentic.agent.v1.CheckEmbeddingCoverageInput;
+import ai.stigmer.agentic.agent.v1.EmbeddingCoverage;
 import ai.stigmer.agentic.agent.v1.GetAgentVersionInput;
 import ai.stigmer.agentic.agent.v1.ListAgentVersionsInput;
 import ai.stigmer.agentic.agent.v1.ListAgentVersionsResponse;
@@ -129,6 +131,12 @@ public final class AgentClient {
     public AgentVersionEntry getVersion(GetAgentVersionInput input) {
         try {
             return query.getVersion(input);
+        } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
+    }
+
+    public EmbeddingCoverage checkEmbeddingCoverage(CheckEmbeddingCoverageInput input) {
+        try {
+            return query.checkEmbeddingCoverage(input);
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
     }
 }

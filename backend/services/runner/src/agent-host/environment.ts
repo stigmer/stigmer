@@ -18,7 +18,10 @@
  * `shared/agent-identity.ts`), it is an allow-list instead: the host holds
  * nothing the agent may not have (#2016). What passes is what a process
  * needs to run (the path, the locale, the time zone, a terminal, a temporary
- * directory), the network's proxy and trust settings, and the engines' and
+ * directory), the network's proxy and trust settings (every variable the
+ * sandbox's egress gateway is trusted by, `GATEWAY_TRUST_VARIABLES` in
+ * `@stigmer/outbound/egress`, the list the sandbox template sets, so pip,
+ * curl and git trust it as Node does: stigmer#3392), and the engines' and
  * the runner's non-secret settings (`STIGMER_`, `OTEL_` and `NODE_`
  * names, the runner's secrets still dropped, among them the
  * collector's login, which the host never needs because it exports through
@@ -32,6 +35,8 @@
  */
 
 import { delimiter } from "node:path";
+
+import { GATEWAY_TRUST_VARIABLES } from "@stigmer/outbound/egress";
 
 import { environmentPathEntries, environmentPrefix } from "../environment/prefix.js";
 import { hasPackages, type SandboxEnvironment } from "../environment/spec.js";
@@ -55,7 +60,8 @@ const ALLOWED_NAMES: ReadonlySet<string> = new Set([
   "http_proxy",
   "https_proxy",
   "no_proxy",
-  "SSL_CERT_FILE",
+  ...GATEWAY_TRUST_VARIABLES,
+  // Not one the template sets, but an operator's image may.
   "SSL_CERT_DIR",
 ]);
 

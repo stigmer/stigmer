@@ -141,9 +141,11 @@ instead of waiting for a browser.
 
 After you sign in, Stigmer keeps the credential healthy without further action.
 When the provider supports refresh tokens, Stigmer refreshes the access token
-automatically before each run. You sign in again, from the plugin's page, only
-when the refresh token itself expires or is revoked; a conversation that needs
-the sign-in asks for it before the first message.
+automatically before each run. You sign in again only when the refresh token
+itself expires or is revoked: **Sign in again** on the server's row of the
+plugin's page, or `stigmer connect plugin <plugin> --sign-in-again` from a
+terminal, replaces the saved sign-in. A conversation that needs the sign-in asks
+for it before the first message.
 
 ## Using a key instead
 

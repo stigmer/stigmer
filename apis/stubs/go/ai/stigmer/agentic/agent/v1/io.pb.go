@@ -8,6 +8,7 @@ package agentv1
 
 import (
 	_ "buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go/buf/validate"
+	apiresource "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	fieldmaskpb "google.golang.org/protobuf/types/known/fieldmaskpb"
@@ -261,11 +262,126 @@ func (x *AgentList) GetNextPageToken() string {
 	return ""
 }
 
+// Input for asking which of an agent's keys and sign-ins the organization's
+// embedding settings fill for the calling app user.
+type CheckEmbeddingCoverageInput struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// The agent a conversation would run, by id or by org and slug.
+	Agent *apiresource.ApiResourceReference `protobuf:"bytes,1,opt,name=agent,proto3" json:"agent,omitempty"`
+	// The organization the conversation would run in, by id or slug.
+	Org           string `protobuf:"bytes,2,opt,name=org,proto3" json:"org,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CheckEmbeddingCoverageInput) Reset() {
+	*x = CheckEmbeddingCoverageInput{}
+	mi := &file_ai_stigmer_agentic_agent_v1_io_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CheckEmbeddingCoverageInput) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CheckEmbeddingCoverageInput) ProtoMessage() {}
+
+func (x *CheckEmbeddingCoverageInput) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_agentic_agent_v1_io_proto_msgTypes[4]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CheckEmbeddingCoverageInput.ProtoReflect.Descriptor instead.
+func (*CheckEmbeddingCoverageInput) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_agent_v1_io_proto_rawDescGZIP(), []int{4}
+}
+
+func (x *CheckEmbeddingCoverageInput) GetAgent() *apiresource.ApiResourceReference {
+	if x != nil {
+		return x.Agent
+	}
+	return nil
+}
+
+func (x *CheckEmbeddingCoverageInput) GetOrg() string {
+	if x != nil {
+		return x.Org
+	}
+	return ""
+}
+
+// What the organization's embedding settings fill for a run of an agent by
+// the calling app user: names only, never where they are kept or their
+// values.
+type EmbeddingCoverage struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// The keys a run of the agent reads that a vault of the embedding
+	// settings holds by name.
+	Keys []string `protobuf:"bytes,1,rep,name=keys,proto3" json:"keys,omitempty"`
+	// The tool addresses whose sign-in a vault of the embedding settings
+	// holds, so the app user need not sign in to them.
+	SignInAddresses []string `protobuf:"bytes,2,rep,name=sign_in_addresses,json=signInAddresses,proto3" json:"sign_in_addresses,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
+}
+
+func (x *EmbeddingCoverage) Reset() {
+	*x = EmbeddingCoverage{}
+	mi := &file_ai_stigmer_agentic_agent_v1_io_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *EmbeddingCoverage) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*EmbeddingCoverage) ProtoMessage() {}
+
+func (x *EmbeddingCoverage) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_agentic_agent_v1_io_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use EmbeddingCoverage.ProtoReflect.Descriptor instead.
+func (*EmbeddingCoverage) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_agent_v1_io_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *EmbeddingCoverage) GetKeys() []string {
+	if x != nil {
+		return x.Keys
+	}
+	return nil
+}
+
+func (x *EmbeddingCoverage) GetSignInAddresses() []string {
+	if x != nil {
+		return x.SignInAddresses
+	}
+	return nil
+}
+
 var File_ai_stigmer_agentic_agent_v1_io_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_agent_v1_io_proto_rawDesc = "" +
 	"\n" +
-	"$ai/stigmer/agentic/agent/v1/io.proto\x12\x1bai.stigmer.agentic.agent.v1\x1a%ai/stigmer/agentic/agent/v1/api.proto\x1a\x1bbuf/validate/validate.proto\x1a google/protobuf/field_mask.proto\"'\n" +
+	"$ai/stigmer/agentic/agent/v1/io.proto\x12\x1bai.stigmer.agentic.agent.v1\x1a%ai/stigmer/agentic/agent/v1/api.proto\x1a2ai/stigmer/commons/apiresource/field_options.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a\x1bbuf/validate/validate.proto\x1a google/protobuf/field_mask.proto\"'\n" +
 	"\aAgentId\x12\x1c\n" +
 	"\x05value\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05value\"\xdf\x02\n" +
 	"\x10UpdateAgentInput\x12F\n" +
@@ -284,7 +400,14 @@ const file_ai_stigmer_agentic_agent_v1_io_proto_rawDesc = "" +
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"q\n" +
 	"\tAgentList\x12<\n" +
 	"\aentries\x18\x01 \x03(\v2\".ai.stigmer.agentic.agent.v1.AgentR\aentries\x12&\n" +
-	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageTokenB\x89\x02\n" +
+	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"\x90\x01\n" +
+	"\x1bCheckEmbeddingCoverageInput\x12V\n" +
+	"\x05agent\x18\x01 \x01(\v24.ai.stigmer.commons.apiresource.ApiResourceReferenceB\n" +
+	"\xbaH\x03\xc8\x01\x01\xe0\x85,(R\x05agent\x12\x19\n" +
+	"\x03org\x18\x02 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x03org\"S\n" +
+	"\x11EmbeddingCoverage\x12\x12\n" +
+	"\x04keys\x18\x01 \x03(\tR\x04keys\x12*\n" +
+	"\x11sign_in_addresses\x18\x02 \x03(\tR\x0fsignInAddressesB\x89\x02\n" +
 	"\x1fcom.ai.stigmer.agentic.agent.v1B\aIoProtoP\x01ZLgithub.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agent/v1;agentv1\xa2\x02\x04ASAA\xaa\x02\x1bAi.Stigmer.Agentic.Agent.V1\xca\x02\x1bAi\\Stigmer\\Agentic\\Agent\\V1\xe2\x02'Ai\\Stigmer\\Agentic\\Agent\\V1\\GPBMetadata\xea\x02\x1fAi::Stigmer::Agentic::Agent::V1b\x06proto3"
 
 var (
@@ -299,26 +422,30 @@ func file_ai_stigmer_agentic_agent_v1_io_proto_rawDescGZIP() []byte {
 	return file_ai_stigmer_agentic_agent_v1_io_proto_rawDescData
 }
 
-var file_ai_stigmer_agentic_agent_v1_io_proto_msgTypes = make([]protoimpl.MessageInfo, 5)
+var file_ai_stigmer_agentic_agent_v1_io_proto_msgTypes = make([]protoimpl.MessageInfo, 7)
 var file_ai_stigmer_agentic_agent_v1_io_proto_goTypes = []any{
-	(*AgentId)(nil),               // 0: ai.stigmer.agentic.agent.v1.AgentId
-	(*UpdateAgentInput)(nil),      // 1: ai.stigmer.agentic.agent.v1.UpdateAgentInput
-	(*ListAgentsRequest)(nil),     // 2: ai.stigmer.agentic.agent.v1.ListAgentsRequest
-	(*AgentList)(nil),             // 3: ai.stigmer.agentic.agent.v1.AgentList
-	nil,                           // 4: ai.stigmer.agentic.agent.v1.ListAgentsRequest.LabelsEntry
-	(*Agent)(nil),                 // 5: ai.stigmer.agentic.agent.v1.Agent
-	(*fieldmaskpb.FieldMask)(nil), // 6: google.protobuf.FieldMask
+	(*AgentId)(nil),                          // 0: ai.stigmer.agentic.agent.v1.AgentId
+	(*UpdateAgentInput)(nil),                 // 1: ai.stigmer.agentic.agent.v1.UpdateAgentInput
+	(*ListAgentsRequest)(nil),                // 2: ai.stigmer.agentic.agent.v1.ListAgentsRequest
+	(*AgentList)(nil),                        // 3: ai.stigmer.agentic.agent.v1.AgentList
+	(*CheckEmbeddingCoverageInput)(nil),      // 4: ai.stigmer.agentic.agent.v1.CheckEmbeddingCoverageInput
+	(*EmbeddingCoverage)(nil),                // 5: ai.stigmer.agentic.agent.v1.EmbeddingCoverage
+	nil,                                      // 6: ai.stigmer.agentic.agent.v1.ListAgentsRequest.LabelsEntry
+	(*Agent)(nil),                            // 7: ai.stigmer.agentic.agent.v1.Agent
+	(*fieldmaskpb.FieldMask)(nil),            // 8: google.protobuf.FieldMask
+	(*apiresource.ApiResourceReference)(nil), // 9: ai.stigmer.commons.apiresource.ApiResourceReference
 }
 var file_ai_stigmer_agentic_agent_v1_io_proto_depIdxs = []int32{
-	5, // 0: ai.stigmer.agentic.agent.v1.UpdateAgentInput.resource:type_name -> ai.stigmer.agentic.agent.v1.Agent
-	6, // 1: ai.stigmer.agentic.agent.v1.UpdateAgentInput.update_mask:type_name -> google.protobuf.FieldMask
-	4, // 2: ai.stigmer.agentic.agent.v1.ListAgentsRequest.labels:type_name -> ai.stigmer.agentic.agent.v1.ListAgentsRequest.LabelsEntry
-	5, // 3: ai.stigmer.agentic.agent.v1.AgentList.entries:type_name -> ai.stigmer.agentic.agent.v1.Agent
-	4, // [4:4] is the sub-list for method output_type
-	4, // [4:4] is the sub-list for method input_type
-	4, // [4:4] is the sub-list for extension type_name
-	4, // [4:4] is the sub-list for extension extendee
-	0, // [0:4] is the sub-list for field type_name
+	7, // 0: ai.stigmer.agentic.agent.v1.UpdateAgentInput.resource:type_name -> ai.stigmer.agentic.agent.v1.Agent
+	8, // 1: ai.stigmer.agentic.agent.v1.UpdateAgentInput.update_mask:type_name -> google.protobuf.FieldMask
+	6, // 2: ai.stigmer.agentic.agent.v1.ListAgentsRequest.labels:type_name -> ai.stigmer.agentic.agent.v1.ListAgentsRequest.LabelsEntry
+	7, // 3: ai.stigmer.agentic.agent.v1.AgentList.entries:type_name -> ai.stigmer.agentic.agent.v1.Agent
+	9, // 4: ai.stigmer.agentic.agent.v1.CheckEmbeddingCoverageInput.agent:type_name -> ai.stigmer.commons.apiresource.ApiResourceReference
+	5, // [5:5] is the sub-list for method output_type
+	5, // [5:5] is the sub-list for method input_type
+	5, // [5:5] is the sub-list for extension type_name
+	5, // [5:5] is the sub-list for extension extendee
+	0, // [0:5] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_agentic_agent_v1_io_proto_init() }
@@ -333,7 +460,7 @@ func file_ai_stigmer_agentic_agent_v1_io_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ai_stigmer_agentic_agent_v1_io_proto_rawDesc), len(file_ai_stigmer_agentic_agent_v1_io_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   5,
+			NumMessages:   7,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

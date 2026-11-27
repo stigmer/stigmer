@@ -1,7 +1,8 @@
 // `stigmer connect plugin <plugin> [--server <name>]`: list the tools one of
 // a plugin's MCP servers offers now, as the caller, after the sign-in it
 // takes when My vault holds none; or, with --dry-run, list them from this
-// machine without a runner. Nothing is stored either way.
+// machine without a runner. Nothing is stored either way, except the login
+// a sign-in saves in My vault; --sign-in-again replaces a saved one.
 //
 // Thin handler: resolve the client/org, delegate to resources/connect, render.
 // Heavy modules (backend client, MCP SDK) are lazy-imported so `--help` stays
@@ -25,6 +26,7 @@ interface ConnectFlags extends OutputFlags {
   server?: string;
   timeout?: string;
   dryRun?: boolean;
+  signInAgain?: boolean;
 }
 
 const DEFAULT_TIMEOUT_SECONDS = 30;
@@ -46,6 +48,10 @@ export function registerConnect(program: Command): void {
     .option(
       "--dry-run",
       "list the tools from this machine, with your shell's environment, without a runner",
+    )
+    .option(
+      "--sign-in-again",
+      "sign in even when My vault holds a login for the server, replacing it (for a login that expired or was revoked)",
     )
     .action((reference: string, options: ConnectFlags, command: Command) =>
       runConnect(reference, options, command),
@@ -91,6 +97,7 @@ async function runConnect(
     consoleURL: resolveConsoleURL(client.config),
     probeLocalConsole: activeBackend(client.config).entry === undefined,
     interactive: process.stderr.isTTY === true,
+    signInAgain: options.signInAgain === true,
   });
 
   if (format === "json") {

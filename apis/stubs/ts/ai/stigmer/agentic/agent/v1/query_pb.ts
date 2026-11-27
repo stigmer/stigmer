@@ -6,7 +6,7 @@ import type { GenFile, GenService } from "@bufbuild/protobuf/codegenv1";
 import { fileDesc, serviceDesc } from "@bufbuild/protobuf/codegenv1";
 import type { AgentSchema } from "./api_pb.js";
 import { file_ai_stigmer_agentic_agent_v1_api } from "./api_pb.js";
-import type { AgentIdSchema, AgentListSchema, ListAgentsRequestSchema } from "./io_pb.js";
+import type { AgentIdSchema, AgentListSchema, CheckEmbeddingCoverageInputSchema, EmbeddingCoverageSchema, ListAgentsRequestSchema } from "./io_pb.js";
 import { file_ai_stigmer_agentic_agent_v1_io } from "./io_pb.js";
 import type { AgentVersionEntrySchema, GetAgentVersionInputSchema, ListAgentVersionsInputSchema, ListAgentVersionsResponseSchema } from "./version_pb.js";
 import { file_ai_stigmer_agentic_agent_v1_version } from "./version_pb.js";
@@ -19,7 +19,7 @@ import { file_ai_stigmer_commons_rpc_method_options } from "../../../commons/rpc
  * Describes the file ai/stigmer/agentic/agent/v1/query.proto.
  */
 export const file_ai_stigmer_agentic_agent_v1_query: GenFile = /*@__PURE__*/
-  fileDesc("CidhaS9zdGlnbWVyL2FnZW50aWMvYWdlbnQvdjEvcXVlcnkucHJvdG8SG2FpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudC52MTKeBQoUQWdlbnRRdWVyeUNvbnRyb2xsZXISewoDZ2V0EiQuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50LnYxLkFnZW50SWQaIi5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnQudjEuQWdlbnQiKsK4GCYIARAoIgV2YWx1ZSoZdW5hdXRob3JpemVkIHRvIGdldCBhZ2VudBJwCg5nZXRCeVJlZmVyZW5jZRI0LmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZVJlZmVyZW5jZRoiLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudC52MS5BZ2VudCIE0LgYARJkCgRsaXN0Ei4uYWkuc3RpZ21lci5hZ2VudGljLmFnZW50LnYxLkxpc3RBZ2VudHNSZXF1ZXN0GiYuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50LnYxLkFnZW50TGlzdCIE0LgYARKBAQoMbGlzdFZlcnNpb25zEjMuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50LnYxLkxpc3RBZ2VudFZlcnNpb25zSW5wdXQaNi5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnQudjEuTGlzdEFnZW50VmVyc2lvbnNSZXNwb25zZSIE0LgYARKmAQoKZ2V0VmVyc2lvbhIxLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudC52MS5HZXRBZ2VudFZlcnNpb25JbnB1dBouLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudC52MS5BZ2VudFZlcnNpb25FbnRyeSI1wrgYMQgBECgiCGFnZW50X2lkKiF1bmF1dGhvcml6ZWQgdG8gZ2V0IGFnZW50IHZlcnNpb24aBKD/KyhiBnByb3RvMw", [file_ai_stigmer_agentic_agent_v1_api, file_ai_stigmer_agentic_agent_v1_io, file_ai_stigmer_agentic_agent_v1_version, file_ai_stigmer_commons_apiresource_io, file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_commons_rpc_method_options]);
+  fileDesc("CidhaS9zdGlnbWVyL2FnZW50aWMvYWdlbnQvdjEvcXVlcnkucHJvdG8SG2FpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudC52MTKpBgoUQWdlbnRRdWVyeUNvbnRyb2xsZXISewoDZ2V0EiQuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50LnYxLkFnZW50SWQaIi5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnQudjEuQWdlbnQiKsK4GCYIARAoIgV2YWx1ZSoZdW5hdXRob3JpemVkIHRvIGdldCBhZ2VudBJwCg5nZXRCeVJlZmVyZW5jZRI0LmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZVJlZmVyZW5jZRoiLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudC52MS5BZ2VudCIE0LgYARJkCgRsaXN0Ei4uYWkuc3RpZ21lci5hZ2VudGljLmFnZW50LnYxLkxpc3RBZ2VudHNSZXF1ZXN0GiYuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50LnYxLkFnZW50TGlzdCIE0LgYARKBAQoMbGlzdFZlcnNpb25zEjMuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50LnYxLkxpc3RBZ2VudFZlcnNpb25zSW5wdXQaNi5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnQudjEuTGlzdEFnZW50VmVyc2lvbnNSZXNwb25zZSIE0LgYARKmAQoKZ2V0VmVyc2lvbhIxLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudC52MS5HZXRBZ2VudFZlcnNpb25JbnB1dBouLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudC52MS5BZ2VudFZlcnNpb25FbnRyeSI1wrgYMQgBECgiCGFnZW50X2lkKiF1bmF1dGhvcml6ZWQgdG8gZ2V0IGFnZW50IHZlcnNpb24SiAEKFmNoZWNrRW1iZWRkaW5nQ292ZXJhZ2USOC5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnQudjEuQ2hlY2tFbWJlZGRpbmdDb3ZlcmFnZUlucHV0Gi4uYWkuc3RpZ21lci5hZ2VudGljLmFnZW50LnYxLkVtYmVkZGluZ0NvdmVyYWdlIgTQuBgBGgSg/ysoYgZwcm90bzM", [file_ai_stigmer_agentic_agent_v1_api, file_ai_stigmer_agentic_agent_v1_io, file_ai_stigmer_agentic_agent_v1_version, file_ai_stigmer_commons_apiresource_io, file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_commons_rpc_method_options]);
 
 /**
  * AgentQueryController handles read operations for AI agents.
@@ -93,6 +93,25 @@ export const AgentQueryController: GenService<{
     methodKind: "unary";
     input: typeof GetAgentVersionInputSchema;
     output: typeof AgentVersionEntrySchema;
+  },
+  /**
+   * Check which of an agent's keys and sign-ins the organization's embedding
+   * settings fill for the calling app user.
+   *
+   * An app user (a person signed in to an organization's own product
+   * through a user token its backend mints) runs an agent on the vaults the
+   * organization's embedding settings name, which the app user cannot read.
+   * This answers, by name only, which of the agent's keys and which tool
+   * sign-ins those vaults fill, so a chat asks the app user only for what
+   * they would still miss. Any other caller gets an empty answer: a run of
+   * theirs never reads the embedding settings.
+   *
+   * @generated from rpc ai.stigmer.agentic.agent.v1.AgentQueryController.checkEmbeddingCoverage
+   */
+  checkEmbeddingCoverage: {
+    methodKind: "unary";
+    input: typeof CheckEmbeddingCoverageInputSchema;
+    output: typeof EmbeddingCoverageSchema;
   },
 }> = /*@__PURE__*/
   serviceDesc(file_ai_stigmer_agentic_agent_v1_query, 0);

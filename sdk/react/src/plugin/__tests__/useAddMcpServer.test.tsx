@@ -8,7 +8,10 @@
  * the push sends exactly the prepared archive (its digest is the one the
  * library computes) through the plugin push; a name already installed is
  * refused without a push, and so is a name whose read fails for another
- * reason; `clearError` drops the held refusal.
+ * reason; `clearError` drops the held refusal. A change pushes the form's
+ * server under the plugin's own name at the plugin's current visibility,
+ * and is refused without a push when the installed version is no longer
+ * the one the form was read from.
  */
 
 import { afterEach, describe, expect, it } from "vitest";
@@ -19,7 +22,8 @@ import { Code, ConnectError, createRouterTransport } from "@connectrpc/connect";
 import { Stigmer } from "@stigmer/client";
 import { PluginCommandController } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/command_pb";
 import { PluginQueryController } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/query_pb";
-import { PluginSchema } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/api_pb";
+import { type Plugin, PluginSchema } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/api_pb";
+import { ApiResourceVisibility } from "@stigmer/apis/ai/stigmer/commons/apiresource/enum_pb";
 import { ApiResourceMetadataSchema } from "@stigmer/apis/ai/stigmer/commons/apiresource/metadata_pb";
 import { digestArchive } from "@stigmer/plugin-package/client";
 
@@ -126,5 +130,61 @@ describe("useAddMcpServer", () => {
 
     act(() => hook.result.current.clearError());
     expect(hook.result.current.error).toBeNull();
+  });
+});
+
+describe("useAddMcpServer: change", () => {
+  const READ = "a".repeat(64);
+
+  function installed(digest: string): Plugin {
+    return create(PluginSchema, {
+      metadata: create(ApiResourceMetadataSchema, {
+        id: "plg_1",
+        org: "acme",
+        slug: "linear",
+        name: "linear",
+        visibility: ApiResourceVisibility.visibility_org,
+      }),
+      status: { digest },
+    });
+  }
+
+  function setupChange(currentDigest: string) {
+    const pushes: { artifact: Uint8Array; visibility: ApiResourceVisibility; org: string }[] = [];
+    const transport = createRouterTransport(({ service }) => {
+      service(PluginQueryController, { getByReference: () => installed(currentDigest) });
+      service(PluginCommandController, {
+        push: (req) => {
+          pushes.push({ artifact: req.artifact, visibility: req.visibility, org: req.org });
+          return installed("b".repeat(64));
+        },
+      });
+    });
+    const client = new Stigmer({ baseUrl: "/", getAccessToken: () => "t", customTransport: transport });
+    const wrapper = ({ children }: { children: ReactNode }) => <StigmerContext.Provider value={client}>{children}</StigmerContext.Provider>;
+    return { hook: renderHook(() => useAddMcpServer(), { wrapper }), pushes };
+  }
+
+  it("pushes the new address under the plugin's name, at its visibility", async () => {
+    const { hook, pushes } = setupChange(READ);
+    await act(async () => {
+      await hook.result.current.change({ name: "ignored", url: "https://mcp.linear.app/v2/mcp" }, { plugin: installed(READ) });
+    });
+    expect(pushes).toHaveLength(1);
+    expect(pushes[0]!.org).toBe("acme");
+    expect(pushes[0]!.visibility).toBe(ApiResourceVisibility.visibility_org);
+    expect(await digestArchive(pushes[0]!.artifact)).toBe(
+      (await prepareMcpServerPlugin({ name: "linear", url: "https://mcp.linear.app/v2/mcp" })).digest,
+    );
+  });
+
+  it("refuses without a push when the plugin changed since the form read it", async () => {
+    const { hook, pushes } = setupChange("c".repeat(64));
+    await act(async () => {
+      await expect(
+        hook.result.current.change({ name: "linear", url: "https://mcp.linear.app/v2/mcp" }, { plugin: installed(READ) }),
+      ).rejects.toThrow(/'linear' was changed since this page read it/);
+    });
+    expect(pushes).toEqual([]);
   });
 });

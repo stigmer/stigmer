@@ -20,8 +20,8 @@
  *     later install in that sandbox.
  *   - cargo, gem, go, npm and pip run as the agent's own user
  *     (`shared/agent-identity.ts` setprivArgs), with the agent host's
- *     allow-listed environment plus the agent's HOME and the CA variables
- *     the sandbox sets, into an agent-owned prefix,
+ *     allow-listed environment (the CA variables the sandbox sets among
+ *     it) plus the agent's HOME, into an agent-owned prefix,
  *     `/opt/stigmer/environment`: an npm `postinstall` gets exactly the
  *     rights the agent's own `npm install` would, and never runs as root
  *     beside the runner's credentials. The prefix's `bin` (and its Python
@@ -79,6 +79,7 @@ import { chownSync, existsSync, mkdirSync, readFileSync, statSync, writeFileSync
 import { delimiter, join } from "node:path";
 
 import { trace } from "@opentelemetry/api";
+import { GATEWAY_TRUST_VARIABLES } from "@stigmer/outbound/egress";
 
 import { agentHostEnvironment } from "../agent-host/environment.js";
 import { TRACER_NAME } from "../gen-ai-conventions.js";
@@ -101,10 +102,8 @@ export const OUTPUT_TAIL_BYTES = 4096;
 /** The file beside the prefix that names the set installed in it. */
 const DIGEST_SUFFIX = ".digest";
 
-/** The CA variables a sandbox's tools trust its gateway by; outside the host's allow-list, added for the install alone. */
-const TRUST_VARIABLES = ["SSL_CERT_FILE", "NODE_EXTRA_CA_CERTS", "REQUESTS_CA_BUNDLE", "CURL_CA_BUNDLE", "GIT_SSL_CAINFO"] as const;
-/** The names apt runs with, besides those. */
-const APT_NAMES = ["PATH", "HTTP_PROXY", "HTTPS_PROXY", "NO_PROXY", "http_proxy", "https_proxy", "no_proxy"] as const;
+/** The names apt runs with: the system's PATH, the proxies, and the CA variables the sandbox's tools trust its gateway by (`@stigmer/outbound/egress`). */
+const APT_NAMES = ["PATH", "HTTP_PROXY", "HTTPS_PROXY", "NO_PROXY", "http_proxy", "https_proxy", "no_proxy", ...GATEWAY_TRUST_VARIABLES] as const;
 
 /** The program each manager needs, and what to add when the image lacks it. */
 const PROGRAMS: { readonly [M in Manager]: { readonly program: string; readonly remedy: string } } = {
@@ -223,7 +222,6 @@ export function commandEnvironment(
   } else {
     for (const name of APT_NAMES) if (source[name] !== undefined) env[name] = source[name];
   }
-  for (const name of TRUST_VARIABLES) if (source[name] !== undefined) env[name] = source[name];
   // The prefix is the agent's to write: only a command that runs as the
   // agent finds programs there. A root command keeps the system's PATH, so
   // neither apt nor a maintainer script it runs can pick up a binary the

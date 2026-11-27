@@ -642,6 +642,7 @@ export type {
   HeaderRow,
   UseCanCreatePluginReturn,
   AddMcpServerOptions,
+  ChangeMcpServerOptions,
   McpServerFormInput,
   UseAddMcpServerReturn,
   AddPluginOutcome,

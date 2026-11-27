@@ -21,6 +21,9 @@
  *    approval default's listing;
  *  - calls are forwarded unchanged and their answers returned, a server's
  *    failure becoming an error result the model reads;
+ *  - a stdio server starts with the egress gateway's trust variables the
+ *    host holds and never a runner credential (stigmer#3506), through the
+ *    bridge's real spawn rather than the config builder alone;
  *  - every connection is closed when the turn ends, and when connecting
  *    fails half way.
  */
@@ -86,7 +89,7 @@ server.setRequestHandler(ListToolsRequestSchema, async (request) => {
 server.setRequestHandler(CallToolRequestSchema, async (request) => {
   switch (request.params.name) {
     case "whoami":
-      return { content: [{ type: "text", text: JSON.stringify({ pid: process.pid, ppid: process.ppid, declared: process.env.DECLARED_VALUE ?? null }) }] };
+      return { content: [{ type: "text", text: JSON.stringify({ pid: process.pid, ppid: process.ppid, declared: process.env.DECLARED_VALUE ?? null, trust: process.env.REQUESTS_CA_BUNDLE ?? null, credential: process.env.ANTHROPIC_API_KEY ?? null }) }] };
     case "echo":
       return { content: [{ type: "text", text: "echo:" + request.params.arguments?.text }] };
     case "boom":
@@ -332,6 +335,21 @@ describe("connectBridge over a real stdio server and a real HTTP server", () => 
     await bridge.close();
     await until(() => !isAlive(childPid), "the stdio server exits");
     await until(() => http.openStreams === 0, "every HTTP event stream is closed");
+  });
+
+  it("starts a stdio server with the egress gateway's trust variables the host holds, never a runner credential (stigmer#3506)", async () => {
+    vi.stubEnv("REQUESTS_CA_BUNDLE", "/run/ate/trust-bundle.pem");
+    vi.stubEnv("ANTHROPIC_API_KEY", "runner-canary");
+    try {
+      const bridge = await connectBridge([stdioServer("local")], inScope(SCOPE), new Set());
+      bridges.push(bridge);
+      const local = await engineClient(bridge.servers.get("local")!);
+      const who = JSON.parse(textOf((await local.callTool({ name: "whoami", arguments: {} })) as CallToolResult)) as { trust: string | null; credential: string | null };
+      expect(who.trust, "the gateway's CA reached the server").toBe("/run/ate/trust-bundle.pem");
+      expect(who.credential, "a runner credential never does").toBeNull();
+    } finally {
+      vi.unstubAllEnvs();
+    }
   });
 
   it("closes what it connected when connecting fails half way", async () => {

@@ -161,6 +161,11 @@ func (a *AgentClient) GetVersion(ctx context.Context, input *agentv1.GetAgentVer
 	return resp, wrapErr(err)
 }
 
+func (a *AgentClient) CheckEmbeddingCoverage(ctx context.Context, input *agentv1.CheckEmbeddingCoverageInput) (*agentv1.EmbeddingCoverage, error) {
+	resp, err := a.query.CheckEmbeddingCoverage(ctx, input)
+	return resp, wrapErr(err)
+}
+
 // AgentInput holds the fields for creating or applying a Agent.
 type AgentInput struct {
 	// Id is the resource's metadata.id: an apply that carries it changes

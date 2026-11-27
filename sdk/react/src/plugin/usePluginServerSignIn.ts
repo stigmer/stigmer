@@ -12,7 +12,11 @@
  * signed in, which is the run's own rule (`vaultLoginServes`). So the state
  * is read from My vault (`useMyVault`), the sign-in is `useVaultSignIn` at
  * the address, and signing out removes the login at the address with
- * `removeConnections`. A server without `sign_in` that reads variables
+ * `removeConnections`. A login that was made by signing in (not a pasted
+ * token) can be replaced by signing in again at the same address
+ * (`signInAgain`), the vault's own rule replacing the saved login; that is
+ * how a person recovers a login the server has since expired or revoked,
+ * which My vault cannot tell from a live one. A server without `sign_in` that reads variables
  * wants a key; one with neither is open. A name the runner fills itself
  * (who is calling, the conversation) is no key the person gives.
  *
@@ -35,7 +39,7 @@ import type { McpServerEntry } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/
 import type { VaultConnection } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/spec_pb";
 import { RUNNER_FILLED_VARIABLES } from "@stigmer/plugin-package";
 import { toError } from "@stigmer/react-core/internal";
-import { toolAddressOf, vaultLoginServes } from "../vault/address.js";
+import { isSignInConnection, toolAddressOf, vaultLoginServes } from "../vault/address.js";
 import { useMyVault } from "../vault/useMyVault.js";
 import { type VaultSignInPhase, useVaultSignIn } from "../vault/useVaultSignIn.js";
 
@@ -76,6 +80,17 @@ export interface UsePluginServerSignInReturn {
    * A no-op unless `kind` is `sign-in-needed` or `sign-in-available`.
    */
   readonly signIn: () => void;
+  /**
+   * Whether `signInAgain` is offered: the row is `signed-in` through a login
+   * saved at exactly this address by signing in. A row served only by the
+   * github.com fallback login, or by a pasted token, has none.
+   */
+  readonly canSignInAgain: boolean;
+  /**
+   * Sign in again at this address, replacing the saved login. Call from a
+   * click handler so the popup is allowed. A no-op unless `canSignInAgain`.
+   */
+  readonly signInAgain: () => void;
   /**
    * Cancel a sign-in in progress: the wait ends, its window closes and the
    * row is back on "Sign in". A sign-in left in a closed window waits for
@@ -177,6 +192,20 @@ export function usePluginServerSignIn(
     );
   }, [kind, address, org, startSignIn, clearSignInError, refetch, onSignedIn]);
 
+  const canSignInAgain = kind === "signed-in" && address !== null && connection !== null && isSignInConnection(connection);
+  const signInAgain = useCallback(() => {
+    if (!canSignInAgain || address === null || org === null) return;
+    clearSignInError();
+    setSignOutError(null);
+    void startSignIn(address, { org }).then(
+      () => {
+        refetch();
+        onSignedIn?.(address);
+      },
+      () => undefined,
+    );
+  }, [canSignInAgain, address, org, startSignIn, clearSignInError, refetch, onSignedIn]);
+
   const { removeConnections } = myVault;
   const signOut = useCallback(async () => {
     if (address === null || connection === null) return;
@@ -202,6 +231,8 @@ export function usePluginServerSignIn(
       declaredVariables,
       error,
       signIn,
+      canSignInAgain,
+      signInAgain,
       cancelSignIn: clearSignInError,
       signOut,
       phase: vaultSignIn.phase,
@@ -216,6 +247,8 @@ export function usePluginServerSignIn(
       declaredVariables,
       error,
       signIn,
+      canSignInAgain,
+      signInAgain,
       clearSignInError,
       signOut,
       vaultSignIn.phase,

@@ -17,10 +17,20 @@
  * are listed by the names a turn uses (`<plugin>:<skill>`); the hooks with
  * every command each runs (`HookConfigList`), beside the hooks Stigmer
  * does not run (the warnings of `HOOK_WARNING_KINDS`); the keys the plugin
- * declares; what the manifest said; what else the push warned about; the
- * version history; and, on the Evals tab, its own evals/ test cases, run
- * with and without it (`EvalRunsTab`). Nothing here edits the plugin:
- * it changes by being pushed again.
+ * declares, each with how it is filled, whether My vault holds it and Save
+ * to My vault (`PluginKeys`); what the manifest said; what else the push
+ * warned about; the version history; and, on the Evals tab, its own evals/
+ * test cases, run with and without it (`EvalRunsTab`).
+ *
+ * A plugin changes only by a new version being pushed. A plugin of one
+ * HTTP server (what "Add MCP server" and `stigmer mcp add` make, read from
+ * its own files by `useOneServerPlugin`) offers Change address on its
+ * server's row to a person who may push (`useCanCreatePlugin`); any other
+ * plugin changes from its folder. The closing "Change or remove" section
+ * says which, gives the terminal's commands, says how the plugin is
+ * removed, and why its name is fixed: the name is part of every tool name
+ * its agents use. "Upload the new version" is a link only when the host
+ * passes `onUploadNewVersion`, since the kit never routes.
  *
  * The shape is `SkillDetailView`'s: the resource fetched inside, rendered
  * in `ResourceDetailShell` with Manage access folded into the kebab, the
@@ -35,7 +45,7 @@ import { PluginDialect, type PluginSpec } from "@stigmer/apis/ai/stigmer/agentic
 import type { PluginStatus, PluginWarning } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/status_pb";
 import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import type { ResourceRef } from "@stigmer/client";
-import { HOOK_WARNING_KINDS } from "@stigmer/plugin-package";
+import { HOOK_WARNING_KINDS, toolServerSegment } from "@stigmer/plugin-package";
 import { DIALECT_LABELS } from "@stigmer/plugin-package/client";
 import { useManageAccess } from "../access/useManageAccess.js";
 import { UNSTYLED_LIST } from "../internal/element-resets.js";
@@ -49,11 +59,16 @@ import { useDetailTabs } from "../resource-detail/useDetailTabs.js";
 import type { TabItem } from "../tabs/Tabs.js";
 import { VersionTimeline } from "../version-history/VersionTimeline.js";
 import { Button } from "../button/Button.js";
+import { CopyBlock } from "../internal/CopyBlock.js";
+import { ChangeMcpServerDialog } from "./AddMcpServerDialog.js";
 import { AddPluginToAgentDialog } from "./AddPluginToAgentDialog.js";
 import { HookConfigList } from "./HookConfigList.js";
 import { PluginIcon } from "./PluginIcon.js";
 import { summariseInstall } from "./PluginInstallDialog.js";
+import { PluginKeys } from "./PluginKeys.js";
 import { PluginServerRow } from "./PluginServerRow.js";
+import { useCanCreatePlugin } from "./useCanCreatePlugin.js";
+import { useOneServerPlugin } from "./useOneServerPlugin.js";
 import { usePlugin } from "./usePlugin.js";
 import { usePluginVersions } from "./usePluginVersions.js";
 import { LoadingRegion } from "../internal/LoadingRegion.js";
@@ -81,6 +96,12 @@ export interface PluginDetailViewProps {
   readonly onStartChat?: (plugin: ResourceRef) => void;
   /** Called from "Open agent" after the plugin was added to one; the host owns the route. */
   readonly onAgentClick?: (ref: ResourceRef) => void;
+  /**
+   * Called from "upload the new version" in the "Change or remove" section
+   * of a plugin pushed from a folder; the host opens its upload page. The
+   * section shows the push command alone when omitted.
+   */
+  readonly onUploadNewVersion?: () => void;
   /**
    * Called with a run id when the user opens one of an eval's tries from
    * the Evals tab; the host owns the route. Tries are listed without links
@@ -134,6 +155,7 @@ export function PluginDetailView({
   onResourceLoad,
   onStartChat,
   onAgentClick,
+  onUploadNewVersion,
   onNavigateToRun,
   actions,
   additionalTabs,
@@ -237,7 +259,16 @@ export function PluginDetailView({
       </>
     );
   } else {
-    tabContent = <PluginOverview plugin={plugin} org={org} onStartChat={onStartChat} onAgentClick={onAgentClick} />;
+    tabContent = (
+      <PluginOverview
+        plugin={plugin}
+        org={org}
+        onStartChat={onStartChat}
+        onAgentClick={onAgentClick}
+        onUploadNewVersion={onUploadNewVersion}
+        onChanged={refetch}
+      />
+    );
   }
 
   return (
@@ -271,12 +302,17 @@ function PluginOverview({
   org,
   onStartChat,
   onAgentClick,
+  onUploadNewVersion,
+  onChanged,
 }: {
   readonly plugin: Plugin;
   /** The organization the page is viewed in: its runner lists tools, and My vault there holds logins. */
   readonly org: string;
   readonly onStartChat?: (plugin: ResourceRef) => void;
   readonly onAgentClick?: (ref: ResourceRef) => void;
+  readonly onUploadNewVersion?: () => void;
+  /** Called once a change of address installed a new version: the page reads the plugin again. */
+  readonly onChanged: () => void;
 }) {
   const pluginOrg = plugin.metadata?.org || org;
   const slug = plugin.metadata?.slug ?? "";
@@ -290,7 +326,11 @@ function PluginOverview({
   const hookConfig = status?.hooks !== undefined && status.hooks.groups.length > 0 ? status.hooks : undefined;
   const hookWarnings = (status?.warnings ?? []).filter((warning) => isHookWarning(warning.kind));
   const warnings = (status?.warnings ?? []).filter((warning) => !isHookWarning(warning.kind));
-  const variables = Object.entries(status?.env ?? {}).sort(([a], [b]) => a.localeCompare(b));
+  const env = status?.env ?? {};
+  const keyCount = Object.keys(env).length;
+  const oneServer = useOneServerPlugin(plugin);
+  const canPush = useCanCreatePlugin(pluginOrg).allowed;
+  const [changing, setChanging] = useState(false);
   const offer = useMemo(
     () => ({ plugin: { org: pluginOrg, slug }, name, servers: servers.map((server) => server.name) }),
     [pluginOrg, slug, name, servers],
@@ -328,9 +368,29 @@ function PluginOverview({
         <Section title="MCP servers" count={servers.length}>
           <ul className={cn(UNSTYLED_LIST, "stg:flex stg:flex-col stg:divide-y stg:divide-border")} aria-label="MCP servers">
             {servers.map((server) => (
-              <PluginServerRow key={server.name} org={org} pluginId={pluginId} pluginName={name} server={server} />
+              <PluginServerRow
+                key={server.name}
+                org={org}
+                pluginId={pluginId}
+                pluginName={name}
+                server={server}
+                keysSavedBelow={keyCount > 0}
+                onChangeAddress={oneServer.server !== null && canPush ? () => setChanging(true) : undefined}
+              />
             ))}
           </ul>
+          {oneServer.server !== null && (
+            <ChangeMcpServerDialog
+              plugin={plugin}
+              current={oneServer.server}
+              open={changing}
+              onClose={() => setChanging(false)}
+              onChanged={() => {
+                setChanging(false);
+                onChanged();
+              }}
+            />
+          )}
         </Section>
       )}
 
@@ -368,19 +428,9 @@ function PluginOverview({
         </Section>
       )}
 
-      {variables.length > 0 && (
-        <Section title="Keys" count={variables.length}>
-          <ul className={cn(UNSTYLED_LIST, "stg:flex stg:flex-col stg:divide-y stg:divide-border")} aria-label="Keys this plugin reads">
-            {variables.map(([key, declaration]) => (
-              <li key={key} className="stg:flex stg:flex-wrap stg:items-baseline stg:gap-x-2 stg:px-3 stg:py-2 stg:text-sm">
-                <code className="stg:font-mono stg:text-xs stg:text-foreground">{key}</code>
-                <span className="stg:text-xs stg:text-muted-foreground">
-                  {[declaration.isSecret ? "secret" : "setting", declaration.optional ? "optional" : "required"].join(", ")}
-                </span>
-                {declaration.description && <span className="stg:text-xs stg:text-muted-foreground">{declaration.description}</span>}
-              </li>
-            ))}
-          </ul>
+      {keyCount > 0 && (
+        <Section title="Keys" count={keyCount}>
+          <PluginKeys org={org} env={env} servers={servers} />
         </Section>
       )}
 
@@ -391,7 +441,84 @@ function PluginOverview({
           <WarningList warnings={warnings} />
         </Section>
       )}
+
+      <ChangeOrRemove
+        name={slug}
+        shape={oneServer.isLoading ? "reading" : oneServer.server !== null ? "one-server" : "package"}
+        canPush={canPush}
+        onUploadNewVersion={onUploadNewVersion}
+      />
     </div>
+  );
+}
+
+/**
+ * How the plugin changes, how it is removed, and why its name is fixed,
+ * with the terminal's commands. A one-server plugin changes its address; a
+ * plugin pushed from a folder changes by pushing the folder again.
+ */
+function ChangeOrRemove({
+  name,
+  shape,
+  canPush,
+  onUploadNewVersion,
+}: {
+  readonly name: string;
+  /** What the plugin is, from its files; `reading` while they are read. */
+  readonly shape: "reading" | "one-server" | "package";
+  readonly canPush: boolean;
+  readonly onUploadNewVersion?: () => void;
+}) {
+  const toolPrefix = `mcp__${toolServerSegment(name, "")}…`;
+  return (
+    <Section title="Change or remove">
+      <div className="stg:flex stg:flex-col stg:gap-4 stg:px-3 stg:py-2.5 stg:text-sm stg:text-foreground">
+        {shape === "one-server" && (
+          <div className="stg:flex stg:flex-col stg:gap-2">
+            <p className="stg:m-0">
+              {canPush
+                ? "Change its address with Change address above, or from a terminal:"
+                : "An admin of the organization changes its address, on this page or from a terminal:"}
+            </p>
+            <CopyBlock label="Change its address" value={`stigmer mcp add ${name} <new-address>`} />
+          </div>
+        )}
+        {shape === "package" && (
+          <div className="stg:flex stg:flex-col stg:gap-2">
+            <p className="stg:m-0">
+              Change its folder and push it again
+              {onUploadNewVersion ? (
+                <>
+                  , or{" "}
+                  <button
+                    type="button"
+                    onClick={onUploadNewVersion}
+                    className="stg:p-0 stg:text-sm stg:text-foreground stg:underline stg:underline-offset-2"
+                  >
+                    upload the new version
+                  </button>
+                  :
+                </>
+              ) : (
+                ":"
+              )}
+            </p>
+            <CopyBlock label="Push the new version" value="stigmer push plugin <folder>" />
+          </div>
+        )}
+        <div className="stg:flex stg:flex-col stg:gap-2">
+          <p className="stg:m-0">
+            Remove it from the ⋯ menu, or from a terminal. It is refused while an agent lists it. Logins you saved for its
+            servers stay in My vault.
+          </p>
+          <CopyBlock label="Remove it" value={`stigmer delete plugin ${name}`} />
+        </div>
+        <p className="stg:m-0 stg:text-muted-foreground">
+          Its name is part of every tool name its agents use (<code className="stg:font-mono stg:text-xs">{toolPrefix}</code>), so
+          it doesn&apos;t change. To use another name, add it again under that name, move your agents to it, and remove this one.
+        </p>
+      </div>
+    </Section>
   );
 }
 

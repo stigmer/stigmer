@@ -2,7 +2,8 @@
  * Pins the web plugin page's seams around the SDK's PluginDetailView: an
  * eval try's run opens through run navigation, "Open agent" (after the
  * plugin was added to one) opens that agent as a library detail, and
- * "Start a chat" opens the launcher with the plugin on. Remove asks
+ * "Start a chat" opens the launcher with the plugin on, "upload the new
+ * version" opens the plugin upload page. Remove asks
  * first, deletes once confirmed and returns to the plugins list; a failed
  * delete stays on the page (the delete hook shows its own error), and a
  * declined one deletes nothing. Remove declares `can_delete` (CON-01), so
@@ -24,6 +25,7 @@ interface ViewProps {
   onNavigateToRun: (runId: string) => void;
   onAgentClick: (ref: Ref) => void;
   onStartChat: (ref: Ref) => void;
+  onUploadNewVersion: () => void;
   actions: DetailAction[];
 }
 
@@ -112,6 +114,14 @@ async function removePlugin(): Promise<void> {
 }
 
 describe("web PluginDetailPageInner", () => {
+  it("opens the upload page from \"upload the new version\"", () => {
+    render(<PluginDetailPageInner org="acme" slug="thermos" />);
+
+    act(() => view().onUploadNewVersion());
+
+    expect(page.pushed).toEqual(["/library/plugins/upload"]);
+  });
+
   it("shows the plugin where it lives", () => {
     render(<PluginDetailPageInner org="acme" slug="thermos" />);
 
