@@ -30,6 +30,7 @@ import type { ThinkingModeOption } from "../models/thinking-mode.js";
 import { useStigmer } from "../hooks.js";
 import { toError } from "../internal/toError.js";
 import { useFetch } from "../internal/useFetch.js";
+import { useKeyedState } from "../internal/useKeyedState.js";
 import { useConversationStoreRef } from "../internal/store/conversation-store.js";
 // Type-only import so the SharedRunFields doc links below resolve;
 // the strict tsdoc gate (tsdoc:check) guards it against removal.
@@ -669,7 +670,7 @@ export function useSessionConversation(
     errorsByToolUseId,
     error: answerError,
     clearError: clearAnswerError,
-  } = useAnswerToolUse();
+  } = useAnswerToolUse(sessionId);
   const {
     answerCustomToolUse: rawAnswerCustomToolUse,
     submittingIds: answeringCustomToolUseIds,
@@ -687,7 +688,7 @@ export function useSessionConversation(
     clearDecisionError: clearFileDecisionError,
     error: fileReviewError,
     clearError: clearFileReviewError,
-  } = useReviewFileChanges();
+  } = useReviewFileChanges(sessionId);
 
   // Local run: attach the session's runner worker while it is open and
   // detach it on close. No-op for cloud sessions or when no adapter is set.
@@ -832,10 +833,13 @@ export function useSessionConversation(
     liveTurn !== null && activePhase !== null && STOPPABLE_PHASES.has(activePhase);
 
   // Stop: the session's interrupt first; a repeat press for the same run,
-  // while it still winds down, terminates it.
+  // while it still winds down, terminates it. The interrupt's flag and
+  // error belong to this conversation, as the run actions' belong to its
+  // run and the answers' to it: the mounted viewer moving to another
+  // conversation shows none of them there (stigmer/stigmer#3226).
   const runActions = useRunActions(activeRunId, { onSuccess: refetch });
-  const [isInterrupting, setIsInterrupting] = useState(false);
-  const [interruptError, setInterruptError] = useState<Error | null>(null);
+  const [isInterrupting, setIsInterrupting] = useKeyedState(sessionId ?? "", false);
+  const [interruptError, setInterruptError] = useKeyedState<Error | null>(sessionId ?? "", null);
   const interruptedRunRef = useRef<string | null>(null);
   const terminate = runActions.terminate;
   const stop = useCallback(
@@ -857,7 +861,7 @@ export function useSessionConversation(
         setIsInterrupting(false);
       }
     },
-    [isStoppable, sessionId, activeRunId, terminate, stigmer],
+    [isStoppable, sessionId, activeRunId, terminate, stigmer, setIsInterrupting, setInterruptError],
   );
 
   // A message is sent while a turn works too: it waits in the session's

@@ -5,7 +5,12 @@
  * digest the person saw, with its reason and binary acknowledgment; the
  * decision in flight and a failure are kept per decision key (with a scalar
  * mirror) and rethrown; a retry or `clearDecisionError` clears only its own
- * key; `fileDecisionKey` names a whole set or one file.
+ * key; `fileDecisionKey` names a whole set or one file. A hook bound to a
+ * session (`useReviewFileChanges(sessionId)`) shows in `error` only the
+ * failures of decisions for that session made during this visit to it: a
+ * switch starts clean, a late failure is dropped, and a decision for another
+ * session neither shows nor clears it (stigmer/stigmer#3226); unbound, every
+ * decision writes it, as before.
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { renderHook, act } from "@testing-library/react";
@@ -149,5 +154,74 @@ describe("useReviewFileChanges", () => {
     act(() => result.current.clearDecisionError("absent"));
     act(() => result.current.clearDecisionError(keyB));
     expect(result.current.decisionErrors.size).toBe(0);
+  });
+
+  it("bound to a session, starts clean on another and drops a failure that lands after the switch", async () => {
+    reviewFileChanges.mockRejectedValueOnce(new Error("fail-a"));
+    let reject: (err: Error) => void = () => {};
+    reviewFileChanges.mockReturnValueOnce(new Promise<never>((_, r) => { reject = r; }));
+    const { result, rerender } = renderHook(({ id }) => useReviewFileChanges(id), {
+      wrapper: Wrapper,
+      initialProps: { id: "ses_a" },
+    });
+
+    await act(async () => {
+      await expect(result.current.reviewFileChanges("ses_a", "cs-1", "keep", { expectedDigest: "d" })).rejects.toThrow("fail-a");
+    });
+    expect(result.current.error?.message).toBe("fail-a");
+
+    rerender({ id: "ses_b" });
+    expect(result.current.error).toBeNull();
+
+    rerender({ id: "ses_a" });
+    let pending: Promise<void> = Promise.resolve();
+    act(() => {
+      pending = result.current.reviewFileChanges("ses_a", "cs-2", "undo", { expectedDigest: "d" });
+    });
+    rerender({ id: "ses_b" });
+    await act(async () => {
+      reject(new Error("too late"));
+      await expect(pending).rejects.toThrow("too late");
+    });
+    expect(result.current.error).toBeNull();
+
+    rerender({ id: "ses_a" });
+    expect(result.current.error).toBeNull();
+  });
+
+  it("bound to a session, a decision for another session neither shows its failure nor clears this one's", async () => {
+    reviewFileChanges
+      .mockRejectedValueOnce(new Error("mine"))
+      .mockRejectedValueOnce(new Error("theirs"))
+      .mockResolvedValueOnce({});
+    const { result } = renderHook(() => useReviewFileChanges("ses_a"), { wrapper: Wrapper });
+
+    await act(async () => {
+      await expect(result.current.reviewFileChanges("ses_a", "cs-1", "keep", { expectedDigest: "d" })).rejects.toThrow("mine");
+    });
+    await act(async () => {
+      await expect(result.current.reviewFileChanges("ses_b", "cs-2", "keep", { expectedDigest: "d" })).rejects.toThrow("theirs");
+    });
+    expect(result.current.error?.message).toBe("mine");
+    expect(result.current.decisionErrors.get("cs-2")?.message).toBe("theirs");
+
+    await act(async () => {
+      await result.current.reviewFileChanges("ses_b", "cs-3", "keep", { expectedDigest: "d" });
+    });
+    expect(result.current.error?.message).toBe("mine");
+  });
+
+  it("unbound, every decision's failure shows in the scalar, as before", async () => {
+    reviewFileChanges.mockRejectedValueOnce(new Error("a")).mockRejectedValueOnce(new Error("b"));
+    const { result } = renderHook(() => useReviewFileChanges(), { wrapper: Wrapper });
+
+    await act(async () => {
+      await expect(result.current.reviewFileChanges("ses_a", "cs-1", "keep", { expectedDigest: "d" })).rejects.toThrow("a");
+    });
+    expect(result.current.error?.message).toBe("a");
+    await act(async () => {
+      await expect(result.current.reviewFileChanges("ses_b", "cs-2", "keep", { expectedDigest: "d" })).rejects.toThrow("b");
+    });
+    expect(result.current.error?.message).toBe("b");
   });
 });

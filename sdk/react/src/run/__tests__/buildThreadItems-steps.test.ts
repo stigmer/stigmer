@@ -295,9 +295,9 @@ describe("buildThreadItems finished turn", () => {
     expect(keys(build(events, { includeOutcomes: true }))).toEqual([`${R}-spec`, m(R, 0), `outcome-${R}`, `${R}-how`]);
   });
 
-  it("keeps its outcome first when it wrote no answer", () => {
+  it("keeps its outcome first when it wrote no answer, its scores at its foot", () => {
     const events = [user(R, "go"), status(R, "running"), call(R, "c1", "read_file", { path: "a.ts" }), status(R, "completed")];
-    expect(keys(build(events, { includeOutcomes: true }))).toEqual([`${R}-spec`, `outcome-${R}`, `${R}-how`]);
+    expect(keys(build(events, { includeOutcomes: true }))).toEqual([`${R}-spec`, `outcome-${R}`, `${R}-how`, `${R}-scores`]);
   });
 
   it("keeps its plan card outside the fold, after the outcome", () => {
@@ -336,8 +336,9 @@ describe("buildThreadItems finished turn", () => {
       { includeOutcomes: true },
     );
     // Not folded as a finished turn: no "How it got there", the step in view;
-    // it closed on no message, so its scores sit at its foot.
-    expect(keys(items)).toEqual([`${R}-spec`, m(R, 0), tc(R, "c1"), `${R}-scores`, `execution-error-${R}`, `outcome-${R}`]);
+    // it closed on no message, so its scores sit at its foot, below its note
+    // and what it produced.
+    expect(keys(items)).toEqual([`${R}-spec`, m(R, 0), tc(R, "c1"), `execution-error-${R}`, `outcome-${R}`, `${R}-scores`]);
   });
 
   it.each(["failed", "cancelled"] as const)("keeps a turn that %s in time order, its ending's notice before what it produced", (phase) => {

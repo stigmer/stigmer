@@ -5,7 +5,8 @@
  * message the person sent mid-turn, closed on no answer: nothing leads, no
  * message carries the scores, its messages stay in time order under "How
  * it got there", and the run's scores sit at the turn's foot. A turn that
- * wrote no message carries no scores, as before.
+ * wrote no message (it only ran steps) carries them at its foot too
+ * (stigmer/stigmer#3299). A thread that shows no scores carries no such row.
  */
 import { describe, it, expect } from "vitest";
 import type { SessionEvent } from "@stigmer/apis/ai/stigmer/agentic/session/v1/event_pb";
@@ -83,9 +84,56 @@ describe("buildThreadItems answer", () => {
     ]);
   });
 
-  it("carries no scores row when the turn closed on its answer, or wrote no message", () => {
+  it("carries no scores row when the turn closed on its answer", () => {
     expect(footScores(finished(call("c1", "read_file"), said(R, 0, "Done.")))).toBeUndefined();
-    expect(footScores(finished(call("c1", "read_file")))).toBeUndefined();
+  });
+
+  it("carries the scores at its foot, once, when the turn ran steps and wrote no message", () => {
+    const items = finished(call("c1", "read_file"), call("c2", "grep"), call("c3", "shell"));
+
+    expect(scored(items)).toBeUndefined();
+    expect(footScores(items)).toBe(R);
+    expect(items.filter((item) => item.kind === "turn-scores")).toHaveLength(1);
+  });
+
+  it("puts the scores at the very foot of a stopped turn: after its ending note and its outcome", () => {
+    const stopped = (...events: Array<SessionEvent | readonly SessionEvent[]>) =>
+      buildThreadItems(
+        turnsOf(user(R, "go"), status(R, "running"), ...events, status(R, "completed", { stopCause: "platform_stop" })),
+        [],
+        { includeLiveness: false, includeOutcomes: true },
+      );
+
+    for (const items of [stopped(call("c1", "read_file")), stopped(said(R, 0, "Looking."), call("c1", "read_file"))]) {
+      const kinds = items.map((item) => item.kind);
+      expect(kinds.at(-1)).toBe("turn-scores");
+      expect(kinds.indexOf("execution-error")).toBeLessThan(kinds.indexOf("turn-scores"));
+      expect(kinds.indexOf("outcome")).toBeLessThan(kinds.indexOf("turn-scores"));
+    }
+  });
+
+  it("puts an earlier turn's scores after its outcome too", () => {
+    const S = "run_b";
+    const items = buildThreadItems(
+      turnsOf(
+        user(R, "go"), status(R, "running"), ...call("c1", "read_file"), status(R, "completed", { stopCause: "platform_stop" }),
+        user(S, "again"), status(S, "running"), said(S, 0, "Done."), status(S, "completed"),
+      ),
+      [],
+      { includeLiveness: false, includeOutcomes: true },
+    );
+    const keys = items.map((item) => item.key);
+
+    expect(keys.indexOf(`outcome-${R}`)).toBeGreaterThan(-1);
+    expect(keys.indexOf(`${R}-scores`)).toBe(keys.indexOf(`outcome-${R}`) + 1);
+  });
+
+  it("carries no scores row in a thread that shows no scores, so no empty row takes space", () => {
+    const events = turnsOf(user(R, "go"), status(R, "running"), ...call("c1", "read_file"), said(R, 0, "Looking."), ...call("c2", "grep"), status(R, "completed"));
+    const items = buildThreadItems(events, [], { includeLiveness: false, includeScores: false });
+
+    expect(items.some((item) => item.kind === "turn-scores")).toBe(false);
+    expect(footScores(buildThreadItems(events, [], { includeLiveness: false }))).toBe(R);
   });
 
   it("leads with the last message when the turn closed on it", () => {

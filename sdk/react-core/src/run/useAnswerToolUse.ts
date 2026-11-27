@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo } from "react";
 import { create } from "@bufbuild/protobuf";
 import {
   ConfirmToolUseInputSchema,
@@ -8,6 +8,7 @@ import {
 } from "@stigmer/apis/ai/stigmer/agentic/session/v1/io_pb";
 import { useStigmer } from "../hooks.js";
 import { toError } from "../internal/toError.js";
+import { useKeyedState } from "../internal/useKeyedState.js";
 import { useKeyedSubmission } from "../internal/useKeyedSubmission.js";
 
 /**
@@ -50,6 +51,12 @@ export interface UseAnswerToolUseReturn {
   /**
    * The most recent failure, or `null`: a single value for a headless
    * consumer (a banner, the terminal surface). The map is authoritative.
+   *
+   * With the hook bound to a session (`useAnswerToolUse(sessionId)`), only
+   * the failures of answers for that session, made while it is the bound
+   * one: another session starts clean, and an answer that fails after the
+   * switch, or answers another session, never shows here. Unbound, the
+   * failure of any answer.
    */
   readonly error: Error | null;
   /** Reset every answer error (both {@link errorsByToolUseId} and {@link error}). */
@@ -63,6 +70,12 @@ export interface UseAnswerToolUseReturn {
  *
  * Platform builders who render their own approval UI use this hook
  * directly; {@link ApprovalCard} takes the answer callback it produces.
+ *
+ * @param sessionId - The conversation on screen, whose failures
+ *   {@link UseAnswerToolUseReturn.error} shows. Pass it when the hook stays
+ *   mounted while the person moves between conversations, so one
+ *   conversation's failed answer never shows on the next. Omit it to show
+ *   the failure of any answer. Each answer still names its own session.
  *
  * @example
  * ```tsx
@@ -80,15 +93,18 @@ export interface UseAnswerToolUseReturn {
  * }
  * ```
  */
-export function useAnswerToolUse(): UseAnswerToolUseReturn {
+export function useAnswerToolUse(sessionId?: string | null): UseAnswerToolUseReturn {
   const stigmer = useStigmer();
   const keyed = useKeyedSubmission<void>();
-  const [error, setError] = useState<Error | null>(null);
+  // The scalar belongs to the bound session, visit by visit; an answer
+  // writes it only when it names that session (stigmer/stigmer#3226).
+  const boundId = sessionId ?? "";
+  const [error, setError] = useKeyedState<Error | null>(boundId, null);
 
   const clearError = useCallback(() => {
     keyed.clearErrors();
     setError(null);
-  }, [keyed.clearErrors]);
+  }, [keyed.clearErrors, setError]);
 
   const answerToolUse = useCallback(
     async (
@@ -97,7 +113,8 @@ export function useAnswerToolUse(): UseAnswerToolUseReturn {
       answer: ToolUseAnswer,
       denyMessage?: string,
     ): Promise<void> => {
-      setError(null);
+      const shown = boundId === "" || sessionId === boundId;
+      if (shown) setError(null);
       try {
         await keyed.run(toolUseId, async () => {
           if (answer === "grant") {
@@ -116,11 +133,11 @@ export function useAnswerToolUse(): UseAnswerToolUseReturn {
           );
         });
       } catch (err) {
-        setError(toError(err));
+        if (shown) setError(toError(err));
         throw err;
       }
     },
-    [stigmer, keyed.run],
+    [stigmer, keyed.run, boundId, setError],
   );
 
   return useMemo(

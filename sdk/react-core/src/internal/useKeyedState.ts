@@ -23,11 +23,15 @@
  *   and never landing on a later return to the old one. Each visit to a
  *   key starts from `initial`.
  *
+ * The same holds for an action's state: the error and in-flight flag of a
+ * Stop, an approval or a file decision belong to the conversation (or run)
+ * they were made for, so the action hooks declare them keyed too
+ * (stigmer/stigmer#3226).
+ *
  * The setter takes a value, not an updater, and keeps its identity while
  * the key holds (a callback naming it in its deps changes only when the
- * key does). Not to be confused with `useKeyedSubmission` in the core kit,
- * which tracks several concurrent operations by key; this holds one value
- * for whichever key is current.
+ * key does). Its neighbour `useKeyedSubmission` tracks several concurrent
+ * operations by key; this holds one value for whichever key is current.
  *
  * Pinned by `__tests__/useKeyedState.test.ts`.
  *

@@ -191,10 +191,10 @@ describe("buildThreadItems key generation", () => {
     expect(items.length).toBeGreaterThan(0);
   });
 
-  it("skips an empty agent message but still emits its tool group", () => {
+  it("skips an empty agent message but still emits its tool group, the turn's scores at its foot", () => {
     const items = buildThreadItems(turnsOf(user(R, "go"), said(R, 0, "  "), call(R, "c1", "read_file", { path: "a" }), status(R, "completed")), []);
 
-    expect(items.map((i) => i.kind)).toEqual(["message", "how-it-got-there"]);
+    expect(items.map((i) => i.kind)).toEqual(["message", "how-it-got-there", "turn-scores"]);
     expect(how(items)!.items.map((i) => i.kind)).toEqual(["tool-group"]);
   });
 
@@ -340,9 +340,10 @@ describe("buildThreadItems todos card", () => {
   it("falls back to the turn's tail when nothing else renders (anchor 3)", () => {
     const events = [user(R, "go"), status(R, "running"), todos(R, "t", [{ content: "Step 1", status: "completed" }])];
     expect(keys(live(...events))).toEqual([`${R}-spec`, `${R}-todos`]);
-    // Once the turn finished, the plan is part of how it got there.
+    // Once the turn finished, the plan is part of how it got there, and the
+    // turn, which wrote no message, carries its scores at its foot.
     const ended = buildThreadItems(turnsOf(...events, status(R, "completed")), []);
-    expect(keys(ended)).toEqual([`${R}-spec`, `${R}-how`]);
+    expect(keys(ended)).toEqual([`${R}-spec`, `${R}-how`, `${R}-scores`]);
     expect(keys(how(ended)!.items)).toEqual([`${R}-todos`]);
   });
 

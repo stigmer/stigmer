@@ -711,6 +711,12 @@ export interface BuildThreadItemsOptions {
   readonly includeOutcomes?: boolean;
   /** Emit the tail's working indicator while a turn runs (default true). */
   readonly includeLiveness?: boolean;
+  /**
+   * Emit a `turn-scores` row at the foot of a completed turn with no final
+   * answer (default true). Off in a thread that shows no scores, where the
+   * row would draw nothing and still take a row's space.
+   */
+  readonly includeScores?: boolean;
   /** The optimistic message shown before the session's events carry it. */
   readonly pendingUserMessage?: string | null;
   /** Emit a bottom approval card for a waiting tool use that has no row of its own. */
@@ -873,6 +879,7 @@ export function buildThreadItems(
     planFiles,
     includeOutcomes = false,
     includeLiveness = true,
+    includeScores = true,
     planSteps = true,
     endingViewer = DEFAULT_ENDING_VIEWER,
     endingNames,
@@ -900,6 +907,9 @@ export function buildThreadItems(
   // back) is not a turn of the conversation and renders nothing.
   const shown = turns.filter((turn) => runsById.get(turn.runId)?.spec?.reconcileFileReview !== true);
   const lastTurn = shown.at(-1);
+  // The last turn's scores row, held until its ending note and outcome are
+  // placed, so it sits at the turn's very foot (below).
+  let lastTurnScores: ThreadItem | undefined;
   const activeTurn = lastTurn !== undefined && !lastTurn.ended ? lastTurn : undefined;
 
   // The most recent completed Plan turn owns the primary "Build" action;
@@ -1205,18 +1215,28 @@ export function buildThreadItems(
       }
     }
 
-    // A completed turn that wrote messages but has no final answer (it
-    // ended on a step, or Stigmer stopped it) still carries its scores (the
-    // thumbs, the run-health, judge and eval chips, Make a test case): at
-    // its foot, since no answer leads.
-    if (turn.status?.phase === "completed" && planMessageId === undefined && finalAnswer === undefined && lastMessageId(turn.items) !== undefined) {
-      items.push({ kind: "turn-scores", runId, key: `${runId}-scores` });
-    }
+    // A completed turn with no final answer (it ended on a step, Stigmer
+    // stopped it, or it ran steps and wrote no message at all) still
+    // carries its scores (the thumbs, the run-health, judge and eval chips,
+    // Make a test case): at its very foot, after its ending note and its
+    // outcome, since no answer leads. Its thumbs show on hover, so the row
+    // must close the turn: above the note it would read as a blank band.
+    // The run-health chip matters most on exactly these turns
+    // (stigmer/stigmer#3299). A final answer carries them itself, so no
+    // turn carries them twice.
+    const scoresRow: ThreadItem | undefined =
+      includeScores && turn.status?.phase === "completed" && planMessageId === undefined && finalAnswer === undefined
+        ? { kind: "turn-scores", runId, key: `${runId}-scores` }
+        : undefined;
 
     // Every ended turn but the last closes here; the last closes after its
     // failure notice, below. A finished turn closed above, after its answer.
     if (includeOutcomes && turn.ended && turn !== lastTurn && !finished) {
       items.push({ kind: "outcome", turn, key: `outcome-${turn.runId}` });
+    }
+    if (scoresRow !== undefined) {
+      if (turn === lastTurn) lastTurnScores = scoresRow;
+      else items.push(scoresRow);
     }
   }
 
@@ -1288,6 +1308,8 @@ export function buildThreadItems(
   if (includeOutcomes && lastTurn?.ended && !finishedTurn(lastTurn)) {
     items.push({ kind: "outcome", turn: lastTurn, key: `outcome-${lastTurn.runId}` });
   }
+
+  if (lastTurnScores !== undefined) items.push(lastTurnScores);
 
   if (includeApprovals && lastTurn) {
     // Backstop only: a waiting tool use with a row shows its decision on that
@@ -1470,6 +1492,7 @@ export function MessageThread({
         planFiles,
         includeOutcomes: turnOutcome !== undefined,
         includeLiveness: ambientLiveness,
+        includeScores: runScores,
         // A host that draws its own to-do card or row keeps today's card,
         // with the steps in time order: its card and row take only the list.
         planSteps: slots?.TodoCard === undefined && slots?.TodoRow === undefined,
@@ -1477,7 +1500,7 @@ export function MessageThread({
         ...(turnEnding?.names !== undefined ? { endingNames: turnEnding.names } : {}),
         hasToolCard,
       }),
-    [turns, runs, pendingUserMessage, includeApprovals, resources, pendingMessageFailed, editableActiveTurn, collapseStreamingPlan, pendingFiles, queued, agentVersionLabel, planFiles, turnOutcome, ambientLiveness, slots?.TodoCard, slots?.TodoRow, turnEnding?.viewer, turnEnding?.names, hasToolCard],
+    [turns, runs, pendingUserMessage, includeApprovals, resources, pendingMessageFailed, editableActiveTurn, collapseStreamingPlan, pendingFiles, queued, agentVersionLabel, planFiles, turnOutcome, ambientLiveness, runScores, slots?.TodoCard, slots?.TodoRow, turnEnding?.viewer, turnEnding?.names, hasToolCard],
   );
   // The asks answered in their own card, for the rows that would otherwise
   // offer the same decision. Keyed on the ids themselves: `items` is a new

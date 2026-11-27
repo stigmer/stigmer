@@ -5,6 +5,7 @@ import { create } from "@bufbuild/protobuf";
 import { ReviewFileChangesInputSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/io_pb";
 import { useStigmer } from "../hooks.js";
 import { toError } from "../internal/toError.js";
+import { useKeyedState } from "../internal/useKeyedState.js";
 
 /** What a decision does to a turn's changes: keep them, or put them back. */
 export type FileReviewAction = "keep" | "undo";
@@ -59,7 +60,16 @@ export interface UseReviewFileChangesReturn {
   readonly decisionErrors: ReadonlyMap<string, Error>;
   /** Clear the error for one decision key (e.g. before a retry of that target). */
   readonly clearDecisionError: (key: string) => void;
-  /** The most recent failure, or `null`: a single value for a headless consumer. */
+  /**
+   * The most recent failure, or `null`: a single value for a headless
+   * consumer.
+   *
+   * With the hook bound to a session (`useReviewFileChanges(sessionId)`),
+   * only the failures of decisions for that session, made while it is the
+   * bound one: another session starts clean, and a decision that fails
+   * after the switch, or decides another session's changes, never shows
+   * here. Unbound, the failure of any decision.
+   */
   readonly error: Error | null;
   /** Reset every decision error (both {@link decisionErrors} and {@link error}). */
   readonly clearError: () => void;
@@ -87,6 +97,13 @@ const NO_DECISION_ERRORS: ReadonlyMap<string, Error> = new Map();
  * the React kit's session viewer sends its Undo through the same call
  * (`useSessionConversation().reviewFileChanges`).
  *
+ * @param sessionId - The conversation on screen, whose failures
+ *   {@link UseReviewFileChangesReturn.error} shows. Pass it when the hook
+ *   stays mounted while the person moves between conversations, so one
+ *   conversation's failed decision never shows on the next. Omit it to
+ *   show the failure of any decision. Each decision still names its own
+ *   session.
+ *
  * @example
  * ```tsx
  * import type { FileReviewSet } from "@stigmer/client";
@@ -98,14 +115,17 @@ const NO_DECISION_ERRORS: ReadonlyMap<string, Error> = new Map();
  * }
  * ```
  */
-export function useReviewFileChanges(): UseReviewFileChangesReturn {
+export function useReviewFileChanges(sessionId?: string | null): UseReviewFileChangesReturn {
   const stigmer = useStigmer();
   const [submittingKeys, setSubmittingKeys] = useState<ReadonlySet<string>>(
     new Set(),
   );
   const [decisionErrors, setDecisionErrors] =
     useState<ReadonlyMap<string, Error>>(NO_DECISION_ERRORS);
-  const [error, setError] = useState<Error | null>(null);
+  // The scalar belongs to the bound session, visit by visit; a decision
+  // writes it only when it names that session (stigmer/stigmer#3226).
+  const boundId = sessionId ?? "";
+  const [error, setError] = useKeyedState<Error | null>(boundId, null);
 
   const clearDecisionError = useCallback((key: string) => {
     setDecisionErrors((prev) => {
@@ -119,7 +139,7 @@ export function useReviewFileChanges(): UseReviewFileChangesReturn {
   const clearError = useCallback(() => {
     setDecisionErrors(NO_DECISION_ERRORS);
     setError(null);
-  }, []);
+  }, [setError]);
 
   const reviewFileChanges = useCallback(
     async (
@@ -131,6 +151,7 @@ export function useReviewFileChanges(): UseReviewFileChangesReturn {
       const fileChangeId = options.fileChangeId ?? "";
       const scope = options.scope ?? (fileChangeId ? "file" : "change_set");
       const key = fileDecisionKey(changeSetId, fileChangeId || undefined);
+      const shown = boundId === "" || sessionId === boundId;
 
       setSubmittingKeys((prev) => {
         const next = new Set(prev);
@@ -138,9 +159,9 @@ export function useReviewFileChanges(): UseReviewFileChangesReturn {
         return next;
       });
       // A retry starts clean: this target's failure and the scalar mirror
-      // are cleared together.
+      // (when it shows this session) are cleared together.
       clearDecisionError(key);
-      setError(null);
+      if (shown) setError(null);
 
       try {
         await stigmer.session.reviewFileChanges(
@@ -158,7 +179,7 @@ export function useReviewFileChanges(): UseReviewFileChangesReturn {
       } catch (err) {
         const e = toError(err);
         setDecisionErrors((prev) => new Map(prev).set(key, e));
-        setError(e);
+        if (shown) setError(e);
         throw err;
       } finally {
         setSubmittingKeys((prev) => {
@@ -168,7 +189,7 @@ export function useReviewFileChanges(): UseReviewFileChangesReturn {
         });
       }
     },
-    [stigmer, clearDecisionError],
+    [stigmer, clearDecisionError, boundId, setError],
   );
 
   return useMemo(
