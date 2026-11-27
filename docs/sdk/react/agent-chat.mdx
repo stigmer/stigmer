@@ -43,7 +43,7 @@ conversation, as a page, a docked panel or a corner popup.
     showModelSelector: { type: "boolean", description: "Whether the composer offers the model picker, on the first message and on every reply. `false` hides it, for a host that wants a bare chat: each turn asks for the model it would without the picker (see `SessionViewer`'s `showModelSelector`). The harness is never offered to an app's users (`audience=\"endUser\"`), whatever this says." },
     threadSlots: { type: "MessageThreadSlots", description: "Content placed in the conversation's thread (see `MessageThreadSlots`).", typeDescriptionLink: "/docs/sdk/react/run#messagethreadslots" },
     title: { type: "string", description: "The agent's name in the frame's header and the popup's button. Defaults to the agent's own name." },
-    variant: { type: "AgentChatVariant", description: "The frame: `\"page\"` (default) fills its box; `\"panel\"` fills the box you dock it in, under a header; `\"popup\"` is a button in the corner that opens the chat beside it.", typeDescriptionLink: "#agentchatvariant" },
+    variant: { type: "AgentChatVariant", description: "The frame: `\"page\"` (default) fills its box, and in a box that sizes to its content (a flex row) takes its reading width, 48rem, or all the room there is when that is less; `\"panel\"` fills the box you dock it in, under a header; `\"popup\"` is a button in the corner that opens the chat beside it.", typeDescriptionLink: "#agentchatvariant" },
   }}
 />
 
