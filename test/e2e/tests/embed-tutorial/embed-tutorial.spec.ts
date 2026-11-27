@@ -79,6 +79,9 @@ test.describe("KIT-02 the embed tutorial, run from its page", () => {
       buffer: Buffer.from(quickstartFile("ledger.csv")),
     });
     await message.fill("Review this quarter's ledger.");
+    // Enter while the file still uploads sends nothing (the composer keeps the file
+    // from being dropped): wait for Send, which opens once the upload is done.
+    await expect(app.getByRole("button", { name: "Send message" })).toBeEnabled({ timeout: 30_000 });
     await message.press("Enter");
     const outcome = app.getByRole("region", { name: "What this turn produced" });
     await expect(outcome).toBeVisible({ timeout: 120_000 });

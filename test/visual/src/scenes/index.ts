@@ -5,7 +5,7 @@ import { agentInAppScene } from "./in-app.tsx";
 import { bringOthersInScene } from "./bring-others-in.tsx";
 import { PRESETS, THREAD_STATES, type Preset, type SceneId, type ThreadState } from "../catalog.ts";
 import { inheritedOpenAiKey, NOTHING_CONNECTED, NOTHING_ON_THE_RUNNER, ownAnthropicKey } from "../fixtures.ts";
-import { agentChatScene } from "./agent-chat.tsx";
+import { agentChatScene, agentChatSetupFailedScene } from "./agent-chat.tsx";
 import { agentComputerScene, agentProfileScene } from "./agent.tsx";
 import {
   agentPageReadScene,
@@ -373,6 +373,8 @@ export const DRAWINGS: Readonly<Record<SceneId, () => Drawing>> = {
   "agent-chat-panel": () => agentChatScene("busy", "panel", true),
   "agent-chat-popup-closed": () => agentChatScene("busy", "popup", false),
   "agent-chat-popup": () => agentChatScene("finished", "popup", true),
+  "agent-chat-agent-not-found": () => agentChatSetupFailedScene("agent-not-found"),
+  "agent-chat-no-access": () => agentChatSetupFailedScene("no-access"),
   "from-hooks": fromHooksScene,
   "from-hooks-busy": fromHooksBusyScene,
   "from-hooks-file-review": fromHooksFileReviewScene,

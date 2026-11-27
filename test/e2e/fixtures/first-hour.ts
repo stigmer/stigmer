@@ -23,7 +23,7 @@ import { journeyCli, type JourneyCli } from "../helpers/cli";
 import { JOURNEY_TARGET_VARIABLE, loadJourneyTarget, localTarget, type JourneyTarget, type JourneyToolServer } from "../helpers/first-hour/target";
 
 /** The steps, in the order the specs take them. */
-export const STEPS = ["sign-up-to-an-agent", "console-tool-call", "embedded-tool-call", "terminal-tool-call"] as const;
+export const STEPS = ["sign-up-to-an-agent", "console-tool-call", "embedded-tool-call", "terminal-tool-call", "agent-server-tool-call"] as const;
 export type Step = (typeof STEPS)[number];
 
 /** The tool server's name in the console, which is its plugin's too. */

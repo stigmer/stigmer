@@ -55,6 +55,7 @@ export {
   parseModelKey,
   fetchModelRegistry,
   fetchModelRegistryDocument,
+  ModelRegistryFetchError,
   parseRegistryJson,
   parseRegistryDocument,
   useModelRegistry,

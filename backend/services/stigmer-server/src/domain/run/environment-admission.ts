@@ -223,7 +223,13 @@ export async function sessionRunTree(store: Store, session: Session): Promise<Ru
     agent:
       agent === undefined || agentSpec === undefined
         ? undefined
-        : { id: agentId, name: agent.metadata?.slug ?? "", version: versionHash, spec: agentSpec },
+        : {
+            id: agentId,
+            name: agent.metadata?.slug ?? "",
+            version: versionHash,
+            spec: agentSpec,
+            serverSignIns: agent.status?.serverSignIns ?? [],
+          },
     subagents,
     plugins,
   };

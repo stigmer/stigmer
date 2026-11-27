@@ -16,6 +16,7 @@
  */
 import { AgentSchema } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb";
 import type { AgentSpec } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/spec_pb";
+import type { AgentServerSignIn } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/status_pb";
 import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { Code, ConnectError } from "@connectrpc/connect";
 
@@ -37,6 +38,8 @@ export interface RunSubagent {
   readonly org: string;
   /** Its spec at the pinned version. */
   readonly spec: AgentSpec;
+  /** How its own servers answered at the save of that version (`AgentStatus.server_sign_ins`). */
+  readonly serverSignIns?: readonly AgentServerSignIn[];
 }
 
 /** The refusal for a subagent whose pinned version no longer resolves. */
@@ -87,8 +90,14 @@ export async function runSubagents(
     const id = head.metadata?.id ?? "";
     const name = head.metadata?.slug ?? "";
     let spec: AgentSpec | undefined;
+    // The sign-in answers are the agent's current ones (its head's status),
+    // as every other reader takes them: they are matched by server name and
+    // address, so a pinned version's server at an address the head no
+    // longer lists finds none and stays an optional login.
+    const serverSignIns: readonly AgentServerSignIn[] = head.status?.serverSignIns ?? [];
     try {
-      spec = (await loadVersion(store, agentVersionBinding, id, ref.version)).resource.spec;
+      const version = (await loadVersion(store, agentVersionBinding, id, ref.version)).resource;
+      spec = version.spec;
     } catch (error) {
       if (error instanceof ConnectError && error.code === Code.NotFound) {
         throw failedPreconditionError(subagentGoneMessage(name, ref.version));
@@ -99,7 +108,7 @@ export async function runSubagents(
       if (subagents.some((held) => held.name === name)) {
         throw failedPreconditionError(subagentNamesClashMessage(name));
       }
-      subagents.push({ id, name, org, versionHash: ref.version, spec });
+      subagents.push({ id, name, org, versionHash: ref.version, spec, serverSignIns });
     }
   }
   return subagents;

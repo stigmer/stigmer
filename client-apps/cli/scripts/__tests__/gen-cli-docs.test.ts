@@ -70,6 +70,15 @@ describe("generate", () => {
     expect(index).toContain("## Global Flags");
   });
 
+  it("marks a required flag as help does, and leaves an optional one unmarked", () => {
+    generate(outputDir, enrichmentsDir);
+    const vault = readFileSync(join(outputDir, "vault.mdx"), "utf8");
+    const row = (flag: string): string => vault.split("\n").find((line) => line.startsWith(`| \`--${flag}\``)) ?? "";
+    expect(row("return-url")).toContain("| where to send them afterwards (https) (required) |");
+    expect(row("address")).toContain("| the tool's URL or Git host to sign in to (required) |");
+    expect(row("expires-in")).not.toContain("(required)");
+  });
+
   it("throws when a visible command has no help group", () => {
     const program = buildProgram();
     program.command("bogus").description("an ungrouped command");

@@ -12,8 +12,7 @@ import { agentSetupReducer, INITIAL_STATE, type SignInVaults } from "../agentSet
 
 const AGENT_REF = { org: "org_acme", slug: "reviewer" };
 const LINEAR = {
-  plugin: { org: "org_globex", slug: "linear" },
-  pluginName: "linear",
+  home: { kind: "plugin" as const, ref: { org: "org_globex", slug: "linear" }, pluginName: "linear" },
   server: create(McpServerEntrySchema, { name: "linear" }),
   address: "https://mcp.linear.app/mcp",
   name: "linear",

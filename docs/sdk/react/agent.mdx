@@ -1072,8 +1072,9 @@ an `AgentInput` for submission on the final step.
 
 ### PendingSignIn
 
-One MCP server of a plugin the agent lists that signs in and has no
-login in the vaults the run reads. The agent is not ready until each is
+One MCP server of the run that signs in (a plugin's, or one an agent of
+the run writes itself and whose address asked for a sign-in when the
+agent was saved) and has no login in the vaults the run reads. The agent is not ready until each is
 signed in: a run would start and fail at the first tool call, so the
 composer asks first, the way it asks for a missing variable. A sign-in
 is saved, at the server's address, in a vault the run reads: My vault,
@@ -1083,10 +1084,9 @@ edit ([`SignInVaults`](#signinvaults)).
 <TypeTable
   type={{
     address: { type: "string", description: "The address the login is saved at: the key a sign-in completes under.", required: true },
+    home: { type: "ServerHome", description: "Where the server is written: a plugin the agent lists, or an agent of the run itself.", required: true },
     name: { type: "string", description: "The row's display name.", required: true },
-    plugin: { type: "ResourceRef", description: "The plugin the server belongs to.", required: true },
-    pluginName: { type: "string", description: "The plugin's name.", required: true },
-    server: { type: "McpServerEntry", description: "The server, from the plugin's status.", required: true },
+    server: { type: "McpServerEntry", description: "The server, as the run reads it.", required: true },
   }}
 />
 

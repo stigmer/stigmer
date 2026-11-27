@@ -43,6 +43,7 @@ import {
   visibleSubcommands,
 } from "../src/command-tree.js";
 import { HELP_GROUPS, type HelpGroup } from "../src/commands/help.js";
+import { flagDescription } from "../src/flag-description.js";
 
 // ---------------------------------------------------------------------------
 // Command grouping
@@ -177,7 +178,7 @@ function toFlagDoc(option: Option): FlagDoc {
     shorthand: option.short ?? "",
     type: flagType(option),
     defaultValue: flagDefault(option),
-    usage: option.description,
+    usage: flagDescription(option),
   };
 }
 

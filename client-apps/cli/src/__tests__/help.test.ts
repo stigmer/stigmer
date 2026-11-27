@@ -119,6 +119,23 @@ describe("CLI-10 help groups commands and gives an example for each", () => {
     expect(words("stigmer access-history export > access-history.jsonl")).toEqual(["stigmer", "access-history", "export"]);
   });
 
+  it("marks a flag the command cannot run without as required", () => {
+    const vault = buildProgram().commands.find((cmd) => cmd.name() === "vault")!;
+    const connectLink = vault.commands.find((cmd) => cmd.name() === "connect-link")!;
+    const options = helpOf(connectLink).split("Options:\n")[1]!.split("\n\n")[0];
+    expect(options).toBe(
+      [
+        "  --address <address>      the tool's URL or Git host to sign in to (required)",
+        "  --return-url <url>       where to send them afterwards (https) (required)",
+        "  --expires-in <duration>  how long the link works: 30m (default) up to 24h",
+        "  -o, --output <format>    output format: table or json",
+        "  --json                   emit the result as JSON",
+        "  --quiet                  print only the status line",
+        "  -h, --help               display help for command",
+      ].join("\n"),
+    );
+  });
+
   it("starts every description lowercase, with no closing period", () => {
     const all: Command[] = [];
     const visit = (cmd: Command): void => {

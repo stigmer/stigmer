@@ -163,7 +163,7 @@ describe("useAgentSetup and the servers of the agent's plugins that sign in", ()
     expect(outcome).toMatchObject({ status: "needsEnvVars", missingVariables: [] });
     if (state.status !== "needsEnvVars") throw new Error(`expected needsEnvVars, got ${state.status}`);
     expect(state.pendingSignIns.map((s) => s.address)).toEqual([addressOf("linear")]);
-    expect(state.pendingSignIns[0]).toMatchObject({ plugin: { org: ORG, slug: "linear" }, name: "linear" });
+    expect(state.pendingSignIns[0]).toMatchObject({ home: { kind: "plugin", ref: { org: ORG, slug: "linear" } }, name: "linear" });
 
     // The sign-in lands in My vault through the row's own hook; the agent is resolved again over a fresh read.
     world.mine.push(addressOf("linear"));

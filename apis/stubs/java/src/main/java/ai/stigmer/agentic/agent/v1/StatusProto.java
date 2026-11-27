@@ -32,6 +32,11 @@ public final class StatusProto extends com.google.protobuf.GeneratedFile {
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
       internal_static_ai_stigmer_agentic_agent_v1_AgentStatus_fieldAccessorTable;
   static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_ai_stigmer_agentic_agent_v1_AgentServerSignIn_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      internal_static_ai_stigmer_agentic_agent_v1_AgentServerSignIn_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
     internal_static_ai_stigmer_agentic_agent_v1_AgentWarning_descriptor;
   static final 
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
@@ -46,24 +51,31 @@ public final class StatusProto extends com.google.protobuf.GeneratedFile {
   static {
     java.lang.String[] descriptorData = {
       "\n(ai/stigmer/agentic/agent/v1/status.pro" +
-      "to\022\033ai.stigmer.agentic.agent.v1\032+ai/stig" +
-      "mer/commons/apiresource/status.proto\"\277\001\n" +
-      "\013AgentStatus\022F\n\005audit\030c \001(\01320.ai.stigmer" +
-      ".commons.apiresource.ApiResourceAuditR\005a" +
-      "udit\022!\n\014version_hash\030\003 \001(\tR\013versionHash\022" +
-      "E\n\010warnings\030\004 \003(\0132).ai.stigmer.agentic.a" +
-      "gent.v1.AgentWarningR\010warnings\"R\n\014AgentW" +
-      "arning\022\022\n\004kind\030\001 \001(\tR\004kind\022\030\n\007message\030\002 " +
-      "\001(\tR\007message\022\024\n\005skill\030\003 \001(\tR\005skillB\236\001B\013S" +
-      "tatusProtoP\001\242\002\004ASAA\252\002\033Ai.Stigmer.Agentic" +
-      ".Agent.V1\312\002\033Ai\\Stigmer\\Agentic\\Agent\\V1\342" +
-      "\002\'Ai\\Stigmer\\Agentic\\Agent\\V1\\GPBMetadat" +
-      "a\352\002\037Ai::Stigmer::Agentic::Agent::V1b\006pro" +
-      "to3"
+      "to\022\033ai.stigmer.agentic.agent.v1\032)ai/stig" +
+      "mer/agentic/plugin/v1/status.proto\032+ai/s" +
+      "tigmer/commons/apiresource/status.proto\"" +
+      "\227\002\n\013AgentStatus\022F\n\005audit\030c \001(\01320.ai.stig" +
+      "mer.commons.apiresource.ApiResourceAudit" +
+      "R\005audit\022!\n\014version_hash\030\003 \001(\tR\013versionHa" +
+      "sh\022E\n\010warnings\030\004 \003(\0132).ai.stigmer.agenti" +
+      "c.agent.v1.AgentWarningR\010warnings\022V\n\017ser" +
+      "ver_sign_ins\030\005 \003(\0132..ai.stigmer.agentic." +
+      "agent.v1.AgentServerSignInR\rserverSignIn" +
+      "s\"\201\001\n\021AgentServerSignIn\022\022\n\004name\030\001 \001(\tR\004n" +
+      "ame\022\020\n\003url\030\002 \001(\tR\003url\022F\n\007sign_in\030\003 \001(\0132-" +
+      ".ai.stigmer.agentic.plugin.v1.McpServerS" +
+      "ignInR\006signIn\"R\n\014AgentWarning\022\022\n\004kind\030\001 " +
+      "\001(\tR\004kind\022\030\n\007message\030\002 \001(\tR\007message\022\024\n\005s" +
+      "kill\030\003 \001(\tR\005skillB\236\001B\013StatusProtoP\001\242\002\004AS" +
+      "AA\252\002\033Ai.Stigmer.Agentic.Agent.V1\312\002\033Ai\\St" +
+      "igmer\\Agentic\\Agent\\V1\342\002\'Ai\\Stigmer\\Agen" +
+      "tic\\Agent\\V1\\GPBMetadata\352\002\037Ai::Stigmer::" +
+      "Agentic::Agent::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
         new com.google.protobuf.Descriptors.FileDescriptor[] {
+          ai.stigmer.agentic.plugin.v1.StatusProto.getDescriptor(),
           ai.stigmer.commons.apiresource.StatusProto.getDescriptor(),
         });
     internal_static_ai_stigmer_agentic_agent_v1_AgentStatus_descriptor =
@@ -71,14 +83,21 @@ public final class StatusProto extends com.google.protobuf.GeneratedFile {
     internal_static_ai_stigmer_agentic_agent_v1_AgentStatus_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_agent_v1_AgentStatus_descriptor,
-        new java.lang.String[] { "Audit", "VersionHash", "Warnings", });
-    internal_static_ai_stigmer_agentic_agent_v1_AgentWarning_descriptor =
+        new java.lang.String[] { "Audit", "VersionHash", "Warnings", "ServerSignIns", });
+    internal_static_ai_stigmer_agentic_agent_v1_AgentServerSignIn_descriptor =
       getDescriptor().getMessageType(1);
+    internal_static_ai_stigmer_agentic_agent_v1_AgentServerSignIn_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+        internal_static_ai_stigmer_agentic_agent_v1_AgentServerSignIn_descriptor,
+        new java.lang.String[] { "Name", "Url", "SignIn", });
+    internal_static_ai_stigmer_agentic_agent_v1_AgentWarning_descriptor =
+      getDescriptor().getMessageType(2);
     internal_static_ai_stigmer_agentic_agent_v1_AgentWarning_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_agent_v1_AgentWarning_descriptor,
         new java.lang.String[] { "Kind", "Message", "Skill", });
     descriptor.resolveAllFeaturesImmutable();
+    ai.stigmer.agentic.plugin.v1.StatusProto.getDescriptor();
     ai.stigmer.commons.apiresource.StatusProto.getDescriptor();
   }
 

@@ -169,7 +169,7 @@ describe("useAgentSetup and the agent's subagents", () => {
     expect(outcome).toMatchObject({
       status: "needsEnvVars",
       missingVariables: [],
-      pendingSignIns: [expect.objectContaining({ address: CALENDAR_URL, plugin: { org: ORG, slug: "calendar" } })],
+      pendingSignIns: [expect.objectContaining({ address: CALENDAR_URL, home: expect.objectContaining({ ref: { org: ORG, slug: "calendar" } }) })],
       signInVaults: { kind: "my-vault" },
     });
   });

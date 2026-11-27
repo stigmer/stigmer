@@ -110,6 +110,9 @@ test.describe("make the chat your own, run from its page on the embedding tutori
       buffer: Buffer.from(quickstartFile("ledger.csv")),
     });
     await message.fill(MESSAGE);
+    // Enter while the file still uploads sends nothing (the composer keeps the file
+    // from being dropped): wait for Send, which opens once the upload is done.
+    await expect(app.getByRole("button", { name: "Send message" })).toBeEnabled({ timeout: 30_000 });
     await message.press("Enter");
 
     // The swapped part: the person's message in the app's own bubble, with the file it carried.

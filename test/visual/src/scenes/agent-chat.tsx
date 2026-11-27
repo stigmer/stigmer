@@ -5,13 +5,24 @@
 // frames are what is pictured. The conversation is answered as the session
 // view's scenes answer it. `dockedBeside` is the panel's docking alone, so
 // a scene that draws a product's own page (the story's) docks the panel
-// exactly as these do.
+// exactly as these do. A chat that cannot start (its agent not found, an
+// app user signed in with no role) says why under its box, in the end
+// user's words.
 import type { ReactElement } from "react";
+import { clone } from "@bufbuild/protobuf";
+import { Code, ConnectError, type ConnectRouter } from "@connectrpc/connect";
+import { AgentQueryController } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/query_pb";
+import { IdentityAccountSchema } from "@stigmer/apis/ai/stigmer/iam/identityaccount/v1/api_pb";
+import { IdentityAccountProvisioningMode } from "@stigmer/apis/ai/stigmer/iam/identityaccount/v1/enum_pb";
+import { IdentityAccountQueryController } from "@stigmer/apis/ai/stigmer/iam/identityaccount/v1/query_pb";
+import { OrganizationQueryController } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/query_pb";
 import { AgentChat } from "@stigmer/react-sdk";
 import { samples, scenarios, type ScenarioName } from "@stigmer/react-sdk/test";
 import { LiveConversation } from "../live-server.ts";
 import type { Drawing } from "./drawing.ts";
 import { sessionRoutes } from "./session.tsx";
+import { ACCOUNT, ORGANIZATION } from "../fixtures.ts";
+import { ANTHROPIC_ONLY, launcherRoutes } from "./models.tsx";
 
 const AGENT = samples.agent().metadata!;
 
@@ -61,5 +72,41 @@ export function agentChatScene(name: ScenarioName, variant: "page" | "panel" | "
       if (variant === "page") return <div style={{ height: "calc(100vh - 48px)" }}>{chat}</div>;
       return productPage(chat, variant === "panel");
     },
+  };
+}
+
+/** Why a scene's chat cannot start: its agent is gone, or its app user was signed in with no role. */
+export type ChatSetupFailure = "agent-not-found" | "no-access";
+
+/**
+ * `<AgentChat>` as a page, pinned to an agent the server will not give: the
+ * agent read answers not found, for a member of the organization whose
+ * agent is gone, or for an app user the host signed in with no role (no
+ * organization of their own), so the chat says which under its box.
+ */
+export function agentChatSetupFailedScene(failure: ChatSetupFailure): Drawing {
+  const appUser = failure === "no-access";
+  const account = clone(IdentityAccountSchema, ACCOUNT);
+  if (appUser) account.spec!.provisioningMode = IdentityAccountProvisioningMode.app_user;
+  return {
+    inOrganization: true,
+    routes: (router: ConnectRouter) => {
+      launcherRoutes(ANTHROPIC_ONLY, "member")(router);
+      router.service(AgentQueryController, {
+        getByReference: () => {
+          throw new ConnectError("agent not found", Code.NotFound);
+        },
+      });
+      router.service(OrganizationQueryController, {
+        listMine: () => samples.organizationList(appUser ? [] : [ORGANIZATION]),
+        get: () => ORGANIZATION,
+      });
+      router.service(IdentityAccountQueryController, { whoAmI: () => account });
+    },
+    render: () => (
+      <div style={{ height: "calc(100vh - 48px)" }}>
+        <AgentChat agent={`${ORGANIZATION.metadata!.slug}/${AGENT.slug}`} variant="page" />
+      </div>
+    ),
   };
 }

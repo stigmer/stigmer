@@ -18,7 +18,15 @@ import { isMyVault } from "../vault/useVaultList.js";
 import { valuesOf } from "../vault/types.js";
 import { toolLoginKeyOf, vaultLoginServes } from "../vault/address.js";
 import { MY_VAULT_ONLY, conversationVaultsKey, type ConversationVaults } from "../vault/conversationVaults.js";
-import { readAgentServers, runDeclarations, serversOf, signInKeys, signInServers, subagentOrgs } from "./runServers.js";
+import {
+  readAgentServers,
+  runDeclarations,
+  serversOf,
+  signInKeys,
+  signInServers,
+  subagentOrgs,
+  type ServerHome,
+} from "./runServers.js";
 import { organizationIdOf } from "./usePersonalKeys.js";
 import { isAppUser } from "./appUser.js";
 import { useKnownOrgs } from "../organization/OrgProvider.js";
@@ -67,22 +75,30 @@ interface ServerReadings {
  * vault, or, for a run that never reads it, a listed vault the person may
  * edit ({@link signInVaultsOf}).
  */
+/** A pending sign-in's row name: an agent's own server by its name, a plugin's by its plugin, then the server when they differ. */
+function signInRowName(home: ServerHome, serverName: string): string {
+  if (home.kind === "agent") return serverName;
+  return home.pluginName === serverName ? home.pluginName : `${home.pluginName} · ${serverName}`;
+}
+
 async function readServers(
   stigmer: Stigmer,
   agent: Agent,
   readVaults: readonly Vault[],
 ): Promise<ServerReadings> {
   const reading = agent.spec
-    ? await readAgentServers(stigmer, agent.spec, agent.metadata?.org ?? "", { plugins: "throw" })
+    ? await readAgentServers(stigmer, agent.spec, agent.metadata?.org ?? "", {
+        plugins: "throw",
+        serverSignIns: agent.status?.serverSignIns ?? [],
+      })
     : { servers: [], hooks: [], agents: [] };
   const pendingSignIns = signInServers(reading)
     .filter(({ server }) => !readVaults.some((vault) => vaultLoginServes(vault.spec?.connections ?? {}, server)))
-    .map(({ plugin, pluginName, server, address }) => ({
-      plugin,
-      pluginName,
+    .map(({ home, server, address }) => ({
+      home,
       server,
       address,
-      name: pluginName === server.name ? pluginName : `${pluginName} · ${server.name}`,
+      name: signInRowName(home, server.name),
     }));
   return {
     servers: serversOf(reading),

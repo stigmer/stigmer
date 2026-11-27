@@ -31,7 +31,7 @@ conversation, as a page, a docked panel or a corner popup.
     inspector: { type: "ReactElement<SessionInspectorProps, string | JSXElementConstructor<any>>", description: "The inspector, for the page frame only (see `SessionInspector`)." },
     messageActions: { type: "(message: MessageInfo) => readonly MessageAction[]", description: "The host's own actions for a message, drawn after Copy (see `MessageThread`'s `messageActions`). A host's own tool cards are set once, on `StigmerProvider` (`toolCards`)." },
     onCustomToolUse: { type: "OnCustomToolUse", description: "Hears each call of your app's own tools that waits for its answer, to answer it outside the chat, in your own panel (see `SessionViewer`'s `onCustomToolUse`): once for each waiting call, and again for one still waiting when the conversation is opened again.", typeDescriptionLink: "/docs/sdk/react/session#oncustomtooluse" },
-    onError: { type: "(message: string, error: Error) => void", description: "Called when the first message could not be sent, after the chat shows the message under its box." },
+    onError: { type: "(message: string, error: Error) => void", description: "Called when the chat could not do what the person asked, with words for you (the developer) and the error:  - The chat could not start (the agent is not found, the person has no   access, the organization is not one of theirs, Stigmer can't be   reached, no sign-in reached Stigmer): once per failure, with an   AgentChatSetupError whose `reason` names the cause. The chat   shows the person its own words for it under the box, and the same   developer's words are written once to the browser's console as   `Stigmer: …`, so a chat with no `onError` still says why. - The first message could not be sent: after the chat shows the message   under its box." },
     onOpenChange: { type: "(open: boolean) => void", description: "Called when the person opens or closes the popup, or closes the panel. The panel shows its close button only when this is set." },
     onSessionChange: { type: "(sessionId: string | null) => void", description: "Called when a conversation starts (with its id) or the person starts a new one (with `null`). Keep the id to reopen the conversation after a reload: the chat writes no storage of its own." },
     open: { type: "boolean", description: "Whether the panel or popup is open (controlled). The page is always shown." },
@@ -58,6 +58,22 @@ import "@stigmer/react-sdk/styles.css";
 
 
 ## Types
+
+### AgentChatSetupReason
+
+Why the chat could not start:
+
+- `agent-not-found`: the organization has no agent by that name the
+  account can see;
+- `no-access`: the account may not use the agent (an app user signed in
+  with no role in the organization among them);
+- `organization-not-found`: none of the account's organizations is named
+  as the chat names it;
+- `unreachable`: Stigmer's server never answered;
+- `no-credential`: no sign-in reached Stigmer (the client's
+  `getAccessToken` gave no token, or Stigmer refused the one it gave);
+- `unknown`: any other failure.
+
 
 ### AgentChatVariant
 

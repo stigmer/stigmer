@@ -141,7 +141,7 @@ describe("RecordAgentWarnings", () => {
 
   it("warns an agent with a computer of nothing, and clears what an earlier save recorded", async () => {
     const agent = agentWith(Computer.REQUIRED, ["skl_01scripted"], ["plg_01ops"]);
-    agent.status = { $typeName: "ai.stigmer.agentic.agent.v1.AgentStatus", versionHash: "", warnings: [warning("scripted")] };
+    agent.status = { $typeName: "ai.stigmer.agentic.agent.v1.AgentStatus", versionHash: "", warnings: [warning("scripted")], serverSignIns: [] };
     expect((await save(agent)).status?.warnings).toEqual([]);
   });
 

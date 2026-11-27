@@ -21,8 +21,9 @@
 // The copies are hidden, so help shows the globals once, in its "Global
 // Options" section, and the docs generator leaves them out of each page.
 
-import { type Command, type HelpConfiguration, Option } from "commander";
+import { type Command, Help, type HelpConfiguration, Option } from "commander";
 import { runnableCommands } from "./command-tree.js";
+import { flagDescription } from "./flag-description.js";
 
 /** A global option that may also follow the command. */
 interface TrailingGlobal {
@@ -90,9 +91,14 @@ export function readGlobalOptions(root: Command, action: Command): GlobalOptions
  * arguments and options are on its own help's usage line. (Commander's own
  * term would print "[options]" for every command, since each holds the
  * hidden global copies, and its arguments widen the list past 80 columns.)
+ * A flag the command cannot run without reads "(required)", as on its docs
+ * page (flag-description.ts).
  */
 export const helpConfiguration: HelpConfiguration = {
   showGlobalOptions: true,
+  optionDescription(this: Help, option: Option): string {
+    return flagDescription(option, Help.prototype.optionDescription.call(this, option));
+  },
   subcommandTerm: (cmd) => {
     const alias = cmd.aliases()[0];
     return alias === undefined ? cmd.name() : `${cmd.name()}|${alias}`;

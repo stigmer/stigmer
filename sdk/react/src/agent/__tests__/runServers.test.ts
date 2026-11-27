@@ -43,6 +43,8 @@ import { create, type MessageInitShape } from "@bufbuild/protobuf";
 import { Code, ConnectError } from "@connectrpc/connect";
 import { AgentSpecSchema } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/spec_pb";
 import { AgentVersionEntrySchema } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/version_pb";
+import { AgentSchema } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb";
+import { AgentServerSignInSchema } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/status_pb";
 import { type Plugin, PluginSchema } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/api_pb";
 import type { PluginStatusSchema } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/status_pb";
 import { ApiResourceMetadataSchema } from "@stigmer/apis/ai/stigmer/commons/apiresource/metadata_pb";
@@ -88,6 +90,11 @@ interface Reads {
   readonly versions: { agentId: string; versionHash: string }[];
 }
 
+/** The save's answer that the server `name` at `url` asked for a sign-in. */
+function signsIn(name: string, url: string) {
+  return create(AgentServerSignInSchema, { name, url, signIn: {} });
+}
+
 /**
  * A client whose plugins are `plugins` by slug and whose agents' pinned
  * versions are `agents` by id; any other slug or id is not found.
@@ -96,6 +103,7 @@ function client(
   plugins: Readonly<Record<string, Plugin>>,
   agents: Readonly<Record<string, MessageInitShape<typeof AgentSpecSchema>>> = {},
   reads: Reads = { plugins: [], versions: [] },
+  answers: Readonly<Record<string, ReturnType<typeof signsIn>[]>> = {},
 ) {
   return {
     plugin: {
@@ -112,6 +120,11 @@ function client(
         const found = agents[input.agentId];
         if (found === undefined) throw new ConnectError(`no agent '${input.agentId}'`, Code.NotFound);
         return create(AgentVersionEntrySchema, { versionHash: input.versionHash, specSnapshot: spec(found) });
+      },
+      get: async (id: string) => {
+        const found = answers[id];
+        if (found === undefined) throw new ConnectError(`no agent '${id}'`, Code.NotFound);
+        return create(AgentSchema, { status: { serverSignIns: found } });
       },
     },
   } as unknown as Parameters<typeof readAgentServers>[0];
@@ -304,10 +317,80 @@ describe("signInServers and signInKeys", () => {
 
     const servers = signInServers(reading);
     expect(servers).toHaveLength(1);
-    expect(servers[0]).toMatchObject({ plugin: { org: "acme", slug: "linear" }, pluginName: "linear", address: LINEAR_URL });
+    expect(servers[0]).toMatchObject({
+      home: { kind: "plugin", ref: { org: "acme", slug: "linear" }, pluginName: "linear" },
+      address: LINEAR_URL,
+    });
     expect([...signInKeys(reading)]).toEqual(["LINEAR_ACCESS_TOKEN"]);
     // Every server is matched against the vault's logins, the agent's first.
     expect(serversOf(reading).map((server) => server.name)).toEqual(["linear-direct", "linear", "open", "local", "linear"]);
+  });
+});
+
+describe("an agent's own server that signs in", () => {
+  const TOOLS_URL = "https://tools.acme.test/mcp";
+
+  it("is completed as a plugin's install completes one, when the agent's save asked it at its address", () => {
+    const entry = agentServerEntry({ name: "app-tools", url: TOOLS_URL, headers: { "X-Trace": "on" } }, [signsIn("app-tools", TOOLS_URL)]);
+    expect(entry.signIn).toBeDefined();
+    expect(entry.env).toEqual(["APP_TOOLS_ACCESS_TOKEN"]);
+    expect(entry.transport.case === "http" ? entry.transport.value.headers : {}).toEqual({
+      "X-Trace": "on",
+      Authorization: "Bearer ${APP_TOOLS_ACCESS_TOKEN}",
+    });
+  });
+
+  it("reads as written for an answer at another address, or a server that sends its own Authorization", () => {
+    expect(agentServerEntry({ name: "app-tools", url: TOOLS_URL, headers: {} }, [signsIn("app-tools", "https://old.acme.test/mcp")]).signIn)
+      .toBeUndefined();
+    expect(
+      agentServerEntry({ name: "app-tools", url: TOOLS_URL, headers: { Authorization: "Bearer ${KEY}" } }, [signsIn("app-tools", TOOLS_URL)])
+        .signIn,
+    ).toBeUndefined();
+  });
+
+  it("is offered a sign-in under the agent's home, the agent's and each subagent's, after the plugins' by address", async () => {
+    const reading = await readAgentServers(
+      client({}, { agt_jira: { mcpServers: [{ name: "jira", url: "https://jira.example/mcp", headers: {} }] } }, undefined, {
+        agt_jira: [signsIn("jira", "https://jira.example/mcp")],
+      }),
+      spec({
+        mcpServers: [{ name: "app-tools", url: TOOLS_URL, headers: {} }],
+        subagents: [{ org: "acme", id: "agt_jira", version: PIN }],
+      }),
+      "acme",
+      { plugins: "throw", serverSignIns: [signsIn("app-tools", TOOLS_URL)] },
+    );
+    expect(signInServers(reading).map((server) => [server.home.kind, server.server.name, server.address])).toEqual([
+      ["agent", "app-tools", TOOLS_URL],
+      ["agent", "jira", "https://jira.example/mcp"],
+    ]);
+    expect([...signInKeys(reading)]).toEqual(["APP_TOOLS_ACCESS_TOKEN", "JIRA_ACCESS_TOKEN"]);
+    // Declared as a plugin's login key is; signInKeys keeps it from being typed.
+    expect(Object.keys(declarationsOf(reading))).toEqual(["APP_TOOLS_ACCESS_TOKEN", "JIRA_ACCESS_TOKEN"]);
+  });
+
+  it("is offered none when a subagent's answers cannot be read", async () => {
+    const reading = await readAgentServers(
+      client({}, { agt_jira: { mcpServers: [{ name: "jira", url: "https://jira.example/mcp", headers: {} }] } }),
+      spec({ subagents: [{ org: "acme", id: "agt_jira", version: PIN }] }),
+      "acme",
+      { plugins: "throw" },
+    );
+    expect(signInServers(reading)).toEqual([]);
+  });
+
+  it("reads no answers for a subagent named by slug alone, which has no row id to read them from", async () => {
+    const reading = await readAgentServers(
+      client({}, { "": { mcpServers: [{ name: "jira", url: "https://jira.example/mcp", headers: {} }] } }, undefined, {
+        "": [signsIn("jira", "https://jira.example/mcp")],
+      }),
+      spec({ subagents: [{ org: "acme", slug: "jira", version: PIN }] }),
+      "acme",
+      { plugins: "throw" },
+    );
+    expect(serversOf(reading).map((server) => server.name)).toEqual(["jira"]);
+    expect(signInServers(reading)).toEqual([]);
   });
 });
 

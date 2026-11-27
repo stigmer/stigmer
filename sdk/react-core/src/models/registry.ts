@@ -377,6 +377,22 @@ export function parseRegistryJson(data: unknown): ModelInfo[] {
 }
 
 /**
+ * The model-registry read was answered with an HTTP error. `status` is the
+ * answer's status, so a caller tells a refused credential (401) from a
+ * server that failed without reading the message.
+ */
+export class ModelRegistryFetchError extends Error {
+  /** The HTTP status the registry endpoint answered with. */
+  readonly status: number;
+
+  constructor(status: number) {
+    super(`Model registry fetch failed: ${status}`);
+    this.name = "ModelRegistryFetchError";
+    this.status = status;
+  }
+}
+
+/**
  * Fetch the model-registry document from the authenticated API endpoint.
  *
  * @param apiUrl - Base URL of the Stigmer Cloud API (e.g. `https://api.stigmer.ai`)
@@ -386,6 +402,8 @@ export function parseRegistryJson(data: unknown): ModelInfo[] {
  *   When omitted, the global `fetch` is used.
  * @returns Parsed {@link ModelRegistryDocument} — models plus document-level
  *   metadata like {@link VisionLimits}.
+ * @throws {@link ModelRegistryFetchError} when the endpoint answers with an
+ *   HTTP error.
  */
 export async function fetchModelRegistryDocument(
   apiUrl: string,
@@ -398,7 +416,7 @@ export async function fetchModelRegistryDocument(
     headers["Authorization"] = `Bearer ${token}`;
   }
   const res = await doFetch(`${apiUrl}/v1/proxy/model-registry`, { headers });
-  if (!res.ok) throw new Error(`Model registry fetch failed: ${res.status}`);
+  if (!res.ok) throw new ModelRegistryFetchError(res.status);
   const data: unknown = await res.json();
   return parseRegistryDocument(data);
 }
