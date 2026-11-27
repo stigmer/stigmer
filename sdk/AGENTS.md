@@ -49,10 +49,10 @@ packages, which platform builders embed too.
   point; a hook used outside its provider throws a message naming the provider
   to add.
 - Every visual property flows through `--stgm-*` tokens inside the `.stgm` scope
-  and `@layer stgm`: no hard-coded colours or sizes, no opacity modifiers on
-  token classes, the right token family for the context (sidebar, popover,
-  main). A missing token is added to `theme/src/tokens.css` and every preset,
-  never worked around.
+  (where each rule sits in the cascade: the header of `react/src/styles.css`):
+  no hard-coded colours or sizes, no opacity modifiers on token classes, the
+  right token family for the context (sidebar, popover, main). A missing token
+  is added to `theme/src/tokens.css` and every preset, never worked around.
 - Streaming views ride the StreamController pipeline into
   `useSyncExternalStore`, never `useState(snapshot)`; completion is
   phase-driven, never inferred from a stream ending; auto-scroll is the

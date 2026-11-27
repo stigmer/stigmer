@@ -35,12 +35,36 @@ from colliding — in either direction:
   it cannot change how your classes render — and your build cannot change how
   Stigmer components render. This holds everywhere, including host elements
   inside the provider subtree.
-- **The `.stgm` scope and cascade layer.** Styles that cannot be namespaced
-  (the element resets) are scoped to the `.stgm`
-  containers, and everything lives in `@layer stgm`, so your unlayered host
-  CSS wins ties against Stigmer rules by default.
+- **The `.stgm` scope.** Styles that cannot be namespaced (the element
+  resets) are scoped to the `.stgm` containers, and the utilities only apply
+  inside them.
 - **The `--stgm-*` namespace** keeps token names from clashing with your own
   custom properties.
+
+### How Stigmer's styles meet yours
+
+Your page's own CSS is usually unlayered (a `create-next-app` stylesheet's
+`* { padding: 0 }`, Tailwind 3's preflight, a template's `button { … }`), and
+unlayered CSS beats any rule inside a cascade layer, whatever its selector. So
+Stigmer's utilities ship unlayered too, and meet your rules by specificity, as
+any stylesheet does. From weakest to strongest:
+
+1. **Stigmer's defaults** (the box and border defaults, the button and field
+   reset) sit in `@layer base`, where Tailwind keeps its own preflight. Every
+   rule and class of yours beats them.
+2. **Your bare element rules** (`button { … }`, `* { … }`) do not reach the
+   buttons and fields Stigmer draws: one rule hands those back to Stigmer's
+   defaults. Your own buttons and fields inside the provider keep them.
+3. **Stigmer's utilities** (`.stg\:p-2`) beat your bare element rules.
+4. **Anything you aim at Stigmer on purpose** wins: a class you pass through
+   `className`, or a rule that names a class or the scope (`.stgm .x`).
+
+Text alignment is inherited, so Stigmer's outermost elements start their text
+at the start edge, even inside a page that centers everything (the app
+`create-vite` makes does).
+
+The design tokens (`--stgm-*`) stay layered: setting one on `.stgm` from your
+CSS is how you theme Stigmer.
 
 Portaled surfaces (dropdowns, dialogs, tooltips) render into a container on
 `document.body` that carries the same theme class and color-mode attribute,
@@ -230,8 +254,8 @@ To bring the spots that ask for the token by name along too, set
 
 ## Tailwind hosts
 
-The compiled stylesheet coexists with your own Tailwind build without
-configuration. Stigmer's semantic color declarations resolve straight through
+The compiled stylesheet coexists with your own Tailwind build, 3 or 4,
+without configuration. Stigmer's semantic color declarations resolve straight through
 the `--stgm-*` tokens (a `stg:bg-background` utility paints
 `var(--stgm-background)` directly), and Tailwind's own theme variables ship
 under the `--stg-*` namespace — so nothing in your `@theme` blocks can

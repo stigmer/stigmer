@@ -17,6 +17,11 @@ backend/services/stigmer-server/src/authorization/model/data/
 backend/libs/ts/plugin-package/src/__tests__/fixtures/cursor-plugins/
 backend/libs/ts/plugin-package/src/__tests__/fixtures/claude-plugins/
 
+# Host apps' stylesheets as their tools write them (create-next-app,
+# create-vite, Tailwind's preflight); test/fixtures/host-styles/README.md
+# names each source and version, so formatting must not touch them.
+test/fixtures/host-styles/
+
 # Real plugins vendored whole, scripts included, so the suites can run their
 # hooks; test/support/fixtures/claude-plugins/NOTICE names the source and
 # commit, and a test holds every file to upstream's blob SHA.

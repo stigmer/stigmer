@@ -2,13 +2,16 @@
  * Stage 2 of the SDK stylesheet build (stigmer/stigmer#454): scope the
  * selectors that Tailwind's `prefix(stg)` cannot make collision-free by name.
  *
- * Two populations get a zero-specificity `:where(.stgm, .stgm *)` guard on
+ * Three populations get a zero-specificity `:where(.stgm, .stgm *)` guard on
  * their subject compound:
  *
- * - **Unlayered rules** — a vendor stylesheet imported without a layer. Its
- *   classes may be vendor-namespaced, but unlayered CSS beats ALL layered
- *   CSS, so an unscoped copy would override a host's own styling for the
- *   same vendor.
+ * - **The kit's own utilities** — unlayered since #3491 (a host's unlayered
+ *   resets beat every layered rule). Their `stg:` names already keep them
+ *   off host classes; the guard also keeps them inside the kit's scope.
+ * - **Unlayered vendor rules** — a vendor stylesheet imported without a
+ *   layer. Its classes may be vendor-namespaced, but unlayered CSS beats
+ *   ALL layered CSS, so an unscoped copy would override a host's own styling
+ *   for the same vendor.
  * - **`@layer properties` rules** — Tailwind and tw-animate-css set universal
  *   (`*, ::before, ::after, ::backdrop`) initial values for UNPREFIXED
  *   internal variables (`--tw-translate-x`, `--tw-enter-opacity`; `prefix()`

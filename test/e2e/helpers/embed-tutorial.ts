@@ -90,12 +90,23 @@ export function packKit(dir: string): string[] {
     .map((name) => join(dir, name));
 }
 
+/** A host app's stylesheet as its tool writes it, from test/fixtures/host-styles. */
+function hostStyle(name: string): string {
+  return readFileSync(join(REPO_ROOT, "test/fixtures/host-styles", name), "utf8");
+}
+
 /** The version this repository locks for `name`, from the root's packages or a workspace member's own. */
 function locked(name: string, from = ""): string {
   return (JSON.parse(readFileSync(join(REPO_ROOT, from, "node_modules", name, "package.json"), "utf8")) as { version: string }).version;
 }
 
-/** The files `npm create vite -- --template react-ts` writes that the page keeps. */
+/**
+ * The files `npm create vite -- --template react-ts` writes that the page
+ * keeps, its stylesheet and the line that imports it included: the page
+ * replaces only `src/App.tsx`, so the reader's app still carries the
+ * template's `src/index.css` (vendored with its version in
+ * test/fixtures/host-styles), and the chat is drawn under it.
+ */
 function viteApp(dir: string): void {
   const files: Record<string, string> = {
     "package.json": `${JSON.stringify(
@@ -120,7 +131,8 @@ function viteApp(dir: string): void {
     "index.html":
       '<!doctype html>\n<html lang="en">\n  <head>\n    <meta charset="UTF-8" />\n    <title>my-app</title>\n  </head>\n  <body>\n    <div id="root"></div>\n    <script type="module" src="/src/main.tsx"></script>\n  </body>\n</html>\n',
     "src/main.tsx":
-      'import { StrictMode } from "react";\nimport { createRoot } from "react-dom/client";\nimport App from "./App.tsx";\n\ncreateRoot(document.getElementById("root")!).render(\n  <StrictMode>\n    <App />\n  </StrictMode>,\n);\n',
+      'import { StrictMode } from "react";\nimport { createRoot } from "react-dom/client";\nimport "./index.css";\nimport App from "./App.tsx";\n\ncreateRoot(document.getElementById("root")!).render(\n  <StrictMode>\n    <App />\n  </StrictMode>,\n);\n',
+    "src/index.css": hostStyle("create-vite-9.4.0.css"),
     "src/App.tsx": "export default function App() {\n  return null;\n}\n",
     "src/vite-env.d.ts": '/// <reference types="vite/client" />\n',
     "tsconfig.json": `${JSON.stringify(
@@ -501,50 +513,8 @@ function nextApp(dir: string): void {
   }
 }
 
-/** `create-next-app`'s `app/globals.css` without Tailwind, as the template ships it. */
-export const CREATE_NEXT_APP_GLOBALS = `:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
-html,
-body {
-  max-width: 100vw;
-  overflow-x: hidden;
-}
-
-body {
-  color: var(--foreground);
-  background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
-
-* {
-  box-sizing: border-box;
-  padding: 0;
-  margin: 0;
-}
-
-a {
-  color: inherit;
-  text-decoration: none;
-}
-
-@media (prefers-color-scheme: dark) {
-  html {
-    color-scheme: dark;
-  }
-}
-`;
+/** `create-next-app`'s `app/globals.css` without Tailwind, as the template ships it (test/fixtures/host-styles). */
+export const CREATE_NEXT_APP_GLOBALS = hostStyle("create-next-app.css");
 
 /** The one install line the tab hands a Next.js app; the run installs the same packages from this checkout. */
 export const NEXT_APP_INSTALL = "npm install @stigmer/client @stigmer/react-sdk @stigmer/apis @bufbuild/protobuf @connectrpc/connect-node";
