@@ -269,6 +269,14 @@ describe("connectPlugin --sign-in-again", () => {
     expect(listCalls).toHaveLength(0);
   });
 
+  it("refuses a server whose address names no place a login is saved at", async () => {
+    served = pluginWith([http("linear", "https://${LINEAR_HOST}/mcp", { signIn: {} })]);
+    const err = await connectPlugin(client, options({ signInAgain: true })).catch((e: unknown) => e);
+    expect(err).toBeInstanceOf(UsageError);
+    expect(String((err as Error).message)).toContain("names no address a login is saved at");
+    expect(signInStarts).toHaveLength(0);
+  });
+
   it("refuses a server that does not sign in, and --dry-run", async () => {
     const plain = await connectPlugin(client, options({ signInAgain: true })).catch((e: unknown) => e);
     expect(String((plain as Error).message)).toContain("does not sign in, so there is no login to replace");

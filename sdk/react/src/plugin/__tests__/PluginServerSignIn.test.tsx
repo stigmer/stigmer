@@ -360,6 +360,28 @@ describe("PluginServerSignIn: an agent's own server", () => {
 });
 
 describe("usePluginServerSignIn", () => {
+  it("signs in again nowhere while no login made by signing in serves the row", () => {
+    const hook = renderHook(() => usePluginServerSignIn(ORG, LINEAR));
+    expect(hook.result.current.kind).toBe("sign-in-needed");
+    expect(hook.result.current.canSignInAgain).toBe(false);
+    act(() => hook.result.current.signInAgain());
+    expect(stubs.signIn.signIn).not.toHaveBeenCalled();
+  });
+
+  it("leaves a failed sign-in again on the row's reason, without rereading My vault or telling the host", async () => {
+    stubs.myVault.vault = vaultWithLogins([LINEAR_URL]);
+    stubs.signIn.signIn = vi.fn(async () => {
+      throw new Error("the login server refused");
+    });
+    const onSignedIn = vi.fn();
+    const hook = renderHook(() => usePluginServerSignIn(ORG, LINEAR, onSignedIn));
+    act(() => hook.result.current.signInAgain());
+    await waitFor(() => expect(stubs.signIn.signIn).toHaveBeenCalledWith(LINEAR_URL, { org: ORG }));
+    await Promise.resolve();
+    expect(stubs.myVault.refetch).not.toHaveBeenCalled();
+    expect(onSignedIn).not.toHaveBeenCalled();
+  });
+
   it("reads as loading and signs in nothing while held idle", () => {
     const noOrg = renderHook(() => usePluginServerSignIn(null, LINEAR));
     expect(noOrg.result.current.kind).toBe("loading");

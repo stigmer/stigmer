@@ -11,7 +11,12 @@
  * how it is filled (a sign-in's login key, with "or paste one" unless the
  * server takes only a sign-in; any other key pasted into a vault), whether
  * My vault holds it, and Save to My vault writes it there. The closing
- * section gives the remove command and says why the name is fixed.
+ * section gives the remove command and says why the name is fixed. The
+ * Change form closes from Cancel and from Escape without a push; a plugin
+ * whose status lists skills or hooks is never read as one server. A name
+ * the runner fills is no key to save, a value the plugin sets says so, an
+ * empty value saves nothing, a refused save keeps the form with the reason,
+ * and Cancel closes it.
  */
 
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -26,12 +31,15 @@ import { type Plugin, PluginSchema } from "@stigmer/apis/ai/stigmer/agentic/plug
 import {
   McpServerSignInSchema,
   PluginEvalSuiteSchema,
+  PluginSkillSchema,
   type PluginStatus,
   PluginStatusSchema,
 } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/status_pb";
 import { VaultCommandController } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/command_pb";
 import { VaultQueryController } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/query_pb";
 import { VaultSchema } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/api_pb";
+import { EnvVarDeclarationSchema } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/declaration_pb";
+import { HookConfigSchema } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/hooks_pb";
 import { GrantQueryController } from "@stigmer/apis/ai/stigmer/iam/grant/v1/query_pb";
 import { ApiResourceVisibility } from "@stigmer/apis/ai/stigmer/commons/apiresource/enum_pb";
 import { ApiResourceMetadataSchema } from "@stigmer/apis/ai/stigmer/commons/apiresource/metadata_pb";
@@ -70,6 +78,8 @@ interface World {
   readonly secrets: string[];
   readonly pushes: { artifact: Uint8Array; visibility: ApiResourceVisibility }[];
   readonly saved: Record<string, string>[];
+  /** When set, My vault refuses a save with this sentence. */
+  readonly saveRefusal?: string;
   reads: number;
   listings: number;
 }
@@ -144,6 +154,7 @@ function renderView(w: World, onUploadNewVersion?: () => void) {
     });
     service(VaultCommandController, {
       setSecrets: (input) => {
+        if (w.saveRefusal !== undefined) throw new ConnectError(w.saveRefusal, Code.FailedPrecondition);
         w.saved.push(Object.fromEntries(Object.entries(input.secrets).map(([name, secret]) => [name, secret.value])));
         w.secrets.push(...Object.keys(input.secrets));
         return myVault();
@@ -216,6 +227,40 @@ describe("PluginDetailView: changing a one-server plugin", () => {
   });
 });
 
+describe("PluginDetailView: closing the Change form, and what is never one server", () => {
+  it("closes from Cancel and from Escape, pushing nothing", async () => {
+    const w = world();
+    renderView(w);
+
+    fireEvent.click(await screen.findByRole("button", { name: "Change the address of linear" }));
+    fireEvent.click(within(await screen.findByRole("dialog")).getByRole("button", { name: "Cancel" }));
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+
+    fireEvent.click(screen.getByRole("button", { name: "Change the address of linear" }));
+    // Escape reaches a native dialog as its cancel event.
+    fireEvent(await screen.findByRole("dialog"), new Event("cancel", { cancelable: true }));
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+    expect(w.pushes).toEqual([]);
+  });
+
+  it("never reads the files of a plugin whose status lists skills or hooks", async () => {
+    const withSkill = clone(PluginStatusSchema, ONE_SERVER_STATUS);
+    withSkill.skills = [create(PluginSkillSchema, { name: "triage" })];
+    const w = world({ status: withSkill });
+    renderView(w);
+    expect(await screen.findByText(/Change its folder and push it again/)).toBeTruthy();
+    expect(w.listings).toBe(0);
+    cleanup();
+
+    const withHooks = clone(PluginStatusSchema, ONE_SERVER_STATUS);
+    withHooks.hooks = create(HookConfigSchema, { groups: [{ event: "PreToolUse" }] });
+    const hooked = world({ status: withHooks });
+    renderView(hooked);
+    expect(await screen.findByText(/Change its folder and push it again/)).toBeTruthy();
+    expect(hooked.listings).toBe(0);
+  });
+});
+
 describe("PluginDetailView: the keys", () => {
   it("says how each key is filled and whether My vault holds it", async () => {
     renderView(world({ secrets: ["TEAM_ID"] }));
@@ -251,6 +296,41 @@ describe("PluginDetailView: the keys", () => {
     await waitFor(() => expect(w.saved).toEqual([{ TEAM_ID: "team-42" }]));
     const keys = screen.getByRole("list", { name: "Keys this plugin reads" });
     await waitFor(() => expect(within(within(keys).getAllByRole("listitem")[1]!).getByText("Saved in My vault")).toBeTruthy());
+  });
+});
+
+describe("PluginDetailView: keys the person does not paste, and the save form's edges", () => {
+  function withKeys(env: Record<string, { isSecret: boolean; value?: string }>): PluginStatus {
+    const status = clone(PluginStatusSchema, ONE_SERVER_STATUS);
+    for (const [name, declaration] of Object.entries(env)) status.env[name] = create(EnvVarDeclarationSchema, declaration);
+    return status;
+  }
+
+  it("says the runner fills its own names, offering no save, and that a value the plugin sets is the plugin's", async () => {
+    renderView(world({ status: withKeys({ STIGMER_CALLER_IDENTITY_VALUE: { isSecret: false }, REGION: { isSecret: false, value: "eu" } }) }));
+
+    expect(await screen.findByText("Filled by Stigmer when a conversation runs.")).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Save STIGMER_CALLER_IDENTITY_VALUE to My vault" })).toBeNull();
+    expect(screen.getByText("Set by the plugin.")).toBeTruthy();
+  });
+
+  it("saves nothing for an empty value, keeps the form with a refused save's reason, and closes on Cancel", async () => {
+    const w = world({ saveRefusal: "My vault is read-only right now" });
+    renderView(w);
+
+    fireEvent.click(await screen.findByRole("button", { name: "Save TEAM_ID to My vault" }));
+    const field = screen.getByLabelText("Value of TEAM_ID");
+    fireEvent.submit(field.closest("form")!);
+    expect(w.saved).toEqual([]);
+
+    fireEvent.change(field, { target: { value: "team-42" } });
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+    expect((await screen.findByRole("alert")).textContent).toContain("My vault is read-only right now");
+    expect(screen.getByLabelText("Value of TEAM_ID")).toBeTruthy();
+
+    fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+    expect(screen.queryByLabelText("Value of TEAM_ID")).toBeNull();
+    expect(screen.getByRole("button", { name: "Save TEAM_ID to My vault" })).toBeTruthy();
   });
 });
 

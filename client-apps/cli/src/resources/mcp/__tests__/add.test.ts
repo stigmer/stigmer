@@ -4,12 +4,28 @@
 // that the same input makes the same archive and digest, that a name a
 // plugin may not carry is refused with the library's sentence, the
 // in-memory file set (sorted entries, a read that refuses a path it does not
-// hold), and the `--header NAME=VALUE` parsing with its refusals.
+// hold), and the `--header NAME=VALUE` parsing with its refusals. Over a
+// plugin already installed: a read the server refuses for another reason
+// than not-found stops the command, the refusal of a plugin pushed from a
+// folder names everything it holds, and a dry run's change names each thing
+// that differs.
 
+import { create } from "@bufbuild/protobuf";
+import { Code, ConnectError } from "@connectrpc/connect";
 import { describe, expect, it } from "vitest";
+import { PluginSchema } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/api_pb";
+import { ApiResourceVisibility } from "@stigmer/apis/ai/stigmer/commons/apiresource/enum_pb";
 import { UsageError } from "../../../errors/index.js";
 import { oneServerPluginDocuments } from "@stigmer/plugin-package";
-import { documentFiles, parseHeaders, prepareServerPlugin } from "../add.js";
+import {
+  describeChange,
+  documentFiles,
+  type InstalledPluginClient,
+  notOneServerRefusal,
+  parseHeaders,
+  prepareServerPlugin,
+  readInstalledUnderName,
+} from "../add.js";
 
 describe("prepareServerPlugin's documents", () => {
   it("are the shared one-server builder's, headers sorted, the description in the manifest", async () => {
@@ -75,5 +91,56 @@ describe("parseHeaders", () => {
     expect(() => parseHeaders(["novalue"])).toThrow(UsageError);
     expect(() => parseHeaders(["=x"])).toThrow(/expected NAME=VALUE/);
     expect(() => parseHeaders(["A=1", "A=2"])).toThrow("--header A is given twice");
+  });
+});
+
+describe("readInstalledUnderName", () => {
+  it("stops on a read the server refuses for a reason other than not-found", async () => {
+    const client = {
+      plugin: {
+        getByReference: () => Promise.reject(new ConnectError("the plugin store is down", Code.Unavailable)),
+      },
+    } as unknown as InstalledPluginClient;
+    await expect(readInstalledUnderName(client, "acme", "linear")).rejects.toThrow("the plugin store is down");
+  });
+});
+
+describe("notOneServerRefusal", () => {
+  it("names everything a folder-pushed plugin holds: skills, servers, agents, hooks and evals", () => {
+    const plugin = create(PluginSchema, {
+      status: {
+        skills: [{ name: "triage" }],
+        mcpServers: [{ name: "linear" }, { name: "notion" }],
+        agents: [{ name: "planner" }],
+        hooks: { groups: [{ event: "PreToolUse" }] },
+        evals: { dir: "evals" },
+      },
+    });
+    expect(notOneServerRefusal("tracker", plugin).message).toContain(
+      "'tracker' was pushed from a folder and holds 1 skill, 2 servers, 1 agent, hooks and evals;",
+    );
+  });
+
+  it("names a lone holding without a list", () => {
+    const plugin = create(PluginSchema, { status: { skills: [{ name: "a" }, { name: "b" }] } });
+    expect(notOneServerRefusal("notes", plugin).message).toContain("holds 2 skills;");
+  });
+});
+
+describe("describeChange", () => {
+  const installed = {
+    kind: "one-server" as const,
+    plugin: create(PluginSchema, { metadata: { visibility: ApiResourceVisibility.visibility_org } }),
+    server: { name: "linear", url: "https://mcp.linear.app/mcp", description: "Issues." },
+  };
+
+  it("names a new description and a new visibility", () => {
+    expect(
+      describeChange(installed, { ...installed.server, description: "Issues, v2." }, ApiResourceVisibility.visibility_private),
+    ).toBe("its description, its visibility");
+  });
+
+  it("names nothing for the visibility the plugin already has", () => {
+    expect(describeChange(installed, installed.server, ApiResourceVisibility.visibility_org)).toBe("");
   });
 });

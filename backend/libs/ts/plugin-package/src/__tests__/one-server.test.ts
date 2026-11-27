@@ -78,6 +78,20 @@ describe("readOneServerPlugin", () => {
     expect(readOneServerPlugin(documents)).toBeUndefined();
   });
 
+  it("refuses a manifest whose description is not text", () => {
+    const documents = oneServerPluginDocuments(LINEAR);
+    documents.set(".claude-plugin/plugin.json", JSON.stringify({ name: "linear", description: 42 }));
+    expect(readOneServerPlugin(documents)).toBeUndefined();
+  });
+
+  it("refuses a .mcp.json that says more than its servers, or whose servers are not a map", () => {
+    const documents = oneServerPluginDocuments(LINEAR);
+    documents.set(".mcp.json", JSON.stringify({ mcpServers: { linear: { type: "http", url: LINEAR.url } }, inputs: [] }));
+    expect(readOneServerPlugin(documents)).toBeUndefined();
+    documents.set(".mcp.json", JSON.stringify({ mcpServers: ["linear"] }));
+    expect(readOneServerPlugin(documents)).toBeUndefined();
+  });
+
   it("refuses a document that is not JSON", () => {
     const documents = oneServerPluginDocuments(LINEAR);
     documents.set(".mcp.json", "{");

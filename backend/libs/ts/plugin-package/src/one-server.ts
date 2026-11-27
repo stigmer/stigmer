@@ -71,8 +71,9 @@ export function hasOneServerPluginPaths(paths: readonly string[]): boolean {
  */
 export function readOneServerPlugin(documents: ReadonlyMap<string, string>): OneServerPlugin | undefined {
   if (!hasOneServerPluginPaths([...documents.keys()])) return undefined;
-  const manifest = parseObject(documents.get(ONE_SERVER_PLUGIN_PATHS[0]));
-  const mcp = parseObject(documents.get(ONE_SERVER_PLUGIN_PATHS[1]));
+  // Both paths are there: hasOneServerPluginPaths said so.
+  const manifest = parseObject(documents.get(ONE_SERVER_PLUGIN_PATHS[0]) ?? "");
+  const mcp = parseObject(documents.get(ONE_SERVER_PLUGIN_PATHS[1]) ?? "");
   if (manifest === undefined || mcp === undefined) return undefined;
   if (!onlyKeys(manifest, ["name", "description"]) || typeof manifest.name !== "string") return undefined;
   if (manifest.description !== undefined && typeof manifest.description !== "string") return undefined;
@@ -101,8 +102,7 @@ export function readOneServerPlugin(documents: ReadonlyMap<string, string>): One
   };
 }
 
-function parseObject(text: string | undefined): Record<string, unknown> | undefined {
-  if (text === undefined) return undefined;
+function parseObject(text: string): Record<string, unknown> | undefined {
   try {
     return asObject(JSON.parse(text));
   } catch {

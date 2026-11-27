@@ -19,7 +19,8 @@ import { SkillSchema } from "@stigmer/apis/ai/stigmer/agentic/skill/v1/api_pb";
 import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { OrganizationSchema } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/api_pb";
 import { PluginSchema } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/api_pb";
-import { describe, it } from "vitest";
+import { create } from "@bufbuild/protobuf";
+import { describe, expect, it } from "vitest";
 import { expectGolden } from "../../__test-utils__/golden.js";
 import { asObject } from "../../resources/render.js";
 import * as fixtures from "../../resources/views/__fixtures__/resources.js";
@@ -64,6 +65,15 @@ describe("CLI-09 get shows a view designed for each kind a person reads", () => 
   it.each(CASES)("draws the %s view at 80 columns and piped", async (name, kind, schema, message) => {
     await expectGolden(draw(kind, schema, message, 80), `get-${name}-80`);
     await expectGolden(draw(kind, schema, message, undefined), `get-${name}-piped`);
+  });
+
+  it("draws a server recorded with no transport by its name alone, never an address it does not have", () => {
+    const bare = create(PluginSchema, {
+      metadata: { id: "plg_bare", org: "acme", slug: "bare", name: "bare" },
+      status: { mcpServers: [{ name: "legacy" }] },
+    });
+    const drawn = draw(ApiResourceKind.plugin, PluginSchema, bare, undefined);
+    expect(drawn).toMatch(/^\s*- legacy\s*$/m);
   });
 
   it("draws a plugin whose My vault could not be read without its saved states", async () => {
