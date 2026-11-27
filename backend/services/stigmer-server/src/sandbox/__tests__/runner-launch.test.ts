@@ -52,7 +52,9 @@ describe("the runner launch contract", () => {
 
   it("reads the agent's home a deployment names as the runner does: trimmed, a blank one unset", () => {
     expect(agentHomeOf({})).toBe(AGENT_HOME);
-    expect(agentHomeOf({ STIGMER_AGENT_HOME: " /data/agent " })).toBe("/data/agent");
+    expect(agentHomeOf({ STIGMER_AGENT_HOME: " /data/agent " })).toBe(
+      "/data/agent",
+    );
     expect(agentHomeOf({ STIGMER_AGENT_HOME: "  " })).toBe(AGENT_HOME);
   });
 

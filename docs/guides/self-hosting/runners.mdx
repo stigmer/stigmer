@@ -612,12 +612,16 @@ your own base image the runner adds it at start. The Agent's home is where its
 session state persists: `/data/agent` on the shared runner's volume,
 `/home/stigmer-agent` under the drivers, which `agent-sandbox` and `substrate`
 keep on a volume of its own, the Session's home (a `STIGMER_AGENT_HOME` of your
-own moves it off that volume). If you set `STIGMER_AGENT_HOME`, keep it outside
-the runner's state and not above its home: a home above the runner's own, or
-inside its `.stigmer`, stops the runner with exit code 78. The Agent must reach
-its workspace: one inside the runner's own home, where the Agent cannot pass
-(the default workspace under `/root`), stops the runner with exit code 78, so
-set `WORKSPACE_ROOT_DIR` outside it. Agents install user-level packages
+own moves it off that volume). The `docker` driver keeps no volume: when it
+creates a Session's container again (its sign-in has expired, or your runner
+image has changed), it copies the Agent's home across with the workspace, at
+your own `STIGMER_AGENT_HOME` when you set one, so the conversation carries on
+with its files. If you set `STIGMER_AGENT_HOME`, keep it outside the runner's
+state and not above its home: a home above the runner's own, or inside its
+`.stigmer`, stops the runner with exit code 78. The Agent must reach its
+workspace: one inside the runner's own home, where the Agent cannot pass (the
+default workspace under `/root`), stops the runner with exit code 78, so set
+`WORKSPACE_ROOT_DIR` outside it. Agents install user-level packages
 (`pip install --user`, `npm` and `uv` into their own folders); a system package
 your Agents need goes into your own base image or, for the Agents that need it,
 an [Environment](#environments-on-your-sandboxes)'s `apt` packages. The Agent's

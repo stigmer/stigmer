@@ -113,6 +113,18 @@ export const RUNNER_HOME = "/root";
  */
 export const AGENT_HOME = "/home/stigmer-agent";
 
+/**
+ * The agent's home a sandbox's runner will use, read from the variables a
+ * driver hands it: `STIGMER_AGENT_HOME` trimmed when it is set and not
+ * blank, else {@link AGENT_HOME}. This is the runner's own rule (its
+ * `shared/agent-identity.ts`, `agentIdentity`), mirrored because the server
+ * cannot import the runner; like the runner, it does not check that the
+ * path is absolute.
+ */
+export function agentHomeOf(runnerEnv: Readonly<Record<string, string>>): string {
+  return runnerEnv["STIGMER_AGENT_HOME"]?.trim() || AGENT_HOME;
+}
+
 /** The command that starts the runner in a sandbox container. */
 export function runnerCommand(): string[] {
   return [RUNNER_START, RUNNER_ENTRY];

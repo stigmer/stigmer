@@ -18,12 +18,14 @@
  * not started as it is: it would boot unable to take work, its renewal
  * refused for an expired token. It is RECREATED with the fresh token
  * instead, carrying its filesystem and nothing else: no volume backs the
- * workspace, so `/workspace` and the runner's home are copied out of it
- * as tar streams (`docker cp <c>:<dir> -`, whose headers keep each file's
- * owner, the agent user's included) into a container created fresh from
- * the runner image under a temporary name, copied in without `--archive`,
- * which would chown every file to the container's user and refuses a
- * `--user 0:0` container outright (stigmer#3155). Only then is the old container
+ * workspace, so `/workspace`, the runner's home and the agent's home (where
+ * the conversation's state lives, stigmer#3361; carriedDirs) are copied
+ * out of it as tar streams (`docker cp <c>:<dir> -`, whose headers keep
+ * each file's owner, the agent user's included) into a container created
+ * fresh from the runner image under a temporary name. Each stream is rooted
+ * at its folder's base name, so it is copied into the folder's parent, and
+ * without `--archive`, which would chown every file to the container's user
+ * and refuses a `--user 0:0` container outright (stigmer#3155). Only then is the old container
  * removed and the new one renamed and started. A fresh container takes
  * the environment this ensure gives it and no other: a variable the
  * driver no longer sets (a removed runner secret, a cleared Environment)
@@ -102,6 +104,7 @@ import {
   RUNNER_UID,
   SANDBOX_ENVIRONMENT_ENV,
   SERVER_RELEASE_ENV,
+  agentHomeOf,
   runnerCommand,
 } from "./runner-launch.js";
 import { runnerEnvironmentValue } from "./environment.js";
@@ -355,8 +358,9 @@ export const newDockerSandboxProvisioner: SandboxProvisionerFactory = ({
   ): Promise<void> {
     const carry = mkdtempSync(path.join(tmpdir(), "stigmer-sandbox-carry-"));
     const fresh = `${name}${FRESH_SUFFIX}`;
+    const carried = carriedDirs(config);
     try {
-      for (const dir of CARRIED_DIRS) {
+      for (const dir of carried) {
         await dockerToFile(["cp", `${name}:${dir}`, "-"], path.join(carry, `${carriedName(dir)}.tar`));
       }
       const run = buildDockerRun(scope, id, facts, config);
@@ -365,10 +369,15 @@ export const newDockerSandboxProvisioner: SandboxProvisionerFactory = ({
         Object.keys(run.secretEnv).length > 0 ? { ...process.env, ...run.secretEnv } : undefined,
       );
       try {
-        for (const dir of CARRIED_DIRS) {
-          // No --archive: it chowns every file to the container's user,
-          // and refuses a `--user 0:0` container outright (stigmer#3155).
-          await dockerFromFile(["cp", "-", `${fresh}:/`], path.join(carry, `${carriedName(dir)}.tar`));
+        for (const dir of carried) {
+          // Into the parent: the stream's entries start with the folder's
+          // base name. No --archive: it chowns every file to the
+          // container's user, and refuses a `--user 0:0` container
+          // outright (stigmer#3155).
+          await dockerFromFile(
+            ["cp", "-", `${fresh}:${path.posix.dirname(dir)}`],
+            path.join(carry, `${carriedName(dir)}.tar`),
+          );
         }
       } catch (error) {
         await docker(["rm", "--force", fresh]).catch(() => undefined);
@@ -475,8 +484,35 @@ function tokenExpired(env: readonly string[]): boolean {
  */
 const EXPIRY_MARGIN_MS = 10 * 60_000;
 
-/** What a recreate carries: the workspace and the runner's home (the agent's sessions and state). */
-const CARRIED_DIRS: readonly string[] = [CONTAINER_WORKSPACE_DIR, RUNNER_HOME];
+/**
+ * What a recreate carries (module header): the workspace; the runner's
+ * home, which holds the runner's own state (the agent handover's marker);
+ * and the agent's home, which holds the conversation's (the harness's
+ * checkpoints, the platform folder with the agent's outputs, an engine's
+ * own files under `~`), at the path the new container's runner will use,
+ * the operator's STIGMER_AGENT_HOME from either runner list included
+ * (stigmer#3361). An agent's home that is not absolute, that lies inside a
+ * folder already carried, or that holds one is left out: a relative one
+ * resolves under the runner's workdir, `/workspace`, carried already, as is
+ * one inside `/workspace` or `/root`; one that holds them (`/`) the runner
+ * refuses at start, and carrying it would copy the whole filesystem.
+ */
+export function carriedDirs(
+  config: Pick<SandboxDriverConfig, "runnerEnv" | "runnerSecretEnv">,
+): readonly string[] {
+  const always = [CONTAINER_WORKSPACE_DIR, RUNNER_HOME];
+  const named = agentHomeOf({ ...config.runnerEnv, ...config.runnerSecretEnv });
+  if (!path.posix.isAbsolute(named)) return always;
+  const agentHome = path.posix.resolve(named);
+  const apart = always.every((dir) => !within(dir, agentHome) && !within(agentHome, dir));
+  return apart ? [...always, agentHome] : always;
+}
+
+/** Whether `target` is `dir` or lies inside it, by path segment (the runner's `within`). */
+function within(dir: string, target: string): boolean {
+  const rel = path.posix.relative(dir, target);
+  return !(rel === ".." || rel.startsWith("../") || path.posix.isAbsolute(rel));
+}
 
 /** The temporary name of a recreate's new container, beside the old one until the swap. */
 const FRESH_SUFFIX = "-fresh";
