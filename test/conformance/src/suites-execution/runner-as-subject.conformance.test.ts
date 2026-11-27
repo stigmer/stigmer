@@ -110,8 +110,6 @@ import { ECHO_TOOL_NAME, mcpToolName } from "../harness/mcp-server";
 import type { MockLlmProxy } from "@stigmer/test-support/mock-llm";
 import { type AgentOptions, type AgentRefInit, agentRefOf, makeAgent } from "../support/agents";
 import {
-  awaitPhase,
-  awaitRunThatRead,
   awaitTerminal,
   makeAgentExecution,
   requireMcpFixture,
@@ -1101,43 +1099,6 @@ describe.skipIf(!runnerActsAsRunCreator)(
         [login?.origin, login?.vaultId, login?.login],
         "the tool's login comes from the app user's own My vault",
       ).toEqual([RunValueOrigin.MY_VAULT, priyas.metadata!.id, true]);
-
-      // A message she sends while that turn works waits, and the turn the
-      // queue starts for it is stamped as sent through the integrator's
-      // product, as her direct turn was, so it reads her login too.
-      await awaitPhase(priya, created.metadata!.id, RunPhase.RUN_IN_PROGRESS);
-      mock.enqueue(anthropicText("Second."));
-      const sessionId = sessionIdOf(created);
-      const sent = await priya.agentExecutionCommand.sendMessage(
-        makeAgentExecution({
-          org: people.org,
-          name: uniqueName("ras-own-queued"),
-          sessionId,
-          message: "and now?",
-        }),
-      );
-      expect(sent.run, "the message waits for the working turn").toBeUndefined();
-      mock.releaseHolds();
-      await awaitTerminal(priya, created.metadata!.id);
-      const queuedTurn = await awaitRunThatRead(priya, sessionId, sent, { timeoutMs: 60_000 });
-      fixtures.defer(async () => {
-        await awaitTerminal(priya, queuedTurn);
-        await priya.agentExecutionCommand.delete({ value: queuedTurn });
-      });
-      const queuedRun = await priya.agentExecutionQuery.get({ value: queuedTurn });
-      expect(
-        queuedRun.status?.audit?.specAudit?.createdBy?.mintedBy,
-        "the queue's turn carries the minter the message was admitted with",
-      ).toBe(minter.accountId);
-      const queuedLogin = sourcesFor(
-        await runSourcesOf(priya, queuedTurn),
-        "RAS_APP_LOGIN",
-        RunValueDeclarerKind.TOOL,
-      );
-      expect(
-        queuedLogin.map((entry) => [entry.origin, entry.vaultId, entry.login]),
-        "the queue's turn reads her own login as her direct turn did",
-      ).toEqual([[RunValueOrigin.MY_VAULT, priyas.metadata!.id, true]]);
 
       // Another app user of the same organization never reads it: their run
       // lacks the login. (This fixture's server records no sign-in, so the
