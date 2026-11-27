@@ -96,6 +96,38 @@ describe("buildThreadItems answer", () => {
     expect(items.filter((item) => item.kind === "turn-scores")).toHaveLength(1);
   });
 
+  it("puts the scores at the very foot of a stopped turn: after its ending note and its outcome", () => {
+    const stopped = (...events: Array<SessionEvent | readonly SessionEvent[]>) =>
+      buildThreadItems(
+        turnsOf(user(R, "go"), status(R, "running"), ...events, status(R, "completed", { stopCause: "platform_stop" })),
+        [],
+        { includeLiveness: false, includeOutcomes: true },
+      );
+
+    for (const items of [stopped(call("c1", "read_file")), stopped(said(R, 0, "Looking."), call("c1", "read_file"))]) {
+      const kinds = items.map((item) => item.kind);
+      expect(kinds.at(-1)).toBe("turn-scores");
+      expect(kinds.indexOf("execution-error")).toBeLessThan(kinds.indexOf("turn-scores"));
+      expect(kinds.indexOf("outcome")).toBeLessThan(kinds.indexOf("turn-scores"));
+    }
+  });
+
+  it("puts an earlier turn's scores after its outcome too", () => {
+    const S = "run_b";
+    const items = buildThreadItems(
+      turnsOf(
+        user(R, "go"), status(R, "running"), ...call("c1", "read_file"), status(R, "completed", { stopCause: "platform_stop" }),
+        user(S, "again"), status(S, "running"), said(S, 0, "Done."), status(S, "completed"),
+      ),
+      [],
+      { includeLiveness: false, includeOutcomes: true },
+    );
+    const keys = items.map((item) => item.key);
+
+    expect(keys.indexOf(`outcome-${R}`)).toBeGreaterThan(-1);
+    expect(keys.indexOf(`${R}-scores`)).toBe(keys.indexOf(`outcome-${R}`) + 1);
+  });
+
   it("carries no scores row in a thread that shows no scores, so no empty row takes space", () => {
     const events = turnsOf(user(R, "go"), status(R, "running"), ...call("c1", "read_file"), said(R, 0, "Looking."), ...call("c2", "grep"), status(R, "completed"));
     const items = buildThreadItems(events, [], { includeLiveness: false, includeScores: false });
