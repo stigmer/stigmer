@@ -42,12 +42,24 @@ a shared vault the team may use.
 
 ### Users your backend signs in with minted tokens
 
-The runs of a user your backend signs in with a minted token read no My vault,
-even when the conversation includes it, and even a key that user saved in their
-own My vault themselves. Give each customer one private shared vault instead.
-Create it once, when the customer signs up, with `external_id` set to your own
-customer id, and find it again with that id. A run such a user sends checks that
-whoever attached the vault to the conversation may still use it.
+The runs of a user your backend signs in with a minted token read no key by name
+from any My vault, even when the conversation includes it, and even a key that
+user saved in their own My vault themselves. Such a user holds their own token,
+so a key they could write would let them replace a value you configured, such as
+the address a tool sends your other keys to.
+
+The one thing those runs take from the user's own My vault is the user's own
+sign-in to a tool: when the user signs in to a tool's server from your embedded
+chat, their own runs use that login for that tool, at that server's address
+only, and nobody else's runs ever do. It is used last, so a login you set for
+everyone in a vault the conversation uses wins, and the user's own is used only
+where nothing you set fills it. The conversation must include My vault, which an
+embedded chat does by default.
+
+For keys by name, give each customer one private shared vault. Create it once,
+when the customer signs up, with `external_id` set to your own customer id, and
+find it again with that id. A run such a user sends checks that whoever attached
+the vault to the conversation may still use it.
 
 Users who chat need the `member` role, for example as the sign-in role in your
 Organization's embedding settings: a viewer may read, but cannot start a

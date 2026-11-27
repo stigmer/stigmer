@@ -953,7 +953,8 @@ const (
 	RunValueOrigin_RUN_VALUE_ORIGIN_UNSPECIFIED RunValueOrigin = 0
 	// The conversation's own token for the repository.
 	RunValueOrigin_RUN_VALUE_ORIGIN_REPOSITORY_TOKEN RunValueOrigin = 1
-	// The turn's person's My vault.
+	// The turn's person's My vault, or the logins in an app user's own My
+	// vault (a user an integrator's product signed in, on their own turn).
 	RunValueOrigin_RUN_VALUE_ORIGIN_MY_VAULT RunValueOrigin = 2
 	// A vault the conversation lists.
 	RunValueOrigin_RUN_VALUE_ORIGIN_VAULT RunValueOrigin = 3

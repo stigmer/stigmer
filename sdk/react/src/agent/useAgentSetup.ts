@@ -20,6 +20,7 @@ import { toolLoginKeyOf, vaultLoginServes } from "../vault/address.js";
 import { MY_VAULT_ONLY, conversationVaultsKey, type ConversationVaults } from "../vault/conversationVaults.js";
 import { readAgentServers, runDeclarations, serversOf, signInKeys, signInServers, subagentOrgs } from "./runServers.js";
 import { organizationIdOf } from "./usePersonalKeys.js";
+import { isAppUser } from "./appUser.js";
 import { useKnownOrgs } from "../organization/OrgProvider.js";
 import { diffEnv } from "../vault/diffEnv.js";
 import {
@@ -137,11 +138,21 @@ async function signInVaultsOf(stigmer: Stigmer, listed: readonly Vault[]): Promi
   return shared.length > 0 ? { kind: "shared", vaults: shared } : { kind: "nowhere", listed: vaults };
 }
 
-/** The keys `vaults` fill: their secret names, and the login key of each of `servers` a login of theirs serves. */
-function keysHeldBy(vaults: readonly Vault[], servers: readonly McpServerEntry[]): Set<string> {
+/**
+ * The keys `vaults` fill: their secret names, and the login key of each of
+ * `servers` a login of theirs serves. A vault in `loginsOnly` fills logins
+ * alone (an app user's My vault: the server reads only its logins).
+ */
+function keysHeldBy(
+  vaults: readonly Vault[],
+  servers: readonly McpServerEntry[],
+  loginsOnly: ReadonlySet<Vault> = new Set(),
+): Set<string> {
   const keys = new Set<string>();
   for (const vault of vaults) {
-    for (const name of Object.keys(vault.spec?.secrets ?? {})) keys.add(name);
+    if (!loginsOnly.has(vault)) {
+      for (const name of Object.keys(vault.spec?.secrets ?? {})) keys.add(name);
+    }
     for (const server of servers) {
       const loginKey = toolLoginKeyOf(server);
       if (loginKey && vaultLoginServes(vault.spec?.connections ?? {}, server)) keys.add(loginKey);
@@ -210,7 +221,12 @@ export interface UseAgentSetupReturn {
    * read is left out; an agent or subagent of another organization closes
    * My vault to the whole run, as the server does, so its owed sign-ins
    * are offered to the listed vaults the person may edit
-   * (`signInVaults`).
+   * (`signInVaults`). For an app user (an account a host's product signed
+   * in, `provisioning_mode: app_user`), My vault counts for its logins
+   * alone, as their runs read it, and no key is asked for: a key by name
+   * is the integrator's to provide, in vaults this client cannot read, and
+   * the server's refusal names who provides it. The account is read before
+   * anything is judged, so the resolution stays `resolving` until it is.
    * Returns `"ready"` when the agent can be used immediately,
    * or `"needsEnvVars"` when the caller should present {@link AgentEnvForm}.
    * A resolution that a newer one (or {@link reset}) overtakes still returns
@@ -366,10 +382,11 @@ export function useAgentSetup(
       const coveredKeys = new Set(poolKeys ?? []);
 
       try {
-        const [agent, orgId] = await Promise.all([
+        const [agent, orgId, appUser] = await Promise.all([
           stigmer.agent.getByReference(ref),
           // An embedded chat names its organization by slug; the agent names it by id.
           organizationIdOf(stigmer, org, knownOrgs),
+          isAppUser(stigmer),
         ]);
         const agentName = agent.metadata?.name ?? ref.slug;
 
@@ -394,14 +411,18 @@ export function useAgentSetup(
         const listed = foreign ? readable.filter((vault) => !isMyVault(vault)) : readable;
         const mine = latestMyVaultRef.current.current;
         const readVaults = readsMyVault && mine !== null ? [mine, ...listed] : listed;
+        // An app user's run reads My vault's logins alone (their sign-ins);
+        // its secrets fill nothing.
+        const loginsOnly = new Set<Vault>(appUser && mine !== null ? [mine] : []);
         const { servers, pendingSignIns, declarations, signInVariables } = await readServers(stigmer, agent, readVaults);
         const envDeclarations =
           Object.keys(declarations).length > 0 ? typedDeclarations(declarations, signInVariables) : undefined;
         if (pendingSignIns.length > 0) {
-          const existingKeys = keysHeldBy(readVaults, servers);
-          const missingVariables = envDeclarations
-            ? diffEnv(envDeclarations, existingKeys, coveredKeys)
-            : [];
+          const existingKeys = keysHeldBy(readVaults, servers, loginsOnly);
+          // An app user is never asked for a key: it would be saved where
+          // their runs never read it.
+          const missingVariables =
+            envDeclarations && !appUser ? diffEnv(envDeclarations, existingKeys, coveredKeys) : [];
           // A sign-in must land where the run reads it. A run that never
           // reads My vault reads only the listed vaults, so its sign-ins go
           // to one the person may edit; a run that may read My vault saves
@@ -426,11 +447,24 @@ export function useAgentSetup(
           };
         }
 
+        // The agent declares keys. Keys already saved where the run reads
+        // need nothing.
+        const existingKeys = envDeclarations ? keysHeldBy(readVaults, servers, loginsOnly) : new Set<string>();
+        const savedOnlyMissing = envDeclarations ? diffEnv(envDeclarations, existingKeys) : [];
+
         // No env declarations — agent is immediately ready (direct mode).
         // Nor is anything asked of a run carrying another organization's
         // agent: it never reads My vault, so a key saved here would never
-        // reach it.
-        if (!envDeclarations || Object.keys(envDeclarations).length === 0 || foreign) {
+        // reach it. Nor of an app user, whose runs read only My vault's
+        // logins: a key by name is the integrator's to provide, in vaults
+        // this client cannot read, so what it cannot see may well be
+        // there; the server's refusal names who provides a key that is not.
+        if (
+          !envDeclarations ||
+          Object.keys(envDeclarations).length === 0 ||
+          foreign ||
+          (appUser && savedOnlyMissing.length > 0)
+        ) {
           const resolution: AgentResolution = { mode: "direct" };
           settle({
             type: "RESOLVE_READY",
@@ -441,10 +475,6 @@ export function useAgentSetup(
           return { status: "ready", agentRef: ref, agentName, resolution };
         }
 
-        // The agent declares keys. Keys already saved where the run reads
-        // need nothing.
-        const existingKeys = keysHeldBy(readVaults, servers);
-        const savedOnlyMissing = diffEnv(envDeclarations, existingKeys);
         const missingVariables = diffEnv(envDeclarations, existingKeys, coveredKeys);
 
         if (savedOnlyMissing.length === 0) {

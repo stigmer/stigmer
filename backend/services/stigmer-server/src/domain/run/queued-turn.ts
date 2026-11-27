@@ -21,7 +21,17 @@
  * messages, recording the person
  * the messages recorded as they were sent (create-steps.ts
  * GuardQueuedMessages), so every check a turn meets meets it again: a gate
- * may have changed since the messages were accepted. The turn is the
+ * may have changed since the messages were accepted. A message an app
+ * user sent through an integrator's product kept the service account that
+ * minted its sender's token (send-message.ts keeps who admitted it), and
+ * its turn is created with that minter, so the run is stamped as a direct
+ * turn's is (`createdBy.minted_by`) and reads the vaults that stamp
+ * reaches (../vault/resolve.ts: the embedding settings', the app user's
+ * own sign-ins). The minter is audit provenance, never a guard's input
+ * (../../extensions/identity.ts); it must still be a service account, as
+ * the token verifier requires (../token/verifier.ts), or the messages are
+ * dropped. A message kept before admitters were kept starts as its sender
+ * alone. The turn is the
  * newest message's (its settings, labels and name), with the texts joined
  * as a Managed Agents message's blocks join, the files of every message
  * together, and `spec.queued_message_ids` naming the messages, which its
@@ -60,6 +70,8 @@ import { RunSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 import { RunSpecSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/spec_pb";
 import type { Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 
+import { IdentityAccountProvisioningMode } from "@stigmer/apis/ai/stigmer/iam/identityaccount/v1/enum_pb";
+
 import type { Logger } from "../../boot/logger.js";
 import type { CallerIdentity } from "../../extensions/identity.js";
 import type { QueuedSenderLane } from "../../extensions/queued-sender-lane.js";
@@ -75,8 +87,13 @@ import {
   sameLane,
 } from "../session/events/queue.js";
 import type { SessionQueueDeps } from "../session/events/queue.js";
+import type { IdentityAccountStore } from "../identityaccount/store.js";
 import { sessionIdOfRun } from "../session/events/transitions.js";
-import { QUEUED_MESSAGE_GONE_REASON, SESSION_TURN_UNFINISHED_REASON } from "./constants.js";
+import {
+  QUEUED_MESSAGE_GONE_REASON,
+  QUEUED_SENDER_MINTER_GONE_MESSAGE,
+  SESSION_TURN_UNFINISHED_REASON,
+} from "./constants.js";
 import { isTerminalExecutionPhase } from "./phases.js";
 
 /** The run create the queue's turn rides, as a person (the in-process asCaller lane). */
@@ -92,6 +109,8 @@ export interface QueuedTurnDeps extends SessionQueueDeps {
   readonly callerOf: (senderId: string) => Promise<CallerIdentity | undefined>;
   /** Turns a kept lane back into its caller (extensions/queued-sender-lane.ts); absent, no lane is kept. */
   readonly queuedSenderLane?: QueuedSenderLane;
+  /** Where a kept minter is read, to start its sender's turn only while it is still a service account. */
+  readonly accounts: Pick<IdentityAccountStore, "findById">;
 }
 
 /** The queue's start of a session's next turn, as every caller holds it. */
@@ -180,17 +199,48 @@ export function nextTurnMessages(queued: ReadonlyArray<QueuedSessionMessage>): Q
   return taken;
 }
 
+/** Who a queued message's turn is created as, or why nobody may stand for it. */
+type QueuedCaller =
+  | { readonly kind: "caller"; readonly caller: CallerIdentity }
+  | { readonly kind: "nobody" }
+  | { readonly kind: "minter gone" };
+
 /**
  * The caller a queued message's turn is created as: its sender's lane when
  * it kept one (extensions/queued-sender-lane.ts), so the turn is admitted
- * as the message was; its sender's person otherwise. A kept lane with
- * nothing to turn it back into stands for nobody.
+ * as the message was; its sender's person otherwise, with the service
+ * account that minted the sender's token when the message kept one (module
+ * header). A kept lane with nothing to turn it back into, or a sender this
+ * server does not know, stands for nobody.
  */
-async function callerOfQueued(deps: QueuedTurnDeps, message: QueuedSessionMessage): Promise<CallerIdentity | undefined> {
-  if (message.lane.length === 0) {
-    return deps.callerOf(message.sender);
+async function callerOfQueued(deps: QueuedTurnDeps, message: QueuedSessionMessage): Promise<QueuedCaller> {
+  const caller =
+    message.lane.length === 0
+      ? await deps.callerOf(message.sender)
+      : await deps.queuedSenderLane?.decode(message.sender, message.lane);
+  if (caller === undefined) {
+    return { kind: "nobody" };
   }
-  return deps.queuedSenderLane?.decode(message.sender, message.lane);
+  const mintedBy = keptMinterOf(message);
+  if (message.lane.length > 0 || mintedBy === undefined) {
+    return { kind: "caller", caller };
+  }
+  const minter = await deps.accounts.findById(mintedBy);
+  if (minter?.spec?.provisioningMode !== IdentityAccountProvisioningMode.service_account) {
+    return { kind: "minter gone" };
+  }
+  return { kind: "caller", caller: { ...caller, mintedBy } };
+}
+
+/**
+ * The service account that minted a queued message's sender's token, as
+ * the message's admission kept it (send-message.ts): only when the kept
+ * creator is the message's sender, so no message runs on another's.
+ */
+function keptMinterOf(message: QueuedSessionMessage): string | undefined {
+  const admittedBy = queuedTurnOf(message).status?.audit?.specAudit?.createdBy;
+  const mintedBy = admittedBy?.mintedBy ?? "";
+  return mintedBy !== "" && admittedBy?.id === message.sender ? mintedBy : undefined;
 }
 
 /** One start: the turn for `messages`, as their sender; what a refusal does is the module header's. */
@@ -209,14 +259,22 @@ async function startTurnOf(
     });
     return dropped.length === 0 ? { kind: "raced" } : { kind: "dropped" };
   };
-  const caller = await callerOfQueued(deps, messages[0]!);
-  if (caller === undefined) {
+  const queuedCaller = await callerOfQueued(deps, messages[0]!);
+  if (queuedCaller.kind === "nobody") {
     deps.logger.warn("a session's queued messages name a sender nobody stands for; they were dropped", {
       sessionId,
       messages: eventIds.length,
     });
     return drop("the queued messages were not read: their sender is no longer known to this server");
   }
+  if (queuedCaller.kind === "minter gone") {
+    deps.logger.warn("a session's queued messages name a minting service account that is gone; they were dropped", {
+      sessionId,
+      messages: eventIds.length,
+    });
+    return drop(`the queued messages were not read: ${QUEUED_SENDER_MINTER_GONE_MESSAGE}`);
+  }
+  const caller = queuedCaller.caller;
   try {
     const run = await deps.creator().create(queuedTurn(turns, eventIds), caller);
     deps.logger.info("Started the turn a session's queued messages wait for", {

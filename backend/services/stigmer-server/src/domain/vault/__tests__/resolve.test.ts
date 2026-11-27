@@ -66,7 +66,15 @@
  *   - a participant's turn (no person; a sender who is not the
  *     conversation's creator): only the conversation's own vaults, checked
  *     for their attacher; nobody's My vault and never a surface's; told to
- *     ask the creator by name; recognised from the two creator stamps.
+ *     ask the creator by name; recognised from the two creator stamps;
+ *   - an app user's own turn (no person; minted; the conversation's
+ *     creator; My vault included): the logins in their own My vault, last,
+ *     each for the tool at its address, renewed in their name; never a key
+ *     by name from it (the agent's, a tool's, a plugin's hooks', a
+ *     clone's), never another app user's, never for another organization's
+ *     agent, a participant or a chat-link guest; opening refuses when My
+ *     vault was left out since, the vault is not the account's, or the
+ *     entry is no login; the refusal offers the sign-in.
  */
 import { randomBytes } from "node:crypto";
 
@@ -85,9 +93,14 @@ import { McpServerEntrySchema, PluginStatusSchema } from "@stigmer/apis/ai/stigm
 import { EnvVarDeclarationSchema } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/declaration_pb";
 import type { McpServerEntry } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/status_pb";
 import { HookFormat } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/hooks_pb";
-import { RunValueDeclarerKind } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
+import { RunValueDeclarerKind, RunValueOrigin } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 import { EvalRunSchema } from "@stigmer/apis/ai/stigmer/agentic/evalrun/v1/api_pb";
-import { RunCredentialsSchema, RunSchema, RunStatusSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
+import {
+  RunCredentialsSchema,
+  RunSchema,
+  RunStatusSchema,
+  RunValueSourceSchema,
+} from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 import type { Run, RunValueSource } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 import type { ExecutionValues } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/values_pb";
 import { RoutineSchema } from "@stigmer/apis/ai/stigmer/agentic/routine/v1/api_pb";
@@ -123,6 +136,7 @@ import {
   CLONE_TOKEN_KEY,
   ROUTINE_ID_LABEL_KEY,
   SignInRenewalError,
+  appUserOfRun,
   loginKeyOf,
   newVaultResolver,
   pluginHookRequirements,
@@ -2976,6 +2990,239 @@ describe("a participant's turn", () => {
     expect(participantSenderOf(runOf({ sender: ANA }), session)).toBeUndefined();
     expect(participantSenderOf(runOf({ sender: BEN, person: BEN }), session)).toBeUndefined();
     expect(participantSenderOf(runOf({ sender: BEN }), sessionOf())).toBeUndefined();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// An app user's own sign-ins
+// ---------------------------------------------------------------------------
+
+describe("an app user's own sign-ins", () => {
+  const PRIYA = "ida_priya";
+  const OMAR = "ida_omar";
+  const MINTER = "ida_dash";
+  const LINEAR = "https://mcp.linear.example/mcp";
+
+  /** The organization's embedding settings, attaching `vaults` (each attached by the admin), and its minting service account. */
+  async function embedding(vaults: string[] = []): Promise<void> {
+    const refs = [];
+    const attachers: Record<string, string> = {};
+    for (const slug of vaults) {
+      const id = `vlt_${ORG}_${slug}`.replace(/-/g, "_");
+      refs.push(vaultRef(slug));
+      attachers[id] = ADMIN;
+      mayUse.add(`${ADMIN}:${id}`);
+    }
+    await rig.store.saveResource(
+      ApiResourceKind.organization,
+      ORG,
+      OrganizationSchema,
+      create(OrganizationSchema, {
+        metadata: { id: ORG, name: ORG },
+        spec: { embedding: { vaults: refs } },
+        status: { embeddingVaultAttachers: attachers },
+      }),
+    );
+    accounts.set(
+      MINTER,
+      create(IdentityAccountSchema, {
+        metadata: { id: MINTER, org: ORG },
+        spec: { provisioningMode: IdentityAccountProvisioningMode.service_account },
+      }),
+    );
+  }
+
+  /** The app user's My vault, signed in at `address`, holding `secrets` too; answers its id. */
+  async function ownVault(who: string, init: { address?: string; token?: string; secrets?: Record<string, string>; github?: string } = {}): Promise<string> {
+    const caller = testCallerIdentity({ identityId: who });
+    const mine = (await rig.vaults.ensureMine(ORG, caller)).metadata!.id;
+    if (init.address !== undefined) {
+      await rig.vaults.setConnection(
+        mine,
+        init.address,
+        {
+          token: init.token ?? `${who}-login`,
+          source: VaultConnectionSource.sign_in,
+          signIn: {
+            expiresAt: 1n,
+            clientId: "c",
+            authMethod: "mcp_oauth",
+            tokenEndpoint: "https://linear.example/token",
+            refreshToken: "r",
+            loginApp: "",
+          },
+        },
+        caller,
+      );
+    }
+    if (init.github !== undefined) {
+      await rig.vaults.setConnection(mine, "github.com", { token: init.github, source: VaultConnectionSource.pasted }, caller);
+    }
+    if (init.secrets !== undefined) {
+      await rig.vaults.setSecrets(
+        mine,
+        Object.fromEntries(Object.entries(init.secrets).map(([name, value]) => [name, { value, description: "" }])),
+        caller,
+      );
+    }
+    return mine;
+  }
+
+  /** A turn an app user sent through the integrator's product. */
+  function appRun(who: string): Run {
+    return runOf({ sender: who, mintedBy: MINTER });
+  }
+
+  /** A conversation the app user created. */
+  function appSession(who: string, init: { vaults?: string[]; includeMyVault?: boolean; attachers?: Record<string, string> } = {}): Session {
+    return sessionOf({ ...init, creator: { id: who } });
+  }
+
+  const linear = (): RunPlugin => tool("linear", { target: "LINEAR_TOKEN" });
+
+  it("fill the app user's own tool from their own sign-in, renewed in their name, as a My vault login", async () => {
+    await embedding();
+    const mine = await ownVault(PRIYA, { address: LINEAR });
+    const init = { run: appRun(PRIYA), session: appSession(PRIYA), plugins: [linear()] };
+    const planned = await plan(init);
+    expect(planned.map((entry) => [entry.origin, entry.vaultId, entry.entry, entry.login])).toEqual([
+      [RunValueOrigin.MY_VAULT, mine, LINEAR, true],
+    ]);
+    expect(await resolve(init)).toEqual({ LINEAR_TOKEN: `fresh-${PRIYA}-login` });
+    expect(renewedAs.map((caller) => [caller.identityId, caller.callerClass])).toEqual([[PRIYA, "internal"]]);
+  });
+
+  it("never reach another app user's run in the same organization, whose refusal offers their own sign-in", async () => {
+    await embedding();
+    await ownVault(PRIYA, { address: LINEAR });
+    const failure = await refusal(resolve({ run: appRun(OMAR), session: appSession(OMAR), plugins: [linear()] }));
+    expect(failure.code).toBe(Code.FailedPrecondition);
+    expect(failure.rawMessage).toBe(
+      "plugin:linear:linear needs LINEAR_TOKEN: sign in to plugin:linear:linear, or ask the owner of the organization's embedding settings to attach a vault that holds LINEAR_TOKEN",
+    );
+    expect(freshened).toEqual([]);
+  });
+
+  it("offer the sign-in only for a key a sign-in fills; any other key's sentence is unchanged", async () => {
+    await embedding();
+    await ownVault(PRIYA);
+    const failure = await refusal(resolve({ run: appRun(PRIYA), session: appSession(PRIYA), agentSpec: agent({ A: KEY }) }));
+    expect(failure.rawMessage).toBe(
+      "the agent Helper needs A: ask the owner of the organization's embedding settings to attach a vault that holds A",
+    );
+  });
+
+  it("fill no key by name from the app user's My vault: not the agent's, a tool's, a login key's, a plugin's hooks', nor a clone's", async () => {
+    await embedding();
+    await ownVault(PRIYA, {
+      secrets: { A: "mine", NOTION_KEY: "mine", LINEAR_TOKEN: "mine", SLACK_HOOK_TOKEN: "mine", [CLONE_TOKEN_KEY]: "mine" },
+      github: "mine-github",
+    });
+    const hooks: RunPlugin = {
+      id: "plg_notify",
+      name: "notify",
+      status: create(PluginStatusSchema, {
+        hooks: {
+          format: HookFormat.CLAUDE_CODE,
+          groups: [{ event: "Stop", handlers: [{ command: "notify", args: ["${user_config.SLACK_HOOK_TOKEN}"] }] }],
+        },
+      }),
+    };
+    const session = appSession(PRIYA);
+    for (const init of [
+      { agentSpec: agent({ A: KEY }) },
+      { plugins: [tool("notion", { env: { NOTION_KEY: KEY } })] },
+      { plugins: [linear()] },
+      { plugins: [hooks] },
+    ]) {
+      const failure = await refusal(resolve({ run: appRun(PRIYA), session, ...init }));
+      expect(failure.code).toBe(Code.FailedPrecondition);
+    }
+    const cloned = sessionOf({ creator: { id: PRIYA }, repo: { url: "https://github.com/acme/app" } });
+    expect(await resolve({ run: appRun(PRIYA), session: cloned })).toEqual({});
+  });
+
+  it("stand last: the conversation's login, then the embedding settings', win over the app user's own", async () => {
+    await seedSharedVault(rig.store, ORG, "everyone", { connections: { [LINEAR]: "everyone-login" } });
+    await embedding(["everyone"]);
+    await ownVault(PRIYA, { address: LINEAR });
+    expect(await resolve({ run: appRun(PRIYA), session: appSession(PRIYA), plugins: [linear()] })).toEqual({
+      LINEAR_TOKEN: "everyone-login",
+    });
+
+    const team = await seedSharedVault(rig.store, ORG, "team", { connections: { [LINEAR]: "team-login" } });
+    mayUse.add(`${ADMIN}:${team.metadata!.id}`);
+    expect(
+      await resolve({
+        run: appRun(PRIYA),
+        session: appSession(PRIYA, { vaults: ["team"], attachers: { [team.metadata!.id]: ADMIN } }),
+        plugins: [linear()],
+      }),
+    ).toEqual({ LINEAR_TOKEN: "team-login" });
+    expect(freshened).toEqual([]);
+  });
+
+  it("are read by no conversation that leaves My vault out, no agent of another organization, no participant and no chat-link guest", async () => {
+    await embedding();
+    await ownVault(PRIYA, { address: LINEAR });
+    await refusal(
+      resolve({ run: appRun(PRIYA), session: appSession(PRIYA, { includeMyVault: false }), plugins: [linear()] }),
+    );
+    const foreign = await refusal(
+      resolve({ run: appRun(PRIYA), session: appSession(PRIYA), agentOrg: "globex", plugins: [linear()] }),
+    );
+    expect(foreign.rawMessage).toBe(
+      "plugin:linear:linear needs LINEAR_TOKEN: ask the owner of the organization's embedding settings to put LINEAR_TOKEN in a shared vault on it: an agent of another organization never reads My vault",
+    );
+    await refusal(resolve({ run: appRun(OMAR), session: appSession(PRIYA), plugins: [linear()] }));
+    await refusal(resolve({ run: runOf({ sender: PRIYA }), session: appSession(PRIYA), plugins: [linear()] }));
+    expect(freshened).toEqual([]);
+  });
+
+  it("refuse to open when My vault was left out since the plan", async () => {
+    await embedding();
+    await ownVault(PRIYA, { address: LINEAR });
+    const session = appSession(PRIYA);
+    const failure = await refusal(
+      open({ run: appRun(PRIYA), session, plugins: [linear()] }, async () => {
+        await stored(appSession(PRIYA, { includeMyVault: false }));
+      }),
+    );
+    expect(failure.rawMessage).toContain("this conversation no longer includes My vault");
+  });
+
+  it("refuse to open a My vault entry that is not the app user's own, or that is no login", async () => {
+    await embedding();
+    const priyas = await ownVault(PRIYA, { address: LINEAR, secrets: { A: "mine" } });
+    await ownVault(OMAR);
+    await install(linear());
+    const planned = await plan({ run: appRun(PRIYA), session: appSession(PRIYA), plugins: [linear()] });
+    const openAs = async (who: string, sources: RunValueSource[]): Promise<ConnectError> => {
+      await stored(appSession(who));
+      const run = create(RunSchema, appRun(who));
+      run.spec = create(RunSchema, { spec: { target: { case: "sessionId", value: "ses_resolve" } } }).spec;
+      run.status!.credentials = create(RunCredentialsSchema, { sources });
+      return refusal(resolver.openRun(run));
+    };
+    expect((await openAs(OMAR, planned)).rawMessage).toContain("My vault no longer exists");
+    const secretEntry = create(RunValueSourceSchema, {
+      key: "A",
+      declarer: { kind: RunValueDeclarerKind.AGENT, name: "Helper" },
+      origin: RunValueOrigin.MY_VAULT,
+      vaultId: priyas,
+      entry: "A",
+    });
+    expect((await openAs(PRIYA, [secretEntry])).rawMessage).toContain("an app user's turn reads only the logins in their My vault");
+  });
+
+  it("is recognised from the stamps: no person, minted, the conversation's creator, My vault included", () => {
+    const session = appSession(PRIYA);
+    expect(appUserOfRun(appRun(PRIYA), session)).toBe(PRIYA);
+    expect(appUserOfRun(appRun(OMAR), session)).toBeUndefined();
+    expect(appUserOfRun(runOf({ sender: PRIYA }), session)).toBeUndefined();
+    expect(appUserOfRun(runOf({ sender: PRIYA, mintedBy: MINTER, person: PRIYA }), session)).toBeUndefined();
+    expect(appUserOfRun(appRun(PRIYA), appSession(PRIYA, { includeMyVault: false }))).toBeUndefined();
+    expect(appUserOfRun(appRun(PRIYA), sessionOf())).toBeUndefined();
   });
 });
 

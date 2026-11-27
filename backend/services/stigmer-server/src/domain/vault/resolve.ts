@@ -40,7 +40,21 @@
  *      vaults also serve a try that acts as a person (open source acts as
  *      the eval's creator), after its conversation's: a try's conversation
  *      names none, and the eval's vaults are what its hooks and servers
- *      were given.
+ *      were given;
+ *   5. for an app user's own turn only (`appUserOfRun`: no person, sent
+ *      through an integrator's product, by the account that created the
+ *      conversation, which includes My vault), the logins in that app
+ *      user's My vault, each only for the tool at the login's address
+ *      (and GitHub's own API hosts' github.com fallback), never a key by
+ *      name or a clone. An app user holds their own token and may write
+ *      their My vault with any value, so a key by name from it would let
+ *      them override the integrator's own configuration (a key saying
+ *      where a tool sends its requests, and so where the integrator's
+ *      other keys go); a login is sent only to the address it was made
+ *      for, so the most it does is act as that user. It stands last, so
+ *      a login the integrator set for everyone stays the one used, and
+ *      the sign-in the embedded chat offers is used only where nothing
+ *      the organization set fills it. The run still records no person.
  * A conversation uses exactly what it chose: an integrator calling with an
  * admin's key, which leaves include_my_vault off, never reaches the
  * admin's own logins, and an agent carries no vaults of its own.
@@ -58,7 +72,8 @@
  *
  * include_my_vault is the conversation's choice, and each turn's My vault
  * is its own person's: a second person's turn never reads the first's. A
- * turn with no person ignores it.
+ * turn with no person ignores it, except an app user's own turn, which
+ * reads the logins in their own My vault, last (source 5).
  *
  * A participant's turn (a person the conversation is shared with sends a
  * message into it) records no person: the run's person is stamped only
@@ -340,7 +355,15 @@ interface Source {
   readonly connections: ReadonlyMap<string, SealedConnection>;
   /** Keyed by repositoryTokenKey (name and URL). */
   readonly repositoryTokens?: ReadonlyMap<string, SealedValue>;
+  /**
+   * Serves a tool's login at its address only: never a key by name, never
+   * a clone (an app user's own My vault, source 5 of the module header).
+   */
+  readonly loginsOnly?: true;
 }
+
+/** How the messages name an app user's own My vault, read for its logins only. */
+const OWN_SIGN_INS_LABEL = "your own sign-ins";
 
 /** Whose turn it is to act when a required key is nowhere. */
 /** A surface a run came through: what names it, its vaults and who attached each. */
@@ -354,9 +377,19 @@ interface RunSurface {
 type WhoActs =
   | { readonly kind: "person"; readonly includesMyVault: boolean; readonly listsVaults: boolean }
   | { readonly kind: "foreignAgent" }
-  | { readonly kind: "surface"; readonly what: string; readonly closedMyVault: boolean }
+  | {
+      readonly kind: "surface";
+      readonly what: string;
+      readonly closedMyVault: boolean;
+      /** An app user's own turn that reads their own sign-ins: a login's sentence offers the sign-in. */
+      readonly ownSignIns: boolean;
+    }
   | { readonly kind: "participant"; readonly creator: string }
-  | { readonly kind: "none" };
+  | {
+      readonly kind: "none";
+      /** An app user's own turn that reads their own sign-ins: a login's sentence offers the sign-in. */
+      readonly ownSignIns?: boolean;
+    };
 
 export interface VaultResolverDeps {
   readonly store: Store;
@@ -439,6 +472,32 @@ export function participantSenderOf(
   const sender = execution.status?.audit?.specAudit?.createdBy?.id ?? "";
   const creator = session.status?.audit?.specAudit?.createdBy?.id ?? "";
   return sender !== "" && creator !== "" && sender !== creator ? sender : undefined;
+}
+
+/**
+ * The app user whose own turn a run is (the module header's source 5), or
+ * undefined for any other run: a run that recorded no person, whose
+ * server-stamped creator was minted (the same stamp the embedding settings'
+ * surface is found from) and names the account that created the stored
+ * conversation, which includes My vault. A participant, a chat-link guest
+ * (no minter), a schedule's or a person's run is never one.
+ */
+export function appUserOfRun(
+  execution: Run,
+  session: Session,
+): string | undefined {
+  if (recordedRunPerson(execution) !== undefined) {
+    return undefined;
+  }
+  const createdBy = execution.status?.audit?.specAudit?.createdBy;
+  const sender = createdBy?.id ?? "";
+  const creator = session.status?.audit?.specAudit?.createdBy?.id ?? "";
+  return (createdBy?.mintedBy ?? "") !== "" &&
+    sender !== "" &&
+    sender === creator &&
+    session.spec?.includeMyVault === true
+    ? sender
+    : undefined;
 }
 
 /** The conversation's creator in a sentence: their name, or a role when the row has none. */
@@ -711,6 +770,9 @@ function secretNamed(source: Source, name: string): Location | undefined {
 
 function locate(requirement: Requirement, sources: readonly Source[]): Location | undefined {
   for (const source of sources) {
+    if (source.loginsOnly === true && (requirement.clone !== undefined || requirement.loginAddress === undefined)) {
+      continue;
+    }
     if (requirement.clone !== undefined) {
       const own = source.repositoryTokens?.get(
         repositoryTokenKey(requirement.clone.entryName, requirement.clone.url),
@@ -731,6 +793,9 @@ function locate(requirement: Requirement, sources: readonly Source[]): Location 
       if (login !== undefined) {
         return login;
       }
+    }
+    if (source.loginsOnly === true) {
+      continue;
     }
     const secret = secretNamed(source, requirement.key);
     if (secret !== undefined) {
@@ -826,11 +891,16 @@ function whoActsSentence(requirement: Requirement, who: WhoActs): string {
       : `add ${requirement.key}`;
   switch (who.kind) {
     case "surface":
-      return who.closedMyVault
-        ? `ask the owner of ${who.what} to put ${requirement.key} in a shared vault on it: an agent of another organization never reads My vault`
+      if (who.closedMyVault) {
+        return `ask the owner of ${who.what} to put ${requirement.key} in a shared vault on it: an agent of another organization never reads My vault`;
+      }
+      return who.ownSignIns && requirement.signIn === true
+        ? `sign in to ${describeDeclarer(requirement.declarer)}, or ask the owner of ${who.what} to attach a vault that holds ${requirement.key}`
         : `ask the owner of ${who.what} to attach a vault that holds ${requirement.key}`;
     case "none":
-      return `list a vault that holds ${requirement.key} on the conversation`;
+      return who.ownSignIns === true && requirement.signIn === true
+        ? `sign in to ${describeDeclarer(requirement.declarer)}, or list a vault that holds ${requirement.key} on the conversation`
+        : `list a vault that holds ${requirement.key} on the conversation`;
     case "participant":
       return `ask ${who.creator} to list a vault that holds ${requirement.key} on the conversation`;
     case "foreignAgent":
@@ -1305,9 +1375,8 @@ export function newVaultResolver(deps: VaultResolverDeps): VaultResolver {
     } else {
       sources.push(...(await namedSources(named, undefined, RunValueOrigin.VAULT, scope)).sources);
       const surface = await surfaceOf(execution, stored);
-      if (surface === undefined) {
-        who = { kind: "none" };
-      } else {
+      let closedMyVault = false;
+      if (surface !== undefined) {
         const surfaceSources = await namedSources(
           surface.named,
           undefined,
@@ -1315,7 +1384,29 @@ export function newVaultResolver(deps: VaultResolverDeps): VaultResolver {
           scope,
         );
         sources.push(...surfaceSources.sources);
-        who = { kind: "surface", what: surface.what, closedMyVault: surfaceSources.closedMyVault };
+        closedMyVault = surfaceSources.closedMyVault;
+      }
+      // An app user's own turn: the logins in their own My vault, last
+      // (source 5), never for another organization's agent.
+      const appUser = appUserOfRun(execution, stored);
+      let ownSignIns = false;
+      if (appUser !== undefined) {
+        if (foreignAgent) {
+          closedMyVault = true;
+        } else {
+          ownSignIns = true;
+          const mine = await deps.vaults.findMine(executionOrg, appUser);
+          if (mine !== undefined) {
+            sources.push({ ...vaultSource(OWN_SIGN_INS_LABEL, RunValueOrigin.MY_VAULT, mine), loginsOnly: true });
+          }
+        }
+      }
+      if (surface !== undefined) {
+        who = { kind: "surface", what: surface.what, closedMyVault, ownSignIns };
+      } else if (appUser !== undefined && foreignAgent) {
+        who = { kind: "foreignAgent" };
+      } else {
+        who = { kind: "none", ownSignIns };
       }
     }
 
@@ -1376,14 +1467,20 @@ export function newVaultResolver(deps: VaultResolverDeps): VaultResolver {
     };
     return async (entry) => {
       if (entry.origin === RunValueOrigin.MY_VAULT) {
-        if (person === undefined || stored.spec?.includeMyVault !== true) {
+        // A person's own My vault, or an app user's own sign-ins (source 5):
+        // the same stamps the plan read, read again from the stored rows.
+        const owner = person ?? appUserOfRun(execution, stored);
+        if (owner === undefined || stored.spec?.includeMyVault !== true) {
           return { ok: false, why: "this conversation no longer includes My vault" };
         }
-        const mine = await deps.vaults.findMine(executionOrg, person);
+        if (person === undefined && !entry.login) {
+          return { ok: false, why: "an app user's turn reads only the logins in their My vault" };
+        }
+        const mine = await deps.vaults.findMine(executionOrg, owner);
         if (mine === undefined || mine.metadata?.id !== entry.vaultId) {
           return { ok: false, why: "My vault no longer exists" };
         }
-        return { ok: true, vault: mine, label: "My vault" };
+        return { ok: true, vault: mine, label: person === undefined ? OWN_SIGN_INS_LABEL : "My vault" };
       }
       const found = (await namedById()).get(entry.vaultId);
       if (found === undefined || found.origin !== entry.origin) {
@@ -1630,10 +1727,11 @@ export function newVaultResolver(deps: VaultResolverDeps): VaultResolver {
     const values = await open(entries, {
       vaultFor: runScopeVaults(execution, stored, person),
       repositoryTokens: own.repositoryTokens,
-      // A participant's turn records no person, yet someone asked: the
-      // decrypt trail names its sender rather than the server.
+      // A participant's turn and an app user's own turn record no person,
+      // yet someone asked: the decrypt trail, and a renewed sign-in written
+      // back, name them rather than the server.
       actor: serverActingFor(
-        person ?? participantSenderOf(execution, stored) ?? "system",
+        person ?? appUserOfRun(execution, stored) ?? participantSenderOf(execution, stored) ?? "system",
       ),
       retry: "recover the turn",
     });

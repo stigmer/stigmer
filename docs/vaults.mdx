@@ -122,13 +122,19 @@ your own Organization; nothing else can name a My vault (below):
 | A [routine](/docs/routines)                                                                    | The vaults on the routine (the console names its creator's My vault by default) |
 | A [public chat link](/docs/channels/create-a-chat-link)                                        | The vaults on the chat link                                                     |
 | A [Slack](/docs/channels/connect-slack) or [WhatsApp](/docs/channels/connect-whatsapp) channel | The vaults on the channel                                                       |
-| A user signed in from an integrator's product                                                  | The vaults in the Organization's embedding settings                             |
+| A user signed in from an integrator's product                                                  | The vaults in the Organization's embedding settings, then the user's own logins |
 
 A visitor on a chat link brings no keys of their own: anything a visitor's
-request names is dropped, so the chat link's vaults are what its runs use. Each
-time such a run starts, Stigmer checks again that the person who attached each
-vault may still use it, so taking away someone's access stops every routine and
-channel they attached the vault to.
+request names is dropped, so the chat link's vaults are what its runs use. A
+user signed in from an integrator's product brings one thing of their own: the
+logins they made by signing in to a tool's server from the embedded chat. Each
+serves only that user's own runs, only for the tool at that login's address, and
+only where nothing the conversation or the embedding settings hold fills it
+first; a key by name never comes from that user's My vault, so a user cannot
+replace a value the integrator configured. Each time such a run starts, Stigmer
+checks again that the person who attached each vault may still use it, so taking
+away someone's access stops every routine and channel they attached the vault
+to.
 
 A My vault can be attached only to its owner's own routine, which the owner sets
 up for their own work. A conversation, a channel and an Organization's embedding

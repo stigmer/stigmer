@@ -453,9 +453,14 @@ own, such as a shared API secret. Put that credential in a shared
 settings. Every run a user signed in this way starts then uses the vault, and so
 does a recovery of that run. The Agent stays as it is.
 
-- **No vault of their own.** The runs of a user signed in from your product read
-  no vault of that user's own: they use the vaults their Session names and the
-  embedding settings' vaults.
+- **No keys of their own.** The runs of a user signed in from your product take
+  their keys from the vaults their Session names and the embedding settings'
+  vaults, never from a vault of that user's own, so a user cannot replace a
+  value you configured.
+- **Their own sign-ins.** When such a user signs in to a tool's server from the
+  embedded chat, the login is saved to their own My vault and serves their own
+  runs, for that tool only, after every vault you chose: a login you set for
+  everyone still wins.
 - **Same Organization.** The vaults must belong to the Organization, and they
   are used only by its runs.
 - **Kept up to date.** Stigmer reads the settings when each run starts, so an

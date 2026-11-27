@@ -11,7 +11,12 @@
  * the messages behind them; a sender nobody stands for drops them too; a
  * message that kept its sender's lane is started as that lane's caller,
  * a lane nothing turns back into a caller drops it, and messages of two
- * lanes start two turns; an
+ * lanes start two turns; a message an app user sent through an
+ * integrator's product (its kept turn names the service account that
+ * minted the sender's token) starts its turn stamped with that minter, as
+ * a direct turn is, a minter that is gone drops it with the reason, and a
+ * kept turn naming no minter, or another sender, starts as its sender
+ * alone; an
  * infrastructure fault is thrown for
  * the workflow's activity to retry; and the observer starts the turn when
  * a turn of the session ends, logging rather than throwing a fault.
@@ -23,6 +28,9 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { RunSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 import type { Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 import { RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
+import { IdentityAccountSchema } from "@stigmer/apis/ai/stigmer/iam/identityaccount/v1/api_pb";
+import type { IdentityAccount } from "@stigmer/apis/ai/stigmer/iam/identityaccount/v1/api_pb";
+import { IdentityAccountProvisioningMode } from "@stigmer/apis/ai/stigmer/iam/identityaccount/v1/enum_pb";
 
 import { createLogger } from "../../../boot/logger.js";
 import type { CallerIdentity } from "../../../extensions/identity.js";
@@ -54,12 +62,23 @@ let deps: QueuedTurnDeps;
 const people = new Map<string, CallerIdentity>([
   ["person-a", testCallerIdentity({ identityId: "person-a" })],
   ["person-b", testCallerIdentity({ identityId: "person-b" })],
+  ["app-user", testCallerIdentity({ identityId: "app-user" })],
+  ["app-user-2", testCallerIdentity({ identityId: "app-user-2" })],
 ]);
+let accounts: Map<string, IdentityAccount>;
+
+function serviceAccount(id: string): IdentityAccount {
+  return create(IdentityAccountSchema, {
+    metadata: { id, org: "acme" },
+    spec: { provisioningMode: IdentityAccountProvisioningMode.service_account },
+  });
+}
 
 beforeEach(() => {
   temp = tempStore();
   created = [];
   answer = async (run) => run;
+  accounts = new Map([["minter-sa", serviceAccount("minter-sa")]]);
   deps = {
     store: temp.store,
     logger: silentLogger,
@@ -71,6 +90,7 @@ beforeEach(() => {
       },
     }),
     callerOf: async (senderId) => people.get(senderId),
+    accounts: { findById: async (id) => accounts.get(id) },
   };
 });
 
@@ -84,6 +104,17 @@ function turn(text: string, fileIds: string[] = [], name = "run-1", person = "")
     spec: { target: { case: "sessionId", value: "s1" }, message: text, fileIds },
     ...(person === "" ? {} : { status: { credentials: { person } } }),
   });
+}
+
+/** Queues a message as send-message.ts keeps it: the turn names who admitted it. */
+async function queueAdmittedBy(text: string, sender: string, admittedBy: { id: string; mintedBy: string }): Promise<string> {
+  const kept = turn(text);
+  kept.status = create(RunSchema, { status: { audit: { specAudit: { createdBy: admittedBy } } } }).status;
+  const outcome = await enqueueMessage(deps, { sessionId: "s1", org: "acme", sender, turn: kept });
+  if (!("queued" in outcome) || outcome.queued.event.case !== "userMessage") {
+    throw new Error("not queued");
+  }
+  return outcome.queued.event.value.id;
 }
 
 function files(count: number, prefix: string): string[] {
@@ -286,6 +317,50 @@ describe("the queue's turn", () => {
     await end();
     expect(nextTurnMessages(await temp.store.sessionEvents.queued("s1")).map((message) => message.record.eventId)).toEqual([person]);
     expect(guest).not.toBe(person);
+  });
+
+  it("starts an app user's message stamped with the service account that minted its sender's token, as a direct turn is", async () => {
+    await working();
+    await queueAdmittedBy("what's on my board?", "app-user", { id: "app-user", mintedBy: "minter-sa" });
+    await end();
+    await startQueuedTurn(deps, "s1");
+    expect(created.map(({ caller }) => [caller.identityId, caller.mintedBy])).toEqual([["app-user", "minter-sa"]]);
+    expect(created[0]!.run.status).toBeUndefined();
+  });
+
+  it("starts a person's message, a message kept with no admitter, or one whose admitter is another sender, with no minter", async () => {
+    await working();
+    const cases: Array<() => Promise<string>> = [
+      () => queueAdmittedBy("mine", "person-a", { id: "person-a", mintedBy: "" }),
+      () => queue("kept before admitters were", "person-b"),
+      () => queueAdmittedBy("someone else's stamp", "app-user", { id: "another", mintedBy: "minter-sa" }),
+    ];
+    for (const queueOne of cases) {
+      await queueOne();
+      await startQueuedTurn(deps, "s1");
+      await dropQueuedMessages(deps, "s1", "acme");
+    }
+    expect(created.map(({ caller }) => [caller.identityId, caller.mintedBy])).toEqual([
+      ["person-a", undefined],
+      ["person-b", undefined],
+      ["app-user", undefined],
+    ]);
+  });
+
+  it("drops an app user's message with the reason when the service account that minted its sender's token is gone", async () => {
+    await working();
+    await queueAdmittedBy("what's on my board?", "app-user", { id: "app-user", mintedBy: "a-deleted-sa" });
+    accounts.set("not-a-service-account", create(IdentityAccountSchema, { metadata: { id: "not-a-service-account" } }));
+    await queueAdmittedBy("and now?", "app-user-2", { id: "app-user-2", mintedBy: "not-a-service-account" });
+    await end();
+    expect(await startQueuedTurn(deps, "s1")).toBeUndefined();
+    expect(created).toEqual([]);
+    expect(await temp.store.sessionEvents.queued("s1")).toEqual([]);
+    const [error] = await temp.store.sessionEvents.list("s1", { order: "desc", types: ["session.error"], limit: 1 });
+    const event = eventOf(error!);
+    expect(event.event.case === "sessionError" && event.event.value.error?.message).toBe(
+      "the queued messages were not read: the service account that signed their sender in is gone",
+    );
   });
 
   it("throws an infrastructure fault for the workflow's activity to retry", async () => {

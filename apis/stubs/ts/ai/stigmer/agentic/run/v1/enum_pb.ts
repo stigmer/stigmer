@@ -780,7 +780,8 @@ export enum RunValueOrigin {
   REPOSITORY_TOKEN = 1,
 
   /**
-   * The turn's person's My vault.
+   * The turn's person's My vault, or the logins in an app user's own My
+   * vault (a user an integrator's product signed in, on their own turn).
    *
    * @generated from enum value: RUN_VALUE_ORIGIN_MY_VAULT = 2;
    */

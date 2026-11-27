@@ -33,7 +33,8 @@ public enum RunValueOrigin
   RUN_VALUE_ORIGIN_REPOSITORY_TOKEN(1),
   /**
    * <pre>
-   * The turn's person's My vault.
+   * The turn's person's My vault, or the logins in an app user's own My
+   * vault (a user an integrator's product signed in, on their own turn).
    * </pre>
    *
    * <code>RUN_VALUE_ORIGIN_MY_VAULT = 2;</code>
@@ -94,7 +95,8 @@ public enum RunValueOrigin
   public static final int RUN_VALUE_ORIGIN_REPOSITORY_TOKEN_VALUE = 1;
   /**
    * <pre>
-   * The turn's person's My vault.
+   * The turn's person's My vault, or the logins in an app user's own My
+   * vault (a user an integrator's product signed in, on their own turn).
    * </pre>
    *
    * <code>RUN_VALUE_ORIGIN_MY_VAULT = 2;</code>

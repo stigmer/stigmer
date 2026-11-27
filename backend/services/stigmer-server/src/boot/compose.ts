@@ -1310,6 +1310,7 @@ export async function composeServer(
     creator: () => requireInProcess().queuedTurnCreator,
     callerOf: undoDeciderCaller(personAccounts, () => singleOrganizationCaller),
     queuedSenderLane: extensions.drivers.queuedSenderLane,
+    accounts: identityAccounts,
   };
   /* v8 ignore next -- @preserve: called only by a run's workflow end and by sendMessage past admission, both needing an engine */
   const queuedTurns: QueuedTurnStarter = (sessionId) => startQueuedTurn(queuedTurnDeps, sessionId);
