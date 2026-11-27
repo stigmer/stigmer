@@ -52,12 +52,25 @@ any stylesheet does. From weakest to strongest:
 1. **Stigmer's defaults** (the box and border defaults, the button and field
    reset) sit in `@layer base`, where Tailwind keeps its own preflight. Every
    rule and class of yours beats them.
-2. **Your bare element rules** (`button { … }`, `* { … }`) do not reach the
-   buttons and fields Stigmer draws: one rule hands those back to Stigmer's
-   defaults. Your own buttons and fields inside the provider keep them.
-3. **Stigmer's utilities** (`.stg\:p-2`) beat your bare element rules.
-4. **Anything you aim at Stigmer on purpose** wins: a class you pass through
-   `className`, or a rule that names a class or the scope (`.stgm .x`).
+2. **Your bare element rules** (`button { … }`, `p { … }`, `* { … }`) do not
+   reach what Stigmer draws: its utilities and the spacing it gives a stack's
+   children outrank them, and one rule hands the reset's properties of
+   Stigmer's buttons and fields back to its defaults. Your own buttons and
+   fields inside the provider keep them.
+3. **Stigmer's utilities** (`.stg\:p-2`).
+4. **What you aim at Stigmer on purpose.** A Tailwind class you pass through
+   `className` displaces the component's own (`p-4` drops `stg:p-2`), so it
+   applies. Any other class you pass (a CSS module, a BEM class) meets
+   Stigmer's utilities at the same specificity, so the stylesheet loaded later
+   wins: load yours after Stigmer's, or name the scope (`.stgm .acme-cta`). A
+   rule that names a class and an element (`.app button`) or the scope wins
+   outright.
+
+Two edges. A rule of yours for an element with a pseudo-class or an attribute
+(`button:hover`, `[type="button"]`) still reaches Stigmer's buttons, as do the
+properties Stigmer's reset does not set (`cursor`, `transition`). And a rule
+that names two elements (`main button`) ties with the rule that guards
+Stigmer's buttons, so the later stylesheet wins.
 
 Text alignment is inherited, so Stigmer's outermost elements start their text
 at the start edge, even inside a page that centers everything (the app

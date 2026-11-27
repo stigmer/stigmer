@@ -121,6 +121,17 @@ function renderKit() {
             <IconButton label="Close" icon={<span>x</span>} />
             <TextInput aria-label="Name" defaultValue="name" />
             <TextArea aria-label="Notes" defaultValue="notes" />
+            {/* A stack the kit spaces and divides through its parent (Tailwind writes those child rules at zero specificity). */}
+            <div className="stg:space-y-2">
+              <p className="stg:text-sm">Spaced paragraph</p>
+              <TextInput aria-label="Spaced field" defaultValue="spaced" />
+              <Button variant="outline">Spaced button</Button>
+              <p className="stg:text-sm">Last paragraph</p>
+            </div>
+            <div className="stg:divide-y">
+              <p className="stg:py-1">Divided first</p>
+              <p className="stg:py-1">Divided last</p>
+            </div>
           </div>
         </div>
       </ModelRegistryContext.Provider>

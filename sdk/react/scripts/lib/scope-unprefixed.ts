@@ -104,3 +104,35 @@ export function scopeUnprefixedSelectors(root: Root): void {
     rule.selector = addScopeGuard.processSync(rule.selector);
   });
 }
+
+/**
+ * The specificity the kit's child utilities are lifted to: (0,0,3). `*`
+ * matches every element, and `:is()` counts its most specific argument, so
+ * the suffix changes what a rule ranks against, never what it matches.
+ */
+export const CHILD_UTILITY_SPECIFICITY = ":is(*, stg-x stg-x stg-x)";
+
+/**
+ * Lift the kit's zero-specificity child utilities (#3491). Tailwind writes
+ * a parent's rules for its children (`stg:space-y-*`, `stg:divide-*`) inside
+ * `:where()`, at (0,0,0), so that a child's own utility always beats them.
+ * Unlayered, at zero they lose to any host element rule (`p { margin: 0 }`,
+ * Tailwind 3's preflight) and tie with a host's `* {}` reset, and a stacked
+ * kit surface collapses. At (0,0,3) they beat a host's bare element rules
+ * and the kit's control hand-back ((0,0,2), the end of `src/styles.css`),
+ * and still lose to a child's own utility ((0,1,0)).
+ */
+export function raiseChildUtilities(root: Root): void {
+  root.walkRules((rule) => {
+    if (enclosingLayer(rule) !== null) return;
+    if (enclosingAtRuleNames(rule).some((n) => n.endsWith("keyframes"))) return;
+    const lifted = rule.selectors.every(
+      (selector) => selector.startsWith(":where(") && selector.includes(".stg\\:") && !selector.includes("::"),
+    );
+    if (!lifted) return;
+    rule.selectors = rule.selectors.map((selector) =>
+      selector.endsWith(CHILD_UTILITY_SPECIFICITY) ? selector : `${selector}${CHILD_UTILITY_SPECIFICITY}`,
+    );
+  });
+}
+

@@ -14,14 +14,17 @@
      1. the kit's defaults in `@layer base` (the `.stgm *` box and border
         defaults, the form-control reset): every host rule and every host
         Tailwind 4 class beats them, as Tailwind's own preflight is beaten;
-     2. a host's bare element rules (`button {}`, (0,0,1)): they lose, on the
-        kit's own controls only, to the `revert-layer` rule at the end of this
-        file ((0,0,2)), which hands those properties back to rung 1;
+     2. a host's bare element rules (`button {}`, `p {}`, (0,0,1)): they lose,
+        on the kit's own controls, to the `revert-layer` rule at the end of
+        this file ((0,0,2)), which hands those properties back to rung 1, and
+        to a parent's child utilities (`stg:space-y-*`, `stg:divide-*`),
+        which the build lifts from (0,0,0) to (0,0,3);
      3. the kit's utilities ((0,1,0), unlayered);
-     4. a host rule that names a class or the kit's scope (`.app button`,
-        `.stgm .x`) or a class the host passes through `className` (the kit's
-        merge drops the `stg:` class it displaces): the host deciding on
-        purpose.
+     4. what the host aims at the kit on purpose: a Tailwind class through
+        `className` (the kit's merge drops the `stg:` class it displaces); a
+        rule naming a class and an element or the kit's scope (`.app
+        button`, `.stgm .x`). Any other single class the host passes ties
+        with rung 3 at (0,1,0), and the later stylesheet wins.
 
    The theme variables and the design tokens stay in `@layer stgm`: they are
    namespaced (`--stg-*`, `--stgm-*`), and a host's unlayered `--stgm-*`
@@ -453,14 +456,17 @@
    passes through `className` (Tailwind 4's are layered). It sets no value of
    its own, so it can never beat a kit utility ((0,1,0)) or a host rule that
    names a class. It reaches only controls the kit drew (a `stg:` class), so
-   a host's own controls inside the provider keep the host's styling. It
-   skips a control whose parent spaces or divides its children
-   (`stg:space-y-*`, `stg:divide-*`): Tailwind writes those child rules at
-   zero specificity, and this rule would take their margin and border away. */
+   a host's own controls inside the provider keep the host's styling. A
+   parent's spacing and dividers (`stg:space-y-*`, `stg:divide-*`) still
+   reach a control: the build lifts those child rules to (0,0,3)
+   (`scripts/lib/scope-unprefixed.ts`, `raiseChildUtilities`).
+
+   Its edge: a host element rule with a pseudo-class (`button:hover`,
+   (0,1,1)) or an attribute (`[type="button"]`, (0,1,0)) outranks it, and it
+   hands back only the reset's properties, so a host's `cursor` or
+   `transition` on `button` still applies. */
 :where(.stgm)
-  :is(button, input, select, optgroup, textarea):is(button, input, select, optgroup, textarea):where([class*="stg:"]):not(
-    :where([class*="stg:space-"], [class*="stg:divide-"]) > *
-  ) {
+  :is(button, input, select, optgroup, textarea):is(button, input, select, optgroup, textarea):where([class*="stg:"]) {
   margin: revert-layer;
   padding: revert-layer;
   font: revert-layer;
