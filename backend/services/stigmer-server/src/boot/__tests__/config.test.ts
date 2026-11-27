@@ -555,14 +555,14 @@ describe("loadConfig", () => {
     });
 
     it("holds the listed providers, spaces trimmed", () => {
-      expect(loadConfig({ STIGMER_RUNNER_PROVIDERS: "anthropic, openai" }).runnerProviders).toEqual(
-        new Set(["anthropic", "openai"]),
+      expect(loadConfig({ STIGMER_RUNNER_PROVIDERS: "anthropic, openai, google" }).runnerProviders).toEqual(
+        new Set(["anthropic", "openai", "google"]),
       );
     });
 
     it("refuses a name that is not a provider, so a typo never reads as a missing one", () => {
       expect(() => loadConfig({ STIGMER_RUNNER_PROVIDERS: "anthropic,gemini" })).toThrow(
-        'STIGMER_RUNNER_PROVIDERS lists "gemini", which is not a model provider — list any of anthropic, openai',
+        'STIGMER_RUNNER_PROVIDERS lists "gemini", which is not a model provider — list any of anthropic, openai, google',
       );
     });
   });

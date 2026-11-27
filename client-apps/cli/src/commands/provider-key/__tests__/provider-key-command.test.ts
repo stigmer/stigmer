@@ -481,9 +481,13 @@ describe("stigmer provider-key set", () => {
     expect((await failureOf(["provider-key", "set", "anthropic", "--key-stdin"])).message).toBe("no Anthropic key given");
     for (const provider of ["gemini", "cursor"]) {
       expect((await failureOf(["provider-key", "set", provider, "--key-stdin"])).message).toContain(
-        "Use anthropic or openai.",
+        "Use anthropic, openai or google.",
       );
     }
+    expect((await failureOf(["provider-key", "set", "Gemini", "--key-stdin"])).message).toBe(
+      'unknown provider "Gemini"\n\nUse anthropic, openai or google. Gemini keys are saved under google.',
+    );
+    expect((await failureOf(["provider-key", "set", "cursor", "--key-stdin"])).message).not.toContain("Gemini");
     expect((await failureOf(["provider-key", "set", "openai", "--base-url", "http://gateway.example.com/v1"])).exitCode).toBe(
       ExitCode.Usage,
     );
@@ -526,7 +530,7 @@ describe("stigmer provider-key on a server that keeps no provider keys", () => {
     const failure = await failureOf(["provider-key", "set", "anthropic"]);
     expect(failure.exitCode).toBe(ExitCode.Usage);
     expect(failure.hints).toEqual([
-      "On your own machine the runner's keys come from `stigmer setup` (Anthropic) and OPENAI_API_KEY in the shell you start Stigmer from (OpenAI), then `stigmer down && stigmer up`.",
+      "On your own machine the runner's keys come from `stigmer setup` (Anthropic), and from OPENAI_API_KEY (OpenAI) and GEMINI_API_KEY (Google) in the shell you start Stigmer from, then `stigmer down && stigmer up`.",
     ]);
     expect(backend.prompts).toEqual([]);
     nothingSent();

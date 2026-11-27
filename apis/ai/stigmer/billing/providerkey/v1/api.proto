@@ -10,8 +10,8 @@ import "google/protobuf/timestamp.proto";
 //
 // An organization holds at most one key per provider, where the provider
 // names the wire protocol: "anthropic" is Anthropic's API or any endpoint
-// that speaks it, and "openai" is OpenAI's API or any endpoint that speaks
-// it.
+// that speaks it, "openai" is OpenAI's API or any endpoint that speaks it,
+// and "google" is Google's Gemini API or any endpoint that speaks it.
 //
 // The Stigmer Cloud proxy serves every one of the organization's calls to
 // that provider on this key, on every plan, and on no other: a run that
@@ -33,8 +33,8 @@ message ProviderKey {
   // The organization the key serves.
   string org = 1;
 
-  // The provider the key is for: "anthropic" or "openai", the
-  // proxy's own provider names.
+  // The provider the key is for: "anthropic", "openai" or "google",
+  // the proxy's own provider names.
   string provider = 2;
 
   // The key's last four characters.

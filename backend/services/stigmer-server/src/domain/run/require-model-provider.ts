@@ -74,13 +74,14 @@ export function organizationProviderMissingCopy(need: ProviderNeed): string {
 
 /**
  * How a person gives their own machine's runner each provider's key:
- * `stigmer setup` saves Anthropic's, and the runner takes OpenAI's from the
- * shell `stigmer up` runs in. Keyed by every provider, so one added is a
+ * `stigmer setup` saves Anthropic's, and the runner takes OpenAI's and
+ * Google's from the shell `stigmer up` runs in. Keyed by every provider, so one added is a
  * compile error here until it says how.
  */
 const RUNNER_KEY_FIX: Readonly<Record<ModelProvider, string>> = {
   anthropic: "run `stigmer setup`",
   openai: "set OPENAI_API_KEY in the shell you start Stigmer from",
+  google: "set GEMINI_API_KEY in the shell you start Stigmer from",
 };
 
 /** The copy when this server's runners do not reach the provider. */

@@ -96,7 +96,7 @@ async function main() {
   /** The shell a case runs in: the install's, with exactly these model settings. */
   const shell = (model) => {
     const env = { ...stack.env };
-    for (const key of ["ANTHROPIC_API_KEY", "ANTHROPIC_BASE_URL", "OPENAI_API_KEY", "STIGMER_ANTHROPIC_BACKEND", "STIGMER_PROXY_ENDPOINT"]) {
+    for (const key of ["ANTHROPIC_API_KEY", "ANTHROPIC_BASE_URL", "OPENAI_API_KEY", "GEMINI_API_KEY", "STIGMER_ANTHROPIC_BACKEND", "STIGMER_PROXY_ENDPOINT"]) {
       delete env[key];
     }
     return { ...env, ...model };

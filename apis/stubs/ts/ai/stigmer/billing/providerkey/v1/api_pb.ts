@@ -21,8 +21,8 @@ export const file_ai_stigmer_billing_providerkey_v1_api: GenFile = /*@__PURE__*/
  *
  * An organization holds at most one key per provider, where the provider
  * names the wire protocol: "anthropic" is Anthropic's API or any endpoint
- * that speaks it, and "openai" is OpenAI's API or any endpoint that speaks
- * it.
+ * that speaks it, "openai" is OpenAI's API or any endpoint that speaks it,
+ * and "google" is Google's Gemini API or any endpoint that speaks it.
  *
  * The Stigmer Cloud proxy serves every one of the organization's calls to
  * that provider on this key, on every plan, and on no other: a run that
@@ -46,8 +46,8 @@ export type ProviderKey = Message<"ai.stigmer.billing.providerkey.v1.ProviderKey
   org: string;
 
   /**
-   * The provider the key is for: "anthropic" or "openai", the
-   * proxy's own provider names.
+   * The provider the key is for: "anthropic", "openai" or "google",
+   * the proxy's own provider names.
    *
    * @generated from field: string provider = 2;
    */

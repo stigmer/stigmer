@@ -6,15 +6,20 @@
 // readable line join the reach in order. The runner's own suite holds this
 // copy equal to the runner's rule over a matrix of environments
 // (backend/services/runner/src/shared/__tests__/provider-reach.test.ts).
+// Its provider list is the CLI's provider list, which the key contract
+// holds (resources/__tests__/provider-key.test.ts), so the providers a
+// laptop can declare are the ones the server knows.
 import { describe, expect, it } from "vitest";
 
-import { describeReach, providerReach, runnerProvidersValue } from "../provider-reach.js";
+import { PROVIDERS } from "../../resources/provider-key.js";
+import { describeReach, providerReach, REACHABLE_PROVIDERS, runnerProvidersValue } from "../provider-reach.js";
 
 describe("providerReach", () => {
   it("reaches every provider through a proxy, even beside a backend the runner would refuse", () => {
     const all = [
       { provider: "anthropic", via: "proxy" },
       { provider: "openai", via: "proxy" },
+      { provider: "google", via: "proxy" },
     ];
     expect(providerReach({ STIGMER_PROXY_ENDPOINT: "https://proxy.example" })).toEqual(all);
     expect(providerReach({ STIGMER_PROXY_ENDPOINT: "https://proxy.example", STIGMER_ANTHROPIC_BACKEND: "nope" })).toEqual(
@@ -87,6 +92,18 @@ describe("providerReach", () => {
   it("reaches nothing with no settings at all, nor on a Cursor key, which no engine reads", () => {
     expect(providerReach({})).toEqual([]);
     expect(providerReach({ CURSOR_API_KEY: "key_c" })).toEqual([]);
+  });
+
+  it("reaches Google on a Gemini key, never on a Google API key, which the runner does not read", () => {
+    expect(providerReach({ GEMINI_API_KEY: "AQ.key" })).toEqual([{ provider: "google", via: "key" }]);
+    expect(providerReach({ GEMINI_API_KEY: "  " })).toEqual([]);
+    expect(providerReach({ GOOGLE_API_KEY: "AQ.key" })).toEqual([]);
+  });
+});
+
+describe("the providers a reach can name", () => {
+  it("are the providers keys are saved for, in their order", () => {
+    expect([...REACHABLE_PROVIDERS]).toEqual([...PROVIDERS]);
   });
 });
 

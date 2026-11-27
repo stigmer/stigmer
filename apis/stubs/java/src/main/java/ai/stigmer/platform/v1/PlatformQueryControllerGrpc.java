@@ -333,8 +333,8 @@ public final class PlatformQueryControllerGrpc {
      * on every engine, whether a run of it would start.
      * A run needs one provider: a Claude run needs Anthropic whatever its
      * model, and a Stigmer run needs its model's provider. The providers are
-     * anthropic and openai; the engines are stigmer and claude. A run whose
-     * provider is missing is refused at create with FAILED_PRECONDITION,
+     * anthropic, openai and google; the engines are stigmer and claude. A run
+     * whose provider is missing is refused at create with FAILED_PRECONDITION,
      * reason PROVIDER_KEY_REQUIRED, by the same rule this answer is read from,
      * so a client can mark a model and hold Send before the person tries.
      * Every edition answers. On Stigmer Cloud a provider is served by the
@@ -516,8 +516,8 @@ public final class PlatformQueryControllerGrpc {
      * on every engine, whether a run of it would start.
      * A run needs one provider: a Claude run needs Anthropic whatever its
      * model, and a Stigmer run needs its model's provider. The providers are
-     * anthropic and openai; the engines are stigmer and claude. A run whose
-     * provider is missing is refused at create with FAILED_PRECONDITION,
+     * anthropic, openai and google; the engines are stigmer and claude. A run
+     * whose provider is missing is refused at create with FAILED_PRECONDITION,
      * reason PROVIDER_KEY_REQUIRED, by the same rule this answer is read from,
      * so a client can mark a model and hold Send before the person tries.
      * Every edition answers. On Stigmer Cloud a provider is served by the
@@ -674,8 +674,8 @@ public final class PlatformQueryControllerGrpc {
      * on every engine, whether a run of it would start.
      * A run needs one provider: a Claude run needs Anthropic whatever its
      * model, and a Stigmer run needs its model's provider. The providers are
-     * anthropic and openai; the engines are stigmer and claude. A run whose
-     * provider is missing is refused at create with FAILED_PRECONDITION,
+     * anthropic, openai and google; the engines are stigmer and claude. A run
+     * whose provider is missing is refused at create with FAILED_PRECONDITION,
      * reason PROVIDER_KEY_REQUIRED, by the same rule this answer is read from,
      * so a client can mark a model and hold Send before the person tries.
      * Every edition answers. On Stigmer Cloud a provider is served by the
@@ -828,8 +828,8 @@ public final class PlatformQueryControllerGrpc {
      * on every engine, whether a run of it would start.
      * A run needs one provider: a Claude run needs Anthropic whatever its
      * model, and a Stigmer run needs its model's provider. The providers are
-     * anthropic and openai; the engines are stigmer and claude. A run whose
-     * provider is missing is refused at create with FAILED_PRECONDITION,
+     * anthropic, openai and google; the engines are stigmer and claude. A run
+     * whose provider is missing is refused at create with FAILED_PRECONDITION,
      * reason PROVIDER_KEY_REQUIRED, by the same rule this answer is read from,
      * so a client can mark a model and hold Send before the person tries.
      * Every edition answers. On Stigmer Cloud a provider is served by the
@@ -984,8 +984,8 @@ public final class PlatformQueryControllerGrpc {
      * on every engine, whether a run of it would start.
      * A run needs one provider: a Claude run needs Anthropic whatever its
      * model, and a Stigmer run needs its model's provider. The providers are
-     * anthropic and openai; the engines are stigmer and claude. A run whose
-     * provider is missing is refused at create with FAILED_PRECONDITION,
+     * anthropic, openai and google; the engines are stigmer and claude. A run
+     * whose provider is missing is refused at create with FAILED_PRECONDITION,
      * reason PROVIDER_KEY_REQUIRED, by the same rule this answer is read from,
      * so a client can mark a model and hold Send before the person tries.
      * Every edition answers. On Stigmer Cloud a provider is served by the

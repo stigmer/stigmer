@@ -464,8 +464,8 @@ export interface ServerConfig {
   readonly sharedRunnerKey: string;
   /**
    * The model providers this server's runners reach
-   * (STIGMER_RUNNER_PROVIDERS: a comma-separated list of `anthropic` and
-   * `openai`), as names, never values. Undefined when unset:
+   * (STIGMER_RUNNER_PROVIDERS: a comma-separated list of `anthropic`,
+   * `openai` and `google`), as names, never values. Undefined when unset:
    * the server cannot see a runner that runs as its own process, so every
    * provider is unknown and nothing is refused for it. Set but empty: the
    * runners reach none, and a run that needs one is refused at create

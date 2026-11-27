@@ -3,8 +3,8 @@
  * to "can this model run here?" and its refusal at create read.
  *
  * A provider is named by the wire protocol its key speaks, the names
- * provider keys are saved under (billing/providerkey/v1): "anthropic" and
- * "openai". {@link MODEL_PROVIDERS} is the one list and its order is the
+ * provider keys are saved under (billing/providerkey/v1): "anthropic",
+ * "openai" and "google". {@link MODEL_PROVIDERS} is the one list and its order is the
  * order every answer reports them in; a provider joins or leaves by an
  * entry here, and every table typed over it fails to compile until it says
  * what it does with the change.
@@ -13,8 +13,8 @@
  *   - a Claude turn needs Anthropic, whatever its model: the engine runs
  *     Claude models only;
  *   - a Stigmer turn needs its model's provider, read from the catalog
- *     (`providerOf`: a catalog entry's provider, or an `anthropic:` or
- *     `openai:` prefix), the model being the one the turn names, else the
+ *     (`providerOf`: a catalog entry's provider, or an `anthropic:`,
+ *     `openai:` or `google:` prefix), the model being the one the turn names, else the
  *     one the runner will default to. A Stigmer-harness model whose
  *     provider is no key slot (or that the catalog cannot place) needs
  *     nothing this rule can judge: the runner, and on the cloud the metered
@@ -30,7 +30,7 @@ import type { ModelCatalogProvider } from "./model-catalog-provider.js";
 import { harnessName } from "./pin-validation.js";
 
 /** Every model provider, in the order every answer reports them. */
-export const MODEL_PROVIDERS = ["anthropic", "openai"] as const;
+export const MODEL_PROVIDERS = ["anthropic", "openai", "google"] as const;
 
 /** A model provider's name. */
 export type ModelProvider = (typeof MODEL_PROVIDERS)[number];
@@ -39,6 +39,7 @@ export type ModelProvider = (typeof MODEL_PROVIDERS)[number];
 export const MODEL_PROVIDER_LABELS: Readonly<Record<ModelProvider, string>> = {
   anthropic: "Anthropic",
   openai: "OpenAI",
+  google: "Google",
 };
 
 /** Whether `name` is one of {@link MODEL_PROVIDERS}. */

@@ -13,7 +13,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/billing/providerkey/v1/io.proto.
  */
 export const file_ai_stigmer_billing_providerkey_v1_io: GenFile = /*@__PURE__*/
-  fileDesc("CiphaS9zdGlnbWVyL2JpbGxpbmcvcHJvdmlkZXJrZXkvdjEvaW8ucHJvdG8SIWFpLnN0aWdtZXIuYmlsbGluZy5wcm92aWRlcmtleS52MSKgAQoTU2V0UHJvdmlkZXJLZXlJbnB1dBIUCgNvcmcYASABKAlCB7pIBHICEAESKgoIcHJvdmlkZXIYAiABKAlCGLpIFXITUglhbnRocm9waWNSBm9wZW5haRIbCgdhcGlfa2V5GAMgASgJQgq6SAdyBRAIGIAEEioKCGJhc2VfdXJsGAQgASgJQhi6SBXYAQFyEBiAEDoIaHR0cHM6Ly+IAQEiWgoWRGVsZXRlUHJvdmlkZXJLZXlJbnB1dBIUCgNvcmcYASABKAlCB7pIBHICEAESKgoIcHJvdmlkZXIYAiABKAlCGLpIFXITUglhbnRocm9waWNSBm9wZW5haSJnChVMaXN0UHJvdmlkZXJLZXlzSW5wdXQSFAoDb3JnGAEgASgJQge6SARyAhABEhoKCXBhZ2Vfc2l6ZRgCIAEoBUIHukgEGgIoABIcCgpwYWdlX3Rva2VuGAMgASgJQgi6SAVyAxiACCJyChZMaXN0UHJvdmlkZXJLZXlzT3V0cHV0Ej8KB2VudHJpZXMYASADKAsyLi5haS5zdGlnbWVyLmJpbGxpbmcucHJvdmlkZXJrZXkudjEuUHJvdmlkZXJLZXkSFwoPbmV4dF9wYWdlX3Rva2VuGAIgASgJYgZwcm90bzM", [file_ai_stigmer_billing_providerkey_v1_api, file_buf_validate_validate]);
+  fileDesc("CiphaS9zdGlnbWVyL2JpbGxpbmcvcHJvdmlkZXJrZXkvdjEvaW8ucHJvdG8SIWFpLnN0aWdtZXIuYmlsbGluZy5wcm92aWRlcmtleS52MSKoAQoTU2V0UHJvdmlkZXJLZXlJbnB1dBIUCgNvcmcYASABKAlCB7pIBHICEAESMgoIcHJvdmlkZXIYAiABKAlCILpIHXIbUglhbnRocm9waWNSBm9wZW5haVIGZ29vZ2xlEhsKB2FwaV9rZXkYAyABKAlCCrpIB3IFEAgYgAQSKgoIYmFzZV91cmwYBCABKAlCGLpIFdgBAXIQGIAQOghodHRwczovL4gBASJiChZEZWxldGVQcm92aWRlcktleUlucHV0EhQKA29yZxgBIAEoCUIHukgEcgIQARIyCghwcm92aWRlchgCIAEoCUIgukgdchtSCWFudGhyb3BpY1IGb3BlbmFpUgZnb29nbGUiZwoVTGlzdFByb3ZpZGVyS2V5c0lucHV0EhQKA29yZxgBIAEoCUIHukgEcgIQARIaCglwYWdlX3NpemUYAiABKAVCB7pIBBoCKAASHAoKcGFnZV90b2tlbhgDIAEoCUIIukgFcgMYgAgicgoWTGlzdFByb3ZpZGVyS2V5c091dHB1dBI/CgdlbnRyaWVzGAEgAygLMi4uYWkuc3RpZ21lci5iaWxsaW5nLnByb3ZpZGVya2V5LnYxLlByb3ZpZGVyS2V5EhcKD25leHRfcGFnZV90b2tlbhgCIAEoCWIGcHJvdG8z", [file_ai_stigmer_billing_providerkey_v1_api, file_buf_validate_validate]);
 
 /**
  * Save the organization's key for a provider, replacing any key it holds for
@@ -41,12 +41,14 @@ export type SetProviderKeyInput = Message<"ai.stigmer.billing.providerkey.v1.Set
 
   /**
    * The endpoint to use the key against, as the provider's own SDK takes it
-   * as its base URL: OpenAI's usually ends in /v1, Anthropic's does not.
+   * as its base URL: OpenAI's usually ends in /v1, Anthropic's does not,
+   * and Google's is the address before Google's own /v1beta/... path.
    * Empty means the provider's own API. Otherwise an absolute https URL
    * with no credentials, query or fragment, that resolves to a public
    * address; the proxy appends the provider's request path to it, without
    * repeating a trailing /v1. For example
-   * "https://my-resource.openai.azure.com/openai/v1".
+   * "https://my-resource.openai.azure.com/openai/v1", or for Google
+   * "https://gateway.example.com/google".
    *
    * @generated from field: string base_url = 4;
    */

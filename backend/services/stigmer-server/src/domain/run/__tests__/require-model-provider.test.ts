@@ -35,7 +35,8 @@ import {
 import { RUN_CONFIG_PLACEMENT_KEY, type RunConfigPlacement } from "../resolve-run-config.js";
 
 const catalog: ProviderNeedCatalog = {
-  providerOf: (_harness, model) => ({ "claude-sonnet-4.6": "anthropic", "gpt-5.2": "openai", "gemini-3-pro": "google" })[model],
+  providerOf: (_harness, model) =>
+    ({ "claude-sonnet-4.6": "anthropic", "gpt-5.2": "openai", "gemini-3-pro": "google", "mistral-large": "mistral" })[model],
   defaultModel: () => "claude-sonnet-4.6",
 };
 
@@ -123,6 +124,21 @@ describe("RequireModelProvider", () => {
     );
   });
 
+  it("tells a laptop to set GEMINI_API_KEY for Google, the key the runner reads for it", async () => {
+    const refused = await refusal(
+      stepAnswering({ state: "missing", scope: "runners" }),
+      turn({ engine: Harness.STIGMER, model: "gemini-3-pro" }),
+    );
+    expect(refused.rawMessage).toBe(
+      "This server's runners have no Google key for model 'gemini-3-pro', so the run was not started. On your own machine, set GEMINI_API_KEY in the shell you start Stigmer from, then `stigmer down && stigmer up`.",
+    );
+    expect(refused.findDetails(ErrorInfoSchema)[0]?.metadata).toEqual({
+      org: "org-acme",
+      provider: "google",
+      model: "gemini-3-pro",
+    });
+  });
+
   it("names no model in either copy when the turn names none, and the model when it does", async () => {
     const organization = await refusal(
       stepAnswering({ state: "missing", scope: "organization" }, false, catalogWithoutDefaults),
@@ -174,7 +190,7 @@ describe("RequireModelProvider", () => {
     const step = stepAnswering({ state: "missing", scope: "organization" });
     await expect(step.execute(turn({ engine: Harness.CLAUDE, reconcile: true }))).resolves.toBeUndefined();
     await expect(step.execute(turn({}))).resolves.toBeUndefined();
-    await expect(step.execute(turn({ engine: Harness.STIGMER, model: "gemini-3-pro" }))).resolves.toBeUndefined();
+    await expect(step.execute(turn({ engine: Harness.STIGMER, model: "mistral-large" }))).resolves.toBeUndefined();
   });
 
   it("answers Unavailable when the availability cannot be read", async () => {

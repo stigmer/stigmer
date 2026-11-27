@@ -31,12 +31,14 @@ type SetProviderKeyInput struct {
 	// The provider API key. Write-only: no read returns it.
 	ApiKey string `protobuf:"bytes,3,opt,name=api_key,json=apiKey,proto3" json:"api_key,omitempty"`
 	// The endpoint to use the key against, as the provider's own SDK takes it
-	// as its base URL: OpenAI's usually ends in /v1, Anthropic's does not.
+	// as its base URL: OpenAI's usually ends in /v1, Anthropic's does not,
+	// and Google's is the address before Google's own /v1beta/... path.
 	// Empty means the provider's own API. Otherwise an absolute https URL
 	// with no credentials, query or fragment, that resolves to a public
 	// address; the proxy appends the provider's request path to it, without
 	// repeating a trailing /v1. For example
-	// "https://my-resource.openai.azure.com/openai/v1".
+	// "https://my-resource.openai.azure.com/openai/v1", or for Google
+	// "https://gateway.example.com/google".
 	BaseUrl       string `protobuf:"bytes,4,opt,name=base_url,json=baseUrl,proto3" json:"base_url,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -278,16 +280,16 @@ var File_ai_stigmer_billing_providerkey_v1_io_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_billing_providerkey_v1_io_proto_rawDesc = "" +
 	"\n" +
-	"*ai/stigmer/billing/providerkey/v1/io.proto\x12!ai.stigmer.billing.providerkey.v1\x1a+ai/stigmer/billing/providerkey/v1/api.proto\x1a\x1bbuf/validate/validate.proto\"\xc0\x01\n" +
+	"*ai/stigmer/billing/providerkey/v1/io.proto\x12!ai.stigmer.billing.providerkey.v1\x1a+ai/stigmer/billing/providerkey/v1/api.proto\x1a\x1bbuf/validate/validate.proto\"\xc8\x01\n" +
 	"\x13SetProviderKeyInput\x12\x19\n" +
-	"\x03org\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x03org\x124\n" +
-	"\bprovider\x18\x02 \x01(\tB\x18\xbaH\x15r\x13R\tanthropicR\x06openaiR\bprovider\x12#\n" +
+	"\x03org\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x03org\x12<\n" +
+	"\bprovider\x18\x02 \x01(\tB \xbaH\x1dr\x1bR\tanthropicR\x06openaiR\x06googleR\bprovider\x12#\n" +
 	"\aapi_key\x18\x03 \x01(\tB\n" +
 	"\xbaH\ar\x05\x10\b\x18\x80\x04R\x06apiKey\x123\n" +
-	"\bbase_url\x18\x04 \x01(\tB\x18\xbaH\x15\xd8\x01\x01r\x10\x18\x80\x10:\bhttps://\x88\x01\x01R\abaseUrl\"i\n" +
+	"\bbase_url\x18\x04 \x01(\tB\x18\xbaH\x15\xd8\x01\x01r\x10\x18\x80\x10:\bhttps://\x88\x01\x01R\abaseUrl\"q\n" +
 	"\x16DeleteProviderKeyInput\x12\x19\n" +
-	"\x03org\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x03org\x124\n" +
-	"\bprovider\x18\x02 \x01(\tB\x18\xbaH\x15r\x13R\tanthropicR\x06openaiR\bprovider\"\x81\x01\n" +
+	"\x03org\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x03org\x12<\n" +
+	"\bprovider\x18\x02 \x01(\tB \xbaH\x1dr\x1bR\tanthropicR\x06openaiR\x06googleR\bprovider\"\x81\x01\n" +
 	"\x15ListProviderKeysInput\x12\x19\n" +
 	"\x03org\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x03org\x12$\n" +
 	"\tpage_size\x18\x02 \x01(\x05B\a\xbaH\x04\x1a\x02(\x00R\bpageSize\x12'\n" +

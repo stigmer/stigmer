@@ -116,8 +116,9 @@ public interface OnboardingProgressOrBuilder extends
 
   /**
    * <pre>
-   * The first provider that serves a model to the organization ("anthropic"
-   * or "openai"), in the server's order. Empty when none is known to.
+   * The first provider that serves a model to the organization
+   * ("anthropic", "openai" or "google"), in the server's order. Empty when
+   * none is known to.
    * </pre>
    *
    * <code>string served_provider = 4 [json_name = "servedProvider"];</code>
@@ -126,8 +127,9 @@ public interface OnboardingProgressOrBuilder extends
   java.lang.String getServedProvider();
   /**
    * <pre>
-   * The first provider that serves a model to the organization ("anthropic"
-   * or "openai"), in the server's order. Empty when none is known to.
+   * The first provider that serves a model to the organization
+   * ("anthropic", "openai" or "google"), in the server's order. Empty when
+   * none is known to.
    * </pre>
    *
    * <code>string served_provider = 4 [json_name = "servedProvider"];</code>
