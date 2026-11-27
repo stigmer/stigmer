@@ -3,7 +3,12 @@
  * through the session's `confirmToolUse` (the deny message only with a
  * deny), a grant through `grantPermission`; the answer in flight and a
  * failure are kept per tool use (with a scalar mirror) and rethrown; a retry
- * clears only its own gate's error; the return keeps its reference.
+ * clears only its own gate's error; the return keeps its reference. A hook
+ * bound to a session (`useAnswerToolUse(sessionId)`) shows in `error` only
+ * the failures of calls for that session made during this visit to it: a
+ * switch starts clean, a late failure is dropped, and a call for another
+ * session neither shows nor clears it (stigmer/stigmer#3226); unbound, every
+ * call writes it, as before.
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { renderHook, act } from "@testing-library/react";
@@ -132,5 +137,74 @@ describe("useAnswerToolUse", () => {
     const first = result.current;
     rerender();
     expect(result.current).toBe(first);
+  });
+
+  it("bound to a session, starts clean on another and drops a failure that lands after the switch", async () => {
+    confirmToolUse.mockRejectedValueOnce(new Error("fail-a"));
+    let reject: (err: Error) => void = () => {};
+    confirmToolUse.mockReturnValueOnce(new Promise<never>((_, r) => { reject = r; }));
+    const { result, rerender } = renderHook(({ id }) => useAnswerToolUse(id), {
+      wrapper: Wrapper,
+      initialProps: { id: "ses_a" },
+    });
+
+    await act(async () => {
+      await expect(result.current.answerToolUse("ses_a", "tu-1", "allow")).rejects.toThrow("fail-a");
+    });
+    expect(result.current.error?.message).toBe("fail-a");
+
+    rerender({ id: "ses_b" });
+    expect(result.current.error).toBeNull();
+
+    rerender({ id: "ses_a" });
+    let pending: Promise<void> = Promise.resolve();
+    act(() => {
+      pending = result.current.answerToolUse("ses_a", "tu-2", "allow");
+    });
+    rerender({ id: "ses_b" });
+    await act(async () => {
+      reject(new Error("too late"));
+      await expect(pending).rejects.toThrow("too late");
+    });
+    expect(result.current.error).toBeNull();
+
+    rerender({ id: "ses_a" });
+    expect(result.current.error).toBeNull();
+  });
+
+  it("bound to a session, a call for another session neither shows its failure nor clears this one's", async () => {
+    confirmToolUse
+      .mockRejectedValueOnce(new Error("mine"))
+      .mockRejectedValueOnce(new Error("theirs"))
+      .mockResolvedValueOnce({});
+    const { result } = renderHook(() => useAnswerToolUse("ses_a"), { wrapper: Wrapper });
+
+    await act(async () => {
+      await expect(result.current.answerToolUse("ses_a", "tu-1", "allow")).rejects.toThrow("mine");
+    });
+    await act(async () => {
+      await expect(result.current.answerToolUse("ses_b", "tu-2", "allow")).rejects.toThrow("theirs");
+    });
+    expect(result.current.error?.message).toBe("mine");
+    expect(result.current.errorsByToolUseId.get("tu-2")?.message).toBe("theirs");
+
+    await act(async () => {
+      await result.current.answerToolUse("ses_b", "tu-3", "allow");
+    });
+    expect(result.current.error?.message).toBe("mine");
+  });
+
+  it("unbound, every call's failure shows in the scalar, as before", async () => {
+    confirmToolUse.mockRejectedValueOnce(new Error("a")).mockRejectedValueOnce(new Error("b"));
+    const { result } = renderHook(() => useAnswerToolUse(), { wrapper: Wrapper });
+
+    await act(async () => {
+      await expect(result.current.answerToolUse("ses_a", "tu-1", "allow")).rejects.toThrow("a");
+    });
+    expect(result.current.error?.message).toBe("a");
+    await act(async () => {
+      await expect(result.current.answerToolUse("ses_b", "tu-2", "allow")).rejects.toThrow("b");
+    });
+    expect(result.current.error?.message).toBe("b");
   });
 });

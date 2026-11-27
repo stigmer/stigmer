@@ -1096,6 +1096,10 @@ describe("useSessionConversation — switching conversations", () => {
     readonly sendError: string | null;
     readonly isSending: boolean;
     readonly canSendFollowUp: boolean;
+    readonly stopError: string | null;
+    readonly answerError: string | null;
+    readonly fileReviewError: string | null;
+    readonly isStopping: boolean;
   }
 
   /**
@@ -1128,6 +1132,10 @@ describe("useSessionConversation — switching conversations", () => {
           sendError: conv.sendError?.message ?? null,
           isSending: conv.isSending,
           canSendFollowUp: conv.canSendFollowUp,
+          stopError: conv.stopError?.message ?? null,
+          answerError: conv.answerError?.message ?? null,
+          fileReviewError: conv.fileReviewError?.message ?? null,
+          isStopping: conv.isStopping,
         });
         return conv;
       },
@@ -1139,6 +1147,18 @@ describe("useSessionConversation — switching conversations", () => {
   async function loaded(result: { current: ReturnType<typeof useSessionConversation> }, id: string) {
     await waitFor(() => expect(result.current.session?.metadata?.id).toBe(id));
     await waitFor(() => expect(result.current.isLoading).toBe(false));
+  }
+
+  /** Session-1 lists one working turn waiting on an ask; session-2 lists nothing. */
+  function session1Waits(): void {
+    listing(makeRun("run_live", RunPhase.RUN_WAITING_FOR_APPROVAL));
+    methods.listBySession.mockImplementation((input: { sessionId: string }) =>
+      Promise.resolve({
+        entries: input.sessionId === "session-1" ? [makeRun("run_live", RunPhase.RUN_WAITING_FOR_APPROVAL)] : [],
+        nextPageToken: "",
+      }),
+    );
+    events.push(...turnOpen("run_live", "waiting"), ...waitingCall("run_live", "shell"));
   }
 
   it("carries none of the conversation just left into the render that switches: no asks", async () => {
@@ -1220,5 +1240,62 @@ describe("useSessionConversation — switching conversations", () => {
     act(() => events.push(...turnOpen("run_new", "pending", "hello")));
     await waitFor(() => expect(result.current.pendingUserMessage).toBeNull());
     expect(result.current.activeTurn?.runId).toBe("run_new");
+  });
+
+  it("shows a failed stop, answer or file decision only on its own conversation (stigmer#3226)", async () => {
+    session1Waits();
+    methods.interrupt.mockRejectedValueOnce(new Error("stop boom"));
+    methods.confirmToolUse.mockRejectedValueOnce(new Error("answer boom"));
+    methods.reviewFileChanges.mockRejectedValueOnce(new Error("review boom"));
+    const { result, rerender, seen } = twoConversations(sessionEventStream());
+    await waitFor(() => expect(result.current.asks).toHaveLength(1));
+    await waitFor(() => expect(result.current.isStoppable).toBe(true));
+
+    await act(async () => {
+      await result.current.stop();
+    });
+    await act(async () => {
+      await expect(result.current.answerToolUse(result.current.asks[0]!.id, "allow")).rejects.toThrow("answer boom");
+    });
+    await act(async () => {
+      await expect(result.current.reviewFileChanges("cs_a", "keep", { expectedDigest: "d" })).rejects.toThrow("review boom");
+    });
+    expect(result.current.stopError?.message).toBe("stop boom");
+    expect(result.current.answerError?.message).toBe("answer boom");
+    expect(result.current.fileReviewError?.message).toBe("review boom");
+
+    seen.length = 0;
+    rerender({ id: "session-2" });
+    await loaded(result, "session-2");
+    const onB = seen.filter((render) => render.id === "session-2");
+    expect(onB.length).toBeGreaterThan(0);
+    expect(
+      onB.every((render) => render.stopError === null && render.answerError === null && render.fileReviewError === null),
+    ).toBe(true);
+  });
+
+  it("shows no stop in flight on the next conversation, and drops a stop that fails after the switch", async () => {
+    session1Waits();
+    let reject: (err: Error) => void = () => {};
+    methods.interrupt.mockReturnValueOnce(new Promise<never>((_, r) => (reject = r)));
+    const { result, rerender, seen } = twoConversations(sessionEventStream());
+    await waitFor(() => expect(result.current.isStoppable).toBe(true));
+
+    let stopping: Promise<void> = Promise.resolve();
+    act(() => {
+      stopping = result.current.stop();
+    });
+    expect(result.current.isStopping).toBe(true);
+
+    seen.length = 0;
+    rerender({ id: "session-2" });
+    await loaded(result, "session-2");
+    await act(async () => {
+      reject(new Error("too late"));
+      await stopping;
+    });
+    const onB = seen.filter((render) => render.id === "session-2");
+    expect(onB.length).toBeGreaterThan(0);
+    expect(onB.every((render) => !render.isStopping && render.stopError === null)).toBe(true);
   });
 });

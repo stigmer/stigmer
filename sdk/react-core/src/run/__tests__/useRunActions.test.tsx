@@ -3,7 +3,11 @@
  * each call their run RPC with the run id (and reason), return the updated
  * run and report it to `onSuccess`; a failure returns null and keeps the
  * error until cleared or the next action; a null run id makes every action a
- * no-op. Stopping a turn is the session's interrupt, not one of these.
+ * no-op. The error and the in-flight flag belong to the run they were made
+ * for: another run starts clean, and an action that settles after the run
+ * changed writes nothing (stigmer/stigmer#3226). The return keeps its
+ * reference while nothing changes. Stopping a turn is the session's
+ * interrupt, not one of these.
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { renderHook, act } from "@testing-library/react";
@@ -105,5 +109,58 @@ describe("useRunActions", () => {
 
     expect(returned).toBeNull();
     expect(terminate).not.toHaveBeenCalled();
+  });
+
+  it("shows another run's failure nowhere: a new run starts clean", async () => {
+    terminate.mockRejectedValueOnce(new Error("not running"));
+    const { result, rerender } = renderHook(({ id }) => useRunActions(id), {
+      wrapper: Wrapper,
+      initialProps: { id: "run-a" },
+    });
+
+    await act(async () => {
+      await result.current.terminate();
+    });
+    expect(result.current.error?.message).toBe("not running");
+
+    rerender({ id: "run-b" });
+    expect(result.current.error).toBeNull();
+    expect(result.current.isSubmitting).toBe(false);
+  });
+
+  it("drops an action that settles after the run changed, and a return to its run starts clean", async () => {
+    let reject: (err: Error) => void = () => {};
+    terminate.mockReturnValueOnce(new Promise<never>((_, r) => { reject = r; }));
+    const { result, rerender } = renderHook(({ id }) => useRunActions(id), {
+      wrapper: Wrapper,
+      initialProps: { id: "run-a" },
+    });
+
+    let pending: Promise<unknown> = Promise.resolve();
+    act(() => {
+      pending = result.current.terminate();
+    });
+    expect(result.current.isSubmitting).toBe(true);
+
+    rerender({ id: "run-b" });
+    expect(result.current.isSubmitting).toBe(false);
+
+    await act(async () => {
+      reject(new Error("too late"));
+      await pending;
+    });
+    expect(result.current.error).toBeNull();
+    expect(result.current.isSubmitting).toBe(false);
+
+    rerender({ id: "run-a" });
+    expect(result.current.error).toBeNull();
+    expect(result.current.isSubmitting).toBe(false);
+  });
+
+  it("keeps its return reference across renders with the same run", () => {
+    const { result, rerender } = renderHook(() => useRunActions("run-1"), { wrapper: Wrapper });
+    const first = result.current;
+    rerender();
+    expect(result.current).toBe(first);
   });
 });
