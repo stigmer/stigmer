@@ -30,6 +30,7 @@ export { toError } from "./internal/toError.js";
 export { useCursorPages } from "./internal/useCursorPages.js";
 export type { CursorPage } from "./internal/useCursorPages.js";
 export { useFetch } from "./internal/useFetch.js";
+export { useKeyedState } from "./internal/useKeyedState.js";
 export { useKeyedSubmission } from "./internal/useKeyedSubmission.js";
 export {
   HARNESS_META,

@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ResourceRef } from "@stigmer/client";
 import type { Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 import type { AgentResolution } from "../agent/index.js";
-import { useKeyedState } from "../internal/useKeyedState.js";
+import { useKeyedState } from "@stigmer/react-core/internal";
 import { useApprovalDefaults } from "../approval-defaults-context.js";
 import { useWorkspaceEntries, type UseWorkspaceEntriesReturn } from "../workspace/index.js";
 

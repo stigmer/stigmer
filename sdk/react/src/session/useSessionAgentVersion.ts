@@ -30,7 +30,7 @@ import type { Session } from "@stigmer/apis/ai/stigmer/agentic/session/v1/api_pb
 import { agentVersionLabel, useAgentVersions, useStigmer } from "@stigmer/react-core";
 import { useFetch } from "@stigmer/react-core/internal";
 import { toError } from "@stigmer/react-core/internal";
-import { useKeyedState } from "../internal/useKeyedState.js";
+import { useKeyedState } from "@stigmer/react-core/internal";
 import { usePersonalKeys } from "../agent/usePersonalKeys.js";
 
 /** Options for {@link useSessionAgentVersion}. */
