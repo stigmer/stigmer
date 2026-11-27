@@ -173,8 +173,8 @@ drives the Stigmer and Claude harnesses against **real providers** and writes
 the report the harness work is judged on. It boots the same
 MCP fixture + Temporal + server + runner stack the execution suites use, but
 with the runner in **direct mode** (no mock proxy) reading
-`ANTHROPIC_API_KEY` and `OPENAI_API_KEY` (with `OPENAI_BASE_URL`) from the
-environment. A missing key,
+`ANTHROPIC_API_KEY`, `GEMINI_API_KEY` and `OPENAI_API_KEY` (with
+`OPENAI_BASE_URL`) from the environment. A missing key,
 or a missing `stigmer` CLI for the cells that need it, refuses those cells by
 name and the run continues with the rest. It is in no vitest config, `npm
 test` cannot reach it, and it spends money: at the defaults, twelve scenarios
@@ -207,12 +207,15 @@ the Stigmer arm's parity cells pin, so a parity cell measures the engine and
 not the model; its `default` cells run the Claude engine's catalog default.
 
 The Stigmer arm runs on Claude Sonnet 4.6 unless `--stigmer-model <id>` names
-another model: a catalog id, or the own-endpoint form `openai:<name>` /
-`anthropic:<name>` the platform serves without a catalog row. Gemini runs
-this way through Google's OpenAI-compatible address:
-`OPENAI_API_KEY=<a Gemini key>
-OPENAI_BASE_URL=https://generativelanguage.googleapis.com/v1beta/openai/
-npm run benchmark:harnesses -- --only stigmer --stigmer-model openai:<gemini id>`.
+another model: a catalog id, or the prefixed form `openai:<name>` /
+`anthropic:<name>` / `google:<name>` the platform serves without a catalog
+row. Gemini runs on Google's own protocol with the runner's `GEMINI_API_KEY`:
+`GEMINI_API_KEY=<a Gemini key>
+npm run benchmark:harnesses -- --only stigmer --stigmer-model google:<gemini id>`.
+A model family with no provider of its own runs through an OpenAI-compatible
+address, `OPENAI_API_KEY` and `OPENAI_BASE_URL` with `openai:<name>`; Gemini
+does not, since Google's OpenAI-compatible address fails a tool call's second
+step.
 The model replaces the parity pin in every Stigmer parity, turn-2 and working
 cell and in the Stigmer harness's quality target; the Stigmer `default` cells are refused,
 and the Claude arm, the judge and the prompts stay as they are. A Stigmer cell
@@ -534,7 +537,7 @@ things make them different from the CRUD suites:
   lanes when a `conformance` row has no test or a tag names no row — "every
   behavior is covered" is computed, never claimed.
 - **The server under test dials fakes the run owns.** A fake LLM provider
-  (Anthropic + OpenAI wire shapes), a fake Stripe API with request capture and
+  (Anthropic, OpenAI and Gemini wire shapes), a fake Stripe API with request capture and
   a Stripe-Signature signer, and a fake Discord webhook receiver
   (`harness/cloud-fixtures.ts`) run as one long-lived process the composition
   is booted against (`npm run fixtures:serve` starts them and prints the lines
@@ -798,7 +801,9 @@ real home. The targets expose what suites need to read back:
 hermetic git work tree for capture-mode (file review) runs;
 `harness/runner-manager-process` boots a second runner in manager mode for the
 IPC handshake smoke, typed by the runner's own `ipc-protocol.ts`.
-`MockLlmProxy` stays Anthropic-only with two opt-ins: `serveEmbeddings(true)`
+`MockLlmProxy` speaks Anthropic, and Gemini on Google's proxy path (a turn
+scripted with the Anthropic builders, answered in Gemini's shape), with two
+opt-ins: `serveEmbeddings(true)`
 answers the OpenAI embeddings path by computation for the memory-selection
 arms (the default fence is the no-embedder posture the memory-retrieval suite
 pins), and `enqueueError({ status, headers, body, persistent })` scripts a

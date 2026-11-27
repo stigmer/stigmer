@@ -107,6 +107,9 @@ a space, which Temporal can't use. Two optional lines are worth setting now:
   through an LLM gateway in front of Anthropic, set `ANTHROPIC_BASE_URL` to it
   too (see
   [Send Claude calls through an LLM gateway](/docs/runners/model-backends#send-claude-calls-through-an-llm-gateway)).
+  For OpenAI or Gemini models, set `OPENAI_API_KEY` or `GEMINI_API_KEY` beside
+  it, or instead of it; Gemini's key comes from
+  [Google AI Studio](https://aistudio.google.com/api-keys).
 - `STIGMER_OPERATOR_EMAIL`, your own email. It's stamped on what you create, and
   when you later turn authentication on, the person who signs in with this email
   owns the server's Organization.

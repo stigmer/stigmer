@@ -31,8 +31,9 @@ none. It is built on LangChain's open source
 **What you get:**
 
 - Full control over model selection: every model the catalog lists for the
-  Stigmer harness, and any model your own OpenAI- or Anthropic-compatible
-  endpoint serves, named `openai:<name>` or `anthropic:<name>`
+  Stigmer harness, Google's Gemini models, named `google:<name>`, and any model
+  your own OpenAI- or Anthropic-compatible endpoint serves, named
+  `openai:<name>` or `anthropic:<name>`
   ([Model Provider Keys](/docs/guides/integrations/model-provider-keys#run-a-model-your-endpoint-serves)).
 - Deep integration with Stigmer's checkpoint, pause/resume, and sandbox
   features.
@@ -99,22 +100,23 @@ word is `claude`.
 
 The Harness you choose depends on what your Agent needs to do.
 
-|                              | Stigmer (`stigmer`)                                                                         | Claude Agent (`claude`)                                              |
-| ---------------------------- | ------------------------------------------------------------------------------------------- | -------------------------------------------------------------------- |
-| **Default**                  | Yes                                                                                         | No — must be explicitly selected                                     |
-| **Model availability**       | The catalog's Stigmer models, and your own endpoint's (`openai:<name>`, `anthropic:<name>`) | Claude models only                                                   |
-| **Tool capabilities**        | MCP servers from your plugins and your Agent + built-in web fetch                           | MCP servers + the SDK's file tools, with the shell run by the runner |
-| **Checkpoints**              | Full Stigmer pause/resume                                                                   | The SDK's conversation, kept by Stigmer                              |
-| **Repository instructions**  | `AGENTS.md`, else `CLAUDE.md`: the root's and each folder's                                 | `AGENTS.md`, else `CLAUDE.md`: the root's and each folder's          |
-| **Who bills model calls**    | Your provider, on your Organization's key                                                   | Anthropic, on your Organization's Anthropic key                      |
-| **Harness context per call** | Stigmer's system prompt and tool schemas, cached after the first call                       | The Claude Agent SDK's own system prompt, with Stigmer's additions   |
-| **Prompt caching**           | Full control (explicit breakpoints)                                                         | Managed by the Claude Agent SDK                                      |
-| **Latency**                  | No process start-up per turn                                                                | The Claude Agent SDK starts its own process for each turn            |
-| **Best for**                 | General-purpose agents, custom model selection, production workloads                        | Agents that want Anthropic's own loop on Claude models               |
+|                              | Stigmer (`stigmer`)                                                                                                   | Claude Agent (`claude`)                                              |
+| ---------------------------- | --------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------- |
+| **Default**                  | Yes                                                                                                                   | No — must be explicitly selected                                     |
+| **Model availability**       | The catalog's Stigmer models, Gemini (`google:<name>`), and your own endpoint's (`openai:<name>`, `anthropic:<name>`) | Claude models only                                                   |
+| **Tool capabilities**        | MCP servers from your plugins and your Agent + built-in web fetch                                                     | MCP servers + the SDK's file tools, with the shell run by the runner |
+| **Checkpoints**              | Full Stigmer pause/resume                                                                                             | The SDK's conversation, kept by Stigmer                              |
+| **Repository instructions**  | `AGENTS.md`, else `CLAUDE.md`: the root's and each folder's                                                           | `AGENTS.md`, else `CLAUDE.md`: the root's and each folder's          |
+| **Who bills model calls**    | Your provider, on your Organization's key                                                                             | Anthropic, on your Organization's Anthropic key                      |
+| **Harness context per call** | Stigmer's system prompt and tool schemas, cached after the first call                                                 | The Claude Agent SDK's own system prompt, with Stigmer's additions   |
+| **Prompt caching**           | Full control (explicit breakpoints)                                                                                   | Managed by the Claude Agent SDK                                      |
+| **Latency**                  | No process start-up per turn                                                                                          | The Claude Agent SDK starts its own process for each turn            |
+| **Best for**                 | General-purpose agents, custom model selection, production workloads                                                  | Agents that want Anthropic's own loop on Claude models               |
 
-A model the catalog does not list (Gemini, Kimi, GLM or Grok, for example) is
-reached on the Stigmer harness through your Organization's own OpenAI-compatible
-endpoint, named `openai:<name>`.
+A Gemini model runs on the Stigmer harness on your Organization's Google key,
+named `google:<name>`. A model family with no provider of its own in Stigmer
+(Kimi, GLM or Grok, for example) is reached through your Organization's own
+OpenAI-compatible endpoint, named `openai:<name>`.
 
 <Callout type="info">
   A Session's Harness is immutable after the first run starts. Choose the right

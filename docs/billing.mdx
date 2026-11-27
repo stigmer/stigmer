@@ -135,10 +135,10 @@ Billing**, or contacts support for more than any plan includes.
 ## Model calls run on your own keys
 
 Every model call an Agent run on the Stigmer harness makes runs on your
-Organization's own Anthropic or OpenAI key, or on your own compatible endpoint,
-on every plan. An admin adds the keys in **Models & providers**. Claude-harness
-runs work the same way, on your Organization's own Anthropic key. Stigmer never
-runs a model call on a key of its own.
+Organization's own Anthropic, OpenAI or Google key, or on your own compatible
+endpoint, on every plan. An admin adds the keys in **Models & providers**.
+Claude-harness runs work the same way, on your Organization's own Anthropic key.
+Stigmer never runs a model call on a key of its own.
 
 A run whose model needs a provider your Organization has no key for is refused
 before it starts. This holds for every run, including evals, AI grading, shared
@@ -257,9 +257,9 @@ conversation length:
 
 ### Set a cost cap
 
-Every run spends on your own provider accounts (Anthropic or OpenAI), so set
-budgets there too. Within Stigmer, a cost cap on each run (`max_cost_usd` in an
-Agent's [run settings](/docs/agents#run-settings)) stops a message once its
+Every run spends on your own provider accounts (Anthropic, OpenAI or Google), so
+set budgets there too. Within Stigmer, a cost cap on each run (`max_cost_usd` in
+an Agent's [run settings](/docs/agents#run-settings)) stops a message once its
 estimated cost, at the catalog's list prices, reaches the cap. A channel can
 lower that cap for the conversations it carries, never raise it, and an eval
 takes a spending limit of its own (`max_cost_usd` on the eval).
