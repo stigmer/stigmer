@@ -24,8 +24,11 @@
  * getByReference loads, then authorizes the loaded agent exactly as `get`
  * would (AuthorizeResolvedTarget); listVersions authorizes the resolved
  * agent as `get` would; getVersion evaluates its annotation through
- * authorizeDirect. The kind has no list RPC. Per-RPC
- * posture: docs/authorization-coverage.md §6.
+ * authorizeDirect; checkEmbeddingCoverage loads and authorizes the agent
+ * exactly as getByReference does, then asks the run's vault resolver what
+ * the organization's embedding settings fill for the calling app user (by
+ * name only; empty for any other caller). Per-RPC posture:
+ * docs/authorization-coverage.md §6.
  */
 import type { ConnectRouter, HandlerContext } from "@connectrpc/connect";
 import { create } from "@bufbuild/protobuf";
@@ -53,9 +56,11 @@ import type {
   UpdateVisibilityInput,
 } from "@stigmer/apis/ai/stigmer/commons/apiresource/io_pb";
 import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import { AgentListSchema } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/io_pb";
+import { AgentListSchema, EmbeddingCoverageSchema } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/io_pb";
 import type {
   AgentList,
+  CheckEmbeddingCoverageInput,
+  EmbeddingCoverage,
   ListAgentsRequest,
 } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/io_pb";
 
@@ -163,6 +168,9 @@ import { newRecordAgentWarningsStep } from "./skill-warnings.js";
 import { newRecordAgentServerSignInsStep } from "./server-sign-ins.js";
 import type { AgentWarningReads } from "./skill-warnings.js";
 import { newCascadeDeleteScoringRulesStep } from "../scoring-rule/cascade.js";
+import { loadRunPlugins, runPluginReferences } from "../run/run-plugins.js";
+import { runSubagents } from "../run/run-subagents.js";
+import type { VaultResolver } from "../vault/resolve.js";
 import type { ClockProvider } from "../routine/clock.js";
 import { newCascadeDeleteRoutinesStep } from "../routine/cascade.js";
 import { newCascadeDeleteChannelsStep } from "../channel/cascade.js";
@@ -233,6 +241,11 @@ export interface AgentControllerDeps {
    * sign-in (server-sign-ins.ts).
    */
   readonly outboundFetch: OutboundFetch;
+  /**
+   * The run's vault resolver: checkEmbeddingCoverage asks it what the
+   * organization's embedding settings fill for an app user's run.
+   */
+  readonly vaultResolver: Pick<VaultResolver, "planEmbeddingCoverage">;
 }
 
 /** Registers both agent services on the router (routes stage). */
@@ -255,6 +268,7 @@ export function registerAgentServices(
     list: (req, ctx) => list(deps, req, ctx),
     listVersions: (input, ctx) => listVersions(deps, input, ctx),
     getVersion: (input, ctx) => getVersion(deps, input, callerIdentityOf(ctx)),
+    checkEmbeddingCoverage: (input, ctx) => checkEmbeddingCoverage(deps, input, ctx),
   });
 }
 
@@ -796,6 +810,77 @@ async function getByReference(
     .build()
     .execute(reqCtx);
   return reqCtx.get(TARGET_RESOURCE_KEY) as Agent;
+}
+
+/**
+ * CheckEmbeddingCoverage — what the organization's embedding settings fill
+ * for a run of the agent by the calling app user, by name only. The input
+ * is validated, the agent loaded and authorized exactly as getByReference
+ * does (a caller who cannot view it is refused as that read refuses them),
+ * and the run's inputs gathered as the run's planner gathers them (its
+ * subagents at their pinned versions, the plugins they list;
+ * domain/run/plan-run-values-step.ts), at the agent's current version: no
+ * conversation exists yet, so it lists no plugins or repositories of its
+ * own. The surface is found from the service account that minted the
+ * caller's verified token, as the run's audit stamps it
+ * (pipeline/steps/defaults.ts), so a caller no service account minted gets
+ * an empty answer (domain/vault/resolve.ts planEmbeddingCoverage).
+ */
+async function checkEmbeddingCoverage(
+  deps: AgentControllerDeps,
+  input: CheckEmbeddingCoverageInput,
+  ctx: HandlerContext,
+): Promise<EmbeddingCoverage> {
+  const caller = callerIdentityOf(ctx);
+  const reqCtx = new RequestContext(
+    AgentQueryController.method.checkEmbeddingCoverage.input,
+    input,
+    caller,
+    kindOf(ctx),
+  );
+  await newPipeline<typeof AgentQueryController.method.checkEmbeddingCoverage.input>(
+    "agent-check-embedding-coverage",
+    deps.logger,
+  )
+    .addStep(
+      newAuthorizeStep(
+        AgentQueryController.method.checkEmbeddingCoverage,
+        deps.authorizer,
+      ),
+    )
+    .addStep(newValidateProtoStep())
+    .build()
+    .execute(reqCtx);
+  // ValidateProto requires the reference.
+  const agent = await getByReference(deps, input.agent!, ctx);
+  if ((caller.mintedBy ?? "") === "") {
+    // No run of this caller reads the embedding settings.
+    return create(EmbeddingCoverageSchema);
+  }
+  const orgId = input.org;
+  const spec = agent.spec;
+  const subagents = await runSubagents(deps.store, spec, orgId);
+  const plugins = await loadRunPlugins(
+    deps.store,
+    runPluginReferences(spec, undefined, orgId, subagents),
+    orgId,
+  );
+  const answer = await deps.vaultResolver.planEmbeddingCoverage({
+    orgId,
+    mintedBy: caller.mintedBy,
+    agentSpec: spec,
+    agentName: agent.metadata?.slug ?? "",
+    agentId: agent.metadata?.id ?? "",
+    agentVersion: "",
+    agentOrg: agent.metadata?.org,
+    agentServerSignIns: agent.status?.serverSignIns ?? [],
+    subagents,
+    plugins,
+  });
+  return create(EmbeddingCoverageSchema, {
+    keys: [...answer.keys],
+    signInAddresses: [...answer.signInAddresses],
+  });
 }
 
 // ---------------------------------------------------------------------------

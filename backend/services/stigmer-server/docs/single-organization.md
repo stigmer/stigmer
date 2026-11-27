@@ -35,6 +35,7 @@ Rows read `| Service.method | org |`, `| Service.method | vault.org |`, `| Servi
 | AgentQueryController.getByReference | org |
 | AgentQueryController.list | org |
 | AgentQueryController.listVersions | org |
+| AgentQueryController.checkEmbeddingCoverage | org |
 
 ## `ai.stigmer.agentic.channel.v1`
 

@@ -741,6 +741,9 @@ describe("over a real store", () => {
           openConnect: async () => {
             throw new Error("the planner never opens a value");
           },
+          planEmbeddingCoverage: async () => {
+            throw new Error("the planner never reads coverage");
+          },
         },
         environments: { policy: governing(), authorizer },
       };

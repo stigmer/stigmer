@@ -24,6 +24,7 @@ Rows read `| \`Message.field\` | class |`.
 | `ai.stigmer.agentic.agent.v1.AgentSpec.plugins` | manifest reference |
 | `ai.stigmer.agentic.agent.v1.AgentSpec.skill_refs` | manifest reference |
 | `ai.stigmer.agentic.agent.v1.AgentSpec.subagents` | manifest reference |
+| `ai.stigmer.agentic.agent.v1.CheckEmbeddingCoverageInput.agent` | request reference |
 | `ai.stigmer.agentic.agent.v1.GetAgentVersionInput.agent_id` | stamped id |
 | `ai.stigmer.agentic.agent.v1.ListAgentVersionsInput.slug` | request reference |
 | `ai.stigmer.agentic.agent.v1.TagAgentVersionInput.agent_id` | stamped id |

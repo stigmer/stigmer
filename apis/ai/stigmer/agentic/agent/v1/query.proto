@@ -76,6 +76,27 @@ service AgentQueryController {
     option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to get agent version";
   }
 
+  // Check which of an agent's keys and sign-ins the organization's embedding
+  // settings fill for the calling app user.
+  //
+  // An app user (a person signed in to an organization's own product
+  // through a user token its backend mints) runs an agent on the vaults the
+  // organization's embedding settings name, which the app user cannot read.
+  // This answers, by name only, which of the agent's keys and which tool
+  // sign-ins those vaults fill, so a chat asks the app user only for what
+  // they would still miss. Any other caller gets an empty answer: a run of
+  // theirs never reads the embedding settings.
+  //
+  // @internal
+  // Authorization in-handler: the agent is loaded and authorized exactly as
+  // getByReference does (can_view on the loaded agent). The answer is
+  // computed by the run's own vault resolver (domain/vault/resolve.ts
+  // planEmbeddingCoverage) over the embedding surface the run would read,
+  // found from the caller's minting service account; it opens no value.
+  rpc checkEmbeddingCoverage(CheckEmbeddingCoverageInput) returns (EmbeddingCoverage) {
+    option (ai.stigmer.commons.rpc.is_skip_authorization) = true;
+  }
+
   // No rpc finds a stored "default agent": a Session or Run
   // created with no agent runs the built-in assistant (session/v1/spec.proto,
   // agent_ref).

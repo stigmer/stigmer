@@ -29,6 +29,7 @@ import {
 } from "./runServers.js";
 import { organizationIdOf } from "./usePersonalKeys.js";
 import { isAppUser } from "./appUser.js";
+import { embeddingCoverageOf, NO_EMBEDDING_COVERAGE } from "./embeddingCoverage.js";
 import { useKnownOrgs } from "../organization/OrgProvider.js";
 import { diffEnv } from "../vault/diffEnv.js";
 import {
@@ -241,8 +242,13 @@ export interface UseAgentSetupReturn {
    * in, `provisioning_mode: app_user`), My vault counts for its logins
    * alone, as their runs read it, and no key is asked for: a key by name
    * is the integrator's to provide, in vaults this client cannot read, and
-   * the server's refusal names who provides it. The account is read before
-   * anything is judged, so the resolution stays `resolving` until it is.
+   * the server's refusal names who provides it. Nor is an app user offered
+   * a sign-in the organization's embedding settings already fill: the
+   * server names those sign-ins and keys (`agent.checkEmbeddingCoverage`),
+   * since their vaults are not this client's to read; a server without
+   * that read leaves the offer to this client's own reading. The account is
+   * read before anything is judged, so the resolution stays `resolving`
+   * until it is.
    * Returns `"ready"` when the agent can be used immediately,
    * or `"needsEnvVars"` when the caller should present {@link AgentEnvForm}.
    * A resolution that a newer one (or {@link reset}) overtakes still returns
@@ -428,9 +434,20 @@ export function useAgentSetup(
         const mine = latestMyVaultRef.current.current;
         const readVaults = readsMyVault && mine !== null ? [mine, ...listed] : listed;
         // An app user's run reads My vault's logins alone (their sign-ins);
-        // its secrets fill nothing.
+        // its secrets fill nothing. It also reads the organization's
+        // embedding settings' vaults, which only the server can see: what
+        // they fill is never offered or asked for.
         const loginsOnly = appUser ? mine : null;
-        const { servers, pendingSignIns, declarations, signInVariables } = await readServers(stigmer, agent, readVaults);
+        const [reading, embedded] = await Promise.all([
+          readServers(stigmer, agent, readVaults),
+          appUser ? embeddingCoverageOf(stigmer, agent, orgId) : NO_EMBEDDING_COVERAGE,
+        ]);
+        const { servers, declarations, signInVariables } = reading;
+        const pendingSignIns = reading.pendingSignIns.filter(
+          ({ server, address }) =>
+            !embedded.signInAddresses.has(address) && !embedded.keys.has(toolLoginKeyOf(server) ?? ""),
+        );
+        for (const key of embedded.keys) coveredKeys.add(key);
         const envDeclarations =
           Object.keys(declarations).length > 0 ? typedDeclarations(declarations, signInVariables) : undefined;
         if (pendingSignIns.length > 0) {

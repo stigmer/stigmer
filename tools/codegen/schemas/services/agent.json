@@ -110,6 +110,14 @@
           "outputType": "AgentVersionEntry",
           "outputFullType": "ai.stigmer.agentic.agent.v1.AgentVersionEntry",
           "description": "Get a specific version of an agent by its content hash.\n\n Used by the runner and the server to run a turn on the version it\n recorded (RunStatus.agent_version_hash), and by clients to\n show what a past version said."
+        },
+        {
+          "name": "CheckEmbeddingCoverage",
+          "inputType": "CheckEmbeddingCoverageInput",
+          "inputFullType": "ai.stigmer.agentic.agent.v1.CheckEmbeddingCoverageInput",
+          "outputType": "EmbeddingCoverage",
+          "outputFullType": "ai.stigmer.agentic.agent.v1.EmbeddingCoverage",
+          "description": "Check which of an agent's keys and sign-ins the organization's embedding\n settings fill for the calling app user.\n\n An app user (a person signed in to an organization's own product\n through a user token its backend mints) runs an agent on the vaults the\n organization's embedding settings name, which the app user cannot read.\n This answers, by name only, which of the agent's keys and which tool\n sign-ins those vaults fill, so a chat asks the app user only for what\n they would still miss. Any other caller gets an empty answer: a run of\n theirs never reads the embedding settings."
         }
       ]
     }
@@ -666,6 +674,76 @@
             "messageType": "AgentSpec"
           },
           "description": "The agent spec exactly as this version stored it: the instructions,\n subagent pins, skill and plugin references, declared keys and vaults a\n turn on this version runs with.",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "CheckEmbeddingCoverageInput",
+      "description": "Input for asking which of an agent's keys and sign-ins the organization's\n embedding settings fill for the calling app user.",
+      "protoType": "ai.stigmer.agentic.agent.v1.CheckEmbeddingCoverageInput",
+      "protoFile": "apis/ai/stigmer/agentic/agent/v1/io.proto",
+      "fields": [
+        {
+          "name": "Agent",
+          "jsonName": "agent",
+          "protoField": "agent",
+          "type": {
+            "kind": "message",
+            "messageType": "ApiResourceReference"
+          },
+          "description": "The agent a conversation would run, by id or by org and slug.",
+          "required": true,
+          "referenceKind": 40,
+          "validation": {
+            "required": true
+          }
+        },
+        {
+          "name": "Org",
+          "jsonName": "org",
+          "protoField": "org",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The organization the conversation would run in, by id or slug.",
+          "required": false,
+          "validation": {
+            "minLength": 1
+          }
+        }
+      ]
+    },
+    {
+      "name": "EmbeddingCoverage",
+      "description": "What the organization's embedding settings fill for a run of an agent by\n the calling app user: names only, never where they are kept or their\n values.",
+      "protoType": "ai.stigmer.agentic.agent.v1.EmbeddingCoverage",
+      "protoFile": "apis/ai/stigmer/agentic/agent/v1/io.proto",
+      "fields": [
+        {
+          "name": "Keys",
+          "jsonName": "keys",
+          "protoField": "keys",
+          "type": {
+            "kind": "array",
+            "elementType": {
+              "kind": "string"
+            }
+          },
+          "description": "The keys a run of the agent reads that a vault of the embedding\n settings holds by name.",
+          "required": false
+        },
+        {
+          "name": "SignInAddresses",
+          "jsonName": "signInAddresses",
+          "protoField": "sign_in_addresses",
+          "type": {
+            "kind": "array",
+            "elementType": {
+              "kind": "string"
+            }
+          },
+          "description": "The tool addresses whose sign-in a vault of the embedding settings\n holds, so the app user need not sign in to them.",
           "required": false
         }
       ]

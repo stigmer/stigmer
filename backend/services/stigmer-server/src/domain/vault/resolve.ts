@@ -151,6 +151,17 @@
  * person's My vault only, for the one server listed (a sign-in saved into a
  * shared vault serves the runs that use that vault, never a listing).
  *
+ * An embedded chat decides what to offer an app user before any
+ * conversation exists, and cannot read the embedding settings' vaults
+ * (source 4 for a run an app user sends). planEmbeddingCoverage answers
+ * that one source for it: the names of the agent's keys and the addresses
+ * of its tools' sign-ins those vaults fill, matched by the run's own rule
+ * (`locate`) over the same surface (`embeddingSurfaceOf`, which the run's
+ * surfaceOf reads too) and the same attacher checks (`namedSources`). It
+ * opens no value and names no vault: a vault that would refuse the run is
+ * left out of the answer rather than named, so the caller learns no more
+ * than a run would show them by not asking.
+ *
  * Proven by __tests__/resolve.test.ts and the vault conformance suites.
  */
 import { create } from "@bufbuild/protobuf";
@@ -407,10 +418,11 @@ export interface VaultResolverDeps {
   readonly freshener: SignInFreshener;
 }
 
-/** What a run brings to the planner: the run, its session, its agent at the recorded version, every tool it uses. */
-export interface RunCredentialInput {
-  readonly execution: Run;
-  readonly session: Session;
+/**
+ * What a run of an agent needs values for, before any conversation: the
+ * agent at a version, its subagents and every plugin the run lists.
+ */
+export interface AgentRunInput {
   readonly agentSpec: AgentSpec | undefined;
   readonly agentName: string;
   /** The agent's id, and the version the run planned (its stamped hash); empty for a run with no agent. */
@@ -434,6 +446,28 @@ export interface RunCredentialInput {
   readonly plugins: readonly RunPlugin[];
 }
 
+/** What a run brings to the planner: the run, its session, its agent at the recorded version, every tool it uses. */
+export interface RunCredentialInput extends AgentRunInput {
+  readonly execution: Run;
+  readonly session: Session;
+}
+
+/**
+ * An embedding coverage read's input: the organization a conversation
+ * would run in, the service account that minted the caller's token (none
+ * for any other caller), and the agent's run as it would be planned.
+ */
+export interface EmbeddingCoverageInput extends AgentRunInput {
+  readonly orgId: string;
+  readonly mintedBy: string | undefined;
+}
+
+/** The names the embedding settings' vaults fill for a run: keys, and the addresses of sign-ins. */
+export interface EmbeddingCoverageAnswer {
+  readonly keys: readonly string[];
+  readonly signInAddresses: readonly string[];
+}
+
 /** A tools listing's planning input: whose My vault, in which organization, for which server. */
 export interface ConnectPlanInput {
   readonly orgId: string;
@@ -451,6 +485,12 @@ export interface VaultResolver {
   planConnect(input: ConnectPlanInput): Promise<RunValueSource[]>;
   /** A listing's values: planned now over the person's My vault, then opened. */
   openConnect(input: ConnectPlanInput): Promise<ExecutionValues>;
+  /**
+   * What the organization's embedding settings fill for an app user's run
+   * of the agent, by name only; empty for a caller no service account
+   * minted. Opens no value.
+   */
+  planEmbeddingCoverage(input: EmbeddingCoverageInput): Promise<EmbeddingCoverageAnswer>;
 }
 
 /** The person whose turn a caller's request is: the platform's one rule, recorded at create. */
@@ -509,6 +549,20 @@ export function appUserOfRun(
     session.spec?.includeMyVault === true
     ? sender
     : undefined;
+}
+
+/**
+ * Whether a run carries another organization's agent: its agent is of
+ * another organization than the run's, or its row cannot be read, or it
+ * lists another organization's agent as a subagent. Every value such a run
+ * carries reaches that agent's code, so no My vault serves it.
+ */
+function runsForeignAgent(input: AgentRunInput, executionOrg: string): boolean {
+  const hasAgent = input.agentSpec !== undefined || input.agentName !== "";
+  return (
+    (hasAgent && (input.agentOrg === undefined || input.agentOrg !== executionOrg)) ||
+    input.subagents.some((subagent) => subagent.org !== executionOrg)
+  );
 }
 
 /** The conversation's creator in a sentence: their name, or a role when the row has none. */
@@ -690,11 +744,13 @@ export function pluginHookRequirements(plugin: RunPlugin): Requirement[] {
 }
 
 /**
- * Every requirement of a run. The agent's own declaration of a key any of
- * the run's tools or plugins declares is no requirement of the agent's:
- * that key is theirs, and the agent's shell never holds it.
+ * Every requirement of a run of an agent but its clones: the agent's own
+ * keys, each subagent's, each tool's and each plugin's hooks'. The agent's
+ * own declaration of a key any of the run's tools or plugins declares is
+ * no requirement of the agent's: that key is theirs, and the agent's shell
+ * never holds it.
  */
-export function runRequirements(input: RunCredentialInput): Requirement[] {
+export function agentRunRequirements(input: AgentRunInput): Requirement[] {
   const servers = runServers({
     agent:
       input.agentSpec === undefined
@@ -732,6 +788,12 @@ export function runRequirements(input: RunCredentialInput): Requirement[] {
     );
   }
   requirements.push(...tools, ...hooks);
+  return requirements;
+}
+
+/** Every requirement of a run: its agent's run (agentRunRequirements), then each github.com clone. */
+export function runRequirements(input: RunCredentialInput): Requirement[] {
+  const requirements = agentRunRequirements(input);
   for (const entry of input.session.spec?.resources ?? []) {
     const source = entry.resource;
     if (source.case !== "gitRepository" || gitHostOf(source.value.url) !== GITHUB_HOST) {
@@ -1175,23 +1237,12 @@ export function newVaultResolver(deps: VaultResolverDeps): VaultResolver {
     const executionOrg = execution.metadata?.org ?? "";
     const surfaces: RunSurface[] = [];
 
-    const mintedBy =
-      execution.status?.audit?.specAudit?.createdBy?.mintedBy ?? "";
-    if (mintedBy !== "") {
-      const minter = await deps.accounts.findById(mintedBy);
-      const minterOrg = minter?.metadata?.org ?? "";
-      const organization =
-        minterOrg !== "" && minterOrg === executionOrg
-          ? await loadOptional(ApiResourceKind.organization, minterOrg, OrganizationSchema)
-          : undefined;
-      if (organization !== undefined) {
-        surfaces.push({
-          what: "the organization's embedding settings",
-          refs: organization.spec?.embedding?.vaults ?? [],
-          attachers: organization.status?.embeddingVaultAttachers ?? {},
-          org: executionOrg,
-        });
-      }
+    const embedding = await embeddingSurfaceOf(
+      execution.status?.audit?.specAudit?.createdBy?.mintedBy ?? "",
+      executionOrg,
+    );
+    if (embedding !== undefined) {
+      surfaces.push(embedding);
     }
     // A surface of another organization than the run's contributes
     // nothing: the label naming it is checked against the row it names,
@@ -1247,6 +1298,34 @@ export function newVaultResolver(deps: VaultResolverDeps): VaultResolver {
     return {
       what: surfaces.map((surface) => surface.what).join(" and "),
       named: await namedOf(surfaces),
+    };
+  }
+
+  /**
+   * The organization's embedding settings as the surface of a run an app
+   * user sends: found from the service account that minted their token
+   * (the run's server-stamped audit, or the caller's verified token for a
+   * coverage read), and only when that account is of the run's own
+   * organization. Undefined for a run no service account minted.
+   */
+  async function embeddingSurfaceOf(mintedBy: string, executionOrg: string): Promise<RunSurface | undefined> {
+    if (mintedBy === "") {
+      return undefined;
+    }
+    const minter = await deps.accounts.findById(mintedBy);
+    const minterOrg = minter?.metadata?.org ?? "";
+    const organization =
+      minterOrg !== "" && minterOrg === executionOrg
+        ? await loadOptional(ApiResourceKind.organization, minterOrg, OrganizationSchema)
+        : undefined;
+    if (organization === undefined) {
+      return undefined;
+    }
+    return {
+      what: "the organization's embedding settings",
+      refs: organization.spec?.embedding?.vaults ?? [],
+      attachers: organization.status?.embeddingVaultAttachers ?? {},
+      org: executionOrg,
     };
   }
 
@@ -1370,10 +1449,7 @@ export function newVaultResolver(deps: VaultResolverDeps): VaultResolver {
     // subagent: every value the run carries reaches that agent's code, so
     // the person's My vault stays closed to every requirement, its tools'
     // and its clones' included.
-    const hasAgent = input.agentSpec !== undefined || input.agentName !== "";
-    const foreignAgent =
-      (hasAgent && (input.agentOrg === undefined || input.agentOrg !== executionOrg)) ||
-      input.subagents.some((subagent) => subagent.org !== executionOrg);
+    const foreignAgent = runsForeignAgent(input, executionOrg);
 
     const scope = { myVaultClosed: foreignAgent, executionId: execution.metadata?.id ?? "" };
     const sources: Source[] = [repositorySource(own)];
@@ -1810,5 +1886,44 @@ export function newVaultResolver(deps: VaultResolverDeps): VaultResolver {
     });
   }
 
-  return { planRun, openRun, planConnect, openConnect };
+  async function planEmbeddingCoverage(input: EmbeddingCoverageInput): Promise<EmbeddingCoverageAnswer> {
+    const surface = await embeddingSurfaceOf(input.mintedBy ?? "", input.orgId);
+    if (surface === undefined) {
+      return { keys: [], signInAddresses: [] };
+    }
+    // The run's own checks, one vault at a time: a vault the run would be
+    // refused (gone, or no longer usable by the account that attached it)
+    // fills nothing here, and its name, which the refusal carries, never
+    // reaches the caller.
+    const scope = { myVaultClosed: runsForeignAgent(input, input.orgId), executionId: "" };
+    const sources: Source[] = [];
+    for (const entry of await namedOf([surface])) {
+      try {
+        sources.push(
+          ...(await namedSources([entry], undefined, RunValueOrigin.SURFACE_VAULT, scope)).sources,
+        );
+      } catch (error) {
+        if (error instanceof ConnectError && error.code === Code.FailedPrecondition) {
+          logger.info("An embedding vault a run would refuse fills nothing in a coverage read", {
+            orgId: input.orgId,
+          });
+          continue;
+        }
+        throw error;
+      }
+    }
+    const keys = new Set<string>();
+    const signInAddresses = new Set<string>();
+    for (const requirement of agentRunRequirements(input)) {
+      const location = locate(requirement, sources);
+      if (location?.kind === "connection" && requirement.loginAddress !== undefined) {
+        signInAddresses.add(requirement.loginAddress);
+      } else if (location?.kind === "secret") {
+        keys.add(requirement.key);
+      }
+    }
+    return { keys: [...keys].sort(), signInAddresses: [...signInAddresses].sort() };
+  }
+
+  return { planRun, openRun, planConnect, openConnect, planEmbeddingCoverage };
 }

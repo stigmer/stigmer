@@ -75,7 +75,17 @@
  *     agent, a participant or a chat-link guest; opening refuses when My
  *     vault was left out since, the vault is not the account's, or the
  *     entry is no login; the minting service account must still be one,
- *     at the plan and at the open; the refusal offers the sign-in.
+ *     at the plan and at the open; the refusal offers the sign-in;
+ *   - the embedding coverage read (planEmbeddingCoverage), an app user's
+ *     chat asking before any conversation exists: the names of the keys
+ *     and the addresses of the sign-ins the organization's embedding
+ *     settings fill, matched as the run matches them (a login at the
+ *     tool's address, a secret by name) and equal to what an app user's
+ *     run plans from that surface; nothing for a caller no service account
+ *     minted or a minter of another organization; a vault the run would
+ *     refuse fills nothing and is never named; a run of another
+ *     organization's agent is still served; no value, vault id or vault
+ *     name in the answer.
  */
 import { randomBytes } from "node:crypto";
 
@@ -3298,6 +3308,123 @@ describe("an app user's own sign-ins", () => {
     expect(appUserOfRun(runOf({ sender: PRIYA, mintedBy: MINTER, person: PRIYA }), session)).toBeUndefined();
     expect(appUserOfRun(appRun(PRIYA), appSession(PRIYA, { includeMyVault: false }))).toBeUndefined();
     expect(appUserOfRun(appRun(PRIYA), sessionOf())).toBeUndefined();
+  });
+
+  describe("the embedding coverage read", () => {
+    const GITHUB_TOOL = "https://api.githubcopilot.com/mcp";
+
+    /** What the read answers for an app user's run of an agent declaring `env`, with `plugins`. */
+    function coverage(init: {
+      env?: Record<string, { isSecret?: boolean; optional?: boolean; value?: string }>;
+      plugins?: RunPlugin[];
+      mintedBy?: string;
+      agentOrg?: string;
+    }) {
+      return resolver.planEmbeddingCoverage({
+        orgId: ORG,
+        mintedBy: init.mintedBy ?? MINTER,
+        agentSpec: agent(init.env ?? {}),
+        agentName: "Helper",
+        agentId: "agt_helper",
+        agentVersion: "",
+        agentOrg: init.agentOrg ?? ORG,
+        agentServerSignIns: [],
+        subagents: [],
+        plugins: init.plugins ?? [],
+      });
+    }
+
+    /** The embedding vault "everyone": a login at Linear, a github.com login, and two secrets. */
+    async function everyone(): Promise<void> {
+      await seedSharedVault(rig.store, ORG, "everyone", {
+        connections: { [LINEAR]: "everyone-login", "github.com": "everyone-github" },
+        secrets: { A: "a-value", STRIPE_TOKEN: "stripe-value" },
+      });
+      await embedding(["everyone"]);
+    }
+
+    const tools = (): RunPlugin[] => [
+      linear(),
+      tool("stripe", { target: "STRIPE_TOKEN", url: "https://mcp.stripe.example/mcp" }),
+      tool("github", { target: "GITHUB_LOGIN", url: GITHUB_TOOL }),
+      tool("notion", { target: "NOTION_TOKEN", url: "https://mcp.notion.example/mcp" }),
+    ];
+
+    it("names what the embedding settings fill, as the run matches it, and nothing else", async () => {
+      await everyone();
+      const answer = await coverage({ env: { A: KEY, B: KEY }, plugins: tools() });
+      expect(answer).toEqual({
+        // The agent's key A and Stripe's login by its key's name; B and
+        // Notion's login are nowhere.
+        keys: ["A", "STRIPE_TOKEN"],
+        // Linear's login at its address; the GitHub tool's by the github.com
+        // login, on GitHub's own API.
+        signInAddresses: [GITHUB_TOOL, LINEAR],
+      });
+    });
+
+    it("agrees with what an app user's run plans from the embedding settings", async () => {
+      await everyone();
+      const answer = await coverage({ env: { A: KEY }, plugins: tools().slice(0, 3) });
+      const planned = await plan({
+        run: appRun(PRIYA),
+        session: appSession(PRIYA),
+        agentSpec: agent({ A: KEY }),
+        plugins: tools().slice(0, 3),
+      });
+      const fromSurface = planned.filter((entry) => entry.origin === RunValueOrigin.SURFACE_VAULT);
+      expect(fromSurface.filter((entry) => !entry.login).map((entry) => entry.key).sort()).toEqual(answer.keys);
+      expect(fromSurface.filter((entry) => entry.login)).toHaveLength(answer.signInAddresses.length);
+      expect(fromSurface).toHaveLength(planned.length);
+    });
+
+    it("answers nothing for a caller no service account minted, or one minted by another organization's", async () => {
+      await everyone();
+      const plugins = tools();
+      expect(await coverage({ plugins, mintedBy: "" })).toEqual({ keys: [], signInAddresses: [] });
+      expect(await coverage({ plugins, mintedBy: "ida_unknown" })).toEqual({ keys: [], signInAddresses: [] });
+      accounts.set(
+        MINTER,
+        create(IdentityAccountSchema, {
+          metadata: { id: MINTER, org: "parent" },
+          spec: { provisioningMode: IdentityAccountProvisioningMode.service_account },
+        }),
+      );
+      expect(await coverage({ plugins })).toEqual({ keys: [], signInAddresses: [] });
+    });
+
+    it("counts nothing from a vault the run would refuse, and names none: one whose attacher lost its use, one gone", async () => {
+      await everyone();
+      await seedSharedVault(rig.store, ORG, "secret-team", { secrets: { B: "b-value" } });
+      await embedding(["everyone", "secret-team"]);
+      mayUse.delete(`${ADMIN}:vlt_acme_secret_team`);
+      const answer = await coverage({ env: { A: KEY, B: KEY }, plugins: [linear()] });
+      expect(answer).toEqual({ keys: ["A"], signInAddresses: [LINEAR] });
+      expect(JSON.stringify(answer)).not.toContain("secret-team");
+
+      await rig.store.deleteResource(ApiResourceKind.vault, "vlt_acme_everyone");
+      expect(await coverage({ env: { A: KEY, B: KEY }, plugins: [linear()] })).toEqual({
+        keys: [],
+        signInAddresses: [],
+      });
+    });
+
+    it("still serves a run of another organization's agent, as the run's surface does", async () => {
+      await everyone();
+      expect(await coverage({ env: { A: KEY }, plugins: [linear()], agentOrg: "globex" })).toEqual({
+        keys: ["A"],
+        signInAddresses: [LINEAR],
+      });
+    });
+
+    it("carries no value, vault id or vault name", async () => {
+      await everyone();
+      const text = JSON.stringify(await coverage({ env: { A: KEY }, plugins: tools() }));
+      for (const hidden of ["everyone", "vlt_", "a-value", "stripe-value", "everyone-login", "everyone-github"]) {
+        expect(text, hidden).not.toContain(hidden);
+      }
+      expect(freshened).toEqual([]);
+    });
   });
 });
 

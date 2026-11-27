@@ -226,6 +226,7 @@ const planningResolver: VaultResolver = {
   openRun: () => Promise.reject(new Error("not used")),
   planConnect: () => Promise.resolve([]),
   openConnect: () => Promise.reject(new Error("not used")),
+  planEmbeddingCoverage: () => Promise.reject(new Error("not used")),
 };
 
 function runnerAuth(

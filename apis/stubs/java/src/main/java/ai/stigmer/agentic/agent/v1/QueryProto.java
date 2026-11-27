@@ -43,7 +43,7 @@ public final class QueryProto extends com.google.protobuf.GeneratedFile {
       "er/commons/apiresource/io.proto\0328ai/stig" +
       "mer/commons/apiresource/rpc_service_opti" +
       "ons.proto\032+ai/stigmer/commons/rpc/method" +
-      "_options.proto2\236\005\n\024AgentQueryController\022" +
+      "_options.proto2\251\006\n\024AgentQueryController\022" +
       "{\n\003get\022$.ai.stigmer.agentic.agent.v1.Age" +
       "ntId\032\".ai.stigmer.agentic.agent.v1.Agent" +
       "\"*\302\270\030&\010\001\020(\"\005value*\031unauthorized to get a" +
@@ -60,11 +60,14 @@ public final class QueryProto extends com.google.protobuf.GeneratedFile {
       "tAgentVersionInput\032..ai.stigmer.agentic." +
       "agent.v1.AgentVersionEntry\"5\302\270\0301\010\001\020(\"\010ag" +
       "ent_id*!unauthorized to get agent versio" +
-      "n\032\004\240\377+(B\235\001B\nQueryProtoP\001\242\002\004ASAA\252\002\033Ai.Sti" +
-      "gmer.Agentic.Agent.V1\312\002\033Ai\\Stigmer\\Agent" +
-      "ic\\Agent\\V1\342\002\'Ai\\Stigmer\\Agentic\\Agent\\V" +
-      "1\\GPBMetadata\352\002\037Ai::Stigmer::Agentic::Ag" +
-      "ent::V1b\006proto3"
+      "n\022\210\001\n\026checkEmbeddingCoverage\0228.ai.stigme" +
+      "r.agentic.agent.v1.CheckEmbeddingCoverag" +
+      "eInput\032..ai.stigmer.agentic.agent.v1.Emb" +
+      "eddingCoverage\"\004\320\270\030\001\032\004\240\377+(B\235\001B\nQueryProt" +
+      "oP\001\242\002\004ASAA\252\002\033Ai.Stigmer.Agentic.Agent.V1" +
+      "\312\002\033Ai\\Stigmer\\Agentic\\Agent\\V1\342\002\'Ai\\Stig" +
+      "mer\\Agentic\\Agent\\V1\\GPBMetadata\352\002\037Ai::S" +
+      "tigmer::Agentic::Agent::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
