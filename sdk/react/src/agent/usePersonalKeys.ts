@@ -51,28 +51,48 @@ import { isAppUser } from "./appUser.js";
 import { findOrgByRef, useKnownOrgs } from "../organization/OrgProvider.js";
 
 /**
- * The id of the organization `ref` names (an id or a slug): from `known`,
- * the organizations a mounted provider holds (the caller's own and the one
- * they have open); with no provider, from the caller's own organizations,
- * read until one matches. `ref` itself when none does, or when they cannot
- * be read: an id names itself, and a reference to an organization the
- * caller is not in is judged as named.
+ * The organization `ref` names (an id or a slug), looked up among the
+ * caller's own: from `known`, the organizations a mounted provider holds
+ * (the caller's own and the one they have open); with no provider, from the
+ * caller's own organizations, read until one matches. `id` is the match's
+ * id, or `ref` itself when none matches (an id names itself, and a
+ * reference to an organization the caller is not in is judged as named).
+ * `mine` tells the two apart, and both from a list that could not be read
+ * (`null`): a chat that cannot start says "none of your organizations is
+ * named that" only when the list said so.
+ */
+export async function lookUpOrganization(
+  stigmer: Pick<Stigmer, "organization">,
+  ref: string,
+  known: readonly Organization[] | undefined,
+): Promise<{ readonly id: string; readonly mine: boolean | null }> {
+  if (ref === "") return { id: "", mine: null };
+  if (known !== undefined) {
+    const match = findOrgByRef(known, ref);
+    return { id: match?.metadata?.id || ref, mine: match !== undefined };
+  }
+  try {
+    for await (const org of stigmer.organization.listMineAll({})) {
+      if (org.metadata?.id === ref || org.metadata?.slug === ref) return { id: org.metadata.id || ref, mine: true };
+    }
+  } catch {
+    // Unreadable: judged as named, as before the lookup existed.
+    return { id: ref, mine: null };
+  }
+  return { id: ref, mine: false };
+}
+
+/**
+ * The id of the organization `ref` names (an id or a slug), by
+ * {@link lookUpOrganization}: `ref` itself when none of the caller's
+ * organizations matches, or when they cannot be read.
  */
 export async function organizationIdOf(
   stigmer: Pick<Stigmer, "organization">,
   ref: string,
   known: readonly Organization[] | undefined,
 ): Promise<string> {
-  if (ref === "") return "";
-  if (known !== undefined) return findOrgByRef(known, ref)?.metadata?.id || ref;
-  try {
-    for await (const org of stigmer.organization.listMineAll({})) {
-      if (org.metadata?.id === ref || org.metadata?.slug === ref) return org.metadata.id || ref;
-    }
-  } catch {
-    // Unreadable: judged as named, as before the lookup existed.
-  }
-  return ref;
+  return (await lookUpOrganization(stigmer, ref, known)).id;
 }
 
 /**

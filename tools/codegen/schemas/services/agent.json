@@ -973,10 +973,63 @@
         },
         "description": "Warnings the last save recorded: what the agent's skills carry that it\n cannot use as configured, such as scripts an agent without a computer\n cannot run. A save never fails over one.",
         "required": false
+      },
+      {
+        "name": "ServerSignIns",
+        "jsonName": "serverSignIns",
+        "protoField": "server_sign_ins",
+        "type": {
+          "kind": "array",
+          "elementType": {
+            "kind": "message",
+            "messageType": "AgentServerSignIn"
+          }
+        },
+        "description": "How each of the agent's own MCP servers asked to be signed in to, as\n its address answered when the agent was saved. A server listed here\n with a sign-in is signed in to as a plugin's server is: a run needs the\n login and is refused until there is one, and the chat offers Sign in.",
+        "required": false
       }
     ]
   },
   "statusNestedTypes": [
+    {
+      "name": "AgentServerSignIn",
+      "description": "AgentServerSignIn is how one of an agent's own MCP servers answered when\n it was asked whether it wants a sign-in.",
+      "protoType": "ai.stigmer.agentic.agent.v1.AgentServerSignIn",
+      "protoFile": "apis/ai/stigmer/agentic/agent/v1/status.proto",
+      "fields": [
+        {
+          "name": "Name",
+          "jsonName": "name",
+          "protoField": "name",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The server's name in the agent (AgentMcpServer.name).",
+          "required": false
+        },
+        {
+          "name": "Url",
+          "jsonName": "url",
+          "protoField": "url",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The address the server was asked at (AgentMcpServer.url).",
+          "required": false
+        },
+        {
+          "name": "SignIn",
+          "jsonName": "signIn",
+          "protoField": "sign_in",
+          "type": {
+            "kind": "message",
+            "messageType": "McpServerSignIn"
+          },
+          "description": "How a person signs in to the server; unset when the server asked for\n no sign-in.",
+          "required": false
+        }
+      ]
+    },
     {
       "name": "AgentWarning",
       "description": "AgentWarning is one thing an agent's save noticed and did not refuse.",
@@ -1159,6 +1212,24 @@
             "kind": "string"
           },
           "description": "Type of the last event (e.g., \"created\", \"updated\").",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "McpServerSignIn",
+      "description": "McpServerSignIn says how a person signs in to a server.",
+      "protoType": "ai.stigmer.agentic.plugin.v1.McpServerSignIn",
+      "protoFile": "apis/ai/stigmer/agentic/plugin/v1/status.proto",
+      "fields": [
+        {
+          "name": "OauthOnly",
+          "jsonName": "oauthOnly",
+          "protoField": "oauth_only",
+          "type": {
+            "kind": "bool"
+          },
+          "description": "Whether the server accepts only a sign-in, and no pasted key.",
           "required": false
         }
       ]

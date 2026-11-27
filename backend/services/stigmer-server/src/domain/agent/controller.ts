@@ -33,6 +33,7 @@ import { create } from "@bufbuild/protobuf";
 import { AgentCommandController } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/command_pb";
 import { AgentQueryController } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/query_pb";
 import { AgentSchema } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb";
+import type { OutboundFetch } from "@stigmer/outbound/egress";
 import { AgentStatusSchema } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/status_pb";
 import { ApiResourceAuditSchema } from "@stigmer/apis/ai/stigmer/commons/apiresource/status_pb";
 import type { Agent } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb";
@@ -159,6 +160,7 @@ import {
   newValidatePluginListStep,
 } from "./steps.js";
 import { newRecordAgentWarningsStep } from "./skill-warnings.js";
+import { newRecordAgentServerSignInsStep } from "./server-sign-ins.js";
 import type { AgentWarningReads } from "./skill-warnings.js";
 import { newCascadeDeleteScoringRulesStep } from "../scoring-rule/cascade.js";
 import type { ClockProvider } from "../routine/clock.js";
@@ -225,6 +227,12 @@ export interface AgentControllerDeps {
    * (skill-warnings.ts).
    */
   readonly archiveFileReads: AgentWarningReads;
+  /**
+   * The guarded fetch user-supplied URLs are dialled with: the save asks
+   * each new or changed MCP server of the agent's own whether it wants a
+   * sign-in (server-sign-ins.ts).
+   */
+  readonly outboundFetch: OutboundFetch;
 }
 
 /** Registers both agent services on the router (routes stage). */
@@ -301,6 +309,7 @@ async function createAgent(
     .addStep(newResolveAgentComputerStep(deps.store))
     .addStep(newRefuseWhatNeedsAComputerStep(deps.store))
     .addStep(newRecordAgentWarningsStep(deps.store, deps.archiveFileReads, deps.logger))
+    .addStep(newRecordAgentServerSignInsStep({ outboundFetch: deps.outboundFetch, logger: deps.logger }))
     .addStep(newRefuseUnofferedHarnessStep(agentHarnesses))
     .addStep(newValidateAgentRunConfigStep(deps.modelRegistry))
     .addStep(newComputeAgentVersionHashStep())
@@ -365,6 +374,7 @@ async function update(
       .addStep(newResolveAgentComputerStep(deps.store))
       .addStep(newRefuseWhatNeedsAComputerStep(deps.store))
       .addStep(newRecordAgentWarningsStep(deps.store, deps.archiveFileReads, deps.logger))
+      .addStep(newRecordAgentServerSignInsStep({ outboundFetch: deps.outboundFetch, logger: deps.logger }))
       .addStep(newRefuseUnofferedHarnessStep(agentHarnesses))
       .addStep(newValidateAgentRunConfigStep(deps.modelRegistry))
       .addStep(newComputeAgentVersionHashStep())

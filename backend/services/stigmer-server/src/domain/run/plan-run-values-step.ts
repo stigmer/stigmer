@@ -51,6 +51,7 @@ import { create } from "@bufbuild/protobuf";
 import { ConnectError } from "@connectrpc/connect";
 
 import type { AgentSpec } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/spec_pb";
+import type { AgentServerSignIn } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/status_pb";
 import {
   RunCredentialsSchema,
   RunStatusSchema,
@@ -196,8 +197,9 @@ export async function planRunValues(
   let agentSpec: AgentSpec | undefined;
   let agentName = "";
   let agentOrg: string | undefined;
+  let agentServerSignIns: readonly AgentServerSignIn[] = [];
   if (agentId !== "") {
-    ({ spec: agentSpec, name: agentName, org: agentOrg } = await loadRunAgent(
+    ({ spec: agentSpec, name: agentName, org: agentOrg, serverSignIns: agentServerSignIns } = await loadRunAgent(
       deps,
       agentId,
       execution.status?.agentVersionHash ?? "",
@@ -221,7 +223,13 @@ export async function planRunValues(
         agent:
           agentSpec === undefined
             ? undefined
-            : { id: agentId, name: agentName, version: execution.status?.agentVersionHash ?? "", spec: agentSpec },
+            : {
+                id: agentId,
+                name: agentName,
+                version: execution.status?.agentVersionHash ?? "",
+                spec: agentSpec,
+                serverSignIns: agentServerSignIns,
+              },
         subagents,
         plugins,
       }),
@@ -237,6 +245,7 @@ export async function planRunValues(
     agentId,
     agentVersion: execution.status?.agentVersionHash ?? "",
     agentOrg,
+    agentServerSignIns,
     subagents,
     plugins,
   });
@@ -302,7 +311,12 @@ async function loadRunAgent(
   deps: RunValuePlannerDeps,
   agentId: string,
   versionHash: string,
-): Promise<{ spec: AgentSpec | undefined; name: string; org: string | undefined }> {
+): Promise<{
+  spec: AgentSpec | undefined;
+  name: string;
+  org: string | undefined;
+  serverSignIns: readonly AgentServerSignIn[];
+}> {
   let spec: AgentSpec | undefined;
   try {
     spec = (await deps.agentLoader().getVersion(agentId, versionHash))
@@ -318,20 +332,23 @@ async function loadRunAgent(
 }
 
 /**
- * The agent's display name for the resolver's messages and its
- * organization, or its id and no organization when it cannot be read.
+ * The agent's display name for the resolver's messages, its organization
+ * and how its own servers answered at its save (read by name and address,
+ * so they serve the version the run planned), or its id, no organization
+ * and no answers when it cannot be read.
  */
 async function agentNameAndOrgOf(
   deps: RunValuePlannerDeps,
   agentId: string,
-): Promise<{ name: string; org: string | undefined }> {
+): Promise<{ name: string; org: string | undefined; serverSignIns: readonly AgentServerSignIn[] }> {
   try {
     const agent = await deps.agentLoader().get(agentId);
     return {
       name: agent.metadata?.name || agent.metadata?.slug || agentId,
       org: agent.metadata?.org,
+      serverSignIns: agent.status?.serverSignIns ?? [],
     };
   } catch {
-    return { name: agentId, org: undefined };
+    return { name: agentId, org: undefined, serverSignIns: [] };
   }
 }

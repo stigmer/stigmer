@@ -4,6 +4,8 @@
 
 import type { GenFile, GenMessage } from "@bufbuild/protobuf/codegenv1";
 import { fileDesc, messageDesc } from "@bufbuild/protobuf/codegenv1";
+import type { McpServerSignIn } from "../../plugin/v1/status_pb.js";
+import { file_ai_stigmer_agentic_plugin_v1_status } from "../../plugin/v1/status_pb.js";
 import type { ApiResourceAudit } from "../../../commons/apiresource/status_pb.js";
 import { file_ai_stigmer_commons_apiresource_status } from "../../../commons/apiresource/status_pb.js";
 import type { Message } from "@bufbuild/protobuf";
@@ -12,7 +14,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/agent/v1/status.proto.
  */
 export const file_ai_stigmer_agentic_agent_v1_status: GenFile = /*@__PURE__*/
-  fileDesc("CihhaS9zdGlnbWVyL2FnZW50aWMvYWdlbnQvdjEvc3RhdHVzLnByb3RvEhthaS5zdGlnbWVyLmFnZW50aWMuYWdlbnQudjEioQEKC0FnZW50U3RhdHVzEj8KBWF1ZGl0GGMgASgLMjAuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLkFwaVJlc291cmNlQXVkaXQSFAoMdmVyc2lvbl9oYXNoGAMgASgJEjsKCHdhcm5pbmdzGAQgAygLMikuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50LnYxLkFnZW50V2FybmluZyI8CgxBZ2VudFdhcm5pbmcSDAoEa2luZBgBIAEoCRIPCgdtZXNzYWdlGAIgASgJEg0KBXNraWxsGAMgASgJYgZwcm90bzM", [file_ai_stigmer_commons_apiresource_status]);
+  fileDesc("CihhaS9zdGlnbWVyL2FnZW50aWMvYWdlbnQvdjEvc3RhdHVzLnByb3RvEhthaS5zdGlnbWVyLmFnZW50aWMuYWdlbnQudjEi6gEKC0FnZW50U3RhdHVzEj8KBWF1ZGl0GGMgASgLMjAuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLkFwaVJlc291cmNlQXVkaXQSFAoMdmVyc2lvbl9oYXNoGAMgASgJEjsKCHdhcm5pbmdzGAQgAygLMikuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50LnYxLkFnZW50V2FybmluZxJHCg9zZXJ2ZXJfc2lnbl9pbnMYBSADKAsyLi5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnQudjEuQWdlbnRTZXJ2ZXJTaWduSW4ibgoRQWdlbnRTZXJ2ZXJTaWduSW4SDAoEbmFtZRgBIAEoCRILCgN1cmwYAiABKAkSPgoHc2lnbl9pbhgDIAEoCzItLmFpLnN0aWdtZXIuYWdlbnRpYy5wbHVnaW4udjEuTWNwU2VydmVyU2lnbkluIjwKDEFnZW50V2FybmluZxIMCgRraW5kGAEgASgJEg8KB21lc3NhZ2UYAiABKAkSDQoFc2tpbGwYAyABKAliBnByb3RvMw", [file_ai_stigmer_agentic_plugin_v1_status, file_ai_stigmer_commons_apiresource_status]);
 
 /**
  * AgentStatus contains system-managed state for an agent.
@@ -53,6 +55,16 @@ export type AgentStatus = Message<"ai.stigmer.agentic.agent.v1.AgentStatus"> & {
    * @generated from field: repeated ai.stigmer.agentic.agent.v1.AgentWarning warnings = 4;
    */
   warnings: AgentWarning[];
+
+  /**
+   * How each of the agent's own MCP servers asked to be signed in to, as
+   * its address answered when the agent was saved. A server listed here
+   * with a sign-in is signed in to as a plugin's server is: a run needs the
+   * login and is refused until there is one, and the chat offers Sign in.
+   *
+   * @generated from field: repeated ai.stigmer.agentic.agent.v1.AgentServerSignIn server_sign_ins = 5;
+   */
+  serverSignIns: AgentServerSignIn[];
 };
 
 /**
@@ -61,6 +73,43 @@ export type AgentStatus = Message<"ai.stigmer.agentic.agent.v1.AgentStatus"> & {
  */
 export const AgentStatusSchema: GenMessage<AgentStatus> = /*@__PURE__*/
   messageDesc(file_ai_stigmer_agentic_agent_v1_status, 0);
+
+/**
+ * AgentServerSignIn is how one of an agent's own MCP servers answered when
+ * it was asked whether it wants a sign-in.
+ *
+ * @generated from message ai.stigmer.agentic.agent.v1.AgentServerSignIn
+ */
+export type AgentServerSignIn = Message<"ai.stigmer.agentic.agent.v1.AgentServerSignIn"> & {
+  /**
+   * The server's name in the agent (AgentMcpServer.name).
+   *
+   * @generated from field: string name = 1;
+   */
+  name: string;
+
+  /**
+   * The address the server was asked at (AgentMcpServer.url).
+   *
+   * @generated from field: string url = 2;
+   */
+  url: string;
+
+  /**
+   * How a person signs in to the server; unset when the server asked for
+   * no sign-in.
+   *
+   * @generated from field: ai.stigmer.agentic.plugin.v1.McpServerSignIn sign_in = 3;
+   */
+  signIn?: McpServerSignIn;
+};
+
+/**
+ * Describes the message ai.stigmer.agentic.agent.v1.AgentServerSignIn.
+ * Use `create(AgentServerSignInSchema)` to create a new message.
+ */
+export const AgentServerSignInSchema: GenMessage<AgentServerSignIn> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_agentic_agent_v1_status, 1);
 
 /**
  * AgentWarning is one thing an agent's save noticed and did not refuse.
@@ -96,5 +145,5 @@ export type AgentWarning = Message<"ai.stigmer.agentic.agent.v1.AgentWarning"> &
  * Use `create(AgentWarningSchema)` to create a new message.
  */
 export const AgentWarningSchema: GenMessage<AgentWarning> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_agent_v1_status, 1);
+  messageDesc(file_ai_stigmer_agentic_agent_v1_status, 2);
 

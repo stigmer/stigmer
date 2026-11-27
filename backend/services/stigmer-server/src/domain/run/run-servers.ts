@@ -19,6 +19,11 @@
  * name: the turn would hold one of them under it. The run is refused
  * naming both, as two plugins' clash is.
  *
+ * An agent's server whose address asked for a sign-in at the agent's save
+ * (`AgentStatus.server_sign_ins`, matched by name and address) reads as a
+ * plugin server install completed (domain/vault/agent-servers.ts): its
+ * login key is a required secret no agent declares, so a run needs a login.
+ *
  * A header value read from an agent's own `env` declaration takes that
  * declaration; a platform variable (the caller, the conversation, the
  * Stigmer server's address) is optional and no secret, as the plugin
@@ -31,6 +36,7 @@ import { create } from "@bufbuild/protobuf";
 import { PLATFORM_VARIABLES, toolServerSegment } from "@stigmer/plugin-package";
 
 import type { AgentSpec } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/spec_pb";
+import type { AgentServerSignIn } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/status_pb";
 import type { McpServerEntry } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/status_pb";
 import { EnvVarDeclarationSchema } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/declaration_pb";
 import type { EnvVarDeclaration } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/declaration_pb";
@@ -70,6 +76,8 @@ export interface RunAgentHome {
   readonly name: string;
   readonly version: string;
   readonly spec: AgentSpec;
+  /** How its own servers answered at its save (`AgentStatus.server_sign_ins`); none when unread. */
+  readonly serverSignIns?: readonly AgentServerSignIn[];
 }
 
 /** Each MCP server of a plugin. */
@@ -101,7 +109,7 @@ function agentServerDeclarations(
 /** Each MCP server an agent writes itself. */
 export function agentServersOf(agent: RunAgentHome): RunServer[] {
   return agent.spec.mcpServers.map((server) => {
-    const entry = agentServerEntry(server);
+    const entry = agentServerEntry(server, agent.serverSignIns);
     return {
       home: { kind: "agent", agentId: agent.id, agentName: agent.name, agentVersion: agent.version },
       entry,
@@ -144,6 +152,7 @@ export function runServers(input: RunServersInput): RunServer[] {
       name: subagent.name,
       version: subagent.versionHash,
       spec: subagent.spec,
+      serverSignIns: subagent.serverSignIns,
     })),
   ];
   const written = new Map<string, string>();

@@ -213,15 +213,33 @@ vi.mock("@stigmer/react-core", async (importOriginal) => ({
   // The conversation's Files read nothing here: the core's hook reads the
   // client from its own context, which this suite does not provide.
   useSessionFiles: () => ({ files: [], isLoading: false, error: null, refetch: () => {} }),
-  useStigmer: () => ({
-    // Server info answers the Environment row: a server that predates the field.
-    platform: { getServerInfo: async () => ({}) },
-    run: {
-      getArtifactContent: vi.fn(),
-    },
-  }),
+  useStigmer: () => stigmerStub,
 }));
 
+// What a pinned chat's setup failure is classified by: the caller's own
+// organizations and whether the caller is an app user.
+const caller = { orgSlugs: ["acme"], appUser: false };
+const stigmerStub = {
+  // Server info answers the Environment row: a server that predates the field.
+  platform: { getServerInfo: async () => ({}) },
+  run: {
+    getArtifactContent: vi.fn(),
+  },
+  organization: {
+    listMineAll: async function* () {
+      for (const slug of caller.orgSlugs) yield { metadata: { id: `org_${slug}`, slug } };
+    },
+  },
+  identityAccount: {
+    whoAmI: async () => ({ spec: { provisioningMode: caller.appUser ? IdentityAccountProvisioningMode.app_user : 0 } }),
+  },
+};
+
+import { Code, ConnectError } from "@connectrpc/connect";
+import { IdentityAccountProvisioningMode } from "@stigmer/apis/ai/stigmer/iam/identityaccount/v1/enum_pb";
+import { StigmerContext } from "@stigmer/react-core";
+import type { Stigmer } from "@stigmer/client";
+import { AgentChatSetupError } from "../../agent-chat/setup-error";
 import { samples } from "../../test";
 import type { Turn } from "@stigmer/client";
 import { renderOutcomeOf, undecidedTurn } from "./__fixtures__/undecided-turn";
@@ -310,21 +328,90 @@ describe("NewSessionViewer — audience wiring", () => {
     expect(offeredRunSettings().ids).toEqual(["run-settings"]);
   });
 
-  it("endUser with a pinned agent: Send waits while the agent resolves, and says when it cannot (stigmer#2748)", () => {
-    mockUseNewSessionFlow.mockImplementation(() => ({ ...stubNewSessionFlow, agentRef: null }) as unknown as typeof stubNewSessionFlow);
-    try {
-      render(<NewSessionViewer org="acme" onSessionCreated={vi.fn()} audience="endUser" initialAgentRef={AGENT_REF} />);
-      expect(lastComposerProps().sendBlockedReason).toBe("Loading the agent\u2026");
-      expect(screen.queryByRole("alert")).toBeNull();
+  describe("endUser with a pinned agent that cannot be set up: the cause in the end user's words, and the developer's to onError and the console", () => {
+    const cases: readonly {
+      readonly reason: string;
+      readonly failure: Error;
+      readonly caller: { orgSlugs: string[]; appUser: boolean };
+      readonly line: string;
+      readonly developer: string;
+    }[] = [
+      {
+        reason: "agent-not-found",
+        failure: new ConnectError("agent not found", Code.NotFound),
+        caller: { orgSlugs: ["acme"], appUser: false },
+        line: "This agent isn't available. It may have been renamed or removed.",
+        developer: 'acme has no agent named "support-bot"; check the agent prop against the agent\'s slug',
+      },
+      {
+        reason: "no-access",
+        failure: new ConnectError("agent not found", Code.NotFound),
+        caller: { orgSlugs: [], appUser: true },
+        line: "Your account can't use this agent yet. Ask the app's team for access.",
+        developer: "your app signs its users in with no role in acme, so they can't see this agent; set a sign-in role in Settings → Embedding",
+      },
+      {
+        reason: "no-access",
+        failure: new ConnectError("denied", Code.PermissionDenied),
+        caller: { orgSlugs: ["acme"], appUser: false },
+        line: "Your account can't use this agent yet. Ask the app's team for access.",
+        developer: 'the signed-in account has no access to the agent "support-bot" in acme',
+      },
+      {
+        reason: "organization-not-found",
+        failure: new ConnectError("agent not found", Code.NotFound),
+        caller: { orgSlugs: ["globex"], appUser: false },
+        line: "This chat isn't set up yet, so it can't start.",
+        developer: 'none of the signed-in account\'s organizations is named "acme"; check the organization in the agent prop',
+      },
+      {
+        reason: "unreachable",
+        failure: new TypeError("Failed to fetch"),
+        caller: { orgSlugs: ["acme"], appUser: false },
+        line: "Can't reach Stigmer right now. Check your connection and try again.",
+        developer: "Stigmer's server can't be reached; check the client's baseUrl and that the server is running",
+      },
+      {
+        reason: "no-credential",
+        failure: new ConnectError("no token", Code.Unauthenticated),
+        caller: { orgSlugs: ["acme"], appUser: false },
+        line: "Sign in to this app to use its chat.",
+        developer: "no sign-in reached Stigmer: the client's getAccessToken gave no token, or Stigmer refused the one it gave",
+      },
+    ];
 
-      const reportError = lastComposerProps().onAgentSetupErrorChange as (error: Error | null) => void;
-      act(() => reportError(new Error("agent not found")));
-      const unavailable = "This agent isn't available. It may have been renamed or removed.";
-      expect(lastComposerProps().sendBlockedReason).toBe(unavailable);
-      expect(screen.getByRole("alert").textContent).toBe(unavailable);
-    } finally {
-      mockUseNewSessionFlow.mockImplementation(() => stubNewSessionFlow);
-    }
+    it.each(cases)("$reason ($developer)", async ({ reason, failure, caller: who, line, developer }) => {
+      Object.assign(caller, who);
+      const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
+      mockUseNewSessionFlow.mockImplementation(() => ({ ...stubNewSessionFlow, agentRef: null }) as unknown as typeof stubNewSessionFlow);
+      try {
+        const onError = vi.fn();
+        render(
+          <StigmerContext.Provider value={stigmerStub as unknown as Stigmer}>
+            <NewSessionViewer org="acme" onSessionCreated={vi.fn()} audience="endUser" initialAgentRef={AGENT_REF} onError={onError} />
+          </StigmerContext.Provider>,
+        );
+        expect(lastComposerProps().sendBlockedReason).toBe("Loading the agent\u2026");
+
+        const reportError = lastComposerProps().onAgentSetupErrorChange as (error: Error | null) => void;
+        await act(async () => reportError(failure));
+        await vi.waitFor(() => expect(lastComposerProps().sendBlockedReason).toBe(line));
+        // Printed once, under the box: no second line of its own.
+        expect(screen.queryByRole("alert")).toBeNull();
+
+        expect(onError).toHaveBeenCalledTimes(1);
+        const [message, error] = onError.mock.calls[0]! as [string, AgentChatSetupError];
+        expect(message).toBe(developer);
+        expect(error).toBeInstanceOf(AgentChatSetupError);
+        expect(error.reason).toBe(reason);
+        expect(error.cause).toBe(failure);
+        expect(consoleError).toHaveBeenCalledWith(`Stigmer: ${developer}`, failure);
+      } finally {
+        Object.assign(caller, { orgSlugs: ["acme"], appUser: false });
+        consoleError.mockRestore();
+        mockUseNewSessionFlow.mockImplementation(() => stubNewSessionFlow);
+      }
+    });
   });
 
   it("any audience: Send waits while the picked agent's engine and run defaults load (stigmer#3481)", () => {

@@ -2168,6 +2168,7 @@ export async function composeServer(
       channelRuntime: extensions.drivers.channelRuntime,
       routineClock: () => routineSyncer,
       archiveFileReads: { skill: skillFileReads, plugin: pluginFileReads },
+      outboundFetch,
     });
     registerSessionServices(router, {
       store,

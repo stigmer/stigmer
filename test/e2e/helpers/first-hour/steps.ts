@@ -34,21 +34,21 @@ export function nonce(step: string): string {
   return `${step}-${randomBytes(6).toString("hex")}`;
 }
 
-/** What the person asks the agent: the call, with the nonce, in words a live model acts on. */
-export function askForTheTool(value: string): string {
-  return `Call the ${TOOL} tool of ${TOOL_SERVER} with the text "${value}", then say that you did.`;
+/** What the person asks the agent: the call to `server`'s tool, with the nonce, in words a live model acts on. */
+export function askForTheTool(value: string, server: string = TOOL_SERVER): string {
+  return `Call the ${TOOL} tool of ${server} with the text "${value}", then say that you did.`;
 }
 
 /**
  * Readies the model for one turn that calls the tool with `value`: on the
- * mock, the call and then a reply that does not repeat the value; a live
- * model needs nothing.
+ * mock, the call (by the name a turn gives it: the plugin's by default) and
+ * then a reply that does not repeat the value; a live model needs nothing.
  */
-export async function scriptToolCall(model: JourneyModel, value: string, callId: string): Promise<void> {
+export async function scriptToolCall(model: JourneyModel, value: string, callId: string, toolName: string = TOOL_AS_CALLED): Promise<void> {
   if (model.kind !== "mock") return;
   const control = new MockControl(model.controlUrl);
   await control.reset();
-  await control.enqueue(anthropicToolUses([{ toolCallId: callId, toolName: TOOL_AS_CALLED, toolInput: { text: value } }]));
+  await control.enqueue(anthropicToolUses([{ toolCallId: callId, toolName, toolInput: { text: value } }]));
   await control.enqueue(anthropicText("Done: the tool answered."));
 }
 
@@ -72,18 +72,19 @@ export async function drainModel(model: JourneyModel, served = true): Promise<vo
 
 /**
  * The state the embedding tutorial's earlier pages leave, made through the
- * API as the person: the `report-backend` service account with a key of its
- * own, and account creation on in the embedding settings with the member
- * role. Returns the key, the tutorial's STIGMER_API_KEY.
+ * API as the person: the `report-backend` service account (or `account`,
+ * for a second app) with a key of its own, and account creation on in the
+ * embedding settings with the member role. Returns the key, the tutorial's
+ * STIGMER_API_KEY.
  */
-export async function prepareEmbedding(journey: Journey): Promise<string> {
+export async function prepareEmbedding(journey: Journey, account = "report-backend"): Promise<string> {
   const person = await journey.asPerson();
   const org = journey.found.org ?? "";
-  const account = await person.identityAccount.createServiceAccount(
-    create(CreateServiceAccountInputSchema, { org, name: "report-backend", role: IamRole.admin }),
+  const created = await person.identityAccount.createServiceAccount(
+    create(CreateServiceAccountInputSchema, { org, name: account, role: IamRole.admin }),
   );
   const key = await person.apiKey.createForServiceAccount(
-    create(CreateServiceAccountKeyInputSchema, { serviceAccountId: account.metadata?.id ?? "", name: "report-backend", neverExpires: true }),
+    create(CreateServiceAccountKeyInputSchema, { serviceAccountId: created.metadata?.id ?? "", name: account, neverExpires: true }),
   );
   await person.organization.updateEmbedding(
     create(UpdateOrganizationEmbeddingInputSchema, { orgId: org, embedding: { createAccountsOnSignIn: true, signInRole: IamRole.member } }),

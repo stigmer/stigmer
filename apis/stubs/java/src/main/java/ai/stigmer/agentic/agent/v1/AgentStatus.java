@@ -34,6 +34,7 @@ private static final long serialVersionUID = 0L;
   private AgentStatus() {
     versionHash_ = "";
     warnings_ = java.util.Collections.emptyList();
+    serverSignIns_ = java.util.Collections.emptyList();
   }
 
   public static final com.google.protobuf.Descriptors.Descriptor
@@ -233,6 +234,82 @@ private static final long serialVersionUID = 0L;
     return warnings_.get(index);
   }
 
+  public static final int SERVER_SIGN_INS_FIELD_NUMBER = 5;
+  @SuppressWarnings("serial")
+  private java.util.List<ai.stigmer.agentic.agent.v1.AgentServerSignIn> serverSignIns_;
+  /**
+   * <pre>
+   * How each of the agent's own MCP servers asked to be signed in to, as
+   * its address answered when the agent was saved. A server listed here
+   * with a sign-in is signed in to as a plugin's server is: a run needs the
+   * login and is refused until there is one, and the chat offers Sign in.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.agent.v1.AgentServerSignIn server_sign_ins = 5 [json_name = "serverSignIns"];</code>
+   */
+  @java.lang.Override
+  public java.util.List<ai.stigmer.agentic.agent.v1.AgentServerSignIn> getServerSignInsList() {
+    return serverSignIns_;
+  }
+  /**
+   * <pre>
+   * How each of the agent's own MCP servers asked to be signed in to, as
+   * its address answered when the agent was saved. A server listed here
+   * with a sign-in is signed in to as a plugin's server is: a run needs the
+   * login and is refused until there is one, and the chat offers Sign in.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.agent.v1.AgentServerSignIn server_sign_ins = 5 [json_name = "serverSignIns"];</code>
+   */
+  @java.lang.Override
+  public java.util.List<? extends ai.stigmer.agentic.agent.v1.AgentServerSignInOrBuilder> 
+      getServerSignInsOrBuilderList() {
+    return serverSignIns_;
+  }
+  /**
+   * <pre>
+   * How each of the agent's own MCP servers asked to be signed in to, as
+   * its address answered when the agent was saved. A server listed here
+   * with a sign-in is signed in to as a plugin's server is: a run needs the
+   * login and is refused until there is one, and the chat offers Sign in.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.agent.v1.AgentServerSignIn server_sign_ins = 5 [json_name = "serverSignIns"];</code>
+   */
+  @java.lang.Override
+  public int getServerSignInsCount() {
+    return serverSignIns_.size();
+  }
+  /**
+   * <pre>
+   * How each of the agent's own MCP servers asked to be signed in to, as
+   * its address answered when the agent was saved. A server listed here
+   * with a sign-in is signed in to as a plugin's server is: a run needs the
+   * login and is refused until there is one, and the chat offers Sign in.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.agent.v1.AgentServerSignIn server_sign_ins = 5 [json_name = "serverSignIns"];</code>
+   */
+  @java.lang.Override
+  public ai.stigmer.agentic.agent.v1.AgentServerSignIn getServerSignIns(int index) {
+    return serverSignIns_.get(index);
+  }
+  /**
+   * <pre>
+   * How each of the agent's own MCP servers asked to be signed in to, as
+   * its address answered when the agent was saved. A server listed here
+   * with a sign-in is signed in to as a plugin's server is: a run needs the
+   * login and is refused until there is one, and the chat offers Sign in.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.agent.v1.AgentServerSignIn server_sign_ins = 5 [json_name = "serverSignIns"];</code>
+   */
+  @java.lang.Override
+  public ai.stigmer.agentic.agent.v1.AgentServerSignInOrBuilder getServerSignInsOrBuilder(
+      int index) {
+    return serverSignIns_.get(index);
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -252,6 +329,9 @@ private static final long serialVersionUID = 0L;
     }
     for (int i = 0; i < warnings_.size(); i++) {
       output.writeMessage(4, warnings_.get(i));
+    }
+    for (int i = 0; i < serverSignIns_.size(); i++) {
+      output.writeMessage(5, serverSignIns_.get(i));
     }
     if (((bitField0_ & 0x00000001) != 0)) {
       output.writeMessage(99, getAudit());
@@ -274,6 +354,15 @@ private static final long serialVersionUID = 0L;
           for (int i = 0; i < count; i++) {
             size += com.google.protobuf.CodedOutputStream
               .computeMessageSizeNoTag(warnings_.get(i));
+          }
+          size += 1 * count;
+        }
+
+        {
+          final int count = serverSignIns_.size();
+          for (int i = 0; i < count; i++) {
+            size += com.google.protobuf.CodedOutputStream
+              .computeMessageSizeNoTag(serverSignIns_.get(i));
           }
           size += 1 * count;
         }
@@ -305,6 +394,8 @@ private static final long serialVersionUID = 0L;
         .equals(other.getVersionHash())) return false;
     if (!getWarningsList()
         .equals(other.getWarningsList())) return false;
+    if (!getServerSignInsList()
+        .equals(other.getServerSignInsList())) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -325,6 +416,10 @@ private static final long serialVersionUID = 0L;
     if (getWarningsCount() > 0) {
       hash = (37 * hash) + WARNINGS_FIELD_NUMBER;
       hash = (53 * hash) + getWarningsList().hashCode();
+    }
+    if (getServerSignInsCount() > 0) {
+      hash = (37 * hash) + SERVER_SIGN_INS_FIELD_NUMBER;
+      hash = (53 * hash) + getServerSignInsList().hashCode();
     }
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
@@ -462,6 +557,7 @@ private static final long serialVersionUID = 0L;
               .alwaysUseFieldBuilders) {
         internalGetAuditFieldBuilder();
         internalGetWarningsFieldBuilder();
+        internalGetServerSignInsFieldBuilder();
       }
     }
     @java.lang.Override
@@ -481,6 +577,13 @@ private static final long serialVersionUID = 0L;
         warningsBuilder_.clear();
       }
       bitField0_ = (bitField0_ & ~0x00000004);
+      if (serverSignInsBuilder_ == null) {
+        serverSignIns_ = java.util.Collections.emptyList();
+      } else {
+        serverSignIns_ = null;
+        serverSignInsBuilder_.clear();
+      }
+      bitField0_ = (bitField0_ & ~0x00000008);
       return this;
     }
 
@@ -522,6 +625,15 @@ private static final long serialVersionUID = 0L;
         result.warnings_ = warnings_;
       } else {
         result.warnings_ = warningsBuilder_.build();
+      }
+      if (serverSignInsBuilder_ == null) {
+        if (((bitField0_ & 0x00000008) != 0)) {
+          serverSignIns_ = java.util.Collections.unmodifiableList(serverSignIns_);
+          bitField0_ = (bitField0_ & ~0x00000008);
+        }
+        result.serverSignIns_ = serverSignIns_;
+      } else {
+        result.serverSignIns_ = serverSignInsBuilder_.build();
       }
     }
 
@@ -586,6 +698,32 @@ private static final long serialVersionUID = 0L;
           }
         }
       }
+      if (serverSignInsBuilder_ == null) {
+        if (!other.serverSignIns_.isEmpty()) {
+          if (serverSignIns_.isEmpty()) {
+            serverSignIns_ = other.serverSignIns_;
+            bitField0_ = (bitField0_ & ~0x00000008);
+          } else {
+            ensureServerSignInsIsMutable();
+            serverSignIns_.addAll(other.serverSignIns_);
+          }
+          onChanged();
+        }
+      } else {
+        if (!other.serverSignIns_.isEmpty()) {
+          if (serverSignInsBuilder_.isEmpty()) {
+            serverSignInsBuilder_.dispose();
+            serverSignInsBuilder_ = null;
+            serverSignIns_ = other.serverSignIns_;
+            bitField0_ = (bitField0_ & ~0x00000008);
+            serverSignInsBuilder_ = 
+              com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders ?
+                 internalGetServerSignInsFieldBuilder() : null;
+          } else {
+            serverSignInsBuilder_.addAllMessages(other.serverSignIns_);
+          }
+        }
+      }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
       return this;
@@ -630,6 +768,19 @@ private static final long serialVersionUID = 0L;
               }
               break;
             } // case 34
+            case 42: {
+              ai.stigmer.agentic.agent.v1.AgentServerSignIn m =
+                  input.readMessage(
+                      ai.stigmer.agentic.agent.v1.AgentServerSignIn.parser(),
+                      extensionRegistry);
+              if (serverSignInsBuilder_ == null) {
+                ensureServerSignInsIsMutable();
+                serverSignIns_.add(m);
+              } else {
+                serverSignInsBuilder_.addMessage(m);
+              }
+              break;
+            } // case 42
             case 794: {
               input.readMessage(
                   internalGetAuditFieldBuilder().getBuilder(),
@@ -1304,6 +1455,372 @@ private static final long serialVersionUID = 0L;
         warnings_ = null;
       }
       return warningsBuilder_;
+    }
+
+    private java.util.List<ai.stigmer.agentic.agent.v1.AgentServerSignIn> serverSignIns_ =
+      java.util.Collections.emptyList();
+    private void ensureServerSignInsIsMutable() {
+      if (!((bitField0_ & 0x00000008) != 0)) {
+        serverSignIns_ = new java.util.ArrayList<ai.stigmer.agentic.agent.v1.AgentServerSignIn>(serverSignIns_);
+        bitField0_ |= 0x00000008;
+       }
+    }
+
+    private com.google.protobuf.RepeatedFieldBuilder<
+        ai.stigmer.agentic.agent.v1.AgentServerSignIn, ai.stigmer.agentic.agent.v1.AgentServerSignIn.Builder, ai.stigmer.agentic.agent.v1.AgentServerSignInOrBuilder> serverSignInsBuilder_;
+
+    /**
+     * <pre>
+     * How each of the agent's own MCP servers asked to be signed in to, as
+     * its address answered when the agent was saved. A server listed here
+     * with a sign-in is signed in to as a plugin's server is: a run needs the
+     * login and is refused until there is one, and the chat offers Sign in.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.agent.v1.AgentServerSignIn server_sign_ins = 5 [json_name = "serverSignIns"];</code>
+     */
+    public java.util.List<ai.stigmer.agentic.agent.v1.AgentServerSignIn> getServerSignInsList() {
+      if (serverSignInsBuilder_ == null) {
+        return java.util.Collections.unmodifiableList(serverSignIns_);
+      } else {
+        return serverSignInsBuilder_.getMessageList();
+      }
+    }
+    /**
+     * <pre>
+     * How each of the agent's own MCP servers asked to be signed in to, as
+     * its address answered when the agent was saved. A server listed here
+     * with a sign-in is signed in to as a plugin's server is: a run needs the
+     * login and is refused until there is one, and the chat offers Sign in.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.agent.v1.AgentServerSignIn server_sign_ins = 5 [json_name = "serverSignIns"];</code>
+     */
+    public int getServerSignInsCount() {
+      if (serverSignInsBuilder_ == null) {
+        return serverSignIns_.size();
+      } else {
+        return serverSignInsBuilder_.getCount();
+      }
+    }
+    /**
+     * <pre>
+     * How each of the agent's own MCP servers asked to be signed in to, as
+     * its address answered when the agent was saved. A server listed here
+     * with a sign-in is signed in to as a plugin's server is: a run needs the
+     * login and is refused until there is one, and the chat offers Sign in.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.agent.v1.AgentServerSignIn server_sign_ins = 5 [json_name = "serverSignIns"];</code>
+     */
+    public ai.stigmer.agentic.agent.v1.AgentServerSignIn getServerSignIns(int index) {
+      if (serverSignInsBuilder_ == null) {
+        return serverSignIns_.get(index);
+      } else {
+        return serverSignInsBuilder_.getMessage(index);
+      }
+    }
+    /**
+     * <pre>
+     * How each of the agent's own MCP servers asked to be signed in to, as
+     * its address answered when the agent was saved. A server listed here
+     * with a sign-in is signed in to as a plugin's server is: a run needs the
+     * login and is refused until there is one, and the chat offers Sign in.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.agent.v1.AgentServerSignIn server_sign_ins = 5 [json_name = "serverSignIns"];</code>
+     */
+    public Builder setServerSignIns(
+        int index, ai.stigmer.agentic.agent.v1.AgentServerSignIn value) {
+      if (serverSignInsBuilder_ == null) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        ensureServerSignInsIsMutable();
+        serverSignIns_.set(index, value);
+        onChanged();
+      } else {
+        serverSignInsBuilder_.setMessage(index, value);
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * How each of the agent's own MCP servers asked to be signed in to, as
+     * its address answered when the agent was saved. A server listed here
+     * with a sign-in is signed in to as a plugin's server is: a run needs the
+     * login and is refused until there is one, and the chat offers Sign in.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.agent.v1.AgentServerSignIn server_sign_ins = 5 [json_name = "serverSignIns"];</code>
+     */
+    public Builder setServerSignIns(
+        int index, ai.stigmer.agentic.agent.v1.AgentServerSignIn.Builder builderForValue) {
+      if (serverSignInsBuilder_ == null) {
+        ensureServerSignInsIsMutable();
+        serverSignIns_.set(index, builderForValue.build());
+        onChanged();
+      } else {
+        serverSignInsBuilder_.setMessage(index, builderForValue.build());
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * How each of the agent's own MCP servers asked to be signed in to, as
+     * its address answered when the agent was saved. A server listed here
+     * with a sign-in is signed in to as a plugin's server is: a run needs the
+     * login and is refused until there is one, and the chat offers Sign in.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.agent.v1.AgentServerSignIn server_sign_ins = 5 [json_name = "serverSignIns"];</code>
+     */
+    public Builder addServerSignIns(ai.stigmer.agentic.agent.v1.AgentServerSignIn value) {
+      if (serverSignInsBuilder_ == null) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        ensureServerSignInsIsMutable();
+        serverSignIns_.add(value);
+        onChanged();
+      } else {
+        serverSignInsBuilder_.addMessage(value);
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * How each of the agent's own MCP servers asked to be signed in to, as
+     * its address answered when the agent was saved. A server listed here
+     * with a sign-in is signed in to as a plugin's server is: a run needs the
+     * login and is refused until there is one, and the chat offers Sign in.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.agent.v1.AgentServerSignIn server_sign_ins = 5 [json_name = "serverSignIns"];</code>
+     */
+    public Builder addServerSignIns(
+        int index, ai.stigmer.agentic.agent.v1.AgentServerSignIn value) {
+      if (serverSignInsBuilder_ == null) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        ensureServerSignInsIsMutable();
+        serverSignIns_.add(index, value);
+        onChanged();
+      } else {
+        serverSignInsBuilder_.addMessage(index, value);
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * How each of the agent's own MCP servers asked to be signed in to, as
+     * its address answered when the agent was saved. A server listed here
+     * with a sign-in is signed in to as a plugin's server is: a run needs the
+     * login and is refused until there is one, and the chat offers Sign in.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.agent.v1.AgentServerSignIn server_sign_ins = 5 [json_name = "serverSignIns"];</code>
+     */
+    public Builder addServerSignIns(
+        ai.stigmer.agentic.agent.v1.AgentServerSignIn.Builder builderForValue) {
+      if (serverSignInsBuilder_ == null) {
+        ensureServerSignInsIsMutable();
+        serverSignIns_.add(builderForValue.build());
+        onChanged();
+      } else {
+        serverSignInsBuilder_.addMessage(builderForValue.build());
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * How each of the agent's own MCP servers asked to be signed in to, as
+     * its address answered when the agent was saved. A server listed here
+     * with a sign-in is signed in to as a plugin's server is: a run needs the
+     * login and is refused until there is one, and the chat offers Sign in.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.agent.v1.AgentServerSignIn server_sign_ins = 5 [json_name = "serverSignIns"];</code>
+     */
+    public Builder addServerSignIns(
+        int index, ai.stigmer.agentic.agent.v1.AgentServerSignIn.Builder builderForValue) {
+      if (serverSignInsBuilder_ == null) {
+        ensureServerSignInsIsMutable();
+        serverSignIns_.add(index, builderForValue.build());
+        onChanged();
+      } else {
+        serverSignInsBuilder_.addMessage(index, builderForValue.build());
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * How each of the agent's own MCP servers asked to be signed in to, as
+     * its address answered when the agent was saved. A server listed here
+     * with a sign-in is signed in to as a plugin's server is: a run needs the
+     * login and is refused until there is one, and the chat offers Sign in.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.agent.v1.AgentServerSignIn server_sign_ins = 5 [json_name = "serverSignIns"];</code>
+     */
+    public Builder addAllServerSignIns(
+        java.lang.Iterable<? extends ai.stigmer.agentic.agent.v1.AgentServerSignIn> values) {
+      if (serverSignInsBuilder_ == null) {
+        ensureServerSignInsIsMutable();
+        com.google.protobuf.AbstractMessageLite.Builder.addAll(
+            values, serverSignIns_);
+        onChanged();
+      } else {
+        serverSignInsBuilder_.addAllMessages(values);
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * How each of the agent's own MCP servers asked to be signed in to, as
+     * its address answered when the agent was saved. A server listed here
+     * with a sign-in is signed in to as a plugin's server is: a run needs the
+     * login and is refused until there is one, and the chat offers Sign in.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.agent.v1.AgentServerSignIn server_sign_ins = 5 [json_name = "serverSignIns"];</code>
+     */
+    public Builder clearServerSignIns() {
+      if (serverSignInsBuilder_ == null) {
+        serverSignIns_ = java.util.Collections.emptyList();
+        bitField0_ = (bitField0_ & ~0x00000008);
+        onChanged();
+      } else {
+        serverSignInsBuilder_.clear();
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * How each of the agent's own MCP servers asked to be signed in to, as
+     * its address answered when the agent was saved. A server listed here
+     * with a sign-in is signed in to as a plugin's server is: a run needs the
+     * login and is refused until there is one, and the chat offers Sign in.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.agent.v1.AgentServerSignIn server_sign_ins = 5 [json_name = "serverSignIns"];</code>
+     */
+    public Builder removeServerSignIns(int index) {
+      if (serverSignInsBuilder_ == null) {
+        ensureServerSignInsIsMutable();
+        serverSignIns_.remove(index);
+        onChanged();
+      } else {
+        serverSignInsBuilder_.remove(index);
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * How each of the agent's own MCP servers asked to be signed in to, as
+     * its address answered when the agent was saved. A server listed here
+     * with a sign-in is signed in to as a plugin's server is: a run needs the
+     * login and is refused until there is one, and the chat offers Sign in.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.agent.v1.AgentServerSignIn server_sign_ins = 5 [json_name = "serverSignIns"];</code>
+     */
+    public ai.stigmer.agentic.agent.v1.AgentServerSignIn.Builder getServerSignInsBuilder(
+        int index) {
+      return internalGetServerSignInsFieldBuilder().getBuilder(index);
+    }
+    /**
+     * <pre>
+     * How each of the agent's own MCP servers asked to be signed in to, as
+     * its address answered when the agent was saved. A server listed here
+     * with a sign-in is signed in to as a plugin's server is: a run needs the
+     * login and is refused until there is one, and the chat offers Sign in.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.agent.v1.AgentServerSignIn server_sign_ins = 5 [json_name = "serverSignIns"];</code>
+     */
+    public ai.stigmer.agentic.agent.v1.AgentServerSignInOrBuilder getServerSignInsOrBuilder(
+        int index) {
+      if (serverSignInsBuilder_ == null) {
+        return serverSignIns_.get(index);  } else {
+        return serverSignInsBuilder_.getMessageOrBuilder(index);
+      }
+    }
+    /**
+     * <pre>
+     * How each of the agent's own MCP servers asked to be signed in to, as
+     * its address answered when the agent was saved. A server listed here
+     * with a sign-in is signed in to as a plugin's server is: a run needs the
+     * login and is refused until there is one, and the chat offers Sign in.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.agent.v1.AgentServerSignIn server_sign_ins = 5 [json_name = "serverSignIns"];</code>
+     */
+    public java.util.List<? extends ai.stigmer.agentic.agent.v1.AgentServerSignInOrBuilder> 
+         getServerSignInsOrBuilderList() {
+      if (serverSignInsBuilder_ != null) {
+        return serverSignInsBuilder_.getMessageOrBuilderList();
+      } else {
+        return java.util.Collections.unmodifiableList(serverSignIns_);
+      }
+    }
+    /**
+     * <pre>
+     * How each of the agent's own MCP servers asked to be signed in to, as
+     * its address answered when the agent was saved. A server listed here
+     * with a sign-in is signed in to as a plugin's server is: a run needs the
+     * login and is refused until there is one, and the chat offers Sign in.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.agent.v1.AgentServerSignIn server_sign_ins = 5 [json_name = "serverSignIns"];</code>
+     */
+    public ai.stigmer.agentic.agent.v1.AgentServerSignIn.Builder addServerSignInsBuilder() {
+      return internalGetServerSignInsFieldBuilder().addBuilder(
+          ai.stigmer.agentic.agent.v1.AgentServerSignIn.getDefaultInstance());
+    }
+    /**
+     * <pre>
+     * How each of the agent's own MCP servers asked to be signed in to, as
+     * its address answered when the agent was saved. A server listed here
+     * with a sign-in is signed in to as a plugin's server is: a run needs the
+     * login and is refused until there is one, and the chat offers Sign in.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.agent.v1.AgentServerSignIn server_sign_ins = 5 [json_name = "serverSignIns"];</code>
+     */
+    public ai.stigmer.agentic.agent.v1.AgentServerSignIn.Builder addServerSignInsBuilder(
+        int index) {
+      return internalGetServerSignInsFieldBuilder().addBuilder(
+          index, ai.stigmer.agentic.agent.v1.AgentServerSignIn.getDefaultInstance());
+    }
+    /**
+     * <pre>
+     * How each of the agent's own MCP servers asked to be signed in to, as
+     * its address answered when the agent was saved. A server listed here
+     * with a sign-in is signed in to as a plugin's server is: a run needs the
+     * login and is refused until there is one, and the chat offers Sign in.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.agent.v1.AgentServerSignIn server_sign_ins = 5 [json_name = "serverSignIns"];</code>
+     */
+    public java.util.List<ai.stigmer.agentic.agent.v1.AgentServerSignIn.Builder> 
+         getServerSignInsBuilderList() {
+      return internalGetServerSignInsFieldBuilder().getBuilderList();
+    }
+    private com.google.protobuf.RepeatedFieldBuilder<
+        ai.stigmer.agentic.agent.v1.AgentServerSignIn, ai.stigmer.agentic.agent.v1.AgentServerSignIn.Builder, ai.stigmer.agentic.agent.v1.AgentServerSignInOrBuilder> 
+        internalGetServerSignInsFieldBuilder() {
+      if (serverSignInsBuilder_ == null) {
+        serverSignInsBuilder_ = new com.google.protobuf.RepeatedFieldBuilder<
+            ai.stigmer.agentic.agent.v1.AgentServerSignIn, ai.stigmer.agentic.agent.v1.AgentServerSignIn.Builder, ai.stigmer.agentic.agent.v1.AgentServerSignInOrBuilder>(
+                serverSignIns_,
+                ((bitField0_ & 0x00000008) != 0),
+                getParentForChildren(),
+                isClean());
+        serverSignIns_ = null;
+      }
+      return serverSignInsBuilder_;
     }
 
     // @@protoc_insertion_point(builder_scope:ai.stigmer.agentic.agent.v1.AgentStatus)

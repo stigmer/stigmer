@@ -2,6 +2,7 @@ syntax = "proto3";
 
 package ai.stigmer.agentic.agent.v1;
 
+import "ai/stigmer/agentic/plugin/v1/status.proto";
 import "ai/stigmer/commons/apiresource/status.proto";
 
 // AgentStatus contains system-managed state for an agent.
@@ -33,6 +34,37 @@ message AgentStatus {
   // so it is outside the hashed spec and never moves version_hash. Cleared
   // for an agent with a computer.
   repeated AgentWarning warnings = 4;
+
+  // How each of the agent's own MCP servers asked to be signed in to, as
+  // its address answered when the agent was saved. A server listed here
+  // with a sign-in is signed in to as a plugin's server is: a run needs the
+  // login and is refused until there is one, and the chat offers Sign in.
+  //
+  // @internal
+  // Written by RecordAgentServerSignIns at every save, outside the hashed
+  // spec so it never moves version_hash: a server that is new, changed, or
+  // has no answer recorded at its current address is asked once (the same
+  // probe a plugin's install runs, domain/mcp/sign-in-probe.ts); every other
+  // server carries its stored answer. Only an http server that says nothing
+  // about authentication (no Authorization header, no ${VAR} in a header)
+  // is asked. A server that did not answer is left out and asked again at
+  // the next save. Readers match an answer to a server by name and url, so
+  // an answer recorded at another address is ignored.
+  repeated AgentServerSignIn server_sign_ins = 5;
+}
+
+// AgentServerSignIn is how one of an agent's own MCP servers answered when
+// it was asked whether it wants a sign-in.
+message AgentServerSignIn {
+  // The server's name in the agent (AgentMcpServer.name).
+  string name = 1;
+
+  // The address the server was asked at (AgentMcpServer.url).
+  string url = 2;
+
+  // How a person signs in to the server; unset when the server asked for
+  // no sign-in.
+  ai.stigmer.agentic.plugin.v1.McpServerSignIn sign_in = 3;
 }
 
 // AgentWarning is one thing an agent's save noticed and did not refuse.

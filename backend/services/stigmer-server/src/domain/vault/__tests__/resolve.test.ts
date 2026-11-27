@@ -86,11 +86,13 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { AgentSchema } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb";
 import { AgentSpecSchema } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/spec_pb";
+import { AgentServerSignInSchema } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/status_pb";
+import type { AgentServerSignIn } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/status_pb";
 import type { AgentSpec } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/spec_pb";
 import { ChannelSchema } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/api_pb";
 import { ChannelAudience } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/spec_pb";
 import { PluginSchema } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/api_pb";
-import { McpServerEntrySchema, PluginStatusSchema } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/status_pb";
+import { McpServerEntrySchema, McpServerSignInSchema, PluginStatusSchema } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/status_pb";
 import { EnvVarDeclarationSchema } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/declaration_pb";
 import type { McpServerEntry } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/status_pb";
 import { HookFormat } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/hooks_pb";
@@ -396,6 +398,8 @@ interface ResolveInit {
   plugins?: RunPlugin[];
   /** The agent version the run planned; none (the head) by default. */
   agentVersion?: string;
+  /** How the agent's own servers answered at its save; none by default. */
+  agentServerSignIns?: AgentServerSignIn[];
   /** Hands the resolver a copy without storing it first. */
   unsaved?: boolean;
 }
@@ -414,9 +418,15 @@ async function plan(init: ResolveInit, over: VaultResolver = resolver): Promise<
     agentId: "agt_helper",
     agentVersion: init.agentVersion ?? "",
     agentOrg: init.agentOrg === null ? undefined : (init.agentOrg ?? ORG),
+    agentServerSignIns: init.agentServerSignIns ?? [],
     subagents: init.subagents ?? [],
     plugins: init.plugins ?? [],
   });
+}
+
+/** The save's answer that the server `name` at `url` asked for a sign-in. */
+function signsIn(name: string, url: string): AgentServerSignIn {
+  return create(AgentServerSignInSchema, { name, url, signIn: create(McpServerSignInSchema, { oauthOnly: true }) });
 }
 
 /**
@@ -3093,6 +3103,25 @@ describe("an app user's own sign-ins", () => {
     expect(renewedAs.map((caller) => [caller.identityId, caller.callerClass])).toEqual([[PRIYA, "internal"]]);
   });
 
+  it("fill an agent's own server that signs in from the app user's own sign-in at its address", async () => {
+    await embedding();
+    const mine = await ownVault(PRIYA, { address: LINEAR });
+    const agentSpec = create(AgentSpecSchema, { mcpServers: [{ name: "app-tools", url: LINEAR }] });
+    const planned = await plan({
+      run: appRun(PRIYA),
+      session: appSession(PRIYA),
+      agentSpec,
+      agentServerSignIns: [signsIn("app-tools", LINEAR)],
+    });
+    expect(planned.map((entry) => [entry.key, entry.origin, entry.vaultId, entry.entry, entry.login])).toEqual([
+      ["APP_TOOLS_ACCESS_TOKEN", RunValueOrigin.MY_VAULT, mine, LINEAR, true],
+    ]);
+    const failure = await refusal(
+      plan({ run: appRun(OMAR), session: appSession(OMAR), agentSpec, agentServerSignIns: [signsIn("app-tools", LINEAR)] }),
+    );
+    expect(failure.rawMessage).toContain("sign in to app-tools");
+  });
+
   it("never reach another app user's run in the same organization, whose refusal offers their own sign-in", async () => {
     await embedding();
     await ownVault(PRIYA, { address: LINEAR });
@@ -3413,13 +3442,17 @@ describe("an agent's own MCP server", () => {
     return create(AgentSpecSchema, { env, mcpServers: [{ name: "zendesk", url, headers }] });
   }
 
-  /** Stores the run's agent with `spec` as its head, at `hash`. */
-  async function saveAgent(spec: AgentSpec, hash: string): Promise<void> {
+  /** Stores the run's agent with `spec` as its head, at `hash`, with the save's `answers`. */
+  async function saveAgent(spec: AgentSpec, hash: string, answers: AgentServerSignIn[] = []): Promise<void> {
     await rig.store.saveResource(
       ApiResourceKind.agent,
       "agt_helper",
       AgentSchema,
-      create(AgentSchema, { metadata: { id: "agt_helper", name: "Helper", slug: "helper", org: ORG }, spec, status: { versionHash: hash } }),
+      create(AgentSchema, {
+        metadata: { id: "agt_helper", name: "Helper", slug: "helper", org: ORG },
+        spec,
+        status: { versionHash: hash, serverSignIns: answers },
+      }),
     );
   }
 
@@ -3528,6 +3561,67 @@ describe("an agent's own MCP server", () => {
     const failure = await refusal(plan({ run: runOf({ person: ANA }), agentSpec: writing({ "X-Api-Key": "${ZENDESK_KEY}" }) }));
     expect(failure.code).toBe(Code.FailedPrecondition);
     expect(failure.rawMessage).toBe("zendesk needs ZENDESK_KEY: add ZENDESK_KEY to My vault");
+  });
+
+  it("requires a sign-in at its address when its save's answer asked for one, and adds no optional login", () => {
+    const requirements = runRequirements({
+      execution: runOf(),
+      session: sessionOf(),
+      agentSpec: writing({}),
+      agentName: "Helper",
+      agentId: "agt_helper",
+      agentVersion: "",
+      agentOrg: ORG,
+      agentServerSignIns: [signsIn("zendesk", ZENDESK)],
+      subagents: [],
+      plugins: [],
+    });
+    expect(
+      requirements.map((requirement) => [requirement.key, requirement.optional, requirement.loginAddress, requirement.signIn]),
+    ).toEqual([["ZENDESK_ACCESS_TOKEN", false, ZENDESK, true]]);
+  });
+
+  it("keeps the optional login when the answer was recorded at another address", () => {
+    const requirements = runRequirements({
+      execution: runOf(),
+      session: sessionOf(),
+      agentSpec: writing({}),
+      agentName: "Helper",
+      agentId: "agt_helper",
+      agentVersion: "",
+      agentOrg: ORG,
+      agentServerSignIns: [signsIn("zendesk", "https://old.zendesk.example/mcp")],
+      subagents: [],
+      plugins: [],
+    });
+    expect(requirements.map((requirement) => [requirement.key, requirement.optional, requirement.signIn])).toEqual([
+      ["ZENDESK_ACCESS_TOKEN", true, false],
+    ]);
+  });
+
+  it("refuses a run with no login for a server that signs in, offering the sign-in", async () => {
+    await anasVault({});
+    const spec = writing({});
+    await saveAgent(spec, "e".repeat(64), [signsIn("zendesk", ZENDESK)]);
+    const failure = await refusal(
+      plan({ run: runOf({ person: ANA }), agentSpec: spec, agentVersion: "e".repeat(64), agentServerSignIns: [signsIn("zendesk", ZENDESK)] }),
+    );
+    expect(failure.code).toBe(Code.FailedPrecondition);
+    expect(failure.rawMessage).toContain("sign in to zendesk");
+  });
+
+  it("fills a server that signs in from the login at its address, sent as its Bearer header's value", async () => {
+    const mine = await anasVault({});
+    await rig.vaults.setConnection(mine, ZENDESK, { token: "zd-login", source: VaultConnectionSource.sign_in }, ana);
+    const spec = writing({});
+    const answers = [signsIn("zendesk", ZENDESK)];
+    await saveAgent(spec, "e".repeat(64), answers);
+    const init = { run: runOf({ person: ANA }), agentSpec: spec, agentVersion: "e".repeat(64), agentServerSignIns: answers };
+    const sources = await plan(init);
+    expect(sources.map((entry) => [entry.key, entry.entry, entry.login])).toEqual([["ZENDESK_ACCESS_TOKEN", ZENDESK, true]]);
+    const values = await open(init);
+    // A sign-in is renewed as it is opened (the rig's freshener prefixes "fresh-").
+    expect(zendeskValues(values)).toEqual({ url: ZENDESK, values: { ZENDESK_ACCESS_TOKEN: "fresh-zd-login" } });
   });
 
   it("reads the server at the agent version the run planned, after a later edit moved it", async () => {

@@ -2,7 +2,9 @@
  * SessionComposer's held Send: while the launcher says the chosen model
  * cannot run here (`sendBlockedReason`), the message can still be written,
  * but Send stays disabled, carries the reason as its accessible description,
- * and Enter sends nothing. Without a reason, the same message sends. The
+ * and Enter sends nothing. The reason is a line anyone can read under the
+ * box, the very element Send's description names, printed once. Without a
+ * reason, the same message sends. The
  * suite's title holds CON-03 on the UX bar (test/ux-bar.json): the launcher
  * says a provider is missing before a run fails.
  */
@@ -52,6 +54,21 @@ describe("CON-03 Send is held, with its reason, while the chosen model cannot ru
 
     fireEvent.keyDown(textarea, { key: "Enter" });
     expect(onSubmit).not.toHaveBeenCalled();
+  });
+
+  it("prints the reason once, as a line under the box that Send's description names", () => {
+    const { send } = renderComposer(REASON);
+
+    const lines = screen.getAllByText(REASON);
+    expect(lines).toHaveLength(1);
+    const line = lines[0]!;
+    expect(line.className).not.toContain("stg:sr-only");
+    expect(send.getAttribute("aria-describedby")).toBe(line.id);
+    // Under the box, not inside its toolbar row: in the composer, outside its
+    // bordered box (the form's first child).
+    const form = screen.getByRole("form");
+    expect(form.contains(line)).toBe(true);
+    expect(form.firstElementChild?.contains(line)).toBe(false);
   });
 
   it("sends the same message when nothing holds it", () => {

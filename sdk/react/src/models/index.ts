@@ -5,6 +5,7 @@ export {
   parseModelKey,
   fetchModelRegistry,
   fetchModelRegistryDocument,
+  ModelRegistryFetchError,
   parseRegistryJson,
   parseRegistryDocument,
 } from "@stigmer/react-core";

@@ -1,14 +1,16 @@
 import type { ResourceRef } from "@stigmer/client";
 import type { McpServerEntry } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/status_pb";
 import type { EnvVarFormVariable } from "../vault/EnvVarForm.js";
+import type { ServerHome } from "./runServers.js";
 
 // ---------------------------------------------------------------------------
-// Sign-ins — a server of the agent's plugins with no login where the run reads
+// Sign-ins — a server of the run that signs in, with no login where the run reads
 // ---------------------------------------------------------------------------
 
 /**
- * One MCP server of a plugin the agent lists that signs in and has no
- * login in the vaults the run reads. The agent is not ready until each is
+ * One MCP server of the run that signs in (a plugin's, or one an agent of
+ * the run writes itself and whose address asked for a sign-in when the
+ * agent was saved) and has no login in the vaults the run reads. The agent is not ready until each is
  * signed in: a run would start and fail at the first tool call, so the
  * composer asks first, the way it asks for a missing variable. A sign-in
  * is saved, at the server's address, in a vault the run reads: My vault,
@@ -16,11 +18,9 @@ import type { EnvVarFormVariable } from "../vault/EnvVarForm.js";
  * edit ({@link SignInVaults}).
  */
 export interface PendingSignIn {
-  /** The plugin the server belongs to. */
-  readonly plugin: ResourceRef;
-  /** The plugin's name. */
-  readonly pluginName: string;
-  /** The server, from the plugin's status. */
+  /** Where the server is written: a plugin the agent lists, or an agent of the run itself. */
+  readonly home: ServerHome;
+  /** The server, as the run reads it. */
   readonly server: McpServerEntry;
   /** The address the login is saved at: the key a sign-in completes under. */
   readonly address: string;

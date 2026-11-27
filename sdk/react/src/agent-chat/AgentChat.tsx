@@ -51,6 +51,7 @@ import type { MessageAction, MessageInfo } from "../run/message-actions.js";
 import type { SessionAudience } from "../session/audience.js";
 import type { SessionInspectorProps } from "../session/inspector/SessionInspector.js";
 import { NewSessionViewer } from "../session/NewSessionViewer.js";
+import { AgentChatSetupError } from "./setup-error.js";
 import type { SessionRunConfig } from "../session/run-config.js";
 import type { OnCustomToolUse } from "../session/useCustomToolUseCallback.js";
 import {
@@ -178,8 +179,18 @@ export interface AgentChatProps {
    */
   readonly showInteractionModePicker?: boolean;
   /**
-   * Called when the first message could not be sent, after the chat shows
-   * the message under its box.
+   * Called when the chat could not do what the person asked, with words for
+   * you (the developer) and the error:
+   *
+   * - The chat could not start (the agent is not found, the person has no
+   *   access, the organization is not one of theirs, Stigmer can't be
+   *   reached, no sign-in reached Stigmer): once per failure, with an
+   *   {@link AgentChatSetupError} whose `reason` names the cause. The chat
+   *   shows the person its own words for it under the box, and the same
+   *   developer's words are written once to the browser's console as
+   *   `Stigmer: …`, so a chat with no `onError` still says why.
+   * - The first message could not be sent: after the chat shows the message
+   *   under its box.
    */
   readonly onError?: (message: string, error: Error) => void;
   readonly className?: string;
@@ -282,7 +293,9 @@ export function AgentChat({
   );
   const handleError = useCallback(
     (message: string, error: Error) => {
-      setSubmitError(message);
+      // A chat that could not start already says why in its end user's
+      // words; the developer's words go to the host alone.
+      if (!(error instanceof AgentChatSetupError)) setSubmitError(message);
       onError?.(message, error);
     },
     [onError],

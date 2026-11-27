@@ -154,6 +154,8 @@ export type SceneId =
   | "agent-chat-panel"
   | "agent-chat-popup-closed"
   | "agent-chat-popup"
+  | "agent-chat-agent-not-found"
+  | "agent-chat-no-access"
   | "from-hooks"
   | "from-hooks-busy"
   | "from-hooks-file-review"
@@ -1669,6 +1671,16 @@ const LISTED: readonly Scene[] = [
   {
     id: "agent-chat-popup",
     title: "AgentChat: the popup open on a finished turn (a phone's screen is the popup)",
+    widths: ["desktop", "narrow"],
+  },
+  {
+    id: "agent-chat-agent-not-found",
+    title: "AgentChat: the chat cannot start, its agent not found, saying so under its box with Send held",
+    widths: ["desktop", "narrow"],
+  },
+  {
+    id: "agent-chat-no-access",
+    title: "AgentChat: the chat cannot start for an app user signed in with no role, saying their account can't use the agent yet",
     widths: ["desktop", "narrow"],
   },
   {

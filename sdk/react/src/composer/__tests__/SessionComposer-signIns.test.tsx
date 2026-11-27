@@ -112,8 +112,7 @@ function createWrapper(client: Stigmer) {
 
 const AGENT_REF = { org: "acme", slug: "reviewer" };
 const LINEAR = {
-  plugin: { org: "acme", slug: "linear" },
-  pluginName: "linear",
+  home: { kind: "plugin" as const, ref: { org: "acme", slug: "linear" }, pluginName: "linear" },
   server: create(McpServerEntrySchema, { name: "linear", transport: { case: "http", value: { url: LINEAR_ADDRESS } }, signIn: {} }),
   address: LINEAR_ADDRESS,
   name: "Linear",

@@ -73,6 +73,7 @@ function agentCommand(store: Store): Client<typeof AgentCommandController> {
         modelRegistry: {} as ModelCatalogProvider,
         channelRuntime: undefined,
         archiveFileReads: { skill: UNREAD_FILES, plugin: UNREAD_FILES },
+        outboundFetch: () => Promise.reject(new TypeError("no network in this test")),
       });
     },
     {

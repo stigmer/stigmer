@@ -47,14 +47,22 @@
  * any of them is, so a value one declarer keeps secret is never typed in
  * clear.
  *
- * Logins. A plugin's server with a sign-in record is filled by a login at
- * its address; its login key is never typed (`signInKeys`). Any HTTP
- * server's `Authorization: Bearer ${NAME}` is filled by a login at its
- * address or by a secret of that name, which `keysHeldBy` in the setup
- * hook counts. An agent's server that sends no `Authorization` takes an
- * optional login at its address (the run's `<SERVER>_ACCESS_TOKEN`);
- * nothing reads that name but the runner, so it is never declared here
- * and never asked for.
+ * Logins. A server with a sign-in record is filled by a login at its
+ * address; its login key is never typed (`signInKeys`). A plugin's server
+ * gets its record at install; an agent's own server gets it from the
+ * agent's save, which asks each server that says nothing about
+ * authentication whether it wants a sign-in and records the answer with
+ * the address it asked (`AgentStatus.server_sign_ins`): handed those
+ * answers, `agentServerEntry` completes a server that asked as install
+ * completes a plugin's (`sign_in`, an `Authorization: Bearer
+ * ${<SERVER>_ACCESS_TOKEN}` header, the variable in `env`), as the
+ * server's own adapter does. An answer recorded at another address is
+ * ignored. Any HTTP server's `Authorization: Bearer ${NAME}` is filled by
+ * a login at its address or by a secret of that name, which `keysHeldBy`
+ * in the setup hook counts. An agent's server that sends no
+ * `Authorization` and asked for no sign-in takes an optional login at its
+ * address (the run's `<SERVER>_ACCESS_TOKEN`); nothing reads that name but
+ * the runner, so it is never declared here and never asked for.
  *
  * Whether a run uses tools at all is the question the channel and
  * chat-link screens ask (`runUsesTools`, through `useRunUsesTools`): a
@@ -69,9 +77,14 @@
 import { create } from "@bufbuild/protobuf";
 import type { Stigmer, ResourceRef } from "@stigmer/client";
 import type { AgentMcpServer, AgentSpec } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/spec_pb";
+import type { AgentServerSignIn } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/status_pb";
 import type { ApiResourceReference } from "@stigmer/apis/ai/stigmer/commons/apiresource/io_pb";
 import type { Plugin } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/api_pb";
-import { McpServerEntrySchema, type McpServerEntry } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/status_pb";
+import {
+  McpServerEntrySchema,
+  McpServerSignInSchema,
+  type McpServerEntry,
+} from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/status_pb";
 import {
   EnvVarDeclarationSchema,
   type EnvVarDeclaration,
@@ -82,6 +95,7 @@ import {
   PLATFORM_VARIABLES,
   RUNNER_FILLED_VARIABLES,
 } from "@stigmer/plugin-package";
+import { accessTokenVariable } from "@stigmer/tool-vocabulary";
 import { toolAddressOf, toolLoginKeyOf } from "../vault/address.js";
 
 /** Where a server is written: the agent itself, or a plugin it lists. */
@@ -123,11 +137,10 @@ export interface RunReading extends RunServersReading {
   readonly agents: readonly RunAgentReading[];
 }
 
-/** A server among the plugins that signs in, with the address its login is saved at. */
+/** A server of the run that signs in, with its home and the address its login is saved at. */
 export interface SignInServer {
-  /** The plugin, by the reference the agent lists it with (organization filled). */
-  readonly plugin: ResourceRef;
-  readonly pluginName: string;
+  /** Where the server is written: a plugin the agent lists, or an agent of the run itself. */
+  readonly home: ServerHome;
   readonly server: McpServerEntry;
   readonly address: string;
 }
@@ -144,12 +157,37 @@ function headerReferences(headers: Readonly<Record<string, string>>): string[] {
   return [...names].sort();
 }
 
-/** `server` as a plugin server entry: HTTP, its URL and headers, the run values its headers read. */
-export function agentServerEntry(server: Pick<AgentMcpServer, "name" | "url" | "headers">): McpServerEntry {
+/** Whether `headers` say anything about authentication: an `Authorization` header, or a `${NAME}` in any value. */
+function speaksAboutAuthentication(headers: Readonly<Record<string, string>>): boolean {
+  return Object.entries(headers).some(([name, value]) => name.toLowerCase() === "authorization" || value.includes("${"));
+}
+
+/**
+ * `server` as a plugin server entry: HTTP, its URL and headers, the run
+ * values its headers read; completed with its sign-in when `answers` (the
+ * agent's `status.serverSignIns`) say its address asked for one.
+ */
+export function agentServerEntry(
+  server: Pick<AgentMcpServer, "name" | "url" | "headers">,
+  answers: readonly AgentServerSignIn[] = [],
+): McpServerEntry {
+  const headers = { ...server.headers };
+  const asked =
+    !speaksAboutAuthentication(headers) &&
+    answers.some((answer) => answer.name === server.name && answer.url === server.url && answer.signIn !== undefined);
+  if (!asked) {
+    return create(McpServerEntrySchema, {
+      name: server.name,
+      transport: { case: "http", value: { url: server.url, headers } },
+      env: headerReferences(headers),
+    });
+  }
+  const variable = accessTokenVariable(server.name);
   return create(McpServerEntrySchema, {
     name: server.name,
-    transport: { case: "http", value: { url: server.url, headers: { ...server.headers } } },
-    env: headerReferences(server.headers),
+    transport: { case: "http", value: { url: server.url, headers: { ...headers, Authorization: `Bearer \${${variable}}` } } },
+    env: [variable],
+    signIn: create(McpServerSignInSchema, { oauthOnly: true }),
   });
 }
 
@@ -174,9 +212,12 @@ function agentServerDeclarations(
  * Each MCP server the agent writes itself. A spec read from a stored
  * version may carry neither list, so each absent one reads as empty.
  */
-export function agentServerReadings(spec: Pick<AgentSpec, "mcpServers" | "env">): ServerReading[] {
+export function agentServerReadings(
+  spec: Pick<AgentSpec, "mcpServers" | "env">,
+  answers: readonly AgentServerSignIn[] = [],
+): ServerReading[] {
   return (spec.mcpServers ?? []).map((server) => {
-    const entry = agentServerEntry(server);
+    const entry = agentServerEntry(server, answers);
     return { home: { kind: "agent" }, entry, env: agentServerDeclarations(entry, spec.env ?? {}) };
   });
 }
@@ -220,12 +261,12 @@ async function readSubagents(
   stigmer: Pick<Stigmer, "agent">,
   spec: Pick<AgentSpec, "subagents">,
   defaultOrg: string,
-): Promise<{ readonly org: string; readonly spec: AgentSpec }[]> {
+): Promise<{ readonly id: string; readonly org: string; readonly spec: AgentSpec }[]> {
   const read = await Promise.all(
     (spec.subagents ?? []).filter(named).map(async (ref) => {
       try {
         const version = await stigmer.agent.getVersion({ agentId: ref.id, versionHash: ref.version });
-        return version.specSnapshot === undefined ? null : { org: ref.org || defaultOrg, spec: version.specSnapshot };
+        return version.specSnapshot === undefined ? null : { id: ref.id, org: ref.org || defaultOrg, spec: version.specSnapshot };
       } catch {
         // Unreadable: left out, as the module header says.
         return null;
@@ -243,6 +284,27 @@ export interface ReadAgentServersOptions {
    * names what it knows and lets the run refuse the rest.
    */
   readonly plugins: "throw" | "skip";
+  /**
+   * How the agent's own servers answered at its save (the agent's
+   * `status.serverSignIns`); none by default, and then no server of the
+   * agent's own signs in.
+   */
+  readonly serverSignIns?: readonly AgentServerSignIn[];
+}
+
+/**
+ * How a subagent's own servers answered at its save, read from its current
+ * row (answers are matched by name and address, so the head's serve the
+ * pinned version's unchanged servers); none when it cannot be read.
+ */
+async function subagentSignIns(stigmer: Pick<Stigmer, "agent">, id: string): Promise<readonly AgentServerSignIn[]> {
+  if (id === "") return [];
+  try {
+    return (await stigmer.agent.get(id)).status?.serverSignIns ?? [];
+  } catch {
+    // Unreadable: its servers keep their optional login, and the run says what it lacks.
+    return [];
+  }
 }
 
 /**
@@ -259,9 +321,12 @@ export async function readAgentServers(
   options: ReadAgentServersOptions,
 ): Promise<RunReading> {
   const subagents = await readSubagents(stigmer, spec, defaultOrg);
+  const subagentAnswers = await Promise.all(
+    subagents.map((subagent) => ((subagent.spec.mcpServers ?? []).length === 0 ? [] : subagentSignIns(stigmer, subagent.id))),
+  );
   const servers: ServerReading[] = [
-    ...agentServerReadings(spec),
-    ...subagents.flatMap((subagent) => agentServerReadings(subagent.spec)),
+    ...agentServerReadings(spec, options.serverSignIns),
+    ...subagents.flatMap((subagent, index) => agentServerReadings(subagent.spec, subagentAnswers[index])),
   ];
   const hooks: HookReading[] = [];
   const refs: ResourceRef[] = (spec.plugins ?? []).map((listed) => ({ org: listed.org || defaultOrg, slug: listed.slug }));
@@ -360,14 +425,18 @@ export function runDeclarations(reading: RunReading): Record<string, EnvVarDecla
   return declarations;
 }
 
-/** The HTTP servers among the plugins that sign in, one per address, named by the first plugin to list it. */
+/**
+ * The HTTP servers of the run that sign in, whichever home writes them
+ * (the agent's own, each subagent's, then the plugins'), one per address,
+ * named by the first to list it.
+ */
 export function signInServers(reading: RunServersReading): SignInServer[] {
   const byAddress = new Map<string, SignInServer>();
   for (const { home, entry } of reading.servers) {
-    if (home.kind !== "plugin" || entry.transport.case !== "http" || entry.signIn === undefined) continue;
+    if (entry.transport.case !== "http" || entry.signIn === undefined) continue;
     const address = toolAddressOf(entry);
     if (address === null || byAddress.has(address)) continue;
-    byAddress.set(address, { plugin: home.ref, pluginName: home.pluginName, server: entry, address });
+    byAddress.set(address, { home, server: entry, address });
   }
   return [...byAddress.values()];
 }
