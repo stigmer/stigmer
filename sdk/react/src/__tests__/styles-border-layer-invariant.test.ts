@@ -150,7 +150,7 @@ describe("styles.css border-layer invariant", () => {
     for (const declaration of declarations) {
       expect(declaration.value.trim(), `${declaration.prop} must be revert-layer`).toBe("revert-layer");
     }
-    for (const property of ["padding", "background-color", "border-width", "border-radius"]) {
+    for (const property of ["padding", "background-color", "border", "border-radius"]) {
       expect(declarations.map((declaration) => declaration.prop)).toContain(property);
     }
     expect(handBack!.selector, "only the kit's own controls (a stg: class)").toMatch(/:where\(\[class\*=("?)stg\\?:\1\]\)/);

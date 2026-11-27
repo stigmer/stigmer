@@ -453,9 +453,14 @@
    passes through `className` (Tailwind 4's are layered). It sets no value of
    its own, so it can never beat a kit utility ((0,1,0)) or a host rule that
    names a class. It reaches only controls the kit drew (a `stg:` class), so
-   a host's own controls inside the provider keep the host's styling. */
+   a host's own controls inside the provider keep the host's styling. It
+   skips a control whose parent spaces or divides its children
+   (`stg:space-y-*`, `stg:divide-*`): Tailwind writes those child rules at
+   zero specificity, and this rule would take their margin and border away. */
 :where(.stgm)
-  :is(button, input, select, optgroup, textarea):is(button, input, select, optgroup, textarea):where([class*="stg:"]) {
+  :is(button, input, select, optgroup, textarea):is(button, input, select, optgroup, textarea):where([class*="stg:"]):not(
+    :where([class*="stg:space-"], [class*="stg:divide-"]) > *
+  ) {
   margin: revert-layer;
   padding: revert-layer;
   font: revert-layer;
@@ -466,7 +471,5 @@
   border-radius: revert-layer;
   background-color: revert-layer;
   opacity: revert-layer;
-  border-width: revert-layer;
-  border-style: revert-layer;
-  border-color: revert-layer;
+  border: revert-layer;
 }

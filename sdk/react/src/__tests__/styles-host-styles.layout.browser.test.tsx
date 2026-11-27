@@ -204,6 +204,30 @@ describe("the host's own styling inside the provider stays the host's", () => {
     expect(drawn(screen.getByRole("button", { name: "restyled" }))).toBe("16px rgb(59, 130, 246)");
   });
 
+  it("leaves a parent's zero-specificity spacing and dividers on the kit's controls", () => {
+    // Tailwind writes `space-y-*` and `divide-*` child rules inside
+    // `:where()`, at zero specificity; the rule that keeps a host's bare
+    // `button {}` off the kit's controls must not take them away.
+    render(
+      <div className="stgm" data-stgm-color-mode="light">
+        <div className="stg:space-y-2">
+          <TextInput aria-label="Spaced" />
+          <span>below</span>
+        </div>
+        <div className="stg:divide-y">
+          <button type="button" className="stg:p-1">
+            first
+          </button>
+          <button type="button" className="stg:p-1">
+            divided
+          </button>
+        </div>
+      </div>,
+    );
+    expect(getComputedStyle(screen.getByRole("textbox", { name: "Spaced" })).marginBottom).toBe("8px");
+    expect(getComputedStyle(screen.getByRole("button", { name: "first" })).borderBottomWidth).toBe("1px");
+  });
+
   it("keeps a host's bare `button {}` rule on the host's own buttons (create-vite 8.3.0)", () => {
     renderHostParts(createVite8);
     expect(drawn(screen.getByTestId("plain"))).toBe("19.2px rgb(249, 249, 249)");
