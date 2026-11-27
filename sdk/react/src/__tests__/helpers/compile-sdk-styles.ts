@@ -2,7 +2,7 @@ import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import postcss, { type Root } from "postcss";
 import tailwindcss from "@tailwindcss/postcss";
-import { scopeUnprefixedSelectors } from "../../../scripts/lib/scope-unprefixed.js";
+import { raiseChildUtilities, scopeUnprefixedSelectors } from "../../../scripts/lib/scope-unprefixed.js";
 
 /**
  * Compile `src/styles.css` through the exact pipeline `scripts/build-styles.ts`
@@ -29,5 +29,6 @@ export async function compileSdkStylesheet(): Promise<Root> {
   );
   const root = postcss.parse(result.css);
   scopeUnprefixedSelectors(root);
+  raiseChildUtilities(root);
   return root;
 }

@@ -29,7 +29,7 @@ import { StigmerProvider } from "../provider";
 /**
  * The exact host CSS recipe documented for fixed-height embeddings.
  * Unlayered on purpose — that is how hosts author it, and it must beat
- * anything the SDK ships in `@layer stgm`.
+ * anything the SDK ships for the container.
  */
 const FIXED_HEIGHT_RECIPE = `
   .stgm[data-stgm-root] {

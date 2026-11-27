@@ -225,13 +225,14 @@
     // The browser-mode suite (vitest.a11y.config.ts: a11y audits, layout
     // contracts, pixel work in a real Chromium). It renders against react's
     // OWN dist/styles.css, the shipped stylesheet, so it waits on react's build
-    // (which waits on ^build). Default inputs: the one out-of-package read in
-    // this package (test/fixtures/tool-view) belongs to the default suite, and
+    // (which waits on ^build). Its layout suites mount the kit under the host
+    // apps' own stylesheets (test/fixtures/host-styles, #3491);
     // scripts/turbo-inputs.test.mjs checks each react test file against the
     // suite its glob puts it in.
     "@stigmer/react-sdk#test:a11y": {
       "dependsOn": ["build"],
-      "outputs": []
+      "outputs": [],
+      "inputs": ["$TURBO_DEFAULT$", "$TURBO_ROOT$/test/fixtures/host-styles/**"]
     },
     // The kit's gallery (test/visual, the `visual` job): its unit checks, then
     // every scene compared with its approved screenshot in the pinned browser

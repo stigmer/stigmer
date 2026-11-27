@@ -1,19 +1,38 @@
 @source "./**/*.{ts,tsx}";
 @source "../node_modules/streamdown/dist/*.js";
 
-/* Declare the standard Tailwind layer order plus our `stgm` utilities layer
-   LAST. When a host page also runs Tailwind, its `@import "tailwindcss"`
-   declares `theme, base, components, utilities` too; re-stating them here is a
-   harmless no-op that pins `stgm` after them, so SDK styles win over host
-   utilities on SDK-rendered DOM. In the standalone SDK build it establishes
-   the full order explicitly.
+/* Where the kit's rules sit in the host page's cascade (stigmer/stigmer#3491).
 
-   Why this matters: the preflight-style reset below (which zeroes
-   `border-width`) MUST live in `base`, not in a layer above the SDK's own
-   utilities. A reset placed after the layer that carries `border-*` utilities
-   wins the cascade and silently zeroes every border inside `.stgm`. Keeping
-   the reset in `base` (exactly where stock Tailwind keeps preflight)
-   guarantees the utilities win. */
+   A host's own CSS is mostly unlayered (a stock `create-next-app` page's
+   `* { padding: 0 }`, Tailwind 3's preflight, a template's `button { … }`),
+   and unlayered CSS beats every layered rule, whatever its selector. So the
+   kit's utilities and component rules ship UNLAYERED: they meet a host's
+   rules by specificity, as any ordinary stylesheet does, and a host's resets
+   lose to a kit class. They stay `stg:`-prefixed and scoped to `.stgm`, so
+   nothing reaches the host's own elements. The ladder, lowest first:
+
+     1. the kit's defaults in `@layer base` (the `.stgm *` box and border
+        defaults, the form-control reset): every host rule and every host
+        Tailwind 4 class beats them, as Tailwind's own preflight is beaten;
+     2. a host's bare element rules (`button {}`, `p {}`, (0,0,1)): they lose,
+        on the kit's own controls, to the `revert-layer` rule at the end of
+        this file ((0,0,2)), which hands those properties back to rung 1, and
+        to a parent's child utilities (`stg:space-y-*`, `stg:divide-*`),
+        which the build lifts from (0,0,0) to (0,0,3);
+     3. the kit's utilities ((0,1,0), unlayered);
+     4. what the host aims at the kit on purpose: a Tailwind class through
+        `className` (the kit's merge drops the `stg:` class it displaces); a
+        rule naming a class and an element or the kit's scope (`.app
+        button`, `.stgm .x`). Any other single class the host passes ties
+        with rung 3 at (0,1,0), and the later stylesheet wins.
+
+   The theme variables and the design tokens stay in `@layer stgm`: they are
+   namespaced (`--stg-*`, `--stgm-*`), and a host's unlayered `--stgm-*`
+   override on `.stgm` is the documented way to theme the kit.
+
+   Why the order below still matters: the preflight-style reset MUST live in
+   `base`, not in a layer above anything the kit draws with. A reset placed
+   above the utilities silently zeroes every border inside `.stgm`. */
 @layer theme, base, components, utilities, stgm;
 
 /* Every Tailwind utility the SDK authors carries the `stg:` prefix
@@ -34,7 +53,7 @@
    (unscoped selectors in the built stylesheet fail the suite). The same
    script, without `--check`, is the one-shot migration. */
 @import "tailwindcss/theme.css" layer(stgm) prefix(stg);
-@import "tailwindcss/utilities.css" layer(stgm) prefix(stg);
+@import "tailwindcss/utilities.css" prefix(stg);
 /* Enter/exit animation utilities (`stg:animate-in`, `stg:fade-in`,
    `stg:data-[state=open]:zoom-in-95`, ...) used by SDK dialogs, menus, and
    tooltips. Build-time dependency only (MIT, pure Tailwind v4 CSS) — the
@@ -43,8 +62,8 @@
    because ITS Tailwind compile added tw-animate-css, i.e. the standalone
    stylesheet silently shipped without any dialog/menu animations.
    Imported WITHOUT layer(...): it contains `@utility` definitions, which
-   cannot be nested inside `@layer` — the generated utilities still emit
-   into `stgm` alongside the standard ones. */
+   cannot be nested inside `@layer` — the generated utilities emit unlayered
+   alongside the standard ones. */
 @import "tw-animate-css";
 @import "@stigmer/design-tokens/tokens.css" layer(stgm);
 @import "@stigmer/design-tokens/tailwind-theme.css";
@@ -58,12 +77,12 @@
 
 /* Preflight-style reset, scoped to `.stgm`. Lives in the standard `base` layer —
    exactly where stock Tailwind keeps its preflight — so it ranks BELOW the
-   `utilities` layer where `border-*` utilities are emitted (see the layer
-   declaration at the top of this file). It supplies only the DEFAULTS
-   (`border-style: solid`, width 0, themed color) that a `border` utility then
-   builds on; because `utilities` outranks `base`, the utility's width always
-   wins. Putting this in a layer after `utilities` (the previous `stgm-base`) is
-   what silently zeroed every border inside `.stgm`. */
+   kit's unlayered `border-*` utilities (see the ladder at the top of this
+   file). It supplies only the DEFAULTS (`border-style: solid`, width 0,
+   themed color) that a `border` utility then builds on, so the utility's
+   width always wins. Putting this above the utilities (the old `stgm-base`
+   layer) is what silently zeroed every border inside `.stgm`. A host's own
+   `* {}` reset sets the same values or none, so it may beat these. */
 @layer base {
   .stgm *,
   .stgm *::before,
@@ -91,9 +110,11 @@
      - In a preflight-less host, SDK surfaces render exactly what the
        components were designed against in the consoles.
 
-     Like the border reset above, these MUST stay in `base`: one layer
-     higher and they silently override every `bg-*`/`p-*` utility on every
-     button in the SDK (the utilities are emitted into `utilities`/`stgm`).
+     Like the border reset above, these MUST stay in `base`: anywhere at or
+     above the utilities they silently override every `bg-*`/`p-*` utility on
+     every button in the SDK. A host's bare `button {}` rule, unlayered, still
+     beats them; the `revert-layer` rule at the end of this file takes such
+     rules off the kit's own controls.
 
      Deliberately NOT ported from preflight: the universal margin/padding
      zero and the typography resets. In the documented quickstart the host
@@ -139,6 +160,17 @@
     margin: 0;
   }
 
+
+  /* The kit's outermost elements start their text at the start edge. Text
+     alignment is inherited, and a host page may center everything it holds
+     (the app `create-vite` makes centers all of `#root`), so a chat mounted
+     there took the host's centering. The rule reaches only a kit element
+     (one carrying a `stg:` class) with no kit element above it, so text the
+     kit centers on purpose stays centered inside it; it sits in `base`, so a
+     kit utility and any host rule or class aimed at it still win. */
+  :where(.stgm [class*="stg:"]):not([class*="stg:"] *) {
+    text-align: start;
+  }
 
   /* Correct the inability to style the border radius in iOS Safari. */
   .stgm button,
@@ -186,233 +218,264 @@
   }
 }
 
-@layer stgm {
-  .stgm {
-    --stgm-motion-duration: 150ms;
-    --stgm-motion-easing: var(--stgm-transition-timing);
-    line-height: 1.5;
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
-  }
+.stgm {
+  --stgm-motion-duration: 150ms;
+  --stgm-motion-easing: var(--stgm-transition-timing);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
 
-  /* Native controls, their popups and scrollbars are drawn by the browser
-     from `color-scheme`, not from our tokens: without it every checkbox,
-     radio, date picker and select popup renders light inside a dark scope
-     (#1223). Both containers carry the resolved mode (the in-tree root and
-     the portal container), so both derive it here. Scoped to `.stgm`,
-     never `:root`: the host page's own scheme is the host's. */
-  .stgm[data-stgm-color-mode="light"] {
-    color-scheme: light;
-  }
+/* Native controls, their popups and scrollbars are drawn by the browser
+   from `color-scheme`, not from our tokens: without it every checkbox,
+   radio, date picker and select popup renders light inside a dark scope
+   (#1223). Both containers carry the resolved mode (the in-tree root and
+   the portal container), so both derive it here. Scoped to `.stgm`,
+   never `:root`: the host page's own scheme is the host's. */
+.stgm[data-stgm-color-mode="light"] {
+  color-scheme: light;
+}
 
-  .stgm[data-stgm-color-mode="dark"] {
-    color-scheme: dark;
-  }
+.stgm[data-stgm-color-mode="dark"] {
+  color-scheme: dark;
+}
 
-  /* The same holds for a checkbox's or radio's checked state: the browser
-     paints it from `accent-color` (its own blue by default), never from our
-     tokens (#1228). One inherited rule on both containers gives every native
-     control inside the scope the theme's primary, in both modes and every
-     preset, so no control needs its own accent class. */
-  .stgm {
-    accent-color: var(--stgm-primary);
-  }
+/* The same holds for a checkbox's or radio's checked state: the browser
+   paints it from `accent-color` (its own blue by default), never from our
+   tokens (#1228). One inherited rule on both containers gives every native
+   control inside the scope the theme's primary, in both modes and every
+   preset, so no control needs its own accent class. */
+.stgm {
+  accent-color: var(--stgm-primary);
+}
 
-  /* The provider's in-tree container ([data-stgm-root]) ships with NO
-     layout styling — deliberately (#260). A default
-     `height: 100%` looks benign ("resolves to auto under auto-height
-     parents") but is not: when the container's parent is a flex item
-     (e.g. a `flex-1` prose column), flexbox treats the item's flexed
-     size as definite for percentage resolution, and the container
-     balloons to it even in a fully content-sized page. Fixed-height
-     embedders instead opt in from host CSS, where the layout is known:
+/* The provider's in-tree container ([data-stgm-root]) ships with NO
+   layout styling — deliberately (#260). A default
+   `height: 100%` looks benign ("resolves to auto under auto-height
+   parents") but is not: when the container's parent is a flex item
+   (e.g. a `flex-1` prose column), flexbox treats the item's flexed
+   size as definite for percentage resolution, and the container
+   balloons to it even in a fully content-sized page. Fixed-height
+   embedders instead opt in from host CSS, where the layout is known:
 
-       .stgm[data-stgm-root] { height: 100%; min-height: 0; }
+     .stgm[data-stgm-root] { height: 100%; min-height: 0; }
 
-     `data-stgm-root` is the stable public selector for exactly this.
-     Do not add sizing rules for it here. */
+   `data-stgm-root` is the stable public selector for exactly this.
+   Do not add sizing rules for it here. */
 
-  @keyframes stgm-fade-in-up {
-    from {
-      opacity: 0;
-      transform: translateY(6px);
-    }
-  }
-
-  .stgm-thread-item-enter {
-    animation: stgm-fade-in-up var(--stgm-motion-duration) var(--stgm-motion-easing) both;
+@keyframes stgm-fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
   }
 }
 
-@layer stgm {
-  /* Active edge animation (marching ants for currently-flowing edges) */
-  @keyframes stgm-marching-ants {
-    to {
-      stroke-dashoffset: -12;
-    }
+.stgm-thread-item-enter {
+  animation: stgm-fade-in-up var(--stgm-motion-duration) var(--stgm-motion-easing) both;
+}
+
+
+/* Active edge animation (marching ants for currently-flowing edges) */
+@keyframes stgm-marching-ants {
+  to {
+    stroke-dashoffset: -12;
+  }
+}
+
+.stgm-edge-active path {
+  animation: stgm-marching-ants 0.6s linear infinite;
+}
+
+/* Running node border pulse — subtle glow to indicate active run */
+@keyframes stgm-running-pulse {
+  0%, 100% {
+    box-shadow: 0 0 0 0 var(--stgm-primary);
+  }
+  50% {
+    box-shadow: 0 0 0 4px color-mix(in srgb, var(--stgm-primary) 20%, transparent);
+  }
+}
+
+.stgm-exec-running {
+  animation: stgm-running-pulse 2s ease-in-out infinite;
+}
+
+/* Ambient liveness (stigmer#277): a left-to-right light sweep across the
+   text of whatever is currently in flight — a running tool's label, the
+   thinking indicator, the thread's bottom status line. The sweep rides the
+   WORDS describing the current activity (not a spinner beside them), so
+   the screen is never still while the agent is alive.
+
+   Token-driven: the text settles to the muted base with a foreground-
+   colored band sweeping through, which reads correctly in both color
+   modes and every preset. background-clip:text needs the -webkit- prefix
+   in Safari; the transparent fill is what lets the gradient show through
+   the glyphs. */
+@keyframes stgm-shimmer {
+  to {
+    background-position: -200% 0;
+  }
+}
+
+.stgm-shimmer-label {
+  background-image: linear-gradient(
+    90deg,
+    var(--stgm-muted-foreground) 0%,
+    var(--stgm-muted-foreground) 35%,
+    var(--stgm-foreground) 50%,
+    var(--stgm-muted-foreground) 65%,
+    var(--stgm-muted-foreground) 100%
+  );
+  background-size: 200% 100%;
+  background-position: 0 0;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: stgm-shimmer 2s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .stgm {
+    --stgm-motion-duration: 0ms;
+    --stgm-transition-duration: 0ms;
   }
 
-  .stgm-edge-active path {
-    animation: stgm-marching-ants 0.6s linear infinite;
+  .stgm *,
+  .stgm *::before,
+  .stgm *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
   }
 
-  /* Running node border pulse — subtle glow to indicate active run */
-  @keyframes stgm-running-pulse {
-    0%, 100% {
-      box-shadow: 0 0 0 0 var(--stgm-primary);
-    }
-    50% {
-      box-shadow: 0 0 0 4px color-mix(in srgb, var(--stgm-primary) 20%, transparent);
-    }
-  }
-
-  .stgm-exec-running {
-    animation: stgm-running-pulse 2s ease-in-out infinite;
-  }
-
-  /* Ambient liveness (stigmer#277): a left-to-right light sweep across the
-     text of whatever is currently in flight — a running tool's label, the
-     thinking indicator, the thread's bottom status line. The sweep rides the
-     WORDS describing the current activity (not a spinner beside them), so
-     the screen is never still while the agent is alive.
-
-     Token-driven: the text settles to the muted base with a foreground-
-     colored band sweeping through, which reads correctly in both color
-     modes and every preset. background-clip:text needs the -webkit- prefix
-     in Safari; the transparent fill is what lets the gradient show through
-     the glyphs. */
-  @keyframes stgm-shimmer {
-    to {
-      background-position: -200% 0;
-    }
-  }
-
+  /* The shimmer is pure decoration: under reduced motion the label drops
+     the clipped gradient entirely and reads as ordinary text —
+     a frozen gradient band would look like a rendering glitch. */
   .stgm-shimmer-label {
-    background-image: linear-gradient(
-      90deg,
-      var(--stgm-muted-foreground) 0%,
-      var(--stgm-muted-foreground) 35%,
-      var(--stgm-foreground) 50%,
-      var(--stgm-muted-foreground) 65%,
-      var(--stgm-muted-foreground) 100%
-    );
-    background-size: 200% 100%;
-    background-position: 0 0;
-    -webkit-background-clip: text;
-    background-clip: text;
-    color: transparent;
-    animation: stgm-shimmer 2s linear infinite;
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    .stgm {
-      --stgm-motion-duration: 0ms;
-      --stgm-transition-duration: 0ms;
-    }
-
-    .stgm *,
-    .stgm *::before,
-    .stgm *::after {
-      animation-duration: 0.01ms !important;
-      animation-iteration-count: 1 !important;
-      transition-duration: 0.01ms !important;
-    }
-
-    /* The shimmer is pure decoration: under reduced motion the label drops
-       the clipped gradient entirely and reads as ordinary text —
-       a frozen gradient band would look like a rendering glitch. */
-    .stgm-shimmer-label {
-      background-image: none;
-      color: inherit;
-      animation: none;
-    }
+    background-image: none;
+    color: inherit;
+    animation: none;
   }
 }
 
-@layer stgm {
-  /* Syntax highlighting for fenced code blocks (issue #183).
-     lowlight (highlight.js) emits these `hljs-*` token classes; we map each
-     onto a shared `--stgm-syntax-*` theme token so highlighted code tracks the
-     host's preset and color-mode with zero hardcoded colors — the same token
-     contract the CodeMirror YAML editor uses. Scoped to `.stgm` so nothing
-     leaks into the host application. */
-  .stgm .hljs {
-    color: var(--stgm-foreground);
-  }
 
-  .stgm .hljs-comment,
-  .stgm .hljs-quote {
-    color: var(--stgm-syntax-comment);
-    font-style: italic;
-  }
+/* Syntax highlighting for fenced code blocks (issue #183).
+   lowlight (highlight.js) emits these `hljs-*` token classes; we map each
+   onto a shared `--stgm-syntax-*` theme token so highlighted code tracks the
+   host's preset and color-mode with zero hardcoded colors — the same token
+   contract the CodeMirror YAML editor uses. Scoped to `.stgm` so nothing
+   leaks into the host application. */
+.stgm .hljs {
+  color: var(--stgm-foreground);
+}
 
-  .stgm .hljs-keyword,
-  .stgm .hljs-selector-tag,
-  .stgm .hljs-subst {
-    color: var(--stgm-syntax-keyword);
-  }
+.stgm .hljs-comment,
+.stgm .hljs-quote {
+  color: var(--stgm-syntax-comment);
+  font-style: italic;
+}
 
-  .stgm .hljs-literal,
-  .stgm .hljs-symbol,
-  .stgm .hljs-bullet {
-    color: var(--stgm-syntax-bool);
-  }
+.stgm .hljs-keyword,
+.stgm .hljs-selector-tag,
+.stgm .hljs-subst {
+  color: var(--stgm-syntax-keyword);
+}
 
-  .stgm .hljs-string,
-  .stgm .hljs-regexp,
-  .stgm .hljs-addition,
-  .stgm .hljs-template-tag,
-  .stgm .hljs-template-variable,
-  .stgm .hljs-meta .hljs-string {
-    color: var(--stgm-syntax-string);
-  }
+.stgm .hljs-literal,
+.stgm .hljs-symbol,
+.stgm .hljs-bullet {
+  color: var(--stgm-syntax-bool);
+}
 
-  .stgm .hljs-number {
-    color: var(--stgm-syntax-number);
-  }
+.stgm .hljs-string,
+.stgm .hljs-regexp,
+.stgm .hljs-addition,
+.stgm .hljs-template-tag,
+.stgm .hljs-template-variable,
+.stgm .hljs-meta .hljs-string {
+  color: var(--stgm-syntax-string);
+}
 
-  .stgm .hljs-title,
-  .stgm .hljs-title.function_,
-  .stgm .hljs-title.class_,
-  .stgm .hljs-section,
-  .stgm .hljs-built_in,
-  .stgm .hljs-type {
-    color: var(--stgm-syntax-property);
-  }
+.stgm .hljs-number {
+  color: var(--stgm-syntax-number);
+}
 
-  .stgm .hljs-attr,
-  .stgm .hljs-attribute,
-  .stgm .hljs-property,
-  .stgm .hljs-variable,
-  .stgm .hljs-params,
-  .stgm .hljs-selector-attr,
-  .stgm .hljs-selector-pseudo,
-  .stgm .hljs-selector-class,
-  .stgm .hljs-selector-id {
-    color: var(--stgm-syntax-property);
-  }
+.stgm .hljs-title,
+.stgm .hljs-title.function_,
+.stgm .hljs-title.class_,
+.stgm .hljs-section,
+.stgm .hljs-built_in,
+.stgm .hljs-type {
+  color: var(--stgm-syntax-property);
+}
 
-  .stgm .hljs-tag,
-  .stgm .hljs-name {
-    color: var(--stgm-syntax-tag);
-  }
+.stgm .hljs-attr,
+.stgm .hljs-attribute,
+.stgm .hljs-property,
+.stgm .hljs-variable,
+.stgm .hljs-params,
+.stgm .hljs-selector-attr,
+.stgm .hljs-selector-pseudo,
+.stgm .hljs-selector-class,
+.stgm .hljs-selector-id {
+  color: var(--stgm-syntax-property);
+}
 
-  .stgm .hljs-meta,
-  .stgm .hljs-meta .hljs-keyword,
-  .stgm .hljs-doctag {
-    color: var(--stgm-syntax-meta);
-  }
+.stgm .hljs-tag,
+.stgm .hljs-name {
+  color: var(--stgm-syntax-tag);
+}
 
-  .stgm .hljs-link,
-  .stgm .hljs-deletion {
-    color: var(--stgm-syntax-atom);
-  }
+.stgm .hljs-meta,
+.stgm .hljs-meta .hljs-keyword,
+.stgm .hljs-doctag {
+  color: var(--stgm-syntax-meta);
+}
 
-  .stgm .hljs-emphasis {
-    font-style: italic;
-  }
+.stgm .hljs-link,
+.stgm .hljs-deletion {
+  color: var(--stgm-syntax-atom);
+}
 
-  .stgm .hljs-strong {
-    font-weight: 600;
-  }
+.stgm .hljs-emphasis {
+  font-style: italic;
+}
+
+.stgm .hljs-strong {
+  font-weight: 600;
+}
+
+/* A host's bare element rules stay off the kit's own controls
+   (stigmer/stigmer#3491). An app's stylesheet may style every `button` or
+   `input` (`create-vite`'s template did until 9.0: a radius, a border, a
+   padding, a background); unlayered, such a rule beats the form-control
+   reset in `base`, so every kit control without a padding or background
+   utility was drawn as the host's. This rule, unlayered at (0,0,2), outranks
+   a bare element rule ((0,0,1)) and hands the reset's properties back to the
+   layered cascade with `revert-layer`: the kit's reset, or a class the host
+   passes through `className` (Tailwind 4's are layered). It sets no value of
+   its own, so it can never beat a kit utility ((0,1,0)) or a host rule that
+   names a class. It reaches only controls the kit drew (a `stg:` class), so
+   a host's own controls inside the provider keep the host's styling. A
+   parent's spacing and dividers (`stg:space-y-*`, `stg:divide-*`) still
+   reach a control: the build lifts those child rules to (0,0,3)
+   (`scripts/lib/scope-unprefixed.ts`, `raiseChildUtilities`).
+
+   Its edge: a host element rule with a pseudo-class (`button:hover`,
+   (0,1,1)) or an attribute (`[type="button"]`, (0,1,0)) outranks it, and it
+   hands back only the reset's properties, so a host's `cursor` or
+   `transition` on `button` still applies. */
+:where(.stgm)
+  :is(button, input, select, optgroup, textarea):is(button, input, select, optgroup, textarea):where([class*="stg:"]) {
+  margin: revert-layer;
+  padding: revert-layer;
+  font: revert-layer;
+  font-feature-settings: revert-layer;
+  font-variation-settings: revert-layer;
+  letter-spacing: revert-layer;
+  color: revert-layer;
+  border-radius: revert-layer;
+  background-color: revert-layer;
+  opacity: revert-layer;
+  border: revert-layer;
 }

@@ -62,7 +62,9 @@ export function outOfPackageReads(pkgDir) {
   for (const file of walk(pkgDir)) {
     const source = readFileSync(file, "utf8");
     for (const match of source.matchAll(RELATIVE_PARENT_LITERAL)) {
-      const target = resolve(dirname(file), match[1]);
+      // A bundler query (`?raw`, `?url`) names how the file is read, not
+      // another file: the read is of the path before it.
+      const target = resolve(dirname(file), match[1].replace(/\?.*$/, ""));
       if (target.startsWith(pkgDir + sep)) continue;
       reads.push({
         file: relative(root, file),

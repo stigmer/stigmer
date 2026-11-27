@@ -16,6 +16,10 @@
 // the tool's result carries the step's nonce, and the refusal naming the
 // login key never shows.
 //
+// Before it signs in, the chat is read as the kit draws it in that app: the
+// app keeps the template's own stylesheet, which centers everything under
+// `#root`, and the chat's text still starts at the start edge (#3491).
+//
 // The earlier pages' state (the `report-backend` service account and its
 // key, account creation on in the embedding settings) is made through the
 // API as the person, as the embedding tutorial's own spec makes it.
@@ -68,10 +72,22 @@ test.describe("a developer's app, on its own address, signs its user in to the t
     const appContext = await browser.newContext();
     try {
       const app = await appContext.newPage();
-      await test.step("the app's user signs in to the tool server from the chat, through the opener-policy login page", async () => {
+      const signIn = app.getByRole("button", { name: `Sign in to ${TOOL_SERVER}` });
+      await test.step("the chat draws as the kit draws it, under the app's own stylesheet", async () => {
         await app.goto(`http://localhost:${APP_PORT}`);
-        const signIn = app.getByRole("button", { name: `Sign in to ${TOOL_SERVER}` });
         await expect(signIn).toBeVisible({ timeout: 60_000 });
+        // The kit's outermost elements under the app's `#root`, which the
+        // template's stylesheet centers: each starts its text at the start edge.
+        const alignments = await app.evaluate(() =>
+          [...document.querySelectorAll('#root [class*="stg:"]')]
+            .filter((element) => element.parentElement?.closest('[class*="stg:"]') == null)
+            .map((element) => getComputedStyle(element).textAlign),
+        );
+        expect(alignments.length, "the chat renders kit elements under #root").toBeGreaterThan(0);
+        expect(new Set(alignments), "the chat's text starts at the start edge, not the app's center").toEqual(new Set(["start"]));
+      });
+
+      await test.step("the app's user signs in to the tool server from the chat, through the opener-policy login page", async () => {
         const needsSetup = app.getByText("Agent needs configuration before use");
         await expect(needsSetup).toBeVisible();
 

@@ -11,6 +11,7 @@
 // The conversation view is the real thread on the finished scenario, so
 // the text measured is the kit's own message text.
 
+/// <reference types="vite/client" />
 import "../../../dist/styles.css";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render } from "@testing-library/react";
@@ -20,6 +21,10 @@ import type { ColorMode } from "../../color-mode.js";
 import { StigmerProvider } from "../../provider.js";
 import { MessageThread } from "../../run/MessageThread.js";
 import { SCENARIO_CLOCK, conversationOf, scenarios } from "../../test/index.js";
+// The stock `create-next-app` stylesheet (`app/globals.css`, the template
+// without Tailwind), as the first-hour journey's Next.js app carries it: a
+// light page, and a near-black one with light text when the system is dark.
+import CREATE_NEXT_APP_GLOBALS from "../../../../../test/fixtures/host-styles/create-next-app.css?raw";
 
 declare module "@vitest/browser/context" {
   interface BrowserCommands {
@@ -49,30 +54,6 @@ const CLIENT = {
   }) as unknown as typeof globalThis.fetch,
 } as unknown as Stigmer;
 
-/**
- * The stock `create-next-app` stylesheet (`app/globals.css`), less the
- * Tailwind directives its build compiles away: a light page, and a
- * near-black one with light text when the system is dark.
- */
-const CREATE_NEXT_APP_GLOBALS = `
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
-}
-`;
 
 /** The agent's answer and the person's message, as the finished scenario writes them. */
 const MESSAGES = [/^Fourteen invoices were a cent off/, /^Audit last month's invoices for rounding errors/];
