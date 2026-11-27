@@ -2,12 +2,9 @@
  * Stage 2 of the SDK stylesheet build (stigmer/stigmer#454): scope the
  * selectors that Tailwind's `prefix(stg)` cannot make collision-free by name.
  *
- * Three populations get a zero-specificity `:where(.stgm, .stgm *)` guard on
+ * Two populations get a zero-specificity `:where(.stgm, .stgm *)` guard on
  * their subject compound:
  *
- * - **The kit's own utilities** — unlayered since #3491 (a host's unlayered
- *   resets beat every layered rule). Their `stg:` names already keep them
- *   off host classes; the guard also keeps them inside the kit's scope.
  * - **Unlayered vendor rules** — a vendor stylesheet imported without a
  *   layer. Its classes may be vendor-namespaced, but unlayered CSS beats
  *   ALL layered CSS, so an unscoped copy would override a host's own styling
@@ -21,7 +18,10 @@
  *
  * Never touched: `@property` rules (registration is inherently global;
  * duplicate identical registrations are a no-op), `@keyframes` steps (not
- * element selectors), and rules already targeting `.stgm`.
+ * element selectors), rules already targeting `.stgm`, and the kit's own
+ * `stg:`-prefixed utilities, unlayered since #3491: their names already keep
+ * them off every host element, and a guard would stop them applying to a kit
+ * part rendered outside a `.stgm` container.
  *
  * The guard matches the provider's scope containers — the in-tree
  * `data-stgm-root` element AND the `document.body` portal container, both of
@@ -100,6 +100,7 @@ export function scopeUnprefixedSelectors(root: Root): void {
     const layer = enclosingLayer(rule);
     if (layer !== "properties" && layer !== null) return;
     if (rule.selector.includes(".stgm")) return;
+    if (rule.selectors.every((selector) => selector.includes(".stg\\:"))) return;
     rule.selector = addScopeGuard.processSync(rule.selector);
   });
 }

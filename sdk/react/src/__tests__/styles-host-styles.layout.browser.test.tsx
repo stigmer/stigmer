@@ -173,13 +173,13 @@ describe("the host's own styling inside the provider stays the host's", () => {
   // host draws: its own controls under `.stgm` (the documented quickstart
   // wraps the whole app in the provider), and the classes it passes to a
   // kit control through `className`.
+  // prefix-classnames-ignore: host-authored markup, unprefixed on purpose.
   function renderHostParts(css: string) {
     hostStyle = document.createElement("style");
     hostStyle.textContent = css;
     document.head.appendChild(hostStyle);
     render(
       <div className="stgm" data-stgm-color-mode="light">
-        {/* prefix-classnames-ignore: host-authored markup, unprefixed on purpose. */}
         <button type="button" data-testid="own" className="px-4 bg-blue">
           own
         </button>

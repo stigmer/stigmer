@@ -69,6 +69,19 @@ describe("scopeUnprefixedSelectors", () => {
     expect(transform(base)).toBe(base);
   });
 
+  it("leaves the kit's own unlayered stg: utilities untouched (#3491)", () => {
+    // Their names already keep them off host elements; a guard would stop
+    // them applying to a kit part rendered outside a `.stgm` container.
+    const utility = ".stg\\:flex{display:flex}";
+    expect(transform(utility)).toBe(utility);
+    const variant = ".stg\\:peer-checked\\:opacity-100:is(:where(.stg\\:peer):checked~*){opacity:1}";
+    expect(transform(variant)).toBe(variant);
+    // A list that mixes in an unprefixed alternative is still scoped whole.
+    expect(transform(".stg\\:flex,.vendor{display:flex}")).toBe(
+      ".stg\\:flex:where(.stgm, .stgm *),.vendor:where(.stgm, .stgm *){display:flex}",
+    );
+  });
+
   it("leaves keyframe steps untouched", () => {
     const kf = "@keyframes spin{to{transform:rotate(360deg)}}";
     expect(transform(kf)).toBe(kf);
