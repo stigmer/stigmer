@@ -88,4 +88,34 @@ describe("StigmerProvider model list and a late sign-in", () => {
     await elapse(20_000);
     expect(getAuthCredential.mock.calls.length).toBe(asked);
   });
+
+  it("never sends a refused credential again, and reads once the host hands a new one", async () => {
+    let token = "expired-token";
+    const getAuthCredential = vi.fn(async () => token);
+    const sentWith: string[] = [];
+    const fetch = vi.fn(async (_url: string, init?: { headers?: Record<string, string> }) => {
+      const bearer = init?.headers?.["Authorization"] ?? "";
+      sentWith.push(bearer);
+      if (bearer !== "Bearer fresh-token") return { ok: false, status: 401, json: async () => ({}) };
+      return { ok: true, status: 200, json: async () => DOCUMENT };
+    });
+    const client = { baseUrl: "https://example.test", getAuthCredential, fetch } as unknown as Stigmer;
+    render(
+      <StigmerProvider client={client}>
+        <Probe />
+      </StigmerProvider>,
+    );
+
+    // The host keeps handing the refused token: it is sent once, never again.
+    await elapse(30_000);
+    expect(sentWith.filter((bearer) => bearer === "Bearer expired-token")).toHaveLength(1);
+    expect(seen.at(-1)?.count).toBe(0);
+    expect(getAuthCredential.mock.calls.length).toBeGreaterThan(5);
+
+    token = "fresh-token";
+    await elapse(5_000);
+    expect(seen.at(-1)?.count).toBe(1);
+    expect(sentWith.at(-1)).toBe("Bearer fresh-token");
+  });
 });
+

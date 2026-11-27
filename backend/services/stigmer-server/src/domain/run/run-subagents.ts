@@ -90,11 +90,14 @@ export async function runSubagents(
     const id = head.metadata?.id ?? "";
     const name = head.metadata?.slug ?? "";
     let spec: AgentSpec | undefined;
-    let serverSignIns: readonly AgentServerSignIn[] = [];
+    // The sign-in answers are the agent's current ones (its head's status),
+    // as every other reader takes them: they are matched by server name and
+    // address, so a pinned version's server at an address the head no
+    // longer lists finds none and stays an optional login.
+    const serverSignIns: readonly AgentServerSignIn[] = head.status?.serverSignIns ?? [];
     try {
       const version = (await loadVersion(store, agentVersionBinding, id, ref.version)).resource;
       spec = version.spec;
-      serverSignIns = version.status?.serverSignIns ?? [];
     } catch (error) {
       if (error instanceof ConnectError && error.code === Code.NotFound) {
         throw failedPreconditionError(subagentGoneMessage(name, ref.version));

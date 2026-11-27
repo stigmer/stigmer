@@ -53,20 +53,23 @@ import { findOrgByRef, useKnownOrgs } from "../organization/OrgProvider.js";
 /**
  * The organization `ref` names (an id or a slug), looked up among the
  * caller's own: from `known`, the organizations a mounted provider holds
- * (the caller's own and the one they have open); with no provider, from the
- * caller's own organizations, read until one matches. `id` is the match's
- * id, or `ref` itself when none matches (an id names itself, and a
- * reference to an organization the caller is not in is judged as named).
- * `mine` tells the two apart, and both from a list that could not be read
- * (`null`): a chat that cannot start says "none of your organizations is
- * named that" only when the list said so.
+ * (the caller's own and the one they have open); with no provider
+ * (`undefined`), from the caller's own organizations, read until one
+ * matches. `id` is the match's id, or `ref` itself when none matches (an id
+ * names itself, and a reference to an organization the caller is not in is
+ * judged as named). `mine` tells the two apart, and both from a list that
+ * could not be read (`null`): a chat that cannot start says "none of your
+ * organizations is named that" only when the list said so. A provider
+ * whose list is still loading or failed to load passes `known` as `null`:
+ * its empty list says nothing, so the answer is `mine: null`.
  */
 export async function lookUpOrganization(
   stigmer: Pick<Stigmer, "organization">,
   ref: string,
-  known: readonly Organization[] | undefined,
+  known: readonly Organization[] | null | undefined,
 ): Promise<{ readonly id: string; readonly mine: boolean | null }> {
   if (ref === "") return { id: "", mine: null };
+  if (known === null) return { id: ref, mine: null };
   if (known !== undefined) {
     const match = findOrgByRef(known, ref);
     return { id: match?.metadata?.id || ref, mine: match !== undefined };

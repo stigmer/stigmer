@@ -160,6 +160,7 @@ import { Code, ConnectError } from "@connectrpc/connect";
 import type { AgentSpec } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/spec_pb";
 import type { AgentServerSignIn } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/status_pb";
 import { ChannelSchema } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/api_pb";
+import { AgentSchema } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb";
 import { PluginSchema } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/api_pb";
 import type { McpServerEntry, PluginStatus } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/status_pb";
 import { EvalRunSchema } from "@stigmer/apis/ai/stigmer/agentic/evalrun/v1/api_pb";
@@ -1549,7 +1550,10 @@ export function newVaultResolver(deps: VaultResolverDeps): VaultResolver {
         case "agent": {
           const agent = (await loadVersion(deps.store, agentVersionBinding, home.agentId, home.agentVersion)).resource;
           const written = agent.spec?.mcpServers.find((entry) => entry.name === server);
-          return written === undefined ? undefined : agentServerEntry(written, agent.status?.serverSignIns ?? []);
+          if (written === undefined) return undefined;
+          // The agent's current answers, as every reader takes them (run-subagents.ts).
+          const current = await deps.store.getResource(ApiResourceKind.agent, home.agentId, AgentSchema);
+          return agentServerEntry(written, current?.status?.serverSignIns ?? []);
         }
         /* v8 ignore next -- @preserve: the exhaustiveness guard over a closed union; no value reaches it */
         default: {

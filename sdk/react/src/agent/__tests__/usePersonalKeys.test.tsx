@@ -261,6 +261,10 @@ describe("lookUpOrganization", () => {
     await expect(lookUpOrganization(listing(new Error("never read")), "acme", known)).resolves.toEqual({ id: ORG, mine: true });
     await expect(lookUpOrganization(listing(new Error("never read")), "globex", known)).resolves.toEqual({ id: "globex", mine: false });
   });
+
+  it("answers unread for a provider whose list is loading or failed, without listing", async () => {
+    await expect(lookUpOrganization(listing(new Error("never read")), "globex", null)).resolves.toEqual({ id: "globex", mine: null });
+  });
 });
 
 describe("usePersonalKeys in an organization opened outside the person's list", () => {
