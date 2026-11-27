@@ -58,8 +58,7 @@
 //     embedding vaults serve keys (an integrator keeps such a user's keys
 //     in a vault it names). Their own sign-in is the one exception: the
 //     login in their own My vault serves their own run's tool at that
-//     login's address, last, and never another app user's run, which is
-//     told to sign in itself. A routine's
+//     login's address, last, and never another app user's run. A routine's
 //     vault stops serving its fires once the account that attached it may
 //     no longer use it. A member's run with memory
 //     on, whose agent calls `remember`, writes a Memory whose subject is the
@@ -1140,8 +1139,10 @@ describe.skipIf(!runnerActsAsRunCreator)(
         "the queue's turn reads her own login as her direct turn did",
       ).toEqual([[RunValueOrigin.MY_VAULT, priyas.metadata!.id, true]]);
 
-      // Another app user of the same organization never reads it, and is
-      // told to sign in themselves.
+      // Another app user of the same organization never reads it: their run
+      // lacks the login. (This fixture's server records no sign-in, so the
+      // refusal names the vault to attach; one that does offers the sign-in,
+      // which the resolver's unit arms pin.)
       const omars = await expectGrpcCode(
         () =>
           omar.agentExecutionCommand.create(
@@ -1155,7 +1156,7 @@ describe.skipIf(!runnerActsAsRunCreator)(
         Code.FailedPrecondition,
         "another app user's run, whose own My vault holds no login",
       );
-      expect(omars.rawMessage).toContain("needs RAS_APP_LOGIN: sign in to");
+      expect(omars.rawMessage).toContain("needs RAS_APP_LOGIN");
 
       // Her My vault fills no key by name: the key only there is missing.
       const byName = await expectGrpcCode(
