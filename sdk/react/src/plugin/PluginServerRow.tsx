@@ -3,7 +3,8 @@
 /**
  * One of a plugin's MCP servers as the plugin page lists it: its name, how
  * it is reached (an address, or the program the runner starts), its
- * sign-in cell (`PluginServerSignIn`), and "Check tools", which asks the
+ * sign-in cell (`PluginServerSignIn`), Change address when the page offers
+ * it (a plugin of this one server, to a person who may push), and "Check tools", which asks the
  * server for its tools now (`usePluginTools`) and lists each by name with
  * what it does and whether the server marks it destructive.
  *
@@ -30,10 +31,14 @@ export interface PluginServerRowProps {
   /** The plugin's name, as a turn names its tools. */
   readonly pluginName: string;
   readonly server: McpServerEntry;
+  /** Opens the page's Change address form; the button shows only when given. */
+  readonly onChangeAddress?: () => void;
+  /** The page lists the plugin's keys below, each with Save to My vault; see {@link PluginServerSignIn}. */
+  readonly keysSavedBelow?: boolean;
 }
 
 /** One plugin server: how it is reached, its sign-in, and its tools on demand. */
-export function PluginServerRow({ org, pluginId, pluginName, server }: PluginServerRowProps) {
+export function PluginServerRow({ org, pluginId, pluginName, server, onChangeAddress, keysSavedBelow = false }: PluginServerRowProps) {
   const tools = usePluginTools(pluginId, server.name, org);
   return (
     <li className="stg:flex stg:min-w-0 stg:flex-col stg:gap-2 stg:px-3 stg:py-2.5">
@@ -46,7 +51,12 @@ export function PluginServerRow({ org, pluginId, pluginName, server }: PluginSer
           </span>
         </div>
         <div className="stg:flex stg:shrink-0 stg:flex-wrap stg:items-center stg:justify-end stg:gap-2">
-          <PluginServerSignIn org={org} server={server} />
+          <PluginServerSignIn org={org} server={server} keysSavedBelow={keysSavedBelow} />
+          {onChangeAddress && (
+            <Button variant="outline" size="xs" onClick={onChangeAddress} aria-label={`Change the address of ${server.name}`}>
+              Change address
+            </Button>
+          )}
           <Button variant="outline" size="xs" onClick={() => void tools.check()} disabled={tools.isChecking}>
             {tools.isChecking ? "Checking…" : "Check tools"}
           </Button>

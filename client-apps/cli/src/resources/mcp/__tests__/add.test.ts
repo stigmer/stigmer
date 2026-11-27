@@ -1,31 +1,40 @@
-// `stigmer mcp add`: the one-server plugin it builds. Pins the two documents
-// (a Claude Code manifest naming the plugin, a `.mcp.json` naming one HTTP
-// server of the same name, headers sorted), that the shared library reads
+// `stigmer mcp add`: the one-server plugin it builds. Pins that its two
+// documents are the shared builder's (the console's too), that the library reads
 // them as that plugin with a `${NAME}` header value declared as a variable,
 // that the same input makes the same archive and digest, that a name a
 // plugin may not carry is refused with the library's sentence, the
 // in-memory file set (sorted entries, a read that refuses a path it does not
-// hold), and the `--header NAME=VALUE` parsing with its refusals.
+// hold), and the `--header NAME=VALUE` parsing with its refusals. Over a
+// plugin already installed: a read the server refuses for another reason
+// than not-found stops the command, the refusal of a plugin pushed from a
+// folder names everything it holds, and a dry run's change names each thing
+// that differs.
 
+import { create } from "@bufbuild/protobuf";
+import { Code, ConnectError } from "@connectrpc/connect";
 import { describe, expect, it } from "vitest";
+import { PluginSchema } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/api_pb";
+import { ApiResourceVisibility } from "@stigmer/apis/ai/stigmer/commons/apiresource/enum_pb";
 import { UsageError } from "../../../errors/index.js";
-import { documentFiles, parseHeaders, prepareServerPlugin, serverPluginDocuments } from "../add.js";
+import { oneServerPluginDocuments } from "@stigmer/plugin-package";
+import {
+  describeChange,
+  documentFiles,
+  type InstalledPluginClient,
+  notOneServerRefusal,
+  parseHeaders,
+  prepareServerPlugin,
+  readInstalledUnderName,
+} from "../add.js";
 
-describe("serverPluginDocuments", () => {
-  it("writes a manifest naming the plugin and one HTTP server of the same name", () => {
-    const documents = serverPluginDocuments("linear", "https://mcp.linear.app/mcp", { b: "2", a: "1" });
-    expect([...documents.keys()]).toEqual([".claude-plugin/plugin.json", ".mcp.json"]);
-    expect(JSON.parse(documents.get(".claude-plugin/plugin.json") ?? "")).toEqual({ name: "linear" });
-    const mcp = documents.get(".mcp.json") ?? "";
-    expect(JSON.parse(mcp)).toEqual({
-      mcpServers: { linear: { type: "http", url: "https://mcp.linear.app/mcp", headers: { a: "1", b: "2" } } },
-    });
-    expect(mcp.indexOf('"a"')).toBeLessThan(mcp.indexOf('"b"'));
-  });
-
-  it("leaves headers out when none are given", () => {
-    const mcp = JSON.parse(serverPluginDocuments("linear", "https://mcp.linear.app/mcp", {}).get(".mcp.json") ?? "");
-    expect(mcp.mcpServers.linear).toEqual({ type: "http", url: "https://mcp.linear.app/mcp" });
+describe("prepareServerPlugin's documents", () => {
+  it("are the shared one-server builder's, headers sorted, the description in the manifest", async () => {
+    const input = { name: "linear", url: "https://mcp.linear.app/mcp", headers: { b: "2", a: "1" }, description: "Issues." };
+    const prepared = await prepareServerPlugin(input);
+    const decoder = new TextDecoder();
+    const documents = new Map(prepared.files.entries.map((entry) => [entry.path, decoder.decode(prepared.files.read(entry.path))]));
+    expect(documents).toEqual(oneServerPluginDocuments(input));
+    expect(JSON.parse(documents.get(".claude-plugin/plugin.json") ?? "")).toEqual({ name: "linear", description: "Issues." });
   });
 });
 
@@ -43,8 +52,10 @@ describe("documentFiles", () => {
 
 describe("prepareServerPlugin", () => {
   it("reads as the one-server plugin, declaring the key a header names", async () => {
-    const prepared = await prepareServerPlugin("acme", "https://mcp.acme.example/mcp", {
-      Authorization: "Bearer ${ACME_TOKEN}",
+    const prepared = await prepareServerPlugin({
+      name: "acme",
+      url: "https://mcp.acme.example/mcp",
+      headers: { Authorization: "Bearer ${ACME_TOKEN}" },
     });
     expect(prepared.plugin.name).toBe("acme");
     expect(prepared.plugin.dialect).toBe("claude");
@@ -55,14 +66,14 @@ describe("prepareServerPlugin", () => {
   });
 
   it("makes the same archive and digest from the same input", async () => {
-    const first = await prepareServerPlugin("linear", "https://mcp.linear.app/mcp", { x: "1", y: "2" });
-    const second = await prepareServerPlugin("linear", "https://mcp.linear.app/mcp", { y: "2", x: "1" });
+    const first = await prepareServerPlugin({ name: "linear", url: "https://mcp.linear.app/mcp", headers: { x: "1", y: "2" } });
+    const second = await prepareServerPlugin({ name: "linear", url: "https://mcp.linear.app/mcp", headers: { y: "2", x: "1" } });
     expect(Buffer.from(first.archive).equals(Buffer.from(second.archive))).toBe(true);
     expect(first.digest).toBe(second.digest);
   });
 
   it("refuses a name a plugin may not carry with the library's sentence", async () => {
-    await expect(prepareServerPlugin("Not Valid", "https://mcp.linear.app/mcp", {})).rejects.toThrow(
+    await expect(prepareServerPlugin({ name: "Not Valid", url: "https://mcp.linear.app/mcp" })).rejects.toThrow(
       /mcp add Not Valid: plugin cannot be installed/,
     );
   });
@@ -80,5 +91,56 @@ describe("parseHeaders", () => {
     expect(() => parseHeaders(["novalue"])).toThrow(UsageError);
     expect(() => parseHeaders(["=x"])).toThrow(/expected NAME=VALUE/);
     expect(() => parseHeaders(["A=1", "A=2"])).toThrow("--header A is given twice");
+  });
+});
+
+describe("readInstalledUnderName", () => {
+  it("stops on a read the server refuses for a reason other than not-found", async () => {
+    const client = {
+      plugin: {
+        getByReference: () => Promise.reject(new ConnectError("the plugin store is down", Code.Unavailable)),
+      },
+    } as unknown as InstalledPluginClient;
+    await expect(readInstalledUnderName(client, "acme", "linear")).rejects.toThrow("the plugin store is down");
+  });
+});
+
+describe("notOneServerRefusal", () => {
+  it("names everything a folder-pushed plugin holds: skills, servers, agents, hooks and evals", () => {
+    const plugin = create(PluginSchema, {
+      status: {
+        skills: [{ name: "triage" }],
+        mcpServers: [{ name: "linear" }, { name: "notion" }],
+        agents: [{ name: "planner" }],
+        hooks: { groups: [{ event: "PreToolUse" }] },
+        evals: { dir: "evals" },
+      },
+    });
+    expect(notOneServerRefusal("tracker", plugin).message).toContain(
+      "'tracker' was pushed from a folder and holds 1 skill, 2 servers, 1 agent, hooks and evals;",
+    );
+  });
+
+  it("names a lone holding without a list", () => {
+    const plugin = create(PluginSchema, { status: { skills: [{ name: "a" }, { name: "b" }] } });
+    expect(notOneServerRefusal("notes", plugin).message).toContain("holds 2 skills;");
+  });
+});
+
+describe("describeChange", () => {
+  const installed = {
+    kind: "one-server" as const,
+    plugin: create(PluginSchema, { metadata: { visibility: ApiResourceVisibility.visibility_org } }),
+    server: { name: "linear", url: "https://mcp.linear.app/mcp", description: "Issues." },
+  };
+
+  it("names a new description and a new visibility", () => {
+    expect(
+      describeChange(installed, { ...installed.server, description: "Issues, v2." }, ApiResourceVisibility.visibility_private),
+    ).toBe("its description, its visibility");
+  });
+
+  it("names nothing for the visibility the plugin already has", () => {
+    expect(describeChange(installed, installed.server, ApiResourceVisibility.visibility_org)).toBe("");
   });
 });

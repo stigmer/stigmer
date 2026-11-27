@@ -19,7 +19,8 @@ import { CompleteSignInOutputSchema } from "@stigmer/apis/ai/stigmer/agentic/vau
 import { StigmerError } from "@stigmer/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { UsageError } from "../../../errors/index.js";
-import { readMyVault, runSignIn, type SignInClient, type SignInDeps } from "../sign-in.js";
+import { readMyVault } from "../my-vault.js";
+import { runSignIn, type SignInClient, type SignInDeps } from "../sign-in.js";
 
 const launcher = vi.hoisted(() => ({
   calls: [] as { command: string; args: readonly string[]; options: unknown }[],

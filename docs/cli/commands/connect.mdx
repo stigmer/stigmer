@@ -32,13 +32,14 @@ needs one
 stigmer connect plugin <plugin> [flags]
 ```
 
-| Flag             | Type     | Default | Description                                                                        |
-| ---------------- | -------- | ------- | ---------------------------------------------------------------------------------- |
-| `--dry-run`      | `bool`   |         | list the tools from this machine, with your shell's environment, without a runner  |
-| `--json`         | `bool`   |         | shorthand for --output json                                                        |
-| `--output`, `-o` | `string` |         | output format: table (the bare value) or json                                      |
-| `--server`       | `string` |         | the MCP server, by its name in the plugin (needed when the plugin carries several) |
-| `--timeout`      | `string` | `30`    | bound --dry-run's local discovery                                                  |
+| Flag              | Type     | Default | Description                                                                                                     |
+| ----------------- | -------- | ------- | --------------------------------------------------------------------------------------------------------------- |
+| `--dry-run`       | `bool`   |         | list the tools from this machine, with your shell's environment, without a runner                               |
+| `--json`          | `bool`   |         | shorthand for --output json                                                                                     |
+| `--output`, `-o`  | `string` |         | output format: table (the bare value) or json                                                                   |
+| `--server`        | `string` |         | the MCP server, by its name in the plugin (needed when the plugin carries several)                              |
+| `--sign-in-again` | `bool`   |         | sign in even when My vault holds a login for the server, replacing it (for a login that expired or was revoked) |
+| `--timeout`       | `string` | `30`    | bound --dry-run's local discovery                                                                               |
 
 ### Choosing the server
 
@@ -65,6 +66,23 @@ stigmer connect plugin linear
 Off an interactive terminal (CI, pipes) the command stops with these ways
 instead of waiting for a browser. `--env` is refused, naming the vault command:
 keys are never given on the command line.
+
+### Signing in again
+
+A saved login can stop working: it expired and could not be renewed, or you
+revoked it at the login server. The listing then fails in the server's words and
+ends with the way to a fresh one:
+
+```text
+If your login has expired or was revoked, run stigmer connect plugin linear --sign-in-again.
+```
+
+`--sign-in-again` runs the same browser sign-in even though My vault holds a
+login at the server's address, and the new login replaces the saved one. The
+console's plugin page offers the same as **Sign in again** beside a saved login.
+To remove a login without signing in again, run
+`stigmer vault remove-connection <address> --mine`; `stigmer get plugin <name>`
+prints each server's address and whether you are signed in to it.
 
 ### Missing keys
 
@@ -99,6 +117,12 @@ stigmer connect plugin linear
 
 ```bash
 stigmer connect plugin acme-tools --server issues
+```
+
+### Replace a login that stopped working
+
+```bash
+stigmer connect plugin linear --sign-in-again
 ```
 
 ### Name the plugin's organization

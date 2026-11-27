@@ -17,7 +17,7 @@
 //
 // Stack shape: as the first step (tests/first-hour/1-sign-up-to-an-agent.spec.ts).
 import { AGENT, TOOL, TOOL_AS_CALLED, TOOL_SERVER, expect, journeySkipReason, test } from "../../fixtures/first-hour";
-import { askForTheTool, drainModel, expectCliSucceeded, nonce, resetModel, scriptToolCall } from "../../helpers/first-hour/steps";
+import { askForTheTool, drainModel, expectCliSucceeded, nonce, resetModel, scriptToolCall, toolResults } from "../../helpers/first-hour/steps";
 
 test.describe("a developer signs in to their tool server from the terminal, and the agent calls it there", () => {
   test.skip(journeySkipReason() !== null, journeySkipReason() ?? "");
@@ -31,7 +31,7 @@ test.describe("a developer signs in to their tool server from the terminal, and 
       await page.goto(`/library/plugins/${journey.found.org ?? ""}/${TOOL_SERVER}`);
       await page.getByRole("button", { name: `Sign out of ${TOOL_SERVER}` }).click({ timeout: 30_000 });
       await page.getByRole("button", { name: "Sign out", exact: true }).click();
-      await expect(page.getByRole("button", { name: `Sign in to ${TOOL_SERVER}` })).toBeVisible({ timeout: 30_000 });
+      await expect(page.getByRole("button", { name: `Sign in to ${TOOL_SERVER}`, exact: true })).toBeVisible({ timeout: 30_000 });
     });
 
     await test.step("`stigmer connect plugin` signs in through the person's browser and lists the tools", async () => {
@@ -71,36 +71,3 @@ test.describe("a developer signs in to their tool server from the terminal, and 
     journey.reach("terminal-tool-call");
   });
 });
-
-/** One event of `stigmer run -o ndjson`, as far as this step reads it. */
-interface RunEvent {
-  readonly type?: string;
-  readonly id?: string;
-  readonly name?: string;
-  readonly mcp_server_name?: string;
-  readonly mcp_tool_use_id?: string;
-  readonly content?: readonly { readonly type?: string; readonly text?: string }[];
-}
-
-/**
- * The run's tool results that answer a call to the server's tool and carry
- * `value`: an `agent.mcp_tool_result` whose `mcp_tool_use_id` names an
- * `agent.mcp_tool_use` of the tool on the plugin's server, its text holding
- * the value. The call's own input holds the value too, so it is never read.
- */
-function toolResults(ndjson: string, value: string): RunEvent[] {
-  const events = ndjson
-    .split("\n")
-    .filter((line) => line.trim().startsWith("{"))
-    .map((line) => JSON.parse(line) as RunEvent);
-  const server = TOOL_AS_CALLED.slice("mcp__".length, -`__${TOOL}`.length);
-  const calls = new Set(
-    events.filter((event) => event.type === "agent.mcp_tool_use" && event.name === TOOL && event.mcp_server_name === server).map((event) => event.id),
-  );
-  return events.filter(
-    (event) =>
-      event.type === "agent.mcp_tool_result" &&
-      calls.has(event.mcp_tool_use_id) &&
-      (event.content ?? []).some((part) => part.type === "text" && (part.text ?? "").includes(value)),
-  );
-}

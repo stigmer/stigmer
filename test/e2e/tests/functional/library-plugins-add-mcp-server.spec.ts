@@ -8,7 +8,7 @@ import { test, expect } from "../../fixtures";
  * menu's `?add=mcp-server` link) and the add itself: a name, a URL and a
  * header naming a key as `${NAME}` install the plugin and land on its
  * page, which lists the server, the key it reads, and says the key is
- * asked for when a conversation that uses it starts. Every test runs in a
+ * saved below or pasted when a conversation that uses it asks. Every test runs in a
  * fresh organization so a rerun never reads "already installed".
  *
  * Prerequisites:
@@ -75,7 +75,7 @@ test.describe("Plugins list: Add MCP server", () => {
     const servers = page.getByRole("list", { name: "MCP servers", exact: true });
     await expect(servers.getByText(SERVER, { exact: true })).toBeVisible();
     await expect(servers.getByText(SERVER_URL)).toBeVisible();
-    await expect(servers.getByText(/asked for when a conversation that uses it starts/)).toBeVisible();
+    await expect(servers.getByText(/Save it below, or paste it when a conversation that uses it asks/)).toBeVisible();
     await expect(servers.getByRole("button", { name: "Check tools" })).toBeVisible();
     await expect(page.getByRole("list", { name: "Keys this plugin reads" }).getByText(TOKEN)).toBeVisible();
     await expect(page.getByRole("button", { name: "Start a chat" }).first()).toBeVisible();

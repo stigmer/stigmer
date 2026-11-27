@@ -1245,7 +1245,7 @@ test-e2e-console-login: ## Run the console sign-in E2E, the In your app handover
 	cd test/e2e && npx playwright install --with-deps chromium && \
 		STIGMER_E2E_OIDC=1 STIGMER_E2E_MOCK_LLM=1 npx playwright test --project=console-login --project=in-your-app --project=embed-tutorial --workers=1
 
-test-e2e-first-hour: ## Run a developer's first hour, sign-up to the agent's first tool call, on a fresh OIDC stack (hermetic issuer, mock model, OAuth tool server, serial)
+test-e2e-first-hour: ## Run a developer's first hour, sign-up to the agent's first tool call, then every way to manage a plugin, on a fresh OIDC stack (hermetic issuer, mock model, OAuth tool server, serial)
 	# One stack of its own, booted fresh so the journey's sign-up is the
 	# server's first: the OIDC shape with the mock model and the OAuth MCP
 	# fixture whose login page carries an opener policy, the server
@@ -1253,11 +1253,13 @@ test-e2e-first-hour: ## Run a developer's first hour, sign-up to the agent's fir
 	# embedded step packs the built libraries, so they are built first;
 	# needs the built server and runner. A deployed target runs the same
 	# project with STIGMER_E2E_JOURNEY_TARGET and STIGMER_E2E_BASE_URL set
-	# (test/e2e/helpers/first-hour/target.ts).
+	# (test/e2e/helpers/first-hour/target.ts). After the journey, the
+	# plugin-manage project walks every way to manage a plugin on the same
+	# stack (local only; it skips on a deployed target).
 	npm ci
 	npm run build:libs
 	cd test/e2e && npx playwright install --with-deps chromium && \
-		STIGMER_E2E_OIDC=1 STIGMER_E2E_MOCK_LLM=1 STIGMER_E2E_FIRST_HOUR=1 npx playwright test --project=first-hour --workers=1
+		STIGMER_E2E_OIDC=1 STIGMER_E2E_MOCK_LLM=1 STIGMER_E2E_FIRST_HOUR=1 npx playwright test --project=first-hour --project=plugin-manage --workers=1
 
 test-e2e-single-org: ## Run the console E2E against the shipped server entry, which holds one organization (the open-source edition as a laptop runs it)
 	# One stack shape of its own: the shipped entry in the trusted-local

@@ -72,7 +72,7 @@ test.describe("a developer's app, on its own address, signs its user in to the t
     const appContext = await browser.newContext();
     try {
       const app = await appContext.newPage();
-      const signIn = app.getByRole("button", { name: `Sign in to ${TOOL_SERVER}` });
+      const signIn = app.getByRole("button", { name: `Sign in to ${TOOL_SERVER}`, exact: true });
       await test.step("the chat draws as the kit draws it, under the app's own stylesheet", async () => {
         await app.goto(`http://localhost:${APP_PORT}`);
         await expect(signIn).toBeVisible({ timeout: 60_000 });

@@ -37,9 +37,26 @@ the sign-in and lists the tools.
 
 ### Adding again
 
-Running `mcp add` again with the same name, address and headers changes
-nothing; with a changed address or headers it upgrades the plugin. Remove it
-with `stigmer delete plugin <name>`.
+Running `mcp add` again with the name of a plugin it made changes that plugin:
+the same address, headers and description change nothing, and a new address,
+new headers or `--description` upgrade it. The upgrade keeps what you do not
+give again: the plugin's visibility (unless `--visibility` is given) and its
+description (unless `--description` is). Agents and conversations that use the
+plugin reach the new address from their next message. A login is kept per
+address, so after a change of address you sign in again with
+`stigmer connect plugin <name>`.
+
+`mcp add` changes only a plugin of one server and nothing else, read from the
+installed plugin's own files. A plugin pushed from a folder (skills, hooks,
+several servers, or any other file) is refused rather than replaced by one
+server, naming what it holds: change its folder and run
+`stigmer push plugin <folder>`. To replace it with one server anyway, remove
+it first with `stigmer delete plugin <name>`. `--dry-run` says which it would
+do: install, change, or refuse.
+
+A plugin's name never changes: it is part of every tool name its agents use
+(`mcp__plugin_<name>_…`). To use another name, add the server again under that
+name, move your agents to it, and remove the old plugin.
 
 ## Examples
 
@@ -55,6 +72,14 @@ stigmer run --plugin linear -m "What's on my plate this week?"
 
 ```bash
 stigmer mcp add linear https://mcp.linear.app/mcp --dry-run
+```
+
+### Point a server at a new address
+
+```bash
+stigmer mcp add linear https://mcp.linear.app/v2/mcp --dry-run
+stigmer mcp add linear https://mcp.linear.app/v2/mcp
+stigmer connect plugin linear
 ```
 
 {/* AUTO_GLOBAL_FLAGS */}

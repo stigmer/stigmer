@@ -48,6 +48,13 @@ import {
  *   (helpers/first-hour/target.ts). Run via `make test-e2e-first-hour`, and
  *   in CI by ci.first-hour.yaml.
  *
+ * - **plugin-manage**: every way to manage a plugin (add, change address,
+ *   save a key, sign in and again, use from an agent, remove, and the way to
+ *   a new name), in the console and from the terminal, on the first-hour
+ *   stack after the journey, with a browser and a CLI of its own
+ *   (fixtures/plugin-manage.ts). Local stack only. Run in the same
+ *   invocation as first-hour.
+ *
  * Override the target with STIGMER_E2E_BASE_URL for staging or local.
  * When no STIGMER_E2E_BASE_URL is set, Playwright auto-starts the local
  * dev server and defaults to http://localhost:3000.
@@ -165,6 +172,17 @@ export default defineConfig({
       name: "first-hour",
       testDir: "./tests/first-hour",
       fullyParallel: false,
+      use: { ...devices["Desktop Chrome"] },
+    },
+    {
+      // Every way to manage a plugin, in the console and from the terminal
+      // (tests/plugin-manage), on the first-hour stack after the journey:
+      // the stack's one person in a browser and a CLI of their own, with
+      // plugins and agents of their own, so the journey's are untouched.
+      name: "plugin-manage",
+      testDir: "./tests/plugin-manage",
+      fullyParallel: false,
+      dependencies: ["first-hour"],
       use: { ...devices["Desktop Chrome"] },
     },
     {

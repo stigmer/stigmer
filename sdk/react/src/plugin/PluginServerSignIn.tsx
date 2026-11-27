@@ -4,7 +4,9 @@
  * One plugin server's sign-in, rendered as a cell: a status dot and a
  * word, a Sign in button when a sign-in is what stands between the server
  * and its first tool call, Sign out beside a login saved at its address,
- * one sentence when a key does.
+ * one sentence when a key does. A login made by signing in also offers
+ * Sign in again, which replaces it: the way back from a login the server
+ * has since expired or revoked.
  *
  * Three surfaces render it and must say the same thing: the plugin's
  * page, beside each MCP server; the session composer, for a server of the
@@ -48,6 +50,14 @@ export interface PluginServerSignInProps {
    * @default false
    */
   readonly optionalSignIn?: boolean;
+  /**
+   * Where the page offers to save a key the server reads: the plugin page
+   * lists its keys below the servers, each with Save to My vault, so the
+   * key-taking row says "Save it below". Elsewhere the row says the key is
+   * asked for when a conversation starts.
+   * @default false
+   */
+  readonly keysSavedBelow?: boolean;
   readonly className?: string;
 }
 
@@ -63,9 +73,16 @@ export interface PluginServerSignInProps {
  * }
  * ```
  */
-export function PluginServerSignIn({ org, server, onSignedIn, optionalSignIn = false, className }: PluginServerSignInProps) {
+export function PluginServerSignIn({
+  org,
+  server,
+  onSignedIn,
+  optionalSignIn = false,
+  keysSavedBelow = false,
+  className,
+}: PluginServerSignInProps) {
   const signIn = usePluginServerSignIn(org, server, onSignedIn, { optionalSignIn });
-  return <PluginServerSignInView name={server.name} signIn={signIn} className={className} />;
+  return <PluginServerSignInView name={server.name} signIn={signIn} keysSavedBelow={keysSavedBelow} className={className} />;
 }
 
 /** Every state of the cell sits in one right-aligned, wrapping row. */
@@ -74,10 +91,12 @@ const CELL = "stg:flex stg:min-w-0 stg:flex-wrap stg:items-center stg:justify-en
 function PluginServerSignInView({
   name,
   signIn,
+  keysSavedBelow,
   className,
 }: {
   readonly name: string;
   readonly signIn: UsePluginServerSignInReturn;
+  readonly keysSavedBelow: boolean;
   readonly className?: string;
 }) {
   const [confirming, setConfirming] = useState(false);
@@ -130,7 +149,19 @@ function PluginServerSignInView({
           <span className="stg:inline-flex" role="status">
             <StatusBadge phase="ready" label="Signed in" />
           </span>
-          {signIn.connection !== null && (
+          {signIn.canSignInAgain && (
+            <Button
+              variant="ghost"
+              size="xs"
+              onClick={signIn.signInAgain}
+              disabled={signIn.isSigningIn}
+              aria-label={`Sign in again to ${name}`}
+            >
+              {signIn.isSigningIn ? phaseLabel(signIn.phase) : "Sign in again"}
+            </Button>
+          )}
+          {signIn.isSigningIn && <CancelSignIn name={name} onCancel={signIn.cancelSignIn} />}
+          {signIn.connection !== null && !signIn.isSigningIn && (
             <Button variant="ghost" size="xs" onClick={() => setConfirming(true)} aria-label={`Sign out of ${name}`}>
               Sign out
             </Button>
@@ -164,8 +195,10 @@ function PluginServerSignInView({
     case "api-key":
       return (
         <span className={cn(root, "stg:text-muted-foreground")}>
-          Needs <code className="stg:font-mono stg:text-foreground">{signIn.declaredVariables.join(", ")}</code>; asked for when a
-          conversation that uses it starts.
+          Needs <code className="stg:font-mono stg:text-foreground">{signIn.declaredVariables.join(", ")}</code>
+          {keysSavedBelow
+            ? ". Save it below, or paste it when a conversation that uses it asks."
+            : "; asked for when a conversation that uses it starts."}
         </span>
       );
     case "open":

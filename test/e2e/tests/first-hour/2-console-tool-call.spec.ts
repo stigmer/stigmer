@@ -51,7 +51,7 @@ test.describe("a developer's agent calls their tool server, signed in from the c
     });
 
     await test.step("signs in from the plugin's page, and the sign-in window closes", async () => {
-      const signIn = page.getByRole("button", { name: `Sign in to ${TOOL_SERVER}` });
+      const signIn = page.getByRole("button", { name: `Sign in to ${TOOL_SERVER}`, exact: true });
       const opened = context.waitForEvent("page");
       await signIn.click();
       const popup = await opened;

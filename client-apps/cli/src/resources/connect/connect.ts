@@ -18,20 +18,32 @@
 // waiting for a browser. A server that accepts only a sign-in cannot be
 // listed by --dry-run: its token lives in the caller's vault on the server,
 // never on this machine.
+//
+// Signing in again: `--sign-in-again` runs the same sign-in even when My
+// vault already holds a login for the address, and the vault's own rule
+// replaces the saved login, so a login that expired or was revoked is
+// renewed without removing it first. Whether My vault already serves the
+// server is my-vault.ts's rule, the one `get plugin` reports with.
+//
+// A listing refused for its login (the server's sentence asking to check the
+// sign-in or key, or the runner's "requires OAuth" when the address answered
+// with a sign-in challenge) is said in the server's words, ending with the
+// command that signs in again.
 
 import { create } from "@bufbuild/protobuf";
 import type { Plugin } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/api_pb";
 import { ListPluginToolsInputSchema, type PluginTool } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/io_pb";
 import type { McpServerEntry } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/status_pb";
 import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import { PLACEHOLDER_PATTERN } from "@stigmer/plugin-package";
 import type { Stigmer } from "@stigmer/client";
-import { UsageError } from "../../errors/index.js";
+import { Code } from "@connectrpc/connect";
+import { classify, CliExitError, ExitCode, UsageError } from "../../errors/index.js";
 import { PlaceholderResolutionError } from "../mcp/placeholder-resolver.js";
 import { idPrefixOf, parseReference } from "../reference.js";
-import { holdsLoginFor, toolAddress } from "./address.js";
+import { toolAddress } from "./address.js";
 import { localDiscover } from "./discover.js";
-import { readMyVault, runSignIn } from "./sign-in.js";
+import { loginKeyOf, readMyVault, serverLogin } from "./my-vault.js";
+import { runSignIn } from "./sign-in.js";
 
 export interface ConnectOptions {
   /** The plugin, by id, org/slug or slug. */
@@ -48,6 +60,8 @@ export interface ConnectOptions {
   readonly probeLocalConsole: boolean;
   /** Whether an interactive terminal is available to run a sign-in. */
   readonly interactive: boolean;
+  /** `--sign-in-again`: sign in even when My vault holds a login, replacing it. */
+  readonly signInAgain?: boolean;
 }
 
 export interface ConnectResult {
@@ -65,6 +79,9 @@ export async function connectPlugin(client: Stigmer, opts: ConnectOptions): Prom
   const server = pickServer(plugin, name, opts.server);
 
   if (opts.dryRun) {
+    if (opts.signInAgain === true) {
+      throw new UsageError("--sign-in-again signs in through the server, so it cannot run with --dry-run");
+    }
     if (server.signIn?.oauthOnly === true) throw signInOnlyDryRunError(name, server);
     try {
       const tools = await localDiscover(server, plugin.status?.env ?? {}, opts.timeoutMs);
@@ -79,14 +96,47 @@ export async function connectPlugin(client: Stigmer, opts: ConnectOptions): Prom
 
   const rerun = connectCommand(name, server, plugin.status?.mcpServers.length ?? 1);
   await ensureSignedIn(client, name, server, rerun, opts);
-  const listed = await client.plugin.listTools(
-    create(ListPluginToolsInputSchema, {
-      pluginId: plugin.metadata?.id ?? "",
-      server: server.name,
-      org: opts.org,
-    }),
+  try {
+    const listed = await client.plugin.listTools(
+      create(ListPluginToolsInputSchema, {
+        pluginId: plugin.metadata?.id ?? "",
+        server: server.name,
+        org: opts.org,
+      }),
+    );
+    return { plugin, server, tools: listed.tools, dryRun: false };
+  } catch (err) {
+    if (server.signIn !== undefined && isLoginRefusal(err)) throw loginRefusedError(err, `${rerun} --sign-in-again`);
+    throw err;
+  }
+}
+
+// The listing's own sentences for a login the server refused: the server's
+// ask to check the sign-in or key, and the runner's sign-in challenge.
+const LOGIN_REFUSALS = ["your sign-in or key is valid", "requires OAuth"];
+
+function isLoginRefusal(err: unknown): err is Error {
+  return err instanceof Error && LOGIN_REFUSALS.some((words) => err.message.includes(words));
+}
+
+/** The command's last line when a listing was refused for its login. */
+export function signInAgainHint(command: string): string {
+  return `If your login has expired or was revoked, run ${command}.`;
+}
+
+// The refusal as the CLI prints any refusal of its status (its words, its
+// exit code, its hints), with the way to a fresh login after it. A refusal
+// sent as Internal keeps the server's own sentence, which the generic
+// "Internal server error" would hide (stigmer#3511).
+function loginRefusedError(err: Error, command: string): CliExitError {
+  const classified = classify(err);
+  const own = classified !== null && classified.code !== Code.Internal ? classified : null;
+  return new CliExitError(
+    own?.message ?? err.message,
+    classified?.exitCode ?? ExitCode.General,
+    [...(own?.hints ?? []), signInAgainHint(command)],
+    { cause: err },
   );
-  return { plugin, server, tools: listed.tools, dryRun: false };
 }
 
 /** The command that connects this server again, for guidance. */
@@ -128,16 +178,6 @@ function pickServer(plugin: Plugin, name: string, wanted: string | undefined): M
   return servers[0];
 }
 
-// The variables an address's headers name: a signing-in server's login key
-// is the one its Authorization header carries.
-function loginKeysOf(headers: Readonly<Record<string, string>>): string[] {
-  const keys: string[] = [];
-  for (const value of Object.values(headers)) {
-    for (const match of value.matchAll(PLACEHOLDER_PATTERN)) keys.push(match[1]);
-  }
-  return keys;
-}
-
 // Make sure a server that takes a sign-in has a login in My vault before
 // listing: run the browser sign-in on a terminal, or stop with guidance.
 async function ensureSignedIn(
@@ -147,27 +187,30 @@ async function ensureSignedIn(
   rerun: string,
   opts: ConnectOptions,
 ): Promise<void> {
-  if (server.signIn === undefined || server.transport.case !== "http") return;
+  const again = opts.signInAgain === true;
+  if (server.signIn === undefined || server.transport.case !== "http") {
+    if (again) throw new UsageError(`MCP server '${server.name}' of plugin '${plugin}' does not sign in, so there is no login to replace`);
+    return;
+  }
   const address = toolAddress(server.transport.value.url);
-  if (address === undefined) return;
-
-  const oauthOnly = server.signIn.oauthOnly;
-  const loginKey = oauthOnly ? undefined : loginKeysOf(server.transport.value.headers)[0];
-  const vault = await readMyVault(client, opts.org);
-  if (vault !== undefined) {
-    if (holdsLoginFor(vault.spec?.connections ?? {}, address)) return;
-    // A server that also accepts a pasted key is satisfied by one saved under
-    // its login key; one that accepts only a sign-in refuses static keys.
-    if (loginKey !== undefined && Object.hasOwn(vault.spec?.secrets ?? {}, loginKey)) return;
+  if (address === undefined) {
+    if (again) throw new UsageError(`MCP server '${server.name}' of plugin '${plugin}' names no address a login is saved at`);
+    return;
   }
 
-  if (!opts.interactive) throw signInGuidanceError(plugin, server, rerun, loginKey);
+  const oauthOnly = server.signIn.oauthOnly;
+  const loginKey = oauthOnly ? undefined : loginKeyOf(server);
+  // A server that also accepts a pasted key is satisfied by one saved under
+  // its login key; one that accepts only a sign-in refuses static keys.
+  if (!again && serverLogin(await readMyVault(client, opts.org), server).signedIn) return;
+
+  if (!opts.interactive) throw signInGuidanceError(plugin, server, again ? `${rerun} --sign-in-again` : rerun, loginKey);
 
   await runSignIn({
     client,
     address,
     serverName: server.name,
-    rerun,
+    rerun: again ? `${rerun} --sign-in-again` : rerun,
     org: opts.org,
     consoleURL: opts.consoleURL,
     probeLocalConsole: opts.probeLocalConsole,

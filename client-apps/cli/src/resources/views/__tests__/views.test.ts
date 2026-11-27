@@ -5,7 +5,9 @@
 // when styled), the shared words (references, spans, tokens, the
 // instructions cut, schedules in words), each view's branches, `hideOrg`
 // on every view, the generic view's Created and Updated, `renderGet`'s
-// dispatch, and that `get` loads the views lazily. Inputs are the fixed
+// dispatch (a plugin's view reading My vault in the plugin's organization,
+// and saying nothing it could not read), and that `get` loads the views
+// lazily. Inputs are the fixed
 // protos in views/__fixtures__; nothing reads the clock.
 
 import { readFileSync } from "node:fs";
@@ -23,10 +25,12 @@ import { SkillSchema } from "@stigmer/apis/ai/stigmer/agentic/skill/v1/api_pb";
 import { VaultSchema } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/api_pb";
 import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { OrganizationSchema } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/api_pb";
+import { PluginSchema } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/api_pb";
 import type { Stigmer } from "@stigmer/client";
 import { describe, expect, it } from "vitest";
 import { protoToJsonValue, styler, terminalWidth } from "../../../output/index.js";
 import { defaultRegistry, Verb } from "../../../registry/index.js";
+import { renameSentence } from "../plugin.js";
 import { asObject, instant, type JsonObject, renderResource } from "../../render.js";
 import * as fixtures from "../__fixtures__/resources.js";
 import { GENERIC_VIEW_KINDS, renderGet, VIEWS } from "../index.js";
@@ -57,6 +61,7 @@ const ALL: ReadonlyArray<[name: string, kind: ApiResourceKind, schema: DescMessa
   ["organization", ApiResourceKind.organization, OrganizationSchema, fixtures.organization],
   ["routine", ApiResourceKind.routine, RoutineSchema, fixtures.routine],
   ["environment", ApiResourceKind.environment, EnvironmentSchema, fixtures.environment],
+  ["plugin", ApiResourceKind.plugin, PluginSchema, fixtures.plugin],
 ];
 
 describe("CLI-09 the registry sweep: every kind get serves has a view or is named generic", () => {
@@ -627,6 +632,30 @@ describe("CLI-09 renderGet: json and yaml whole, a designed view for its kinds, 
     expect(await renderGet(client, ApiResourceKind.vault, VaultSchema, vault, "table")).toBe(renderResource(VaultSchema, vault, "table"));
   });
 
+  it("draws a plugin's view with My vault, read in the plugin's organization", async () => {
+    const asked: string[] = [];
+    const vaultClient = {
+      vault: {
+        getMine: async (input: { org: string }) => {
+          asked.push(input.org);
+          return fixtures.pluginVault;
+        },
+      },
+    } as unknown as Stigmer;
+    const out = await renderGet(vaultClient, ApiResourceKind.plugin, PluginSchema, fixtures.plugin, "table", { orgLabel: "acme" });
+    expect(asked).toEqual([fixtures.ACME_ID]);
+    expect(out).toContain("Signed in. To sign in again:");
+    expect(out).toContain("Not signed in. To sign in:");
+  });
+
+  it("leaves a plugin's saved states unsaid when My vault cannot be read", async () => {
+    const failing = { vault: { getMine: async () => Promise.reject(new Error("denied")) } } as unknown as Stigmer;
+    const out = await renderGet(failing, ApiResourceKind.plugin, PluginSchema, fixtures.plugin, "table");
+    expect(out).toContain("Signs in. To sign in:");
+    expect(out).not.toContain("My vault.");
+    expect(out).not.toContain("Signed in");
+  });
+
   it("reads the terminal's width on a terminal and none piped", () => {
     expect(terminalWidth({ isTTY: true, columns: 80 })).toBe(80);
     expect(terminalWidth({ isTTY: true, columns: 0 })).toBeUndefined();
@@ -641,5 +670,12 @@ describe("CLI-09 get loads the views lazily, inside its action", () => {
     const source = readFileSync(new URL("../../../commands/get.ts", import.meta.url), "utf8");
     expect(source).not.toMatch(/^\s*import\s+(?!type\s)[^;]*?from\s+["'][^"']*resources\/views/m);
     expect(source).toContain('import("../resources/views/index.js")');
+  });
+});
+
+describe("the plugin view's name sentence", () => {
+  it("names the tool prefix as tool names write it, a dotted name's dot as an underscore", () => {
+    expect(renameSentence("acme.tools")).toContain("(mcp__plugin_acme_tools_…)");
+    expect(renameSentence("linear")).toContain("(mcp__plugin_linear_…)");
   });
 });

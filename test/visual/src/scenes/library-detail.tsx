@@ -1,7 +1,9 @@
 // The Library's detail pages in the states their drawings name and no other
 // scene draws: an agent page while it loads, when its read fails and when
-// the agent isn't there; a plugin's page, its Remove asked first and its
-// Evals; an environment's page, its network being changed and a member's
+// the agent isn't there; a plugin's page (a plugin of one server, signed in,
+// one key saved and one not; a plugin pushed from a folder), its Change
+// address form, a key's Save to My vault form, its Remove asked first and
+// its Evals; an environment's page, its network being changed and a member's
 // read-only view; and the skill upload page after a package is chosen
 // or refused.
 //
@@ -9,8 +11,12 @@
 // scene hands the page's own file input a .zip built here, as a person's
 // drop would, once the page is drawn.
 import { useEffect, type ReactElement } from "react";
-import { clone } from "@bufbuild/protobuf";
+import { clone, create } from "@bufbuild/protobuf";
 import { PluginSchema } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/api_pb";
+import { McpServerEntrySchema, PluginSkillSchema, PluginAgentSchema } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/status_pb";
+import { EnvVarDeclarationSchema } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/declaration_pb";
+import { VaultSchema } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/api_pb";
+import { VaultConnectionSource } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/spec_pb";
 import { Code, ConnectError, type ConnectRouter } from "@connectrpc/connect";
 import { strToU8, zipSync } from "fflate";
 import { AgentQueryController } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/query_pb";
@@ -71,41 +77,97 @@ export function agentPageReadScene(read: AgentPageRead): Drawing {
   };
 }
 
-/** The plugin the Library's plugin page shows: acme's ledger tools, one MCP server. */
-const LEDGER_TOOLS = samples.plugin({
-  id: "plg_00000000000000000000000081",
-  name: "ledger-tools",
-  org: ORG_ID,
-  description: "Reads and posts to acme's general ledger.",
-  serverUrl: "https://ledger.acme.example/mcp",
-});
+const LEDGER_URL = "https://ledger.acme.example/mcp";
+const LEDGER_HEADERS = { Authorization: "Bearer ${LEDGER_TOKEN}", "X-Ledger-Company": "${LEDGER_COMPANY}" };
+const LEDGER_DESCRIPTION = "Reads and posts to acme's general ledger.";
 
-function pluginRoutes(router: ConnectRouter, may: boolean): void {
+/**
+ * The plugin the Library's plugin page shows: acme's ledger tools, a plugin
+ * of one MCP server (what Add MCP server makes), which signs in and sends a
+ * company id the person pastes. Its files are the two the console and the
+ * CLI write, at its installed digest, so the page offers Change address.
+ */
+const LEDGER_TOOLS = (() => {
+  const plugin = samples.plugin({
+    id: "plg_00000000000000000000000081",
+    name: "ledger-tools",
+    org: ORG_ID,
+    description: LEDGER_DESCRIPTION,
+    serverUrl: LEDGER_URL,
+  });
+  const server = plugin.status!.mcpServers[0]!;
+  if (server.transport.case === "http") server.transport.value.headers = { ...LEDGER_HEADERS };
+  server.env = ["LEDGER_TOKEN", "LEDGER_COMPANY"];
+  plugin.status!.digest = "5e".repeat(32);
+  plugin.status!.env = {
+    LEDGER_TOKEN: create(EnvVarDeclarationSchema, { isSecret: true, description: "The ledger login." }),
+    LEDGER_COMPANY: create(EnvVarDeclarationSchema, { isSecret: false, description: "Which of acme's companies the ledger posts to." }),
+  };
+  return plugin;
+})();
+
+/** Its two files, as Add MCP server writes them: the manifest and the one server. */
+const LEDGER_FILES = new Map([
+  [".claude-plugin/plugin.json", `${JSON.stringify({ name: "ledger-tools", description: LEDGER_DESCRIPTION }, null, 2)}\n`],
+  [".mcp.json", `${JSON.stringify({ mcpServers: { "ledger-tools": { type: "http", url: LEDGER_URL, headers: LEDGER_HEADERS } } }, null, 2)}\n`],
+]);
+
+/** The same plugin pushed from a folder: a skill, an agent and a second server beside the ledger. */
+const LEDGER_PACKAGE = (() => {
+  const plugin = clone(PluginSchema, LEDGER_TOOLS);
+  const status = plugin.status!;
+  status.skills = [create(PluginSkillSchema, { name: "month-end", description: "Closes the month: reconciles, then posts the adjustments." })];
+  status.agents = [create(PluginAgentSchema, { name: "reviewer", description: "Reviews a month's postings before they close." })];
+  status.mcpServers.push(
+    create(McpServerEntrySchema, {
+      name: "reports",
+      transport: { case: "stdio", value: { command: "npx", args: ["ledger-reports-mcp"] } },
+      env: ["REPORTS_KEY"],
+    }),
+  );
+  status.env.REPORTS_KEY = create(EnvVarDeclarationSchema, { isSecret: true, description: "The reports service's key." });
+  return plugin;
+})();
+
+/** Which plugin the page shows: the one-server plugin, or the plugin pushed from a folder. */
+export type PluginShape = "one-server" | "package";
+
+function pluginRoutes(router: ConnectRouter, may: boolean, shape: PluginShape = "one-server"): void {
   baseRoutes(router, may);
+  const plugin = shape === "one-server" ? LEDGER_TOOLS : LEDGER_PACKAGE;
+  const encoder = new TextEncoder();
   router.service(PluginQueryController, {
-    getByReference: () => LEDGER_TOOLS,
-    get: () => LEDGER_TOOLS,
+    getByReference: () => plugin,
+    get: () => plugin,
     listVersions: () => ({ entries: [] }),
+    listFiles: () => ({ files: [...LEDGER_FILES.keys()].map((path) => ({ path })) }),
+    readFile: (input) => ({ content: encoder.encode(LEDGER_FILES.get(input.path) ?? "") }),
   });
   router.service(AgentQueryController, { list: () => ({ entries: [] }) });
-  // No vault holds a sign-in yet: the person's own My vault isn't made.
+  // The person signed in to the ledger; the company id isn't saved yet.
+  const myVault = create(VaultSchema, {
+    metadata: { org: ORG_ID, slug: "mine" },
+    spec: { owner: { case: "person", value: ACCOUNT.metadata?.id ?? "" }, connections: { [LEDGER_URL]: { source: VaultConnectionSource.sign_in } } },
+  });
   router.service(VaultQueryController, {
     list: () => ({ entries: [] }),
-    getMine: () => {
-      throw new ConnectError("no My vault yet", Code.NotFound);
-    },
+    getMine: () => myVault,
   });
 }
 
-/** The plugin's page as an admin sees it; with `removing`, its Remove asked first in the destructive confirm. */
-export function pluginDetailScene(removing = false): Drawing {
+/**
+ * The plugin's page as an admin sees it: the plugin of one server, or the
+ * one pushed from a folder; with `removing`, its Remove asked first in the
+ * destructive confirm.
+ */
+export function pluginDetailScene(removing = false, shape: PluginShape = "one-server"): Drawing {
   return {
     inOrganization: true,
-    routes: (router) => pluginRoutes(router, true),
+    routes: (router) => pluginRoutes(router, true, shape),
     render: () =>
       column(
         <>
-          <PluginDetailView headingLevel={1} org={ORG_SLUG} slug={LEDGER_TOOLS.metadata?.slug ?? ""} />
+          <PluginDetailView headingLevel={1} org={ORG_SLUG} slug={LEDGER_TOOLS.metadata?.slug ?? ""} onUploadNewVersion={() => {}} />
           <ConfirmDialog
             state={
               removing

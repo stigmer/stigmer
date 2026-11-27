@@ -13,15 +13,26 @@
  * backdrop, so what was typed is never lost to a stray click. The headers
  * are `HeaderRowsEditor`'s, which says once that a value names a key as
  * `${NAME}` rather than validating names the reader checks anyway.
+ *
+ * `ChangeMcpServerDialog` is the same form in its change mode, opened from
+ * a one-server plugin's page: the name is fixed (it is part of every tool
+ * name the plugin's agents use), the address, description and headers
+ * start from the plugin's own files (`useOneServerPlugin`), and saving
+ * pushes a new version at the plugin's visibility (`useAddMcpServer`'s
+ * `change`). A form with nothing changed saves nothing: the two documents
+ * it would write are compared with the plugin's, and Save stays off until
+ * they differ. Not exported from the package: the plugin page is its one
+ * host.
  */
 
 import { type FormEvent, useId, useState } from "react";
 import { cn } from "@stigmer/design-tokens";
 import type { Plugin } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/api_pb";
+import { type OneServerPlugin, oneServerPluginDocuments } from "@stigmer/plugin-package";
 import { Button } from "../button/Button.js";
 import { ErrorMessage } from "../error/ErrorMessage.js";
 import { DialogBody, DialogFooter, DialogHeader, DialogShell } from "../internal/DialogShell.js";
-import { type HeaderRow, HeaderRowsEditor } from "./HeaderRowsEditor.js";
+import { type HeaderRow, HeaderRowsEditor, headerRowsOf } from "./HeaderRowsEditor.js";
 import { PrepareRefusal } from "./InstallPreview.js";
 import { PluginReadRefusal } from "./sources/read.js";
 import { useAddMcpServer } from "./useAddMcpServer.js";
@@ -72,37 +83,76 @@ export function AddMcpServerDialog({ org, open, onClose, onAdded, className }: A
   );
 }
 
+/** Props for {@link ChangeMcpServerDialog}. */
+export interface ChangeMcpServerDialogProps {
+  /** The installed one-server plugin, as the page read it. */
+  readonly plugin: Plugin;
+  /** Its server as its files say (`useOneServerPlugin`): what the form starts from. */
+  readonly current: OneServerPlugin;
+  readonly open: boolean;
+  readonly onClose: () => void;
+  /** Called with the new version once it is installed; the page reads the plugin again. */
+  readonly onChanged?: (plugin: Plugin) => void;
+  readonly className?: string;
+}
+
+/** Changes a one-server plugin's address, headers or description by pushing a new version. */
+export function ChangeMcpServerDialog({ plugin, current, open, onClose, onChanged, className }: ChangeMcpServerDialogProps) {
+  const titleId = useId();
+  return (
+    <DialogShell
+      open={open}
+      onOpenChange={(next) => {
+        if (!next) onClose();
+      }}
+      width="md"
+      dismissOnBackdrop={false}
+      className={cn("stg:max-h-[85vh] stg:bg-card stg:text-foreground", className)}
+      aria-labelledby={titleId}
+    >
+      {open && (
+        <AddMcpServerForm
+          org={plugin.metadata?.org ?? ""}
+          titleId={titleId}
+          onClose={onClose}
+          change={{ plugin, current }}
+          onAdded={onChanged}
+        />
+      )}
+    </DialogShell>
+  );
+}
+
 function AddMcpServerForm({
   org,
   titleId,
   onClose,
   onAdded,
+  change,
 }: {
   readonly org: string;
   readonly titleId: string;
   readonly onClose: () => void;
   readonly onAdded?: (plugin: Plugin) => void;
+  /** The change mode: the plugin replaced and the server it holds now. */
+  readonly change?: { readonly plugin: Plugin; readonly current: OneServerPlugin };
 }) {
   const baseId = useId();
-  const { add, isAdding, error } = useAddMcpServer();
-  const [name, setName] = useState("");
-  const [url, setUrl] = useState("");
-  const [description, setDescription] = useState("");
-  const [headers, setHeaders] = useState<readonly HeaderRow[]>([]);
-  const canSubmit = name.trim() !== "" && url.trim() !== "" && !isAdding;
+  const { add, change: changeServer, isAdding, error } = useAddMcpServer();
+  const current = change?.current;
+  const [name, setName] = useState(current?.name ?? "");
+  const [url, setUrl] = useState(current?.url ?? "");
+  const [description, setDescription] = useState(current?.description ?? "");
+  const [headers, setHeaders] = useState<readonly HeaderRow[]>(() => headerRowsOf(current?.headers ?? {}));
+  const input = { name, url, description, headers: Object.fromEntries(headers.map((row) => [row.key, row.value])) };
+  const unchanged = current !== undefined && sameDocuments(oneServerPluginDocuments(input), oneServerPluginDocuments(current));
+  const canSubmit = name.trim() !== "" && url.trim() !== "" && !isAdding && !unchanged;
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!canSubmit) return;
-    void add(
-      {
-        name,
-        url,
-        description,
-        headers: Object.fromEntries(headers.map((row) => [row.key, row.value])),
-      },
-      { org },
-    ).then(
+    const pushed = change !== undefined ? changeServer(input, { plugin: change.plugin }) : add(input, { org });
+    void pushed.then(
       (plugin) => onAdded?.(plugin),
       () => undefined,
     );
@@ -112,8 +162,12 @@ function AddMcpServerForm({
     <form onSubmit={handleSubmit} className="stg:flex stg:max-h-[85vh] stg:flex-col stg:overflow-y-auto">
       <DialogHeader
         id={titleId}
-        title="Add MCP server"
-        description="Installs a plugin of this one server. A chat or an agent that uses the plugin gets the server's tools; if the server asks you to sign in, its plugin page says so."
+        title={change !== undefined ? `Change ${current?.name ?? ""}` : "Add MCP server"}
+        description={
+          change !== undefined
+            ? "Agents and conversations that use it reach the new address from their next message. A login is kept per address, so you sign in again at the new one."
+            : "Installs a plugin of this one server. A chat or an agent that uses the plugin gets the server's tools; if the server asks you to sign in, its plugin page says so."
+        }
         onClose={onClose}
         closeDisabled={isAdding}
       />
@@ -131,8 +185,13 @@ function AddMcpServerForm({
           autoComplete="off"
           spellCheck={false}
           disabled={isAdding}
+          readOnly={change !== undefined}
         />
-        <p className="stg:text-xs stg:text-muted-foreground">Lowercase letters, digits, dots and hyphens. The plugin is named after it.</p>
+        <p className="stg:text-xs stg:text-muted-foreground">
+          {change !== undefined
+            ? "The name is part of every tool name its agents use, so it doesn't change."
+            : "Lowercase letters, digits, dots and hyphens. The plugin is named after it."}
+        </p>
       </div>
 
       <div className="stg:space-y-1">
@@ -168,7 +227,12 @@ function AddMcpServerForm({
       {error instanceof PluginReadRefusal ? (
         <PrepareRefusal error={error} />
       ) : (
-        error && <ErrorMessage error={error} title="Couldn't add the server." />
+        error && <ErrorMessage error={error} title={change !== undefined ? "Couldn't change the server." : "Couldn't add the server."} />
+      )}
+      {unchanged && (
+        <p className="stg:text-xs stg:text-muted-foreground" role="status">
+          Change the address, the description or a header to save a new version.
+        </p>
       )}
 
       </DialogBody>
@@ -177,9 +241,14 @@ function AddMcpServerForm({
           Cancel
         </Button>
         <Button type="submit" variant="primary" disabled={!canSubmit}>
-          {isAdding ? "Adding…" : "Add"}
+          {change !== undefined ? (isAdding ? "Saving…" : "Save") : isAdding ? "Adding…" : "Add"}
         </Button>
       </DialogFooter>
     </form>
   );
+}
+
+/** Whether two one-server plugins' documents are byte for byte the same. */
+function sameDocuments(a: ReadonlyMap<string, string>, b: ReadonlyMap<string, string>): boolean {
+  return a.size === b.size && [...a].every(([path, text]) => b.get(path) === text);
 }

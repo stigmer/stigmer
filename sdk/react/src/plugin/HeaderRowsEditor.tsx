@@ -17,6 +17,7 @@
 
 import { cn } from "@stigmer/design-tokens";
 import { Button } from "../button/Button.js";
+import { UNSTYLED_FIELDSET } from "../internal/element-resets.js";
 import { TextInput } from "../internal/form/index.js";
 
 /** One header being edited: its name and value, under an id stable for the edit. */
@@ -52,7 +53,7 @@ export function headerRowsOf(headers: Readonly<Record<string, string>>): HeaderR
 export function HeaderRowsEditor({ rows, onChange, disabled = false, className }: HeaderRowsEditorProps) {
   const nextId = rows.reduce((max, row) => Math.max(max, row.id), 0) + 1;
   return (
-    <fieldset className={cn("stg:space-y-1.5", className)}>
+    <fieldset className={cn(UNSTYLED_FIELDSET, "stg:space-y-1.5", className)}>
       <legend className="stg:text-xs stg:font-medium stg:text-muted-foreground">
         Headers <span className="stg:text-muted-foreground">(optional)</span>
       </legend>

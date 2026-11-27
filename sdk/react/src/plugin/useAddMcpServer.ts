@@ -1,16 +1,15 @@
 "use client";
 
 /**
- * "Add MCP server": an MCP server at an address becomes a plugin of one
- * server, built in the browser and installed through the plugin push, the
- * one way anything is installed. There is no MCP server resource: a server
- * is an entry in a plugin or in an agent's own mcp_servers, and a plugin
- * this small is two files.
+ * "Add MCP server" and "Change address": an MCP server at an address
+ * becomes a plugin of one server, built in the browser and installed
+ * through the plugin push, the one way anything is installed. There is no
+ * MCP server resource: a server is an entry in a plugin or in an agent's
+ * own mcp_servers, and a plugin this small is two files.
  *
- * The files are the Claude Code layout every client reads: a
- * `.claude-plugin/plugin.json` naming the plugin after the server, and a
- * `.mcp.json` holding the one HTTP entry (`{"mcpServers": {"<name>":
- * {"type": "http", "url": ..., "headers": {...}}}}`). They go through the
+ * The files are `@stigmer/plugin-package`'s `oneServerPluginDocuments`,
+ * the builder the CLI's `stigmer mcp add` writes with too, so the same
+ * server added on either surface has the same digest. They go through the
  * library's preparation (`preparePluginArchive`, which reads them with the
  * reader the server installs with and archives them with `archivePlugin`),
  * so a refusal arrives before the push, in the reader's sentences, and the
@@ -19,9 +18,13 @@
  * asks for it like any other key. A server that answers with a sign-in
  * challenge is marked to sign in by the server at install.
  *
- * A plugin of the same name already installed is refused here rather than
- * replaced: the form adds a server, and a push of the same name would
- * replace whatever that plugin holds.
+ * `add` refuses a plugin of the same name already installed rather than
+ * replace it: the form adds a server, and a push of the same name would
+ * replace whatever that plugin holds. `change` is the one replacement:
+ * it pushes a new version of a plugin the page read as one server
+ * (`useOneServerPlugin`), refuses if the plugin moved on since that read,
+ * and keeps the plugin's visibility, since a push that names none installs
+ * at the kind's default.
  */
 
 import { useCallback, useMemo, useState } from "react";
@@ -29,7 +32,7 @@ import { create } from "@bufbuild/protobuf";
 import type { Plugin } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/api_pb";
 import { PushPluginRequestSchema } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/io_pb";
 import type { ApiResourceVisibility } from "@stigmer/apis/ai/stigmer/commons/apiresource/enum_pb";
-import { inMemoryPluginFiles } from "@stigmer/plugin-package";
+import { inMemoryPluginFiles, oneServerPluginDocuments } from "@stigmer/plugin-package";
 import { type PreparedPlugin, preparePluginArchive } from "@stigmer/plugin-package/client";
 import { isNotFound } from "@stigmer/client";
 import { useStigmer } from "@stigmer/react-core";
@@ -55,31 +58,36 @@ export interface AddMcpServerOptions {
   readonly visibility?: ApiResourceVisibility;
 }
 
+/** Which installed plugin a change replaces: the one the form was read from. */
+export interface ChangeMcpServerOptions {
+  /** The plugin as the page read it; its organization, slug, visibility and digest are the change's. */
+  readonly plugin: Plugin;
+}
+
 /** Return value of {@link useAddMcpServer}. */
 export interface UseAddMcpServerReturn {
   /** Build, check and install the one-server plugin. Resolves with the installed plugin; rejects with the reader's or the server's refusal. */
   readonly add: (input: McpServerFormInput, options: AddMcpServerOptions) => Promise<Plugin>;
+  /**
+   * Push a new version of a one-server plugin: the same name, the form's
+   * address, headers and description, at the plugin's current visibility.
+   * Refused without a push when the installed version is no longer the
+   * one the form was read from.
+   */
+  readonly change: (input: McpServerFormInput, options: ChangeMcpServerOptions) => Promise<Plugin>;
+  /** `true` while an add or a change is in flight. */
   readonly isAdding: boolean;
   /** The last refusal: a `PluginReadRefusal` for the reader's, an `Error` otherwise. */
   readonly error: Error | null;
   readonly clearError: () => void;
 }
 
-/** The plugin files for one HTTP server, by path, in the layout every client reads. */
+/**
+ * The plugin files for one HTTP server, by path, in the layout every client
+ * reads: `oneServerPluginDocuments`, the builder the CLI shares.
+ */
 export function mcpServerPluginFiles(input: McpServerFormInput): Map<string, string> {
-  const name = input.name.trim();
-  const description = input.description?.trim() ?? "";
-  const headers = Object.fromEntries(
-    Object.entries(input.headers ?? {})
-      .map(([key, value]) => [key.trim(), value.trim()] as const)
-      .filter(([key]) => key !== ""),
-  );
-  const manifest = { name, ...(description !== "" && { description }) };
-  const server = { type: "http", url: input.url.trim(), ...(Object.keys(headers).length > 0 && { headers }) };
-  return new Map([
-    [".claude-plugin/plugin.json", `${JSON.stringify(manifest, null, 2)}\n`],
-    [".mcp.json", `${JSON.stringify({ mcpServers: { [name]: server } }, null, 2)}\n`],
-  ]);
+  return oneServerPluginDocuments(input);
 }
 
 /**
@@ -156,7 +164,39 @@ export function useAddMcpServer(): UseAddMcpServerReturn {
     [stigmer],
   );
 
+  const change = useCallback(
+    async (input: McpServerFormInput, options: ChangeMcpServerOptions): Promise<Plugin> => {
+      const meta = options.plugin.metadata;
+      const org = meta?.org ?? "";
+      const slug = meta?.slug ?? "";
+      setIsAdding(true);
+      setError(null);
+      try {
+        const prepared = await prepareMcpServerPlugin({ ...input, name: slug });
+        const current = await stigmer.plugin.getByReference({ org, slug });
+        if ((current.status?.digest ?? "") !== (options.plugin.status?.digest ?? "")) {
+          throw new Error(`'${slug}' was changed since this page read it; reload the page and try again`);
+        }
+        return await stigmer.plugin.push(
+          create(PushPluginRequestSchema, {
+            org,
+            artifact: prepared.archive,
+            message: "address changed from the console",
+            visibility: current.metadata?.visibility ?? meta?.visibility,
+          }),
+        );
+      } catch (err) {
+        const failure = err instanceof PluginReadRefusal ? err : toError(err);
+        setError(failure);
+        throw failure;
+      } finally {
+        setIsAdding(false);
+      }
+    },
+    [stigmer],
+  );
+
   const clearError = useCallback(() => setError(null), []);
 
-  return useMemo(() => ({ add, isAdding, error, clearError }), [add, isAdding, error, clearError]);
+  return useMemo(() => ({ add, change, isAdding, error, clearError }), [add, change, isAdding, error, clearError]);
 }

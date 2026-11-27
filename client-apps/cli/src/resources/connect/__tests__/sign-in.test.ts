@@ -30,7 +30,8 @@ import { StigmerError } from "@stigmer/client";
 import { describe, expect, it } from "vitest";
 import { UsageError } from "../../../errors/index.js";
 import { holdsLoginFor, toolAddress } from "../address.js";
-import { readMyVault, runSignIn, type SignInClient, type SignInDeps, waitForSignIn } from "../sign-in.js";
+import { readMyVault } from "../my-vault.js";
+import { runSignIn, type SignInClient, type SignInDeps, waitForSignIn } from "../sign-in.js";
 
 const ADDRESS = "https://mcp.linear.app/mcp";
 

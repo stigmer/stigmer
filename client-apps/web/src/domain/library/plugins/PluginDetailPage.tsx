@@ -102,6 +102,7 @@ export function PluginDetailPageInner({ org, slug }: PluginDetailPageInnerProps)
         onResourceLoad={handleResourceLoad}
         onStartChat={({ org: o, slug: s }) => router.push(getPluginChatUrl(o, s))}
         onAgentClick={({ org: o, slug: s }) => navigateToDetail("agents", o, s)}
+        onUploadNewVersion={() => router.push("/library/plugins/upload")}
         onNavigateToRun={navigateToRun}
         actions={actions}
       />

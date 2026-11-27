@@ -140,7 +140,7 @@ export type { HeaderRow, HeaderRowsEditorProps } from "./HeaderRowsEditor.js";
 export { useCanCreatePlugin } from "./useCanCreatePlugin.js";
 export type { UseCanCreatePluginReturn } from "./useCanCreatePlugin.js";
 export { mcpServerPluginFiles, prepareMcpServerPlugin, useAddMcpServer } from "./useAddMcpServer.js";
-export type { AddMcpServerOptions, McpServerFormInput, UseAddMcpServerReturn } from "./useAddMcpServer.js";
+export type { AddMcpServerOptions, ChangeMcpServerOptions, McpServerFormInput, UseAddMcpServerReturn } from "./useAddMcpServer.js";
 export { AddPluginToAgentDialog } from "./AddPluginToAgentDialog.js";
 export type { AddPluginToAgentDialogProps } from "./AddPluginToAgentDialog.js";
 export { toolsLeaveOut, useAddPluginToAgent } from "./useAddPluginToAgent.js";

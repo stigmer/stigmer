@@ -96,11 +96,14 @@ The default view is designed for each kind a person reads: an agent shows the
 start of its instructions, its skills, MCP servers, tools, subagents, plugins,
 Environment and run settings; a skill its version, where it was pushed from and
 the start of its SKILL.md; a session its agent, state and newest runs; a run how
-it went; a routine its schedule in words; an Environment its hosts and packages.
-Other kinds show their name, slug, description and when they were created and
-changed. On a terminal the view wraps at the window's width; piped, nothing is
-wrapped or cut. A long text shows its first 12 lines; `--output yaml` prints it
-whole.
+it went; a routine its schedule in words; an Environment its hosts and packages;
+a plugin its servers (with whether you are signed in to each and the command
+that signs in, again or out), its keys (how each is filled, whether My vault
+holds it, and the command that saves it), its skills and agents by the names a
+turn uses, and how it changes and is removed. Other kinds show their name, slug,
+description and when they were created and changed. On a terminal the view wraps
+at the window's width; piped, nothing is wrapped or cut. A long text shows its
+first 12 lines; `--output yaml` prints it whole.
 
 ```bash
 # Export an agent definition as YAML

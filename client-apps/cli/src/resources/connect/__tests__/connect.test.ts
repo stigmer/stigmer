@@ -14,7 +14,11 @@
 // placeholder host) needs no sign-in; --dry-run lists from this machine (a
 // stdio fixture) with no RPC, refuses a sign-in-only server, and turns an
 // unset ${VAR} into the variable to export, or, for one the server does not
-// read, a problem with the plugin. The renderer marks destructive tools, says
+// read, a problem with the plugin. --sign-in-again runs the sign-in even
+// when My vault holds a login, refuses a server that does not sign in and
+// --dry-run, and off a terminal stops before signing in. A
+// listing refused for its login is said in the server's words, ending with
+// the command that signs in again. The renderer marks destructive tools, says
 // where the list came from, shows an empty list, and says how each server is
 // reached.
 
@@ -30,16 +34,24 @@ import { PluginQueryController } from "@stigmer/apis/ai/stigmer/agentic/plugin/v
 import type { McpServerEntrySchema } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/status_pb";
 import { VaultSchema } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/api_pb";
 import { VaultQueryController } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/query_pb";
+import { VaultCommandController } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/command_pb";
+import {
+  CompleteSignInOutputSchema,
+  type StartSignInInput,
+  StartSignInOutputSchema,
+} from "@stigmer/apis/ai/stigmer/agentic/vault/v1/io_pb";
 import { Stigmer } from "@stigmer/client";
 import { fileURLToPath } from "node:url";
 import { beforeEach, describe, expect, it } from "vitest";
-import { UsageError } from "../../../errors/index.js";
+import { classify, CliExitError, ExitCode, UsageError } from "../../../errors/index.js";
 import { type ConnectOptions, connectPlugin } from "../connect.js";
 import { renderConnectResult } from "../display.js";
 
 const FIXTURE = fileURLToPath(new URL("../__fixtures__/stdio-server.mjs", import.meta.url));
 
 let listCalls: ListPluginToolsInput[] = [];
+let listFailure: ConnectError | undefined;
+let signInStarts: StartSignInInput[] = [];
 let served: Plugin;
 // The caller's My vault: undefined answers NOT_FOUND (none yet).
 let myVault: { secrets: string[]; connections: string[] } | undefined;
@@ -74,6 +86,7 @@ const client = new Stigmer({
     service(PluginCommandController, {
       listTools: (input) => {
         listCalls.push(input);
+        if (listFailure !== undefined) throw listFailure;
         return create(ListPluginToolsOutputSchema, {
           tools: [
             { name: "list_issues", description: "List issues" },
@@ -81,6 +94,13 @@ const client = new Stigmer({
           ],
         });
       },
+    });
+    service(VaultCommandController, {
+      startSignIn: (input) => {
+        signInStarts.push(input);
+        return create(StartSignInOutputSchema, { authorizationUrl: "https://login.example/authorize", state: "st_1" });
+      },
+      completeSignIn: () => create(CompleteSignInOutputSchema, { address: "https://mcp.linear.app/mcp", description: "Linear @ana" }),
     });
     service(VaultQueryController, {
       getMine: () => {
@@ -112,6 +132,8 @@ function options(overrides: Partial<ConnectOptions> = {}): ConnectOptions {
 
 beforeEach(() => {
   listCalls = [];
+  listFailure = undefined;
+  signInStarts = [];
   myVault = undefined;
   served = pluginWith([http("linear", "https://mcp.linear.app/mcp")]);
 });
@@ -213,6 +235,98 @@ describe("connectPlugin: a sign-in on a terminal", () => {
     served = pluginWith([http("linear", "https://${HOST}/mcp", { signIn: { oauthOnly: true } })]);
     await connectPlugin(client, options());
     expect(listCalls).toHaveLength(1);
+  });
+});
+
+describe("connectPlugin --sign-in-again", () => {
+  const signedIn = () => {
+    served = pluginWith([http("linear", "https://mcp.linear.app/mcp", { signIn: { oauthOnly: true } })]);
+    myVault = { secrets: [], connections: ["https://mcp.linear.app/mcp"] };
+  };
+
+  it("signs in although My vault holds a login at the address, then lists", async () => {
+    signedIn();
+    const browser = process.env.BROWSER;
+    process.env.BROWSER = "true";
+    try {
+      await connectPlugin(client, options({ signInAgain: true, interactive: true }));
+    } finally {
+      if (browser === undefined) delete process.env.BROWSER;
+      else process.env.BROWSER = browser;
+    }
+    expect(signInStarts).toHaveLength(1);
+    expect(signInStarts[0]?.address).toBe("https://mcp.linear.app/mcp");
+    expect(signInStarts[0]?.vault?.vault).toEqual({ case: "mine", value: true });
+    expect(listCalls).toHaveLength(1);
+  }, 10_000);
+
+  it("off a terminal, stops with the interactive way before any sign-in or listing", async () => {
+    signedIn();
+    const err = await connectPlugin(client, options({ signInAgain: true })).catch((e: unknown) => e);
+    expect(err).toBeInstanceOf(UsageError);
+    expect(String((err as Error).message)).toContain("needs a sign-in, which needs an interactive terminal");
+    expect(signInStarts).toHaveLength(0);
+    expect(listCalls).toHaveLength(0);
+  });
+
+  it("refuses a server whose address names no place a login is saved at", async () => {
+    served = pluginWith([http("linear", "https://${LINEAR_HOST}/mcp", { signIn: {} })]);
+    const err = await connectPlugin(client, options({ signInAgain: true })).catch((e: unknown) => e);
+    expect(err).toBeInstanceOf(UsageError);
+    expect(String((err as Error).message)).toContain("names no address a login is saved at");
+    expect(signInStarts).toHaveLength(0);
+  });
+
+  it("refuses a server that does not sign in, and --dry-run", async () => {
+    const plain = await connectPlugin(client, options({ signInAgain: true })).catch((e: unknown) => e);
+    expect(String((plain as Error).message)).toContain("does not sign in, so there is no login to replace");
+    const dry = await connectPlugin(client, options({ signInAgain: true, dryRun: true })).catch((e: unknown) => e);
+    expect(String((dry as Error).message)).toContain("--sign-in-again signs in through the server");
+    expect(listCalls).toHaveLength(0);
+  });
+});
+
+describe("connectPlugin: a listing refused for its login", () => {
+  const REFUSED =
+    "listing the tools of linear failed: 401 Unauthorized. Check that the server's address is reachable and your sign-in or key is valid";
+
+  it("says the server's words and ends with the command that signs in again", async () => {
+    served = pluginWith([http("linear", "https://mcp.linear.app/mcp", { signIn: { oauthOnly: true } })]);
+    myVault = { secrets: [], connections: ["https://mcp.linear.app/mcp"] };
+    listFailure = new ConnectError(REFUSED, Code.Internal);
+    const err = await connectPlugin(client, options()).catch((e: unknown) => e);
+    expect(err).toBeInstanceOf(CliExitError);
+    expect((err as CliExitError).message).toBe(REFUSED);
+    expect((err as CliExitError).hints).toEqual([
+      "If your login has expired or was revoked, run stigmer connect plugin linear --sign-in-again.",
+    ]);
+  });
+
+  it("keeps the exit code and words the CLI gives that refusal's status, adding the command that signs in again", async () => {
+    served = pluginWith([http("linear", "https://mcp.linear.app/mcp", { signIn: { oauthOnly: true } })]);
+    myVault = { secrets: [], connections: ["https://mcp.linear.app/mcp"] };
+    listFailure = new ConnectError(REFUSED, Code.FailedPrecondition);
+    const err = await connectPlugin(client, options()).catch((e: unknown) => e);
+    expect(err).toBeInstanceOf(CliExitError);
+    const own = classify((err as CliExitError).cause);
+    expect(own?.exitCode).toBe(ExitCode.Usage);
+    expect((err as CliExitError).exitCode).toBe(own?.exitCode);
+    expect((err as CliExitError).message).toBe(own?.message);
+    expect((err as CliExitError).message).toContain(REFUSED);
+    expect((err as CliExitError).hints?.at(-1)).toBe(
+      "If your login has expired or was revoked, run stigmer connect plugin linear --sign-in-again.",
+    );
+  });
+
+  it("matches the runner's sign-in challenge too, and leaves a server that does not sign in alone", async () => {
+    served = pluginWith([http("linear", "https://mcp.linear.app/mcp", { signIn: { oauthOnly: true } })]);
+    myVault = { secrets: [], connections: ["https://mcp.linear.app/mcp"] };
+    listFailure = new ConnectError("MCP server 'linear' requires OAuth: its endpoint returned an authentication challenge (HTTP 401).", Code.Internal);
+    expect(await connectPlugin(client, options()).catch((e: unknown) => e)).toBeInstanceOf(CliExitError);
+
+    served = pluginWith([http("linear", "https://mcp.linear.app/mcp")]);
+    listFailure = new ConnectError(REFUSED, Code.Internal);
+    expect(await connectPlugin(client, options()).catch((e: unknown) => e)).not.toBeInstanceOf(CliExitError);
   });
 });
 

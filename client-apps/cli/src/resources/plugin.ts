@@ -14,7 +14,7 @@
 // package and the reader's findings. Hooks are summarised
 // as their format and the handlers per event, offline from the package and
 // after an install from `status.hooks`; what is not run is in the warnings.
-// `get plugin` stays the generic resource view, whose YAML and JSON carry
+// `get plugin` is its own view (views/plugin.ts), whose YAML and JSON carry
 // `status.hooks` whole.
 //
 // The push half is two steps with a value between them: `preparePluginPush`
@@ -39,7 +39,6 @@ import { join } from "node:path";
 import { create, toJson } from "@bufbuild/protobuf";
 import {
   MANIFEST_LOCATIONS,
-  PLACEHOLDER_PATTERN,
   type PluginFiles,
   type PluginFinding,
   type PluginPackage,
@@ -63,6 +62,7 @@ import { hookFormatName, hooksSummary, type Stigmer } from "@stigmer/client";
 import { UsageError } from "../errors/index.js";
 import { CommandResult } from "../output/index.js";
 import { createMatcher } from "./ignore/index.js";
+import { pluginKeys, saveKeyCommand, serverSignIns } from "./plugin-access.js";
 import {
   formatBytes,
   shortHash,
@@ -398,35 +398,24 @@ export type NextStep =
  * sign-in for each server that takes one, the keys the plugin needs and
  * declares no value for (a signing-in server's login key is the sign-in's
  * to fill, so it is not asked), then `stigmer run --plugin` and an agent's
- * `plugins`. Pure: the status is the install's whole answer.
+ * `plugins`. Pure: the status is the install's whole answer. The sign-ins
+ * and keys are plugin-access.ts's reading, the one `get plugin` prints.
  */
 export function nextSteps(plugin: Plugin): NextStep[] {
   const name = pluginName(plugin);
-  const servers = plugin.status?.mcpServers ?? [];
-  const steps: NextStep[] = [];
-  const loginKeys = new Set<string>();
-  for (const server of servers) {
-    if (server.signIn === undefined) continue;
-    if (server.transport.case === "http") {
-      for (const value of Object.values(server.transport.value.headers)) {
-        for (const match of value.matchAll(PLACEHOLDER_PATTERN)) loginKeys.add(match[1]);
-      }
-    }
-    steps.push({
-      kind: "sign-in",
-      server: server.name,
-      command: `stigmer connect plugin ${name}${servers.length > 1 ? ` --server ${server.name}` : ""}`,
-    });
-  }
-  const variables = Object.entries(plugin.status?.env ?? {})
-    .filter(([key, decl]) => !decl.optional && decl.value === "" && !loginKeys.has(key))
-    .map(([key]) => key)
-    .sort();
+  const steps: NextStep[] = serverSignIns(plugin).map((signIn) => ({
+    kind: "sign-in",
+    server: signIn.server.name,
+    command: signIn.command,
+  }));
+  const variables = pluginKeys(plugin)
+    .filter((key) => !key.optional && !key.setByPlugin && key.filledBySignIn === undefined)
+    .map((key) => key.name);
   if (variables.length > 0) {
     steps.push({
       kind: "save-keys",
       variables,
-      command: variables.map((v) => `stigmer vault set-secret ${v} --mine`).join(" && "),
+      command: variables.map(saveKeyCommand).join(" && "),
     });
   }
   steps.push({ kind: "run", command: `stigmer run --plugin ${name}` });

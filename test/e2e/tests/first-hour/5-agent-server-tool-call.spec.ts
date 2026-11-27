@@ -98,7 +98,7 @@ test.describe("a tool server in an agent's own file signs its app user in", () =
       const app = await appContext.newPage();
       await test.step("the chat offers the user Sign in for the agent's own server, and the sign-in finishes", async () => {
         await app.goto(`http://localhost:${APP_PORT}`);
-        const signIn = app.getByRole("button", { name: `Sign in to ${OWN_SERVER}` });
+        const signIn = app.getByRole("button", { name: `Sign in to ${OWN_SERVER}`, exact: true });
         await expect(signIn, "the chat offers the agent's own server's sign-in").toBeVisible({ timeout: 60_000 });
 
         const opened = appContext.waitForEvent("page");

@@ -2,9 +2,9 @@
 // heads it; the summary gives its id, the agent it talks to, whether it is
 // working, the Environment it runs in and which choice named it, and when it
 // began; then its newest runs (turns), each with how it went, when it
-// started and how long it took, and the engine it runs on. The runs are the one thing a view reads
-// beyond its resource: `listRunsBySession` (resources/session.ts), newest
-// first.
+// started and how long it took, and the engine it runs on. The runs are
+// read beyond the resource, through the view's `related` loader:
+// `listRunsBySession` (resources/session.ts), newest first.
 
 import { RunSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 import { BUILT_IN_ASSISTANT_NAME } from "@stigmer/client";

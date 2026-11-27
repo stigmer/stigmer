@@ -35,15 +35,12 @@
 // browser, network or wall-clock delay.
 
 import { create } from "@bufbuild/protobuf";
-import { Code } from "@connectrpc/connect";
 import {
   CompleteSignInInputSchema,
-  GetMyVaultInputSchema,
   SignInReturn,
   StartSignInInputSchema,
 } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/io_pb";
-import type { Vault } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/api_pb";
-import { getErrorReason, isTransientStreamError, type Stigmer, StigmerError } from "@stigmer/client";
+import { getErrorReason, isTransientStreamError, type Stigmer } from "@stigmer/client";
 import { canOpenBrowser, openBrowser } from "../../auth/browser.js";
 import { UsageError } from "../../errors/index.js";
 
@@ -162,16 +159,6 @@ export async function waitForSignIn(deps: SignInDeps, state: string): Promise<vo
       failedInARow += 1;
       lastFailure = err;
     }
-  }
-}
-
-/** The caller's My vault in `org`, or undefined when they have none yet. */
-export async function readMyVault(client: SignInClient, org: string): Promise<Vault | undefined> {
-  try {
-    return await client.vault.getMine(create(GetMyVaultInputSchema, { org }));
-  } catch (err) {
-    if (err instanceof StigmerError && err.connectCode === Code.NotFound) return undefined;
-    throw err;
   }
 }
 
