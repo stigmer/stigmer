@@ -27,7 +27,7 @@ import {
   uuid6,
 } from "@langchain/langgraph-checkpoint";
 import type { RunnableConfig } from "@langchain/core/runnables";
-import { SqliteCheckpointSaver } from "../sqlite-saver.js";
+import { SqliteCheckpointRows, SqliteCheckpointSaver } from "../sqlite-saver.js";
 
 const THREAD = "thread-abc";
 
@@ -322,6 +322,25 @@ describe("SqliteCheckpointSaver pruning", () => {
       checkpoints: [...keyed("", m3, m4), ...keyed(HELPER, live)],
       writes: [...keyed("", m3, m4), ...keyed(HELPER, live)],
     });
+  });
+
+  it("rolls a failed save back whole, and the next save still saves and prunes", async () => {
+    const kept = [await step(), await step()];
+    saver.close();
+    const file = new SqliteCheckpointRows(dbPath);
+    try {
+      // A row the schema refuses (no checkpoint id) fails inside the transaction.
+      const refused = { thread_id: THREAD, checkpoint_ns: "", checkpoint_id: null as unknown as string, parent_checkpoint_id: null, type: "json", checkpoint: new Uint8Array([1]), metadata: new Uint8Array([1]) };
+      await expect(file.putRow(refused)).rejects.toThrow(/NOT NULL/);
+      expect(rows().checkpoints, "nothing of the failed save landed, nothing was pruned").toEqual(keyed("", ...kept));
+
+      const next = uuid6(-1);
+      await file.putRow({ ...refused, checkpoint_id: next });
+      expect(rows().checkpoints, "the connection left no transaction open").toEqual(keyed("", kept[1], next));
+    } finally {
+      file.close();
+    }
+    saver = new SqliteCheckpointSaver(dbPath);
   });
 
   it("trims a file that grew before the prune at its next save, and the trim survives a reopen", async () => {
