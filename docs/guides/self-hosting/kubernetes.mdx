@@ -72,8 +72,9 @@ kubectl -n stigmer create secret generic anthropic \
 ```
 
 This Secret is the only one you write. The runner reads the providers' keys from
-it (`OPENAI_API_KEY`, `ANTHROPIC_FOUNDRY_API_KEY` and `AWS_BEARER_TOKEN_BEDROCK`
-too, when you add them), and the operator mints every key the server needs.
+it (`OPENAI_API_KEY`, `GEMINI_API_KEY`, `ANTHROPIC_FOUNDRY_API_KEY` and
+`AWS_BEARER_TOKEN_BEDROCK` too, when you add them), and the operator mints every
+key the server needs.
 
 ### Declare Stigmer
 

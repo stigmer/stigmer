@@ -54,7 +54,8 @@ test.describe("a laptop whose runner reaches no model provider", () => {
 
     const anthropic = page.getByRole("article", { name: "Anthropic" });
     const openai = page.getByRole("article", { name: "OpenAI" });
-    for (const card of [anthropic, openai]) {
+    const google = page.getByRole("article", { name: "Google" });
+    for (const card of [anthropic, openai, google]) {
       await expect(card).toBeVisible({ timeout: 15_000 });
       await expect(card.getByText("Not connected", { exact: true })).toBeVisible();
       await expect(card.getByRole("button", { name: "Copy" })).toBeVisible();
@@ -63,6 +64,7 @@ test.describe("a laptop whose runner reaches no model provider", () => {
     }
     await expect(anthropic.locator("pre")).toHaveText("stigmer setup\nstigmer down && stigmer up");
     await expect(openai.locator("pre")).toHaveText("export OPENAI_API_KEY=<your key>\nstigmer down && stigmer up");
+    await expect(google.locator("pre")).toHaveText("export GEMINI_API_KEY=<your key>\nstigmer down && stigmer up");
   });
 
   test("the launcher's first screen is the question; a pick shows the connect step, with no composer and no Send", async ({ page }) => {

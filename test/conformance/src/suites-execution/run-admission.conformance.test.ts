@@ -121,9 +121,9 @@ describe.skipIf(!billingEnabled)(
       const [info] = err.findDetails(ErrorInfoSchema);
       expect(info?.reason).toBe("PROVIDER_KEY_REQUIRED");
       expect(info?.metadata["org"]).toBe(org);
-      expect(["anthropic", "openai"]).toContain(info?.metadata["provider"]);
+      expect(["anthropic", "openai", "google"]).toContain(info?.metadata["provider"]);
       expect(info?.metadata["model"], "the refusal names the model the run would have used").not.toBe("");
-      expect(err.rawMessage).toMatch(/^This organization has no (Anthropic|OpenAI) key for model '.+', so the run was not started\./);
+      expect(err.rawMessage).toMatch(/^This organization has no (Anthropic|OpenAI|Google) key for model '.+', so the run was not started\./);
       expect(err.rawMessage).toContain("An admin can add one in Models & providers.");
       expect(mock.remaining()).toBe(0);
     });
@@ -179,12 +179,14 @@ const OPERATOR_BEARER = "conformance-trusted-local-operator";
 const PROVIDER_LABELS: Readonly<Record<string, string>> = {
   anthropic: "Anthropic",
   openai: "OpenAI",
+  google: "Google",
 };
 
 // How a laptop gives its runner each provider's key, as the refusal says it.
 const RUNNER_KEY_FIX: Readonly<Record<string, string>> = {
   anthropic: "run `stigmer setup`",
   openai: "set OPENAI_API_KEY in the shell you start Stigmer from",
+  google: "set GEMINI_API_KEY in the shell you start Stigmer from",
 };
 
 // The copy a member reads when the runners reach no key for the run's model.
@@ -248,29 +250,42 @@ describe.skipIf(!runnerProviderDeclaration)(
       );
     }
 
-    it("[rpc:PlatformQueryController.getModelReadiness] reports anthropic served by the runners and openai missing from them, as declared", async () => {
+    it("[rpc:PlatformQueryController.getModelReadiness] reports anthropic served by the runners and openai and google missing from them, as declared", async () => {
       const { org } = await provisionOrgAndAgent();
 
       const answer = await declared.platformQuery.getModelReadiness({ org });
       expect(answer.providers.map((p) => [p.provider, p.availability, p.parentOrg])).toEqual([
         ["anthropic", ProviderAvailability.served_by_runners, ""],
         ["openai", ProviderAvailability.missing_from_runners, ""],
+        ["google", ProviderAvailability.missing_from_runners, ""],
       ]);
     });
 
     it("[rpc:PlatformQueryController.getModelReadiness] [rpc:RunCommandController.create] a run on every model reported missing is refused at create with PROVIDER_KEY_REQUIRED naming its provider and model, and starts no conversation", async () => {
       const { org, agentRef } = await provisionOrgAndAgent();
-      // The catalog may list no OpenAI model, so the answer also judges one
-      // the catalog does not list: at least one model is always missing.
-      const judged = `openai:${uniqueName("conformance-model")}`;
-      const answer = await declared.platformQuery.getModelReadiness({ org, model: { harness: Harness.STIGMER, model: judged } });
-      const missing = [...answer.models, ...(answer.judged === undefined ? [] : [answer.judged])].filter(
+      // The catalog may list no OpenAI or Google model, so the answer also
+      // judges one of each the catalog does not list: every provider the
+      // runners do not reach has at least one missing model.
+      const answers = await Promise.all(
+        ["openai", "google"].map((provider) =>
+          declared.platformQuery.getModelReadiness({
+            org,
+            model: { harness: Harness.STIGMER, model: `${provider}:${uniqueName("conformance-model")}` },
+          }),
+        ),
+      );
+      const judged = answers.flatMap((answer) => (answer.judged === undefined ? [] : [answer.judged]));
+      expect(judged.map((m) => m.provider), "each named model is judged at its prefix's provider").toEqual([
+        "openai",
+        "google",
+      ]);
+      const missing = [...answers[0]!.models, ...judged].filter(
         (m) => m.availability === ProviderAvailability.missing_from_runners,
       );
       expect(
         new Set(missing.map((m) => m.provider)),
-        "OpenAI, which the runners do not reach, is the one missing provider",
-      ).toEqual(new Set(["openai"]));
+        "OpenAI and Google, which the runners do not reach, are the missing providers",
+      ).toEqual(new Set(["openai", "google"]));
 
       for (const model of missing) {
         const what = `a ${Harness[model.harness]} run on ${model.model}`;

@@ -240,6 +240,7 @@ describe("CON-03 the launcher says a provider is missing before a run fails", ()
         readiness: readiness({
           anthropic: ProviderAvailability.missing_from_runners,
           openai: ProviderAvailability.served_by_runners,
+          google: ProviderAvailability.missing_from_runners,
         }),
       }),
       { mode: "local" },
@@ -266,6 +267,7 @@ describe("CON-03 the launcher says a provider is missing before a run fails", ()
         readiness: readiness({
           anthropic: ProviderAvailability.availability_unknown,
           openai: ProviderAvailability.availability_unknown,
+          google: ProviderAvailability.availability_unknown,
         }),
       }),
       { mode: "local" },

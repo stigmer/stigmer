@@ -25,7 +25,7 @@ import { cardClasses } from "../../internal/surface/Card.js";
 import { tagClasses } from "../../internal/surface/Tag.js";
 import type { StatusPhase } from "../../resource-workbench/types.js";
 import { StatusBadge } from "../../status/StatusBadge.js";
-import { useProviderKeyActions, type ProviderKeyProvider } from "../../billing/useProviderKeys.js";
+import { PROVIDER_KEY_PROVIDERS, useProviderKeyActions, type ProviderKeyProvider } from "../../billing/useProviderKeys.js";
 import { HARNESS_META, HARNESS_OPTIONS } from "@stigmer/react-core/internal";
 import { presentationOf } from "../provider-presentation.js";
 import type { ModelReadiness, ProviderAvailability, ProviderReadiness } from "../readiness.js";
@@ -88,7 +88,7 @@ export function keyingFace(face: ProviderFace): boolean {
 
 /** Whether the kit can save a key for `provider` (the key slots the contract names). */
 export function isKeyProvider(provider: string): provider is ProviderKeyProvider {
-  return provider === "anthropic" || provider === "openai";
+  return (PROVIDER_KEY_PROVIDERS as readonly string[]).includes(provider);
 }
 
 /** Props for {@link ProviderCard}. */

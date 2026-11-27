@@ -50,6 +50,11 @@ const MATRIX: ReadonlyArray<readonly [string, ReachEnv]> = [
   ["an OpenAI key", { OPENAI_API_KEY: KEY }],
   ["a Cursor key, which no engine reads", { CURSOR_API_KEY: KEY }],
   ["both keys", { ANTHROPIC_API_KEY: KEY, OPENAI_API_KEY: KEY }],
+  ["a Gemini key", { GEMINI_API_KEY: KEY }],
+  ["all three keys", { ANTHROPIC_API_KEY: KEY, OPENAI_API_KEY: KEY, GEMINI_API_KEY: KEY }],
+  ["a blank Gemini key", { GEMINI_API_KEY: "  " }],
+  ["a Google API key, which the runner never reads", { GOOGLE_API_KEY: KEY }],
+  ["a Gemini key beside a refused backend", { STIGMER_ANTHROPIC_BACKEND: "azure", GEMINI_API_KEY: KEY }],
   ["empty keys", { ANTHROPIC_API_KEY: "", OPENAI_API_KEY: "" }],
   ["blank keys", { ANTHROPIC_API_KEY: "  ", OPENAI_API_KEY: "  " }],
   ["a gateway without a key", { ANTHROPIC_BASE_URL: "https://llm-gateway.internal" }],
@@ -86,14 +91,16 @@ describe("providerReach — the arms", () => {
   });
 
   it("reaches each provider by its own key, in the fixed provider order", () => {
-    expect(providerReach({ OPENAI_API_KEY: KEY, ANTHROPIC_API_KEY: KEY })).toEqual([
+    expect(providerReach({ GEMINI_API_KEY: KEY, OPENAI_API_KEY: KEY, ANTHROPIC_API_KEY: KEY })).toEqual([
       { provider: "anthropic", via: "key" },
       { provider: "openai", via: "key" },
+      { provider: "google", via: "key" },
     ]);
+    expect(providerReach({ GEMINI_API_KEY: KEY })).toEqual([{ provider: "google", via: "key" }]);
   });
 
-  it("counts a blank Anthropic or OpenAI key as unset, as checkDirectCredentials does", () => {
-    expect(providerReach({ ANTHROPIC_API_KEY: " ", OPENAI_API_KEY: "\t" })).toEqual([]);
+  it("counts a blank Anthropic, OpenAI or Gemini key as unset, as checkDirectCredentials does", () => {
+    expect(providerReach({ ANTHROPIC_API_KEY: " ", OPENAI_API_KEY: "\t", GEMINI_API_KEY: " " })).toEqual([]);
   });
 
   it("reaches no provider on a Cursor key, which no engine reads", () => {
@@ -125,9 +132,10 @@ describe("providerReach — the arms", () => {
     expect(providerReach({ STIGMER_ANTHROPIC_BACKEND: "foundry", ANTHROPIC_FOUNDRY_RESOURCE: "r", ANTHROPIC_FOUNDRY_BASE_URL: "https://r" })).toEqual([]);
     expect(providerReach({ STIGMER_OPENAI_BACKEND: "azure", OPENAI_API_KEY: KEY })).toEqual([]);
     expect(providerReach({ ANTHROPIC_BASE_URL: "not a url", ANTHROPIC_API_KEY: KEY })).toEqual([]);
+    expect(providerReach({ STIGMER_ANTHROPIC_BACKEND: "azure", GEMINI_API_KEY: KEY })).toEqual([]);
   });
 
-  it("reaches both through a proxy, which owns routing over every other setting", () => {
+  it("reaches every provider through a proxy, which owns routing over every other setting", () => {
     expect(providerReach({ STIGMER_PROXY_ENDPOINT: "https://api.stigmer.ai", STIGMER_ANTHROPIC_BACKEND: "nonsense" })).toEqual(
       REACHABLE_PROVIDERS.map((provider) => ({ provider, via: "proxy" })),
     );
@@ -156,6 +164,7 @@ describe("providerReach agrees with the runner's own reading", () => {
     }
     if (proxied) return;
     expect(reached.has("openai")).toBe(checkDirectCredentials("openai", processEnv) === null);
+    expect(reached.has("google")).toBe(checkDirectCredentials("google", processEnv) === null);
     const gateway = reach.some((entry) => entry.via === "gateway");
     if (!gateway) {
       expect(reached.has("anthropic")).toBe(checkDirectCredentials("anthropic", processEnv) === null);

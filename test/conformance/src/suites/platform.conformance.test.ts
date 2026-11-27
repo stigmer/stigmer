@@ -31,8 +31,8 @@
 //     (CapabilityFlags.licenseStatus).
 //
 //   - getModelReadiness answers every edition the same SHAPE for an
-//     organization: the two providers (anthropic, openai) in the server's
-//     order, each with a specified availability and a parent organization
+//     organization: the three providers (anthropic, openai, google) in the
+//     server's order, each with a specified availability and a parent organization
 //     exactly when one serves it; every catalog model on every offered
 //     engine (stigmer, claude), each at its provider's availability by the
 //     one rule (Claude needs anthropic, Stigmer needs its model's provider,
@@ -157,7 +157,7 @@ describe("Platform conformance — getLicenseStatus", () => {
 
 // The providers every answer reports, in the server's order: the names
 // provider keys are saved under.
-const READINESS_PROVIDERS = ["anthropic", "openai"];
+const READINESS_PROVIDERS = ["anthropic", "openai", "google"];
 
 // The engines a readiness answer lists models for, in the order it lists them.
 const READINESS_ENGINES = [Harness.STIGMER, Harness.CLAUDE];
@@ -178,7 +178,7 @@ function availabilityByProvider(answer: GetModelReadinessOutput): Map<string, Pr
 }
 
 describe("Platform conformance — getModelReadiness", () => {
-  it("[rpc:PlatformQueryController.getModelReadiness] reports exactly anthropic and openai in that order, each at a specified availability, naming a parent organization exactly when one serves it", async () => {
+  it("[rpc:PlatformQueryController.getModelReadiness] reports exactly anthropic, openai and google in that order, each at a specified availability, naming a parent organization exactly when one serves it", async () => {
     const { org } = await target.provisionTenancy();
     const answer = await clients.platformQuery.getModelReadiness({ org });
 
@@ -230,14 +230,14 @@ describe("Platform conformance — getModelReadiness", () => {
           expect(model.provider, `the Claude engine runs ${model.model} on Anthropic`).toBe("anthropic");
           break;
         default:
-          expect(["anthropic", "openai", ""], `${model.model} on the Stigmer harness needs its own provider`).toContain(
+          expect([...READINESS_PROVIDERS, ""], `${model.model} on the Stigmer harness needs its own provider`).toContain(
             model.provider,
           );
       }
     }
   });
 
-  it("[rpc:PlatformQueryController.getModelReadiness] judges nothing when the input names no model, and judges an openai: model on the Stigmer harness as needing openai", async () => {
+  it("[rpc:PlatformQueryController.getModelReadiness] judges nothing when the input names no model, and judges an openai: or google: model on the Stigmer harness as needing its prefix's provider", async () => {
     const { org } = await target.provisionTenancy();
 
     const unnamed = await clients.platformQuery.getModelReadiness({ org });
@@ -251,6 +251,14 @@ describe("Platform conformance — getModelReadiness", () => {
     expect(named.judged?.provider, "an openai: reference needs openai").toBe("openai");
     expect(named.judged?.availability, "judged at openai's availability").toBe(
       availabilityByProvider(named).get("openai"),
+    );
+
+    const gemini = `google:${uniqueName("conformance-model")}`;
+    const google = await clients.platformQuery.getModelReadiness({ org, model: { harness: Harness.STIGMER, model: gemini } });
+    expect(google.judged?.model, "the judged model is the reference the input named").toBe(gemini);
+    expect(google.judged?.provider, "a google: reference needs google").toBe("google");
+    expect(google.judged?.availability, "judged at google's availability").toBe(
+      availabilityByProvider(google).get("google"),
     );
   });
 

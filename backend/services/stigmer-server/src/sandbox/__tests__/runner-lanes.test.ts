@@ -6,6 +6,8 @@
  *     `api.anthropic.com` only when ANTHROPIC_API_KEY is set, a runner
  *     secret included;
  *   - OpenAI: the same, OPENAI_BASE_URL over `api.openai.com`;
+ *   - Google: `generativelanguage.googleapis.com` only when GEMINI_API_KEY
+ *     is set, a runner secret included;
  *   - Bedrock: ANTHROPIC_BEDROCK_BASE_URL's host, else
  *     `bedrock-runtime.<AWS_REGION>.amazonaws.com` only beside a credential;
  *   - an https:// public MCP address and OTLP endpoint, by host;
@@ -54,6 +56,13 @@ describe("runnerPlatformHosts", () => {
       ),
     ).toEqual(["openai-proxy.example.com"]);
     expect(hosts({}, { OPENAI_API_KEY: "sk" })).toEqual(["api.openai.com"]);
+  });
+
+  it("Google: its API host only with a Gemini key, as a secret or a setting", () => {
+    expect(hosts({}, { GEMINI_API_KEY: "AQ.key" })).toEqual(["generativelanguage.googleapis.com"]);
+    expect(hosts({ GEMINI_API_KEY: "AQ.key" })).toEqual(["generativelanguage.googleapis.com"]);
+    expect(hosts({}, { GEMINI_API_KEY: "  " })).toEqual([]);
+    expect(hosts({ GOOGLE_API_KEY: "AQ.key" })).toEqual([]);
   });
 
   it("Bedrock: the base URL's host, else the region's runtime host beside a credential", () => {

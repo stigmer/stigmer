@@ -17,7 +17,7 @@ export { usePeriodEstimate } from "./usePeriodEstimate.js";
 export { useAgentHours } from "./useAgentHours.js";
 export type { UseAgentHoursOptions, UseAgentHoursReturn } from "./useAgentHours.js";
 export type { UsePeriodEstimateOptions, UsePeriodEstimateReturn } from "./usePeriodEstimate.js";
-export { useProviderKeys, useProviderKeyActions } from "./useProviderKeys.js";
+export { PROVIDER_KEY_PROVIDERS, useProviderKeys, useProviderKeyActions } from "./useProviderKeys.js";
 export type {
   ProviderKeyProvider,
   UseProviderKeysOptions,

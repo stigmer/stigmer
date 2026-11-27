@@ -424,6 +424,7 @@ const RESERVED_ENV_KEYS: &[&str] = &[
     "STIGMER_TOKEN",
     "ANTHROPIC_API_KEY",
     "OPENAI_API_KEY",
+    "GEMINI_API_KEY",
     "WORKSPACE_ROOT_DIR",
     "STIGMER_PROXY_ENDPOINT",
     "LOCAL_ARTIFACT_PATH",
@@ -472,6 +473,9 @@ fn build_env(config: &RunnerConfig) -> Vec<(String, String)> {
     }
     if let Some(key) = &config.openai_api_key {
         env.push(("OPENAI_API_KEY".to_string(), key.clone()));
+    }
+    if let Some(key) = &config.gemini_api_key {
+        env.push(("GEMINI_API_KEY".to_string(), key.clone()));
     }
     if let Some(dir) = &config.workspace_root_dir {
         env.push(("WORKSPACE_ROOT_DIR".to_string(), dir.clone()));
@@ -693,6 +697,7 @@ mod tests {
             stigmer_token: Some("tok".to_string()),
             anthropic_api_key: None,
             openai_api_key: None,
+            gemini_api_key: None,
             workspace_root_dir: None,
             proxy_endpoint: None,
             local_artifact_path: None,
@@ -739,13 +744,16 @@ mod tests {
         let env = build_env(&minimal_config());
         assert_eq!(env_value(&env, "ANTHROPIC_API_KEY"), None);
         assert_eq!(env_value(&env, "OPENAI_API_KEY"), None);
+        assert_eq!(env_value(&env, "GEMINI_API_KEY"), None);
 
         let mut config = minimal_config();
         config.anthropic_api_key = Some("sk-ant-test".to_string());
         config.openai_api_key = Some("sk-oai-test".to_string());
+        config.gemini_api_key = Some("gemini-test".to_string());
         let env = build_env(&config);
         assert_eq!(env_value(&env, "ANTHROPIC_API_KEY"), Some("sk-ant-test"));
         assert_eq!(env_value(&env, "OPENAI_API_KEY"), Some("sk-oai-test"));
+        assert_eq!(env_value(&env, "GEMINI_API_KEY"), Some("gemini-test"));
     }
 
     #[test]
@@ -824,6 +832,7 @@ mod tests {
             stigmer_token: Some("tok".to_string()),
             anthropic_api_key: Some("ak".to_string()),
             openai_api_key: Some("ok".to_string()),
+            gemini_api_key: Some("gk".to_string()),
             workspace_root_dir: Some("/tmp/ws".to_string()),
             // https so the derived NODE_TLS_REJECT_UNAUTHORIZED is emitted too.
             proxy_endpoint: Some("https://proxy.example".to_string()),

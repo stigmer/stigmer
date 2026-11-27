@@ -98,7 +98,7 @@ compose file or what the operator runs.
 | What                                         | Docker Compose (`.env`)                                                  | Kubernetes (`Stigmer` resource)                      | Who sets it                                                                                                           |
 | -------------------------------------------- | ------------------------------------------------------------------------ | ---------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
 | Server address, Temporal address, queue name | Fixed in the compose file                                                | Fixed by the operator                                | The release. Two things named once can't drift.                                                                       |
-| Your LLM key                                 | `ANTHROPIC_API_KEY`                                                      | `spec.runner.llm.secretName`                         | You. The runner holds it; the server never does.                                                                      |
+| Your LLM keys                                | `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `GEMINI_API_KEY`                  | `spec.runner.llm.secretName`                         | You. The runner holds it; the server never does.                                                                      |
 | File storage                                 | The `artifacts` volume, or a bucket (`ARTIFACT_STORAGE_TYPE=s3`)         | The `stigmer-artifacts` claim, or `spec.objectStore` | The release, or you when you name a bucket. The runner never holds its keys.                                          |
 | The runner's own state                       | The `runner-data` volume                                                 | The `stigmer-runner-data` claim                      | The release. Checkpoints and Agents' working directories, not backup state.                                           |
 | The runner's own API key                     | `STIGMER_TOKEN`                                                          | Minted by the operator                               | On Compose, you generate it when you [turn sign-in on](./authentication#set-the-issuer); on Kubernetes, the operator. |
@@ -108,8 +108,11 @@ compose file or what the operator runs.
 Five of these rows carry a design decision worth knowing.
 
 **The LLM key lives with the runner and nowhere else.** The server has no
-setting for it. Agents on the Stigmer and Claude Agent Harnesses need
-`ANTHROPIC_API_KEY`. At start the runner moves its keys out of the variables it
+setting for it. Agents on the Claude Agent Harness, and Claude models on the
+Stigmer harness, need `ANTHROPIC_API_KEY`; OpenAI models need `OPENAI_API_KEY`,
+and Gemini models (`google:<name>`) need `GEMINI_API_KEY`, a key from
+[Google AI Studio](https://aistudio.google.com/api-keys). The runner never reads
+`GOOGLE_API_KEY`. At start the runner moves its keys out of the variables it
 started with into a store only it reads, so the commands an Agent runs and the
 processes the runner starts don't inherit them. In the compose stack, on
 Kubernetes and under the sandbox drivers, the Agent's side of a turn runs as a
@@ -119,14 +122,14 @@ below). The [all-in-one container](./all-in-one) is the exception: it runs
 `stigmer up` as one user, as on your own machine.
 
 **The server is told which providers the runners reach, never their keys.**
-`STIGMER_RUNNER_PROVIDERS` lists them by name, comma-separated, from `anthropic`
-and `openai` (`anthropic,openai`), matching the keys you gave the runners. The
-console's **Models & providers** page and model picker read it, and a run on a
-provider left off the list is refused before it starts, with copy that says so.
-Left unset, the server cannot tell, so every provider shows as configured where
-the runner runs and nothing is refused: the runner's own error names a missing
-key. A name that is not a provider stops the server at boot. On your own machine
-`stigmer up` sets it for you.
+`STIGMER_RUNNER_PROVIDERS` lists them by name, comma-separated, from
+`anthropic`, `openai` and `google` (`anthropic,google`), matching the keys you
+gave the runners. The console's **Models & providers** page and model picker
+read it, and a run on a provider left off the list is refused before it starts,
+with copy that says so. Left unset, the server cannot tell, so every provider
+shows as configured where the runner runs and nothing is refused: the runner's
+own error names a missing key. A name that is not a provider stops the server at
+boot. On your own machine `stigmer up` sets it for you.
 
 **File storage is a shared disk or a bucket, and the runner never holds the
 bucket's keys.** On the default local store the server writes a stored file to a
@@ -334,14 +337,15 @@ A runner outside Stigmer Cloud calls its model with its own key, so a sandboxed
 runner needs the keys the shared runner would have. Name them in two lists on
 the server, each a comma-separated list of variables whose values the server
 reads from its own process at boot: `STIGMER_SANDBOX_RUNNER_SECRETS` for secrets
-(`ANTHROPIC_API_KEY`, `OPENAI_API_KEY`), which every driver delivers the way it
-delivers the runner's token, and `STIGMER_SANDBOX_RUNNER_ENV` for plain settings
-(`ANTHROPIC_BASE_URL`). The server refuses to boot when a listed variable is
-unset, when one name is on both lists, when the plain list names one of the
-runner's own secrets, when a list names a variable the driver sets itself, such
-as `STIGMER_TOKEN`, or, with any driver but `local-process`, when it names
-`HOME` or `STIGMER_SERVER_RELEASE`, which those drivers set, or `NODE_OPTIONS`
-or `NODE_PATH`, which the runner image clears at start.
+(`ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `GEMINI_API_KEY`), which every driver
+delivers the way it delivers the runner's token, and
+`STIGMER_SANDBOX_RUNNER_ENV` for plain settings (`ANTHROPIC_BASE_URL`). The
+server refuses to boot when a listed variable is unset, when one name is on both
+lists, when the plain list names one of the runner's own secrets, when a list
+names a variable the driver sets itself, such as `STIGMER_TOKEN`, or, with any
+driver but `local-process`, when it names `HOME` or `STIGMER_SERVER_RELEASE`,
+which those drivers set, or `NODE_OPTIONS` or `NODE_PATH`, which the runner
+image clears at start.
 
 The runner keeps its own secrets (the model keys, and its Temporal and
 payload-encryption keys) out of every process an Agent starts. Any other name on
@@ -998,8 +1002,9 @@ don't pass.
 
 A conversation whose Environment limits networking reaches, over HTTPS, only its
 listed hosts and the runner's own: the model provider hosts the runner's
-settings name, and the `https://` public MCP endpoint. List any other host the
-runner needs (a Vertex or Foundry endpoint, a proxy) in
+settings name (`generativelanguage.googleapis.com` when the runner holds
+`GEMINI_API_KEY`), and the `https://` public MCP endpoint. List any other host
+the runner needs (a Vertex or Foundry endpoint, a proxy) in
 `STIGMER_SANDBOX_SUBSTRATE_EGRESS_HTTPS_PLATFORM`, comma-separated. With
 `STIGMER_SANDBOX_SUBSTRATE_EGRESS_HTTPS=none`, an Environment that limits
 networking is refused, since an Environment narrows your egress and never widens

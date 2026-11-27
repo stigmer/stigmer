@@ -5,7 +5,9 @@
  * its listed ones, so a copy that drifts from the runner's lanes closes a
  * host a turn needs: `ANTHROPIC_DEFAULT_ROOT` and `OPENAI_DEFAULT_ROOT`
  * equal the roots the runner's terminate-mode lanes fall back to
- * (`agent-proxy/lanes.ts`, read from the file's text).
+ * (`agent-proxy/lanes.ts`, read from the file's text), and
+ * `GEMINI_DEFAULT_ROOT` the runner's Google endpoint
+ * (`shared/google-transport.ts`, which has no base-URL override).
  *
  * The server module is loaded by URL, as `attach/__tests__/push.test.ts`
  * loads the server's naming module, so the runner's typecheck never follows
@@ -16,9 +18,12 @@ import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import { describe, expect, it } from "vitest";
 
+import { GEMINI_API_ENDPOINT } from "../../shared/google-transport.js";
+
 interface ServerRunnerLanes {
   readonly ANTHROPIC_DEFAULT_ROOT: string;
   readonly OPENAI_DEFAULT_ROOT: string;
+  readonly GEMINI_DEFAULT_ROOT: string;
 }
 
 async function serverRunnerLanes(): Promise<ServerRunnerLanes> {
@@ -52,5 +57,10 @@ describe("the server's copy of the runner's platform lanes", () => {
     const { OPENAI_DEFAULT_ROOT } = await serverRunnerLanes();
     expect(OPENAI_DEFAULT_ROOT).toBe(laneDefault("openAiBase", /\|\| "([^"]+)"/));
     expect(OPENAI_DEFAULT_ROOT).toBe("https://api.openai.com/v1");
+  });
+
+  it("names the runner's Google root", async () => {
+    const { GEMINI_DEFAULT_ROOT } = await serverRunnerLanes();
+    expect(GEMINI_DEFAULT_ROOT).toBe(GEMINI_API_ENDPOINT);
   });
 });

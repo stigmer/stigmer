@@ -49,30 +49,34 @@ import { readCursorPages } from "./cursor-pages.js";
 export type ProviderKeyClient = Pick<Stigmer, "providerkey" | "platform">;
 
 /** The providers a key is saved for, as the contract names them (io.proto). */
-export const PROVIDERS = ["anthropic", "openai"] as const;
+export const PROVIDERS = ["anthropic", "openai", "google"] as const;
 
 export type Provider = (typeof PROVIDERS)[number];
 
-const DISPLAY_NAMES: ReadonlyMap<string, string> = new Map([
-  ["anthropic", "Anthropic"],
-  ["openai", "OpenAI"],
-]);
+/** Each provider's name as a person reads it, keyed by every provider, so one added is a compile error here until it is named. */
+const DISPLAY_NAMES: Readonly<Record<Provider, string>> = {
+  anthropic: "Anthropic",
+  openai: "OpenAI",
+  google: "Google",
+};
 
 /** The fix `set` and `delete` name on an open-source server. */
 export const LOCAL_KEYS_FIX =
-  "On your own machine the runner's keys come from `stigmer setup` (Anthropic) and OPENAI_API_KEY in the shell you start Stigmer from (OpenAI), then `stigmer down && stigmer up`.";
+  "On your own machine the runner's keys come from `stigmer setup` (Anthropic), and from OPENAI_API_KEY (OpenAI) and GEMINI_API_KEY (Google) in the shell you start Stigmer from, then `stigmer down && stigmer up`.";
 
 /** The provider a person typed, by the contract's own names. */
 export function parseProvider(value: string): Provider {
   const wanted = value.trim().toLowerCase();
   const found = PROVIDERS.find((provider) => provider === wanted);
   if (found !== undefined) return found;
-  throw new UsageError(`unknown provider "${value}"\n\nUse anthropic or openai.`);
+  // Gemini is the name people say for Google's models; the key slot is the provider's.
+  const hint = wanted === "gemini" ? " Gemini keys are saved under google." : "";
+  throw new UsageError(`unknown provider "${value}"\n\nUse anthropic, openai or google.${hint}`);
 }
 
-/** A provider's name as a person reads it: Anthropic, OpenAI. */
+/** A provider's name as a person reads it: Anthropic, OpenAI, Google. */
 export function providerDisplayName(provider: string): string {
-  return DISPLAY_NAMES.get(provider) ?? provider;
+  return (PROVIDERS as readonly string[]).includes(provider) ? DISPLAY_NAMES[provider as Provider] : provider;
 }
 
 /**

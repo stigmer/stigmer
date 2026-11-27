@@ -68,7 +68,7 @@ function done(steps: readonly { readonly id: OnboardingStepId; readonly done: bo
 }
 
 let temp: TempStore;
-let served: Map<string, "anthropic" | "openai">;
+let served: Map<string, "anthropic" | "openai" | "google">;
 
 async function save<Desc extends DescMessage>(kind: ApiResourceKind, id: string, schema: Desc, msg: MessageShape<Desc>): Promise<void> {
   await temp.store.saveResource(kind, id, schema, msg);

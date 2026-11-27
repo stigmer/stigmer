@@ -72,6 +72,8 @@ pub struct RunnerConfigInput {
     #[serde(default)]
     pub openai_api_key: Option<String>,
     #[serde(default)]
+    pub gemini_api_key: Option<String>,
+    #[serde(default)]
     pub workspace_root_dir: Option<String>,
     #[serde(default)]
     pub proxy_endpoint: Option<String>,
@@ -102,6 +104,7 @@ impl RunnerConfigInput {
             stigmer_token: self.stigmer_token,
             anthropic_api_key: self.anthropic_api_key,
             openai_api_key: self.openai_api_key,
+            gemini_api_key: self.gemini_api_key,
             workspace_root_dir: Some(workspace_root_dir),
             proxy_endpoint: self.proxy_endpoint,
             local_artifact_path: self.local_artifact_path,
@@ -226,6 +229,7 @@ mod tests {
                 "stigmerEndpoint": "http://localhost:7234",
                 "anthropicApiKey": "sk-ant-test",
                 "openaiApiKey": "sk-oai-test",
+                "geminiApiKey": "gemini-test",
                 "extraEnv": {"LOG_LEVEL": "debug"}
             }"#,
         )
@@ -233,6 +237,7 @@ mod tests {
 
         assert_eq!(input.anthropic_api_key.as_deref(), Some("sk-ant-test"));
         assert_eq!(input.openai_api_key.as_deref(), Some("sk-oai-test"));
+        assert_eq!(input.gemini_api_key.as_deref(), Some("gemini-test"));
         assert_eq!(
             input.extra_env.get("LOG_LEVEL").map(String::as_str),
             Some("debug")
@@ -253,6 +258,7 @@ mod tests {
 
         assert_eq!(input.anthropic_api_key, None);
         assert_eq!(input.openai_api_key, None);
+        assert_eq!(input.gemini_api_key, None);
         assert!(input.extra_env.is_empty());
     }
 }

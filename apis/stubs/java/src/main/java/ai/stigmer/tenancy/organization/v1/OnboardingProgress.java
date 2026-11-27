@@ -210,8 +210,9 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object servedProvider_ = "";
   /**
    * <pre>
-   * The first provider that serves a model to the organization ("anthropic"
-   * or "openai"), in the server's order. Empty when none is known to.
+   * The first provider that serves a model to the organization
+   * ("anthropic", "openai" or "google"), in the server's order. Empty when
+   * none is known to.
    * </pre>
    *
    * <code>string served_provider = 4 [json_name = "servedProvider"];</code>
@@ -232,8 +233,9 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * The first provider that serves a model to the organization ("anthropic"
-   * or "openai"), in the server's order. Empty when none is known to.
+   * The first provider that serves a model to the organization
+   * ("anthropic", "openai" or "google"), in the server's order. Empty when
+   * none is known to.
    * </pre>
    *
    * <code>string served_provider = 4 [json_name = "servedProvider"];</code>
@@ -1611,8 +1613,9 @@ private static final long serialVersionUID = 0L;
     private java.lang.Object servedProvider_ = "";
     /**
      * <pre>
-     * The first provider that serves a model to the organization ("anthropic"
-     * or "openai"), in the server's order. Empty when none is known to.
+     * The first provider that serves a model to the organization
+     * ("anthropic", "openai" or "google"), in the server's order. Empty when
+     * none is known to.
      * </pre>
      *
      * <code>string served_provider = 4 [json_name = "servedProvider"];</code>
@@ -1632,8 +1635,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The first provider that serves a model to the organization ("anthropic"
-     * or "openai"), in the server's order. Empty when none is known to.
+     * The first provider that serves a model to the organization
+     * ("anthropic", "openai" or "google"), in the server's order. Empty when
+     * none is known to.
      * </pre>
      *
      * <code>string served_provider = 4 [json_name = "servedProvider"];</code>
@@ -1654,8 +1658,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The first provider that serves a model to the organization ("anthropic"
-     * or "openai"), in the server's order. Empty when none is known to.
+     * The first provider that serves a model to the organization
+     * ("anthropic", "openai" or "google"), in the server's order. Empty when
+     * none is known to.
      * </pre>
      *
      * <code>string served_provider = 4 [json_name = "servedProvider"];</code>
@@ -1672,8 +1677,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The first provider that serves a model to the organization ("anthropic"
-     * or "openai"), in the server's order. Empty when none is known to.
+     * The first provider that serves a model to the organization
+     * ("anthropic", "openai" or "google"), in the server's order. Empty when
+     * none is known to.
      * </pre>
      *
      * <code>string served_provider = 4 [json_name = "servedProvider"];</code>
@@ -1687,8 +1693,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The first provider that serves a model to the organization ("anthropic"
-     * or "openai"), in the server's order. Empty when none is known to.
+     * The first provider that serves a model to the organization
+     * ("anthropic", "openai" or "google"), in the server's order. Empty when
+     * none is known to.
      * </pre>
      *
      * <code>string served_provider = 4 [json_name = "servedProvider"];</code>

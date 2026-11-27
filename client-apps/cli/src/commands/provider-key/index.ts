@@ -3,7 +3,7 @@
 //
 //   provider-key list                      every provider and where it stands
 //   provider-key set <provider>            save a key: hidden prompt, or --key-stdin
-//                    [--base-url <url>]    an Anthropic- or OpenAI-compatible endpoint
+//                    [--base-url <url>]    an endpoint that speaks the provider's API
 //   provider-key delete <provider>         confirms first; -f/--force skips it
 //
 // A provider key is an organization's account noun, not a resource kind (it
@@ -95,9 +95,9 @@ export function registerProviderKey(program: Command): void {
 
   const setCmd = group
     .command("set <provider>")
-    .description("save the organization's key for anthropic or openai, replacing any it holds (Stigmer Cloud)")
+    .description("save the organization's key for anthropic, openai or google, replacing any it holds (Stigmer Cloud)")
     .option("--key-stdin", "read the key from stdin instead of a hidden prompt")
-    .option("--base-url <url>", "use the key against your own Anthropic- or OpenAI-compatible endpoint (https)")
+    .option("--base-url <url>", "use the key against your own endpoint that speaks the provider's API (https)")
     // Declared only to refuse it: a key on the command line stays in the
     // shell's history, and commander's own unknown-option answer would not
     // say why.

@@ -187,6 +187,23 @@ export function useModelsHubData(org: string | null): ModelsHubData {
   );
 }
 
+/**
+ * Whether no provider here is a matter of the organization's keys: each is
+ * served by or missing from the server's runners (or the server cannot see
+ * them), as on a server whose runners hold the keys. The page then speaks of
+ * the server, not of the organization's keys.
+ */
+function runnersOnly(providers: readonly ProviderReadiness[] | null): boolean {
+  if (providers === null || providers.length === 0) return false;
+  return providers.every(({ availability }) =>
+    availability.state === "unknown"
+      ? true
+      : availability.state === "served"
+        ? availability.source === "runners"
+        : availability.scope === "runners",
+  );
+}
+
 /** Props for {@link ModelsHub}. */
 export interface ModelsHubProps {
   /** The organization (id or slug) whose providers the hub shows. */
@@ -214,7 +231,9 @@ export function ModelsHub({ org, className }: ModelsHubProps) {
         description={
           hub.viewer.local
             ? "Which models your agents can run on this machine, and the providers behind them."
-            : `Which models ${hub.orgName}'s agents can run, and the provider keys behind them.`
+            : runnersOnly(hub.providers)
+              ? "Which models your agents can run on this server, and the providers behind them."
+              : `Which models ${hub.orgName}'s agents can run, and the provider keys behind them.`
         }
         headingLevel={1}
       />

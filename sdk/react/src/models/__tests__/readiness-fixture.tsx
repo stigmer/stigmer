@@ -34,6 +34,7 @@ import type { DeploymentMode } from "@stigmer/client";
 import { StigmerContext } from "@stigmer/react-core";
 import { DeploymentModeContext } from "@stigmer/react-core";
 import { FetchCacheProvider } from "@stigmer/react-core";
+import { PROVIDER_KEY_PROVIDERS, type ProviderKeyProvider } from "../../billing/useProviderKeys";
 import { OrgProvider } from "../../organization/OrgProvider";
 import { ModelRegistryContext, type ModelRegistryState } from "../ModelRegistryContext";
 import { parseRegistryJson } from "@stigmer/react-core";
@@ -86,13 +87,13 @@ const CATALOG = [
 export type Standing = ProviderAvailability | { readonly availability: ProviderAvailability; readonly parentOrg: string };
 
 /** The server's readiness answer for these standings, every catalog model judged by its provider's. */
-export function readiness(standings: { readonly anthropic: Standing; readonly openai: Standing }): GetModelReadinessOutput {
-  const of = (provider: "anthropic" | "openai") => {
+export function readiness(standings: Readonly<Record<ProviderKeyProvider, Standing>>): GetModelReadinessOutput {
+  const of = (provider: ProviderKeyProvider) => {
     const standing = standings[provider];
     return typeof standing === "number" ? { availability: standing, parentOrg: "" } : standing;
   };
   return create(GetModelReadinessOutputSchema, {
-    providers: (["anthropic", "openai"] as const).map((provider) =>
+    providers: PROVIDER_KEY_PROVIDERS.map((provider) =>
       create(ProviderReadinessSchema, { provider, ...of(provider) }),
     ),
     models: CATALOG.map((entry) =>
@@ -109,6 +110,7 @@ export function readiness(standings: { readonly anthropic: Standing; readonly op
 export const NOTHING_CONNECTED = readiness({
   anthropic: ProviderAvailability.missing_from_organization,
   openai: ProviderAvailability.missing_from_organization,
+  google: ProviderAvailability.missing_from_organization,
 });
 
 /**
@@ -132,16 +134,19 @@ export const NOTHING_CONNECTED_BESIDE_UNJUDGED = create(GetModelReadinessOutputS
 export const ANTHROPIC_CONNECTED = readiness({
   anthropic: ProviderAvailability.served_by_organization,
   openai: ProviderAvailability.missing_from_organization,
+  google: ProviderAvailability.missing_from_organization,
 });
 
 export const OPENAI_ONLY = readiness({
   anthropic: ProviderAvailability.missing_from_organization,
   openai: ProviderAvailability.served_by_organization,
+  google: ProviderAvailability.missing_from_organization,
 });
 
 export const LAPTOP_WITHOUT_KEYS = readiness({
   anthropic: ProviderAvailability.missing_from_runners,
   openai: ProviderAvailability.missing_from_runners,
+  google: ProviderAvailability.missing_from_runners,
 });
 
 const NOW = Date.UTC(2026, 9, 28, 9, 0, 0);

@@ -410,6 +410,7 @@ describe("platform domain (model readiness, declared runners)", () => {
     expect(out.providers.map((p) => [p.provider, p.availability])).toEqual([
       ["anthropic", ProviderAvailability.served_by_runners],
       ["openai", ProviderAvailability.missing_from_runners],
+      ["google", ProviderAvailability.missing_from_runners],
     ]);
   });
 
@@ -509,11 +510,13 @@ describe("platform domain (model readiness, composed availability)", () => {
     expect(out.providers.map((p) => [p.provider, p.availability, p.parentOrg])).toEqual([
       ["anthropic", ProviderAvailability.served_by_organization, ""],
       ["openai", ProviderAvailability.served_by_parent_organization, "org-parent"],
+      ["google", ProviderAvailability.served_by_parent_organization, "org-parent"],
     ]);
     const unknown = await client.getModelReadiness({ org: undeclared });
     expect(unknown.providers.map((p) => [p.provider, p.availability, p.parentOrg])).toEqual([
       ["anthropic", ProviderAvailability.availability_unknown, ""],
       ["openai", ProviderAvailability.availability_unknown, ""],
+      ["google", ProviderAvailability.availability_unknown, ""],
     ]);
   });
 

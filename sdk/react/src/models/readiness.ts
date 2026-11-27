@@ -31,7 +31,7 @@ export type ProviderAvailability =
 
 /** One provider's report, in the server's order. */
 export interface ProviderReadiness {
-  /** The server's name for the provider: `anthropic`, `openai`. */
+  /** The server's name for the provider: `anthropic`, `openai`, `google`. */
   readonly provider: string;
   readonly availability: ProviderAvailability;
 }

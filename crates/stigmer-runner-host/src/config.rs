@@ -31,6 +31,9 @@ pub struct RunnerConfig {
     pub anthropic_api_key: Option<String>,
     /// OpenAI API key for BYOK direct mode. Same contract as `anthropic_api_key`.
     pub openai_api_key: Option<String>,
+    /// Google (Gemini) API key for BYOK direct mode, set as `GEMINI_API_KEY`, the name
+    /// Google AI Studio gives it. Same contract as `anthropic_api_key`.
+    pub gemini_api_key: Option<String>,
     // Resolved working directory for the runner. The core forwards it as-is; deriving a
     // default (e.g. a desktop's ~/.stigmer path) is host policy and lives in the binding.
     pub workspace_root_dir: Option<String>,

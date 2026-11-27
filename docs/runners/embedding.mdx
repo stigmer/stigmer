@@ -60,14 +60,14 @@ How to read each row:
   `MODE=local`, `TEMPORAL_SERVICE_ADDRESS` defaults to `localhost:7233` and
   `STIGMER_BACKEND_ENDPOINT` to `http://localhost:7234`. `STIGMER_TOKEN` is
   optional because a local server has no auth. Credentials are **bring your
-  own**: you pass `ANTHROPIC_API_KEY` / `OPENAI_API_KEY` directly (there is no
-  proxy to inject them — a run that needs a missing key fails with
-  `LLM_MISSING_API_KEY`). The Rust host crate exposes both as typed config
-  fields (`anthropic_api_key`, `openai_api_key`), so an embedder never has to
-  prime its own process environment. A **managed self-hosted** deployment, where
-  you run the full Stigmer stack on your own infrastructure with Stigmer
-  support, uses this same surface — point the endpoints at your hosts instead of
-  localhost.
+  own**: you pass `ANTHROPIC_API_KEY`, `OPENAI_API_KEY` or `GEMINI_API_KEY`
+  directly (there is no proxy to inject them — a run that needs a missing key
+  fails with `LLM_MISSING_API_KEY`). The Rust host crate exposes each as a typed
+  config field (`anthropic_api_key`, `openai_api_key`, `gemini_api_key`), so an
+  embedder never has to prime its own process environment. A **managed
+  self-hosted** deployment, where you run the full Stigmer stack on your own
+  infrastructure with Stigmer support, uses this same surface — point the
+  endpoints at your hosts instead of localhost.
 
 ## Temporal self-discovery
 
@@ -346,10 +346,11 @@ host.start(RunnerConfig {
     stigmer_endpoint: "https://api.stigmer.ai".into(),
     temporal_namespace: None,
     stigmer_token: Some("stigmer_token".into()),
-    // Credentials for direct (BYOK) mode. With a proxy_endpoint set, leave both
+    // Credentials for direct (BYOK) mode. With a proxy_endpoint set, leave them
     // None — the proxy injects the real keys server-side.
     anthropic_api_key: None,
     openai_api_key: None,
+    gemini_api_key: None,
     workspace_root_dir: None,
     proxy_endpoint: Some("https://api.stigmer.ai".into()),
     // OSS/local mode only (no proxy): the artifact dir shared with the local

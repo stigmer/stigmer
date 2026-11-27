@@ -44,7 +44,7 @@ describe("the providerAvailability driver point", () => {
 describe("runnerProviderAvailability", () => {
   it("answers unknown for every provider when nothing was declared", async () => {
     const built = runnerProviderAvailability(undefined);
-    for (const name of ["anthropic", "openai"] as const) {
+    for (const name of ["anthropic", "openai", "google"] as const) {
       expect(await built.availability("org-1", name)).toEqual({ state: "unknown" });
     }
   });

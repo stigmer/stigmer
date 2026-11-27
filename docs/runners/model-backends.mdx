@@ -8,12 +8,13 @@ description:
 ---
 
 By default, a runner in direct mode calls each model provider's public API —
-api.anthropic.com for Claude, api.openai.com for GPT. A **backend** changes
-where those models are served. Point the runner at your own GCP project, AWS
-account, or Azure subscription and every Claude call runs inside your cloud
-account's compliance boundary: your region, your contracts, your audit trail.
-Nothing else changes — Agents, model names, usage reporting, and the console all
-behave exactly as before.
+api.anthropic.com for Claude, api.openai.com for GPT,
+generativelanguage.googleapis.com for Gemini. A **backend** changes where those
+models are served. Point the runner at your own GCP project, AWS account, or
+Azure subscription and every Claude call runs inside your cloud account's
+compliance boundary: your region, your contracts, your audit trail. Nothing else
+changes — Agents, model names, usage reporting, and the console all behave
+exactly as before.
 
 Backends are a deployment decision, set through environment variables on the
 runner. Agents stay portable: the same Agent runs unchanged on a laptop against

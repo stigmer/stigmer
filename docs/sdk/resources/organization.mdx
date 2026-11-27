@@ -897,7 +897,7 @@ Where an organization is on the journey from a first agent to its users.
     steps: { type: "OnboardingStepInput[]", description: "The six steps, in order." },
     newestAgent: { type: "OnboardingAgentInput", description: "The newest agent the journey made (an example's, or one described in the person's own words)." },
     changedAgent: { type: "OnboardingAgentInput", description: "The newest agent the journey made that has a second version." },
-    servedProvider: { type: "string", description: "The first provider that serves a model to the organization (\"anthropic\" or \"openai\"), in the server's order." },
+    servedProvider: { type: "string", description: "The first provider that serves a model to the organization (\"anthropic\", \"openai\" or \"google\"), in the server's order." },
     everRan: { type: "boolean", description: "Whether any run has ever started here, a failed or stopped one included." },
     appUserName: { type: "string", description: "The display name of the first person who signed in from the builder's own app." },
     joinedNames: { type: "string[]", description: "The display names of up to two people, besides the one asking, who hold access to the organization." },

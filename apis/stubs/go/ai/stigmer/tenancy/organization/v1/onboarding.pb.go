@@ -233,8 +233,9 @@ type OnboardingProgress struct {
 	// The newest agent the journey made that has a second version. Unset
 	// when none has one.
 	ChangedAgent *OnboardingAgent `protobuf:"bytes,3,opt,name=changed_agent,json=changedAgent,proto3" json:"changed_agent,omitempty"`
-	// The first provider that serves a model to the organization ("anthropic"
-	// or "openai"), in the server's order. Empty when none is known to.
+	// The first provider that serves a model to the organization
+	// ("anthropic", "openai" or "google"), in the server's order. Empty when
+	// none is known to.
 	ServedProvider string `protobuf:"bytes,4,opt,name=served_provider,json=servedProvider,proto3" json:"served_provider,omitempty"`
 	// Whether any run has ever started here, a failed or stopped one
 	// included.

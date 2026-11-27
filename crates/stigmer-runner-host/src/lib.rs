@@ -33,6 +33,7 @@
 //!     // instead of priming your own process env before start().
 //!     anthropic_api_key: None,
 //!     openai_api_key: None,
+//!     gemini_api_key: None,
 //!     workspace_root_dir: None,
 //!     proxy_endpoint: Some("https://api.stigmer.ai".into()),
 //!     local_artifact_path: None, // OSS/local mode only; ignored with a proxy

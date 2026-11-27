@@ -10,7 +10,9 @@
  *     runner: Anthropic (`ANTHROPIC_BASE_URL`'s host, else
  *     `api.anthropic.com` when `ANTHROPIC_API_KEY` is set), OpenAI
  *     (`OPENAI_BASE_URL`'s host, else `api.openai.com` when
- *     `OPENAI_API_KEY` is set), and Bedrock
+ *     `OPENAI_API_KEY` is set), Google (`generativelanguage.googleapis.com`
+ *     when `GEMINI_API_KEY` is set: the runner has no Google base URL), and
+ *     Bedrock
  *     (`ANTHROPIC_BEDROCK_BASE_URL`'s host, else
  *     `bedrock-runtime.<AWS_REGION>.amazonaws.com`);
  *   - the https:// public MCP address and OTLP endpoint.
@@ -18,8 +20,8 @@
  * What cannot be derived (a Vertex or Foundry endpoint, a corporate proxy)
  * is the operator's list, STIGMER_SANDBOX_SUBSTRATE_EGRESS_HTTPS_PLATFORM.
  *
- * The defaults are copies of the runner's own (`agent-proxy/lanes.ts`); a
- * test in the runner
+ * The defaults are copies of the runner's own (`agent-proxy/lanes.ts`, and
+ * Google's `shared/google-transport.ts`); a test in the runner
  * package (`environment/__tests__/platform-lanes.test.ts`) holds them
  * equal. The module imports nothing at run time, so that test can load it.
  */
@@ -27,6 +29,7 @@ import type { SandboxDriverConfig } from "./provisioner.js";
 
 export const ANTHROPIC_DEFAULT_ROOT = "https://api.anthropic.com";
 export const OPENAI_DEFAULT_ROOT = "https://api.openai.com/v1";
+export const GEMINI_DEFAULT_ROOT = "https://generativelanguage.googleapis.com";
 
 /** The host of an https:// URL, or `undefined` for anything else. */
 function httpsHost(raw: string | undefined): string | undefined {
@@ -58,6 +61,9 @@ export function runnerPlatformHosts(config: Pick<SandboxDriverConfig, "runnerEnv
     hosts.push(httpsHost(value("OPENAI_BASE_URL")));
   } else if (has("OPENAI_API_KEY")) {
     hosts.push(httpsHost(OPENAI_DEFAULT_ROOT));
+  }
+  if (has("GEMINI_API_KEY")) {
+    hosts.push(httpsHost(GEMINI_DEFAULT_ROOT));
   }
   if (has("ANTHROPIC_BEDROCK_BASE_URL")) {
     hosts.push(httpsHost(value("ANTHROPIC_BEDROCK_BASE_URL")));

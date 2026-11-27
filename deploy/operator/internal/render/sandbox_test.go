@@ -96,8 +96,8 @@ func TestSandboxImageIsPinnedWhenADigestIsStamped(t *testing.T) {
 }
 
 func TestSandboxModelKeysKeepOnlyHeldKeys(t *testing.T) {
-	got := SandboxModelKeys(map[string][]byte{"OPENAI_API_KEY": []byte("k"), "ANTHROPIC_API_KEY": []byte("k"), "ANTHROPIC_BASE_URL": {}, "OTHER": []byte("x")})
-	if !slices.Equal(got, []string{"ANTHROPIC_API_KEY", "OPENAI_API_KEY"}) {
+	got := SandboxModelKeys(map[string][]byte{"GEMINI_API_KEY": []byte("k"), "OPENAI_API_KEY": []byte("k"), "ANTHROPIC_API_KEY": []byte("k"), "ANTHROPIC_BASE_URL": {}, "OTHER": []byte("x")})
+	if !slices.Equal(got, []string{"ANTHROPIC_API_KEY", "OPENAI_API_KEY", "GEMINI_API_KEY"}) {
 		t.Errorf("got %v", got)
 	}
 }

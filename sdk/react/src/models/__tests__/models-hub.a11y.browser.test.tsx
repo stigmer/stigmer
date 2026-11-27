@@ -57,6 +57,7 @@ describe("Models & providers a11y", () => {
         readiness: readiness({
           anthropic: ProviderAvailability.served_by_organization,
           openai: { availability: ProviderAvailability.served_by_parent_organization, parentOrg: PARENT_ID },
+          google: ProviderAvailability.missing_from_organization,
         }),
         keys: [
           storedKey("anthropic", { check: ProviderKeyCheck.checked, lastUsedDaysAgo: 0 }),

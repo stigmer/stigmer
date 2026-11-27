@@ -85,8 +85,8 @@ func (ProviderKeyCheck) EnumDescriptor() ([]byte, []int) {
 //
 // An organization holds at most one key per provider, where the provider
 // names the wire protocol: "anthropic" is Anthropic's API or any endpoint
-// that speaks it, and "openai" is OpenAI's API or any endpoint that speaks
-// it.
+// that speaks it, "openai" is OpenAI's API or any endpoint that speaks it,
+// and "google" is Google's Gemini API or any endpoint that speaks it.
 //
 // The Stigmer Cloud proxy serves every one of the organization's calls to
 // that provider on this key, on every plan, and on no other: a run that
@@ -102,8 +102,8 @@ type ProviderKey struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// The organization the key serves.
 	Org string `protobuf:"bytes,1,opt,name=org,proto3" json:"org,omitempty"`
-	// The provider the key is for: "anthropic" or "openai", the
-	// proxy's own provider names.
+	// The provider the key is for: "anthropic", "openai" or "google",
+	// the proxy's own provider names.
 	Provider string `protobuf:"bytes,2,opt,name=provider,proto3" json:"provider,omitempty"`
 	// The key's last four characters.
 	KeyHint string `protobuf:"bytes,3,opt,name=key_hint,json=keyHint,proto3" json:"key_hint,omitempty"`

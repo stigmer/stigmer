@@ -95,6 +95,7 @@ fn typed_field_hint(key: &str) -> &'static str {
     match key {
         "ANTHROPIC_API_KEY" => "; use the `anthropic_api_key` field instead",
         "OPENAI_API_KEY" => "; use the `openai_api_key` field instead",
+        "GEMINI_API_KEY" => "; use the `gemini_api_key` field instead",
         "STIGMER_TOKEN" => "; use the `stigmer_token` field instead",
         "TEMPORAL_SERVICE_ADDRESS" => "; use the `temporal_address` field instead",
         "TEMPORAL_NAMESPACE" => "; use the `temporal_namespace` field instead",

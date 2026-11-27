@@ -32,8 +32,8 @@ public interface ProviderKeyOrBuilder extends
 
   /**
    * <pre>
-   * The provider the key is for: "anthropic" or "openai", the
-   * proxy's own provider names.
+   * The provider the key is for: "anthropic", "openai" or "google",
+   * the proxy's own provider names.
    * </pre>
    *
    * <code>string provider = 2 [json_name = "provider"];</code>
@@ -42,8 +42,8 @@ public interface ProviderKeyOrBuilder extends
   java.lang.String getProvider();
   /**
    * <pre>
-   * The provider the key is for: "anthropic" or "openai", the
-   * proxy's own provider names.
+   * The provider the key is for: "anthropic", "openai" or "google",
+   * the proxy's own provider names.
    * </pre>
    *
    * <code>string provider = 2 [json_name = "provider"];</code>

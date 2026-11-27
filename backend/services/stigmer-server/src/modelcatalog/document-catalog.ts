@@ -202,8 +202,9 @@ export class DocumentModelCatalog implements ModelCatalogProvider {
  * the form the runner routes without a catalog entry
  * (`backend/services/runner/src/shared/llm-proxy.ts`, `LLM_PROVIDERS`).
  * A name here is only routable: who must hold a key for it is the provider
- * list's (`provider-need.ts`), which may not hold it yet, and then a run on
- * it is admitted unjudged.
+ * list's (`provider-need.ts`). The two lists answer different questions and
+ * hold the same names today; a prefix the provider list does not hold is
+ * routed but admitted unjudged.
  */
 export const EXPLICIT_MODEL_PROVIDERS: readonly string[] = ["anthropic", "openai", "google"];
 

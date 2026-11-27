@@ -188,12 +188,14 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * The endpoint to use the key against, as the provider's own SDK takes it
-   * as its base URL: OpenAI's usually ends in /v1, Anthropic's does not.
+   * as its base URL: OpenAI's usually ends in /v1, Anthropic's does not,
+   * and Google's is the address before Google's own /v1beta/... path.
    * Empty means the provider's own API. Otherwise an absolute https URL
    * with no credentials, query or fragment, that resolves to a public
    * address; the proxy appends the provider's request path to it, without
    * repeating a trailing /v1. For example
-   * "https://my-resource.openai.azure.com/openai/v1".
+   * "https://my-resource.openai.azure.com/openai/v1", or for Google
+   * "https://gateway.example.com/google".
    * </pre>
    *
    * <code>string base_url = 4 [json_name = "baseUrl", (.buf.validate.field) = { ... }</code>
@@ -215,12 +217,14 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * The endpoint to use the key against, as the provider's own SDK takes it
-   * as its base URL: OpenAI's usually ends in /v1, Anthropic's does not.
+   * as its base URL: OpenAI's usually ends in /v1, Anthropic's does not,
+   * and Google's is the address before Google's own /v1beta/... path.
    * Empty means the provider's own API. Otherwise an absolute https URL
    * with no credentials, query or fragment, that resolves to a public
    * address; the proxy appends the provider's request path to it, without
    * repeating a trailing /v1. For example
-   * "https://my-resource.openai.azure.com/openai/v1".
+   * "https://my-resource.openai.azure.com/openai/v1", or for Google
+   * "https://gateway.example.com/google".
    * </pre>
    *
    * <code>string base_url = 4 [json_name = "baseUrl", (.buf.validate.field) = { ... }</code>
@@ -852,12 +856,14 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * The endpoint to use the key against, as the provider's own SDK takes it
-     * as its base URL: OpenAI's usually ends in /v1, Anthropic's does not.
+     * as its base URL: OpenAI's usually ends in /v1, Anthropic's does not,
+     * and Google's is the address before Google's own /v1beta/... path.
      * Empty means the provider's own API. Otherwise an absolute https URL
      * with no credentials, query or fragment, that resolves to a public
      * address; the proxy appends the provider's request path to it, without
      * repeating a trailing /v1. For example
-     * "https://my-resource.openai.azure.com/openai/v1".
+     * "https://my-resource.openai.azure.com/openai/v1", or for Google
+     * "https://gateway.example.com/google".
      * </pre>
      *
      * <code>string base_url = 4 [json_name = "baseUrl", (.buf.validate.field) = { ... }</code>
@@ -878,12 +884,14 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * The endpoint to use the key against, as the provider's own SDK takes it
-     * as its base URL: OpenAI's usually ends in /v1, Anthropic's does not.
+     * as its base URL: OpenAI's usually ends in /v1, Anthropic's does not,
+     * and Google's is the address before Google's own /v1beta/... path.
      * Empty means the provider's own API. Otherwise an absolute https URL
      * with no credentials, query or fragment, that resolves to a public
      * address; the proxy appends the provider's request path to it, without
      * repeating a trailing /v1. For example
-     * "https://my-resource.openai.azure.com/openai/v1".
+     * "https://my-resource.openai.azure.com/openai/v1", or for Google
+     * "https://gateway.example.com/google".
      * </pre>
      *
      * <code>string base_url = 4 [json_name = "baseUrl", (.buf.validate.field) = { ... }</code>
@@ -905,12 +913,14 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * The endpoint to use the key against, as the provider's own SDK takes it
-     * as its base URL: OpenAI's usually ends in /v1, Anthropic's does not.
+     * as its base URL: OpenAI's usually ends in /v1, Anthropic's does not,
+     * and Google's is the address before Google's own /v1beta/... path.
      * Empty means the provider's own API. Otherwise an absolute https URL
      * with no credentials, query or fragment, that resolves to a public
      * address; the proxy appends the provider's request path to it, without
      * repeating a trailing /v1. For example
-     * "https://my-resource.openai.azure.com/openai/v1".
+     * "https://my-resource.openai.azure.com/openai/v1", or for Google
+     * "https://gateway.example.com/google".
      * </pre>
      *
      * <code>string base_url = 4 [json_name = "baseUrl", (.buf.validate.field) = { ... }</code>
@@ -928,12 +938,14 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * The endpoint to use the key against, as the provider's own SDK takes it
-     * as its base URL: OpenAI's usually ends in /v1, Anthropic's does not.
+     * as its base URL: OpenAI's usually ends in /v1, Anthropic's does not,
+     * and Google's is the address before Google's own /v1beta/... path.
      * Empty means the provider's own API. Otherwise an absolute https URL
      * with no credentials, query or fragment, that resolves to a public
      * address; the proxy appends the provider's request path to it, without
      * repeating a trailing /v1. For example
-     * "https://my-resource.openai.azure.com/openai/v1".
+     * "https://my-resource.openai.azure.com/openai/v1", or for Google
+     * "https://gateway.example.com/google".
      * </pre>
      *
      * <code>string base_url = 4 [json_name = "baseUrl", (.buf.validate.field) = { ... }</code>
@@ -948,12 +960,14 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * The endpoint to use the key against, as the provider's own SDK takes it
-     * as its base URL: OpenAI's usually ends in /v1, Anthropic's does not.
+     * as its base URL: OpenAI's usually ends in /v1, Anthropic's does not,
+     * and Google's is the address before Google's own /v1beta/... path.
      * Empty means the provider's own API. Otherwise an absolute https URL
      * with no credentials, query or fragment, that resolves to a public
      * address; the proxy appends the provider's request path to it, without
      * repeating a trailing /v1. For example
-     * "https://my-resource.openai.azure.com/openai/v1".
+     * "https://my-resource.openai.azure.com/openai/v1", or for Google
+     * "https://gateway.example.com/google".
      * </pre>
      *
      * <code>string base_url = 4 [json_name = "baseUrl", (.buf.validate.field) = { ... }</code>

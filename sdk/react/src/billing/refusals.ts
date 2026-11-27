@@ -20,7 +20,7 @@ export const DEFAULT_MODELS_HUB_HREF = "/models";
 export interface ProviderKeyRequired {
   /** The organization the run was refused in. */
   readonly org: string;
-  /** The provider it has no key for: `anthropic` or `openai`. */
+  /** The provider it has no key for: `anthropic`, `openai` or `google`. */
   readonly provider: string;
   /** The model the run would have used; empty when it names none. */
   readonly model: string;

@@ -1,17 +1,19 @@
 ---
 title: Model Provider Keys
 description:
-  Run your Agents on Stigmer Cloud with your Organization's own Anthropic and
-  OpenAI keys, on the provider's API or on your own compatible endpoint.
+  Run your Agents on Stigmer Cloud with your Organization's own Anthropic,
+  OpenAI and Google keys, on the provider's API or on your own compatible
+  endpoint.
 ---
 
 On Stigmer Cloud every model call an Agent run on the Stigmer harness makes runs
 on a key your Organization owns, on every plan. An admin adds an Anthropic key,
-an OpenAI key, or both, and your Agents run on them: the provider bills your
-Organization directly, and Stigmer meters the calls and charges nothing for
-them. Stigmer never runs a model call on a key of its own. Claude-harness runs
-work the same way, on your Organization's Anthropic key: a Claude run runs
-Claude models only, so it always needs that key, whatever its model.
+an OpenAI key, a Google key, or any of them together, and your Agents run on
+them: the provider bills your Organization directly, and Stigmer meters the
+calls and charges nothing for them. Stigmer never runs a model call on a key of
+its own. Claude-harness runs work the same way, on your Organization's Anthropic
+key: a Claude run runs Claude models only, so it always needs that key, whatever
+its model.
 
 Stigmer tells you which models can run before you try one. **Models &
 providers**, in the console's sidebar, shows each provider, whether it is
@@ -29,8 +31,8 @@ was not started. An admin can add one in Models & providers.
 
 1. Open **Models & providers**. Every member sees which providers are connected;
    adding, replacing and removing a key needs an admin.
-2. Choose **Connect Anthropic** (or OpenAI) on the provider's card and paste the
-   key.
+2. Choose **Connect Anthropic** (or OpenAI, or Google) on the provider's card
+   and paste the key.
 3. To use the provider's own API, go on. For your own endpoint, choose **Use
    your own endpoint** and give its **Base URL** (see below).
 4. Choose **Connect Anthropic** again to save it.
@@ -45,21 +47,45 @@ serves your Organization again.
 
 From a terminal, `stigmer provider-key list` shows the same, and an admin saves
 and removes keys with `stigmer provider-key set anthropic` and
-`stigmer provider-key delete anthropic`. The key is read from a prompt, or from
-standard input with `--key-stdin`, never from the command line.
+`stigmer provider-key delete anthropic`; the providers are named `anthropic`,
+`openai` and `google`. The key is read from a prompt, or from standard input
+with `--key-stdin`, never from the command line.
+
+## Use a Google key
+
+Google's provider runs Gemini models. Create its key in
+[Google AI Studio](https://aistudio.google.com/api-keys) and save it under
+Google, on the **Google** card's **Connect Google** or with
+`stigmer provider-key set google`. A Gemini key is a Google key:
+`stigmer provider-key set gemini` is refused with "Gemini keys are saved under
+google." Keys AI Studio makes today begin with `AQ.`; older ones begin with
+`AIza`. Google bills the calls to you: AI Studio's
+[billing page](https://aistudio.google.com/billing) is where you add a payment
+method or raise a limit, and its
+[status page](https://aistudio.google.com/status) says whether Google is having
+trouble.
+
+A Gemini model is named with the `google:` prefix and Google's own name for the
+model, such as `google:gemini-4-hydrogen`, the form for a model the catalog does
+not list ([below](#run-a-model-your-endpoint-serves)): the Stigmer catalog lists
+no Gemini models, so a Gemini model has no catalog price. Stigmer calls Gemini
+on Google's own protocol, tool calls included.
 
 ## The rules
 
-- **One key per provider.** Your Organization holds at most one Anthropic key
-  and one OpenAI key. Saving another replaces the one you have.
+- **One key per provider.** Your Organization holds at most one Anthropic key,
+  one OpenAI key and one Google key. Saving another replaces the one you have.
 - **A provider is a protocol.** The Anthropic slot serves Anthropic's API or any
   endpoint that speaks it; the OpenAI slot serves OpenAI's API or any endpoint
   that speaks OpenAI's API (an Azure OpenAI deployment that accepts a bearer
-  key, a company gateway such as LiteLLM, a vLLM server you run).
+  key, a company gateway such as LiteLLM, a vLLM server you run); the Google
+  slot serves Google's Gemini API or a gateway that speaks Gemini's own
+  protocol.
 - **Base URL is what the provider's SDK takes.** OpenAI's usually ends in `/v1`
   (`https://gateway.example.com/v1`), Anthropic's does not
-  (`https://gateway.example.com`). Stigmer appends the provider's request path
-  and does not repeat a trailing `/v1`, so
+  (`https://gateway.example.com`), and Google's is the address before Google's
+  own `/v1beta/...` path (`https://gateway.example.com/google`). Stigmer appends
+  the provider's request path and does not repeat a trailing `/v1`, so
   `https://my-resource.openai.azure.com/openai/v1` serves chat completions at
   `/openai/v1/chat/completions`.
 - **Only `https`, only public addresses.** A base URL must be an `https` URL
@@ -67,9 +93,9 @@ standard input with `--key-stdin`, never from the command line.
   public address. Stigmer refuses a plain `http` URL, `localhost`, and private
   or link-local addresses, both when you save the key and on every call.
 - **The key is sent the provider's way.** Anthropic-compatible endpoints receive
-  it as `x-api-key`; OpenAI-compatible ones as `Authorization: Bearer`. An
-  endpoint that needs another header or cloud credentials (Bedrock, Vertex) is
-  not served by a key.
+  it as `x-api-key`, OpenAI-compatible ones as `Authorization: Bearer`, and
+  Gemini-compatible ones as `x-goog-api-key`. An endpoint that needs another
+  header or cloud credentials (Bedrock, Vertex) is not served by a key.
 - **A child Organization uses its parent's key.** An Organization created under
   another is served by the parent's key for any provider it holds none of. The
   child sees that key read-only; its own key for a provider always wins.
@@ -77,9 +103,9 @@ standard input with `--key-stdin`, never from the command line.
 ## Run a model your endpoint serves
 
 A model the Stigmer catalog does not list, served by your own endpoint, is named
-with its provider slot as a prefix: `openai:<name>` or `anthropic:<name>`. For
-example, with the OpenAI slot pointed at your vLLM server, an Agent whose model
-is `openai:llama-3.3-70b` runs on it:
+with its provider slot as a prefix: `openai:<name>`, `anthropic:<name>` or
+`google:<name>`. For example, with the OpenAI slot pointed at your vLLM server,
+an Agent whose model is `openai:llama-3.3-70b` runs on it:
 
 ```yaml
 apiVersion: agentic.stigmer.ai/v1
@@ -98,9 +124,13 @@ subagents included. Settings that depend on what Stigmer knows about a model,
 the fast service tier and explicit thinking, stay limited to the catalog's
 models, and a model the catalog does not list has no catalog price.
 
-This is how you reach a model family the catalog does not list, such as Gemini,
-Kimi, GLM or Grok: point the OpenAI slot at an OpenAI-compatible endpoint that
-serves it, and name the model `openai:<name>`.
+A Gemini model runs on the Google slot, named `google:<name>` (see
+[Use a Google key](#use-a-google-key)). A model family with no slot of its own,
+such as Kimi, GLM or Grok, runs on the OpenAI slot: point it at an
+OpenAI-compatible endpoint that serves the family, and name the model
+`openai:<name>`. Don't reach Gemini that way: Gemini's OpenAI-compatible
+endpoint fails a tool call's second step, so an Agent that uses tools stops
+there.
 
 ## When a call fails on your key
 
@@ -121,10 +151,11 @@ providers**.
 
 A self-hosted Stigmer server holds no provider keys: its runners call the
 providers with keys from their own environment. On your own machine,
-`stigmer setup` saves the Anthropic key the runner uses, an `OPENAI_API_KEY` set
-in the shell you start Stigmer from gives it OpenAI, and `stigmer up` tells the
-server which providers the runner reaches, by a key, Vertex, Bedrock, Foundry or
-a gateway. **Models & providers** then shows them, and a run whose provider the
+`stigmer setup` saves the Anthropic key the runner uses; an `OPENAI_API_KEY` set
+in the shell you start Stigmer from gives it OpenAI, and a `GEMINI_API_KEY` set
+there gives it Google. `stigmer up` tells the server which providers the runner
+reaches, whether by a key, a cloud backend (Vertex, Bedrock, Foundry) or a
+gateway. **Models & providers** then shows them, and a run whose provider the
 runner cannot reach is refused before it starts:
 
 ```
@@ -133,11 +164,24 @@ run was not started. On your own machine, run `stigmer setup`, then
 `stigmer down && stigmer up`.
 ```
 
-For an OpenAI model the refusal says to set `OPENAI_API_KEY` instead.
+For an OpenAI model the refusal says to set `OPENAI_API_KEY` instead, and for a
+Gemini model `GEMINI_API_KEY`. To give your machine's runner Google, start
+Stigmer again from a shell that holds the key:
+
+```bash
+export GEMINI_API_KEY=<your key>
+stigmer down && stigmer up
+```
+
+`stigmer status` then lists `google (key)` among the providers the runner
+reaches. `stigmer setup` asks for the Anthropic key only, and the runner never
+reads `GOOGLE_API_KEY`.
 
 A Docker Compose or Kubernetes install tells its server the same with
 `STIGMER_RUNNER_PROVIDERS`, the providers its runners reach
 ([What the runner is given](/docs/guides/self-hosting/runners#what-the-runner-is-given)).
 Without it the server cannot see the runners' keys, so it refuses nothing and
-the runner's own error names a missing key. The `openai:<name>` and
-`anthropic:<name>` forms work there too.
+the runner's own error names a missing key. The `openai:<name>`,
+`anthropic:<name>` and `google:<name>` forms work there too. A self-hosted
+runner calls Google's own Gemini API with its `GEMINI_API_KEY`; a Google base
+URL is a Stigmer Cloud key's setting.

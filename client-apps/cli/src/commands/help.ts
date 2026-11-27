@@ -128,7 +128,7 @@ export const HELP_EXAMPLES: ReadonlyMap<string, readonly HelpExample[]> = new Ma
   ["stigmer mcp-server", [{ say: "serve on stdio, as an MCP client spawns it", run: "stigmer mcp-server" }, { say: "serve over HTTP on a port of your own", run: "stigmer mcp-server --transport http --port 9090" }]],
   ["stigmer provider-key delete", [{ say: "remove a key; asks first on a terminal", run: "stigmer provider-key delete anthropic" }]],
   ["stigmer provider-key list", [{ say: "see every provider and where it stands", run: "stigmer provider-key list" }]],
-  ["stigmer provider-key set", [{ say: "save the Anthropic key, typed at a hidden prompt", run: "stigmer provider-key set anthropic" }, { say: "save a key from a script, through stdin", run: "stigmer provider-key set openai --key-stdin < openai.key" }]],
+  ["stigmer provider-key set", [{ say: "save the Anthropic key, typed at a hidden prompt", run: "stigmer provider-key set anthropic" }, { say: "save a key from a script, through stdin", run: "stigmer provider-key set openai --key-stdin < openai.key" }, { say: "save a Gemini key, under the provider google", run: "stigmer provider-key set google" }]],
   ["stigmer push", [{ say: "push a skill from the current directory", run: "stigmer push skill" }, { say: "push from a specific directory", run: "stigmer push skill ./my-skill/" }]],
   ["stigmer reset", [{ say: "reset runtime data (configuration preserved), with confirmation", run: "stigmer reset" }, { say: "reset without the confirmation prompt", run: "stigmer reset --force" }]],
   ["stigmer resume", [{ say: "browse recent sessions interactively", run: "stigmer resume" }, { say: "resume by session ID", run: "stigmer resume ses_01j9z3k8m2q4r6t8v0w2y4a6c8" }]],

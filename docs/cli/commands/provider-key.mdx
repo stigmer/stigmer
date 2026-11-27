@@ -11,13 +11,14 @@ description:
 See which model providers serve your Organization, and save, list and remove its
 provider keys.
 
-Every run calls its model through a provider: Anthropic or OpenAI. On Stigmer
-Cloud each call goes out on a key your Organization owns, one per provider, and
-the provider bills your Organization directly. A run whose model needs a
-provider no key serves is refused before it starts. `list` shows where each
-provider stands on every edition; `set` and `delete` manage the keys on Stigmer
-Cloud, where only those who manage the Organization's billing may. The commands
-act in the Organization `--org` names, then `STIGMER_ORG`, then your context.
+Every run calls its model through a provider: Anthropic, OpenAI or Google. On
+Stigmer Cloud each call goes out on a key your Organization owns, one per
+provider, and the provider bills your Organization directly. A run whose model
+needs a provider no key serves is refused before it starts. `list` shows where
+each provider stands on every edition; `set` and `delete` manage the keys on
+Stigmer Cloud, where only those who manage the Organization's billing may. The
+commands act in the Organization `--org` names, then `STIGMER_ORG`, then your
+context.
 
 ## Usage
 
@@ -36,6 +37,9 @@ stigmer provider-key set anthropic
 
 # Save a key from a script, through stdin
 stigmer provider-key set openai --key-stdin < openai.key
+
+# Save a Gemini key, under the provider google
+stigmer provider-key set google
 
 # Use the key against your own OpenAI-compatible endpoint
 stigmer provider-key set openai --base-url https://my-resource.openai.azure.com/openai/v1
@@ -74,17 +78,21 @@ whether it accepts the key: a key it refuses is not saved;
 `Saved; checked with Anthropic` means it accepted it; and `Saved, not checked`
 means it did not answer, so the first run that needs it says whether it works.
 
-`--base-url` points an Anthropic or OpenAI key at an endpoint that speaks that
-provider's API, such as a gateway or Azure OpenAI. It takes an `https` URL, as
-the provider's own SDK takes its base URL.
+`--base-url` points a key at an endpoint that speaks that provider's API, such
+as a gateway or Azure OpenAI. It takes an `https` URL, as the provider's own SDK
+takes its base URL. For Google, that is the address before Google's own
+`/v1beta/...` path.
+
+A Gemini key is saved under the provider `google`:
+`stigmer provider-key set gemini` is refused and says so.
 
 ### On your own machine
 
 The open-source server keeps no provider keys: its runners use the keys they
 were given. `list` still shows where each provider stands, and `set` and
-`delete` say where the keys come from instead: `stigmer setup` for Anthropic's
-and `OPENAI_API_KEY` in the shell you start Stigmer from for OpenAI's, then
-`stigmer down && stigmer up`.
+`delete` say where the keys come from instead: `stigmer setup` for Anthropic's,
+and `OPENAI_API_KEY` for OpenAI's and `GEMINI_API_KEY` for Google's in the shell
+you start Stigmer from, then `stigmer down && stigmer up`.
 
 ## Subcommands
 
@@ -120,20 +128,20 @@ stigmer provider-key list [flags]
 
 ### stigmer provider-key set
 
-save the organization's key for anthropic or openai, replacing any it holds
-(Stigmer Cloud)
+save the organization's key for anthropic, openai or google, replacing any it
+holds (Stigmer Cloud)
 
 ```bash
 stigmer provider-key set <provider> [flags]
 ```
 
-| Flag             | Type     | Default | Description                                                                   |
-| ---------------- | -------- | ------- | ----------------------------------------------------------------------------- |
-| `--base-url`     | `string` |         | use the key against your own Anthropic- or OpenAI-compatible endpoint (https) |
-| `--json`         | `bool`   |         | emit the result as JSON                                                       |
-| `--key-stdin`    | `bool`   |         | read the key from stdin instead of a hidden prompt                            |
-| `--output`, `-o` | `string` |         | output format: table or json                                                  |
-| `--quiet`        | `bool`   |         | print only the status line                                                    |
+| Flag             | Type     | Default | Description                                                                  |
+| ---------------- | -------- | ------- | ---------------------------------------------------------------------------- |
+| `--base-url`     | `string` |         | use the key against your own endpoint that speaks the provider's API (https) |
+| `--json`         | `bool`   |         | emit the result as JSON                                                      |
+| `--key-stdin`    | `bool`   |         | read the key from stdin instead of a hidden prompt                           |
+| `--output`, `-o` | `string` |         | output format: table or json                                                 |
+| `--quiet`        | `bool`   |         | print only the status line                                                   |
 
 ## Examples
 

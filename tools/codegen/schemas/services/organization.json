@@ -514,7 +514,7 @@
           "type": {
             "kind": "string"
           },
-          "description": "The first provider that serves a model to the organization (\"anthropic\"\n or \"openai\"), in the server's order. Empty when none is known to.",
+          "description": "The first provider that serves a model to the organization\n (\"anthropic\", \"openai\" or \"google\"), in the server's order. Empty when\n none is known to.",
           "required": false
         },
         {

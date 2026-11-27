@@ -503,8 +503,9 @@ the server.
   each a `name` with a `value` or a `valueFrom`.
 - **`llm`** (object): `llm` names the Secret holding the model provider's key,
   read by key name: ANTHROPIC_API_KEY, ANTHROPIC_BASE_URL, OPENAI_API_KEY,
-  ANTHROPIC_FOUNDRY_API_KEY or AWS_BEARER_TOKEN_BEDROCK. Agents cannot run
-  without one. Its fields are under [`spec.runner.llm`](#specrunnerllm).
+  GEMINI_API_KEY, ANTHROPIC_FOUNDRY_API_KEY or AWS_BEARER_TOKEN_BEDROCK. Agents
+  cannot run without one. Its fields are under
+  [`spec.runner.llm`](#specrunnerllm).
 - **`resources`** (Kubernetes type): `resources` overrides the runner
   container's requests and limits. Kubernetes
   [resource requirements](https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/):
@@ -516,8 +517,9 @@ the server.
 #### `spec.runner.llm`
 
 `llm` names the Secret holding the model provider's key, read by key name:
-ANTHROPIC_API_KEY, ANTHROPIC_BASE_URL, OPENAI_API_KEY, ANTHROPIC_FOUNDRY_API_KEY
-or AWS_BEARER_TOKEN_BEDROCK. Agents cannot run without one.
+ANTHROPIC_API_KEY, ANTHROPIC_BASE_URL, OPENAI_API_KEY, GEMINI_API_KEY,
+ANTHROPIC_FOUNDRY_API_KEY or AWS_BEARER_TOKEN_BEDROCK. Agents cannot run without
+one.
 
 - **`secretName`** (string): `secretName` is a Secret in this namespace.
   Required.
