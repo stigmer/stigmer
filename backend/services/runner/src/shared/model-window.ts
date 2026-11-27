@@ -79,14 +79,21 @@ function maxInputTokensOf(profile: ModelProfile | undefined): number | undefined
  */
 function libraryWindowOf(provider: LlmProvider, apiModelId: string): number | undefined {
   const key = `${provider}:${apiModelId}`;
-  if (!LIBRARY_WINDOWS.has(key)) {
-    const probe = provider === "openai"
-      ? new ChatOpenAI({ model: apiModelId, apiKey: "window-probe" })
-      : new ChatAnthropic({ model: apiModelId, apiKey: "window-probe" });
-    LIBRARY_WINDOWS.set(key, maxInputTokensOf(probe.profile) ?? null);
-  }
+  if (!LIBRARY_WINDOWS.has(key)) LIBRARY_WINDOWS.set(key, maxInputTokensOf(LIBRARY_PROFILES[provider](apiModelId)) ?? null);
   return LIBRARY_WINDOWS.get(key) ?? undefined;
 }
+
+/**
+ * Each provider's library profile for a first-party id. A Gemini model is
+ * always built under its first-party id (no backend rewrites it), so its
+ * own profile, read first, is already the library's answer, and no probe
+ * would add one.
+ */
+const LIBRARY_PROFILES: Readonly<Record<LlmProvider, (apiModelId: string) => ModelProfile | undefined>> = {
+  anthropic: (apiModelId) => new ChatAnthropic({ model: apiModelId, apiKey: "window-probe" }).profile,
+  openai: (apiModelId) => new ChatOpenAI({ model: apiModelId, apiKey: "window-probe" }).profile,
+  google: () => undefined,
+};
 
 /** The model's window from the first source that states one (the module header). */
 export function resolveModelWindow(input: ModelWindowInput): ModelWindow {

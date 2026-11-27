@@ -27,7 +27,7 @@
  *
  * | Lane                         | Forward | Terminate |
  * | ---------------------------- | ------- | --------- |
- * | `llm/anthropic`, `llm/openai`| yes     | yes       |
+ * | `llm/anthropic`, `llm/openai`, `llm/google` | yes | yes |
  * | `llm/bedrock`, `llm/vertex`, `llm/foundry` | no | yes |
  * | `model-registry`             | yes     | yes (to the runner's own control plane) |
  * | `checkpoints`                | yes     | no: a runner without the platform proxy checkpoints locally |
@@ -41,7 +41,10 @@
 import type { IncomingMessage } from "node:http";
 
 import type { Config } from "../config.js";
+import { GEMINI_API_ENDPOINT, GOOGLE_API_KEY_HEADER } from "../shared/google-transport.js";
 import { parseAnthropicBaseUrl } from "../shared/llm-backend.js";
+import { isLlmProvider } from "../shared/llm-proxy.js";
+import { MODEL_LANE_PATHS, type ModelLane } from "../shared/model-lanes.js";
 import { buildRegistryHeaders, resolveModelRegistryUrl } from "../shared/registry-endpoint.js";
 import { getRunnerSecret } from "../shared/runner-credential-store.js";
 import { CHECKED_SCOPE_HEADER, forwardableHeaders, type Upstream } from "./relay.js";
@@ -56,13 +59,11 @@ export class LaneRefusal extends Error {
   }
 }
 
-/** The providers a model lane names, after `/v1/proxy/llm/`. */
-export type ModelProviderLane = "anthropic" | "openai" | "bedrock" | "vertex" | "foundry";
-
-const MODEL_PROVIDER_LANES: ReadonlySet<string> = new Set<ModelProviderLane>(["anthropic", "openai", "bedrock", "vertex", "foundry"]);
+/** The providers a model lane names, after `/v1/proxy/llm/` (`shared/model-lanes.ts`). */
+export type ModelProviderLane = ModelLane;
 
 export function isModelProviderLane(name: string): name is ModelProviderLane {
-  return MODEL_PROVIDER_LANES.has(name);
+  return Object.hasOwn(MODEL_LANE_PATHS, name);
 }
 
 /**
@@ -76,6 +77,7 @@ const MODEL_CALL_PATHS: Readonly<Record<ModelProviderLane, RegExp>> = {
   anthropic: /^\/v1\/messages(\/count_tokens)?$/,
   openai: /^\/v1\/(chat\/completions|responses)$/,
   bedrock: /^\/model\/[^/]+\/(invoke|invoke-with-response-stream|count-tokens)$/,
+  google: /^\/v1beta\/models\/[^/:]+:(generateContent|streamGenerateContent|countTokens)$/,
   vertex: /^\/projects\/[^/]+\/locations\/[^/]+\/publishers\/anthropic\/models\/[^/:]+:(rawPredict|streamRawPredict)$/,
   foundry: /^\/v1\/messages(\/count_tokens)?$/,
 };
@@ -99,7 +101,7 @@ export async function modelUpstream(
   const path = rest.split("?")[0] ?? "";
   if (!MODEL_CALL_PATHS[lane].test(path)) throw new LaneRefusal(404, `the ${lane} lane serves model calls only, not ${path}`);
   if (config.proxyEndpoint !== null) {
-    if (lane !== "anthropic" && lane !== "openai") {
+    if (!isLlmProvider(lane)) {
       throw new LaneRefusal(404, `the ${lane} lane is not served: this runner's model calls go through the Stigmer platform`);
     }
     return {
@@ -115,6 +117,8 @@ export async function modelUpstream(
       return { url: laneUrl(anthropicBase(), rest), method, headers: { ...headers, "x-api-key": getRunnerSecret("ANTHROPIC_API_KEY") ?? "" }, body };
     case "openai":
       return { url: laneUrl(openAiBase(), stripV1(rest)), method, headers: { ...headers, authorization: `Bearer ${getRunnerSecret("OPENAI_API_KEY") ?? ""}` }, body };
+    case "google":
+      return { url: laneUrl(GEMINI_API_ENDPOINT, rest), method, headers: { ...headers, [GOOGLE_API_KEY_HEADER]: getRunnerSecret("GEMINI_API_KEY") ?? "" }, body };
     case "bedrock":
       return bedrockUpstream(rest, method, headers, body);
     case "vertex":

@@ -24,6 +24,7 @@ import {
   REGISTRY_RETRY_POLICY,
 } from "./registry-endpoint.js";
 import { fetchWithRetry } from "./http-retry.js";
+import { tryInferProvider } from "./llm-proxy.js";
 
 const CACHE_TTL_MS = 3_600_000;
 // Failed fetches are cached much shorter than successes: a transient failure
@@ -211,7 +212,7 @@ export async function isModelListedFor(modelId: string, harness: RegistryHarness
 /**
  * Derive the recommended economy-tier model for summarization/classification
  * tasks, given a primary model name. Thin alias over getEconomyModel — the
- * registry (costTier=economy, harness=stigmer, same provider preferred) drives
+ * registry (costTier=economy, harness=stigmer, same provider only) drives
  * the choice; no model names are hardcoded here. See getEconomyModel for the
  * resolution order.
  */
@@ -224,42 +225,46 @@ export async function getSummarizationModel(primaryModel: string): Promise<strin
  * the registry for costTier=economy + same provider + harness=stigmer.
  *
  * Resolution order:
- * 1. Find the primary model's provider in the registry
+ * 1. Find the primary model's provider: its registry row's, else the one its
+ *    name places (`llm-proxy.ts` `inferProvider`); a turn that names no
+ *    model is placed by the harness's default model
  * 2. Find an economy-tier Stigmer-harness model from that provider
- * 3. Cross-provider fallback: any economy-tier Stigmer-harness model
- * 4. Last resort: return the primary model itself
+ * 3. Last resort: return the primary model itself
+ *
+ * Never another provider's model: a runner holds a key for the providers it
+ * runs, and a turn on a provider whose economy row is missing would
+ * otherwise send its titles and summaries to one the runner may hold no key
+ * for (a Gemini-only runner's to Anthropic). The turn's own model always
+ * answers.
  */
 export async function getEconomyModel(primaryModel: string): Promise<string> {
+  // A turn that names no model runs the harness's default (`getDefaultModel`).
+  const named = primaryModel === "" || primaryModel === "default" ? await getDefaultModel("stigmer") : primaryModel;
   const registry = await getRegistry();
   if (registry.length === 0) {
     // Registry unavailable: keep the caller's chosen model rather than
     // switching to a hardcoded economy model on a possibly-unconfigured
     // provider. Summarization degrades gracefully to the primary model.
     console.warn(
-      `Model registry empty — falling back to primary model "${primaryModel}" for economy tier`,
+      `Model registry empty — falling back to primary model "${named}" for economy tier`,
     );
-    return primaryModel;
+    return named;
   }
 
-  const primary = registry.find((m) => m.id === primaryModel);
-  const targetProvider = primary?.provider ?? "anthropic";
+  const primary = registry.find((m) => m.id === named || m.apiModelId === named);
+  const targetProvider = primary?.provider ?? tryInferProvider(named);
 
-  const sameProviderEconomy = registry.find(
-    (m) => m.provider === targetProvider && m.costTier === "economy" && m.harness === "stigmer",
-  );
+  const sameProviderEconomy = targetProvider === null
+    ? undefined
+    : registry.find((m) => m.provider === targetProvider && m.costTier === "economy" && m.harness === "stigmer");
   if (sameProviderEconomy) return sameProviderEconomy.id;
-
-  const anyEconomy = registry.find(
-    (m) => m.costTier === "economy" && m.harness === "stigmer",
-  );
-  if (anyEconomy) return anyEconomy.id;
 
   if (!primary) {
     console.warn(
-      `Model "${primaryModel}" not found in registry and no economy fallback available`,
+      `Model "${named}" not found in registry and no economy model of its provider; using it for the economy tier`,
     );
   }
-  return primaryModel;
+  return named;
 }
 
 /**

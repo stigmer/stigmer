@@ -10,6 +10,9 @@ import { ThinkingMode } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 
 import {
   BUDGET_THINKING_TOKENS,
+  GOOGLE_DYNAMIC_THINKING_BUDGET,
+  thinkingRefusesForcedTool,
+  toGoogleThinking,
   graphThinks,
   resolveEffectiveThinkingMode,
   toAnthropicThinking,
@@ -45,10 +48,31 @@ const TABLE: readonly Row[] = [
   ["disabled, no Stigmer row", ThinkingMode.DISABLED, undefined, undefined, false],
 ];
 
-describe("toAnthropicThinking and graphThinks", () => {
+/** Google's budget for each Anthropic form the table names: the same row asks both providers alike. */
+function googleOf(wire: ReturnType<typeof toAnthropicThinking>): ReturnType<typeof toGoogleThinking> {
+  if (wire === undefined) return undefined;
+  switch (wire.type) {
+    case "adaptive":
+      return { thinkingBudget: GOOGLE_DYNAMIC_THINKING_BUDGET };
+    case "enabled":
+      return { thinkingBudget: BUDGET_THINKING_TOKENS };
+    case "disabled":
+      return { thinkingBudget: 0 };
+  }
+}
+
+describe("toAnthropicThinking, toGoogleThinking and graphThinks", () => {
   it.each(TABLE)("%s", (_label, mode, profile, wire, thinks) => {
     expect(toAnthropicThinking(mode, profile)).toEqual(wire);
+    expect(toGoogleThinking(mode, profile)).toEqual(googleOf(wire));
     expect(graphThinks(mode, profile)).toBe(thinks);
+  });
+
+  it("a forced tool is refused while thinking on Anthropic, never on Google, and never when the graph does not think", () => {
+    const adaptive: ThinkingProfile = { shape: "adaptive", required: undefined };
+    expect(thinkingRefusesForcedTool("anthropic", ThinkingMode.ENABLED, adaptive)).toBe(true);
+    expect(thinkingRefusesForcedTool("google", ThinkingMode.ENABLED, adaptive)).toBe(false);
+    expect(thinkingRefusesForcedTool("anthropic", ThinkingMode.DISABLED, adaptive)).toBe(false);
   });
 
   it("keeps the budget inside the provider's bounds on every budget row the registry carries", () => {

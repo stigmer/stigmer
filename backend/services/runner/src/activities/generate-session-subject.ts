@@ -91,6 +91,10 @@ export interface GenerateSessionSubjectOptions {
   /** Null when the deployment has no proxy — the runner calls providers directly. */
   proxyEndpoint: string | null;
   stigmerToken: string | null;
+  /**
+   * The operator's model for a run that names none (`STIGMER_PRIMARY_MODEL`);
+   * empty, the Stigmer harness's default. A run's own model always wins.
+   */
   primaryModel: string;
 }
 
@@ -144,11 +148,17 @@ export async function generateSessionSubject(
     agentDescription = agent.spec?.description ?? "";
   }
 
+  // The title is written by the economy model of the provider the turn runs
+  // on (`model-registry.ts` `getEconomyModel`), so it needs no key the turn's
+  // own model does not: the run's recorded model, else the operator's, else
+  // the harness's default.
+  const titleModel = await getSummarizationModel(execution.status?.runConfig?.modelName || options.primaryModel);
   const subject = await generateTitle({
     userMessage,
     agentName,
     agentDescription,
     executionId,
+    model: titleModel,
     options,
   });
 
@@ -172,6 +182,8 @@ interface GenerateTitleParams {
   agentName: string;
   agentDescription: string;
   executionId: string;
+  /** The economy model the title is asked of. */
+  model: string;
   options: GenerateSessionSubjectOptions;
 }
 
@@ -183,9 +195,7 @@ interface GenerateTitleParams {
  * same "expired API key, rate limit, registry miss" cases).
  */
 async function generateTitle(params: GenerateTitleParams): Promise<string> {
-  const { userMessage, agentName, agentDescription, executionId, options } = params;
-
-  const model = await getSummarizationModel(options.primaryModel);
+  const { userMessage, agentName, agentDescription, executionId, model, options } = params;
 
   // Direct mode with no credential path degrades up front with one actionable
   // message. The provider follows the economy-model resolution, not the

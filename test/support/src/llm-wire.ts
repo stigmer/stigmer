@@ -6,7 +6,9 @@
 // stands in for the PROVIDER behind the real proxy. The proxy is transparent,
 // so the bytes both must produce are the same bytes — Anthropic's `messages`
 // SSE sequence, OpenAI's `chat.completion.chunk` SSE sequence with its final
-// usage chunk, and the plain-JSON non-streaming bodies. They live here once,
+// usage chunk, Gemini's `streamGenerateContent` frames (a turn scripted with
+// the Anthropic builders, in Google's shape), and the plain-JSON
+// non-streaming bodies. They live here once,
 // so a change to either fake's understanding of a provider cannot drift from
 // the other's.
 //
@@ -481,4 +483,199 @@ function describeValue(value: unknown): string {
   if (typeof value === "object") return `an object with keys [${Object.keys(value).join(", ")}]`;
   if (typeof value === "string") return `a string ${JSON.stringify(value.length > 40 ? `${value.slice(0, 40)}…` : value)}`;
   return `${typeof value} ${String(value)}`;
+}
+
+// ---------------------------------------------------------------------------
+// Gemini's wire (`generateContent`, `streamGenerateContent?alt=sse`)
+// ---------------------------------------------------------------------------
+//
+// A suite scripts a turn once, with the Anthropic builders above; a fake that
+// receives the call on Google's path answers it with the same turn in
+// Gemini's shape (geminiResponseOf). Three facts of Google's wire are kept:
+//
+//  - Every streamed frame repeats the CUMULATIVE `usageMetadata`, and
+//    `promptTokenCount` includes the cached tokens that
+//    `cachedContentTokenCount` names. Thinking is counted apart, in
+//    `thoughtsTokenCount`, and billed as output.
+//  - A function call comes back with a `thoughtSignature` on its part, and the
+//    next request of the conversation must send that part back with it:
+//    without it Google refuses the request with 400 INVALID_ARGUMENT
+//    (missingThoughtSignature reads that rule, so the fakes enforce it).
+//  - An error is `{ error: { code, message, status } }`, with the reason a
+//    client keys on in `details` (`API_KEY_INVALID`, `RATE_LIMIT_EXCEEDED`).
+
+// One part of a Gemini content, as the fakes write and read them.
+export interface GeminiPart {
+  text?: string;
+  thought?: boolean;
+  thoughtSignature?: string;
+  functionCall?: { id?: string; name: string; args: Record<string, unknown> };
+  functionResponse?: { id?: string; name: string; response: unknown };
+  inlineData?: { mimeType: string; data: string };
+}
+
+export interface GeminiContent {
+  role: "user" | "model";
+  parts: GeminiPart[];
+}
+
+export interface GeminiUsageMetadata {
+  promptTokenCount: number;
+  candidatesTokenCount: number;
+  totalTokenCount: number;
+  thoughtsTokenCount?: number;
+  cachedContentTokenCount?: number;
+}
+
+// A `generateContent` response, and each frame of the streamed one.
+export interface GeminiResponse {
+  candidates: Array<{ content: GeminiContent; finishReason?: "STOP" | "MAX_TOKENS"; index: 0 }>;
+  usageMetadata: GeminiUsageMetadata;
+  modelVersion: string;
+  responseId: string;
+}
+
+// The model version every fake response names.
+export const MOCK_GEMINI_MODEL_VERSION = "gemini-mock";
+
+// The thought signature a fake function call carries: the call's own id in a
+// fixed frame, so a request that sends back another call's signature is told
+// apart from one that sends none.
+export function mockThoughtSignature(toolCallId: string): string {
+  return `conformance-gemini-signature:${toolCallId}`;
+}
+
+// What a scripted turn's thinking counts for, in Gemini's usage: the fakes
+// bill each scripted thinking block at this many tokens.
+export const MOCK_THOUGHT_TOKENS_PER_BLOCK = 7;
+
+function geminiUsageOf(usage: AnthropicUsage, thoughtsTokenCount: number): GeminiUsageMetadata {
+  const cached = usage.cache_read_input_tokens ?? 0;
+  const prompt = usage.input_tokens + cached + (usage.cache_creation_input_tokens ?? 0);
+  return {
+    promptTokenCount: prompt,
+    candidatesTokenCount: usage.output_tokens,
+    totalTokenCount: prompt + usage.output_tokens + thoughtsTokenCount,
+    ...(thoughtsTokenCount > 0 ? { thoughtsTokenCount } : {}),
+    ...(cached > 0 ? { cachedContentTokenCount: cached } : {}),
+  };
+}
+
+function geminiPartOf(block: AnthropicContentBlock): GeminiPart {
+  switch (block.type) {
+    case "text":
+      return { text: block.text };
+    case "thinking":
+      return { text: block.thinking, thought: true };
+    case "tool_use":
+      return { functionCall: { id: block.id, name: block.name, args: block.input }, thoughtSignature: mockThoughtSignature(block.id) };
+    default: {
+      const exhaustive: never = block;
+      throw new Error(`unknown Anthropic content block: ${JSON.stringify(exhaustive)}`);
+    }
+  }
+}
+
+// A scripted turn as Google's `generateContent` answers it.
+export function geminiResponseOf(body: AnthropicMessageBody): GeminiResponse {
+  const thinkingBlocks = body.content.filter((block) => block.type === "thinking").length;
+  return {
+    candidates: [{ content: { role: "model", parts: body.content.map(geminiPartOf) }, finishReason: "STOP", index: 0 }],
+    usageMetadata: geminiUsageOf(body.usage, thinkingBlocks * MOCK_THOUGHT_TOKENS_PER_BLOCK),
+    modelVersion: MOCK_GEMINI_MODEL_VERSION,
+    responseId: body.id,
+  };
+}
+
+// Streams a scripted turn as `streamGenerateContent?alt=sse` does: one frame
+// per part, each repeating the usage so far, the last carrying the finish
+// reason and the whole usage. Google names no SSE event.
+export function writeGeminiSse(res: ServerResponse, body: AnthropicMessageBody): void {
+  res.writeHead(200, { "content-type": "text/event-stream", "cache-control": "no-cache" });
+  const whole = geminiResponseOf(body);
+  const candidate = whole.candidates[0]!;
+  const parts = candidate.content.parts;
+  const promptOnly: GeminiUsageMetadata = { promptTokenCount: whole.usageMetadata.promptTokenCount, candidatesTokenCount: 0, totalTokenCount: whole.usageMetadata.promptTokenCount };
+  parts.forEach((part, index) => {
+    const last = index === parts.length - 1;
+    writeSseFrame(res, {
+      candidates: [{ content: { role: "model", parts: [part] }, ...(last ? { finishReason: candidate.finishReason } : {}), index: 0 }],
+      usageMetadata: last ? whole.usageMetadata : promptOnly,
+      modelVersion: whole.modelVersion,
+      responseId: whole.responseId,
+    });
+  });
+  res.end();
+}
+
+// Google's error envelope. `reason` is the `ErrorInfo` reason a client keys
+// on; Google sends it for a refused key and for an exhausted quota.
+export function geminiError(code: number, status: string, message: string, reason?: string): unknown {
+  return {
+    error: {
+      code,
+      message,
+      status,
+      ...(reason !== undefined
+        ? { details: [{ "@type": "type.googleapis.com/google.rpc.ErrorInfo", reason, domain: "googleapis.com" }] }
+        : {}),
+    },
+  };
+}
+
+// The fields of a `generateContent` request the fakes and suites read.
+export interface GeminiRequestBody {
+  contents: GeminiContent[];
+  systemInstruction?: { parts: GeminiPart[] };
+  tools?: Array<{ functionDeclarations?: Array<{ name: string; description?: string; parameters?: unknown }> }>;
+  toolConfig?: unknown;
+  // Carried as received, `thinkingConfig` included.
+  generationConfig?: Record<string, unknown>;
+}
+
+// Reads a captured body as a `generateContent` request, refusing by name when
+// it is not one.
+export function readGeminiRequest(body: unknown): GeminiRequestBody {
+  if (typeof body !== "object" || body === null || Array.isArray(body)) {
+    throw new Error(`not a Gemini generateContent body: expected an object, found ${describeValue(body)}`);
+  }
+  const record = body as Record<string, unknown>;
+  if (!Array.isArray(record.contents)) {
+    throw new Error(`not a Gemini generateContent body: expected array \`contents\`, found keys [${Object.keys(record).join(", ")}]`);
+  }
+  return record as unknown as GeminiRequestBody;
+}
+
+// The text of a Gemini request's system instruction, its parts joined.
+export function geminiSystemText(body: GeminiRequestBody): string {
+  return (body.systemInstruction?.parts ?? []).map((part) => part.text ?? "").join(" ");
+}
+
+// The model a Gemini call names: it rides the path (`/models/<id>:<method>`),
+// not the body.
+export function geminiModelOfPath(path: string): string | undefined {
+  return /\/models\/([^/:?]+):/.exec(path)?.[1];
+}
+
+// True when the path asks for a streamed answer.
+export function isGeminiStreamPath(path: string): boolean {
+  return /:streamGenerateContent(\?|$)/.test(path);
+}
+
+// Google's rule for a conversation that carries function calls: the first
+// function-call part of each model turn must send back the signature it came
+// with. Returns the refusal's message for the first turn that breaks it, or
+// undefined when the request keeps the rule.
+export function missingThoughtSignature(body: GeminiRequestBody): string | undefined {
+  for (const [index, content] of body.contents.entries()) {
+    if (content.role !== "model") continue;
+    const firstCall = content.parts.find((part) => part.functionCall !== undefined);
+    if (firstCall !== undefined && typeof firstCall.thoughtSignature !== "string") {
+      return (
+        `Function call is missing a thought_signature in functionCall parts. This is required for tools to work correctly. ` +
+        `Additional data, function call \`${firstCall.functionCall?.name ?? ""}\`, position ${index}.`
+      );
+    }
+  }
+  return undefined;
 }

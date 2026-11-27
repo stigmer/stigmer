@@ -24,7 +24,7 @@ vi.mock("@langchain/openai", () => ({
 import { buildChatModel } from "../model-client.js";
 import { MODEL_REQUEST_RETRIES, modelRequestFailed, modelRequestFailedWholeReplyBound } from "../model-retry.js";
 import { _resetRegistryCache } from "../model-registry.js";
-import { ServiceTier } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
+import { ServiceTier, ThinkingMode } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 
 interface MockModel {
   id: string;
@@ -494,12 +494,12 @@ describe("buildChatModel", () => {
   });
 
   describe("thinking and streaming (the Stigmer harness's execution turn)", () => {
-    it("Anthropic: the mapped thinking parameter is the wrapper's own `thinking` field", async () => {
+    it("Anthropic: the row's thinking form is mapped into the wrapper's own `thinking` field", async () => {
       mockRegistryResponse([
         { id: "claude-sonnet-5", apiModelId: "claude-sonnet-5", provider: "anthropic" },
       ]);
 
-      await buildChatModel({ modelName: "claude-sonnet-5", thinking: { type: "adaptive", display: "summarized" } });
+      await buildChatModel({ modelName: "claude-sonnet-5", thinking: { mode: ThinkingMode.ENABLED, profile: { shape: "adaptive", required: undefined } } });
 
       expect(lastAnthropicArgs()).toMatchObject({ thinking: { type: "adaptive", display: "summarized" } });
     });
@@ -509,7 +509,7 @@ describe("buildChatModel", () => {
         { id: "claude-sonnet-5", apiModelId: "claude-sonnet-5", provider: "anthropic" },
       ]);
 
-      await buildChatModel({ modelName: "claude-sonnet-5", thinking: { type: "disabled" } });
+      await buildChatModel({ modelName: "claude-sonnet-5", thinking: { mode: ThinkingMode.DISABLED, profile: { shape: "adaptive", required: false } } });
 
       expect(lastAnthropicArgs()).toMatchObject({ thinking: { type: "disabled" } });
     });
@@ -544,7 +544,7 @@ describe("buildChatModel", () => {
 
       await buildChatModel({
         modelName: "claude-haiku-4.5",
-        thinking: { type: "enabled", budget_tokens: 16000 },
+        thinking: { mode: ThinkingMode.ENABLED, profile: { shape: "budget", required: undefined } },
         serviceTier: ServiceTier.STANDARD,
       });
 
@@ -553,14 +553,14 @@ describe("buildChatModel", () => {
       expect(args).not.toHaveProperty("invocationKwargs");
     });
 
-    it("a thinking parameter for a non-Anthropic model is refused, never silently dropped", async () => {
+    it("thinking asked of an OpenAI model is refused, never silently dropped", async () => {
       mockRegistryResponse([
         { id: "gpt-4.1", apiModelId: "gpt-4.1", provider: "openai" },
       ]);
 
       await expect(
-        buildChatModel({ modelName: "gpt-4.1", thinking: { type: "adaptive" } }),
-      ).rejects.toThrow(/only Anthropic models have a thinking mapping on the Stigmer harness/);
+        buildChatModel({ modelName: "gpt-4.1", thinking: { mode: ThinkingMode.ENABLED, profile: { shape: "adaptive", required: undefined } } }),
+      ).rejects.toThrow(/OpenAI models have no thinking mapping on the Stigmer harness/);
       expect(mockOpenAICtor).not.toHaveBeenCalled();
     });
   });

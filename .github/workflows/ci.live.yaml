@@ -40,7 +40,8 @@
 # Haiku under its own bounds on every prompt (turns and dollars), at most nine
 # prompts; Stigmer's side of the door is the fake model and costs nothing.
 #
-# Key: ANTHROPIC_API_KEY from the `provider-integration` environment, which
+# Keys: ANTHROPIC_API_KEY, and GEMINI_API_KEY for the runner's Gemini
+# suites, from the `provider-integration` environment, which
 # deploys only to `main`. A release run runs on `main` and checks out the
 # tagged commit, which the release job admits only when `main` carries it; a
 # dispatch runs on its own ref, and the environment refuses every ref but
@@ -228,6 +229,7 @@ jobs:
         env:
           STIGMER_LIVE: "1"
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: |
           echo "### Runner live suites: estimated spend per case" >> "$GITHUB_STEP_SUMMARY"
           npm run test:live

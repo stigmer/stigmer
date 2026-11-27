@@ -41,8 +41,13 @@ const HOP_BY_HOP = new Set([
   "accept-encoding",
 ]);
 
-/** The host's credential headers: a lane replaces them, and the stigmer scope headers are the proxy's to read. */
-const HOST_CREDENTIAL = new Set(["authorization", "x-api-key"]);
+/**
+ * The credential headers a host might send, every provider's: a lane
+ * replaces them, and the stigmer scope headers are the proxy's to read. The
+ * runner's own clients send the host's token as `authorization`; a Gemini
+ * key header is dropped all the same, so no key the host names leaves.
+ */
+const HOST_CREDENTIAL = new Set(["authorization", "x-api-key", "x-goog-api-key"]);
 
 export class RequestTooLargeError extends Error {}
 

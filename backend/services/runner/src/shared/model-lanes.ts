@@ -19,22 +19,29 @@
  * proxy) and no lanes are installed either.
  */
 
+import { LLM_PROVIDERS, type LlmProvider } from "./llm-proxy.js";
+
 /** The lanes one host process uses: the local proxy and the host's token there. */
 export interface ModelLanes {
   readonly endpoint: string;
   readonly token: string;
 }
 
-/** Each provider's lane, under the local proxy. Anthropic's and OpenAI's are the platform proxy's own paths. */
-export const MODEL_LANE_PATHS = {
-  anthropic: "/v1/proxy/llm/anthropic",
-  openai: "/v1/proxy/llm/openai/v1",
+/** The lanes of Anthropic's cloud backends, which a runner serves only to its own host. */
+export type BackendLane = "bedrock" | "vertex" | "foundry";
+
+/** Every model lane: one per provider the runner builds a model for, and one per cloud backend. */
+export type ModelLane = LlmProvider | BackendLane;
+
+/** Each lane's path under the local proxy. A provider's is the platform proxy's own path for it (`llm-proxy.ts`). */
+export const MODEL_LANE_PATHS: Readonly<Record<ModelLane, string>> = {
+  anthropic: LLM_PROVIDERS.anthropic.proxyPath,
+  openai: LLM_PROVIDERS.openai.proxyPath,
+  google: LLM_PROVIDERS.google.proxyPath,
   bedrock: "/v1/proxy/llm/bedrock",
   vertex: "/v1/proxy/llm/vertex",
   foundry: "/v1/proxy/llm/foundry",
-} as const;
-
-export type ModelLane = keyof typeof MODEL_LANE_PATHS;
+};
 
 /**
  * The project id a lane-bound Vertex client puts in its path. The client

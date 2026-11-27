@@ -50,6 +50,10 @@ export const RUNNER_CREDENTIAL_ENV_KEYS: readonly string[] = [
   "ANTHROPIC_API_KEY",
   // Direct-mode OpenAI key for the Stigmer harness (model-client.ts).
   "OPENAI_API_KEY",
+  // Direct-mode Gemini key for the Stigmer harness (model-client.ts), the
+  // name Google AI Studio gives it. GOOGLE_API_KEY is a person's own general
+  // Google key, which the runner never reads and so leaves alone.
+  "GEMINI_API_KEY",
   // Azure AI Foundry backend key (model-client.ts).
   "ANTHROPIC_FOUNDRY_API_KEY",
   // Bedrock backend bearer credential, read by the AWS SDK's chain

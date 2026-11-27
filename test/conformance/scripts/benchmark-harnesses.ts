@@ -244,6 +244,7 @@ async function main(): Promise<void> {
   const env = {
     anthropicKey: Boolean(process.env["ANTHROPIC_API_KEY"]),
     openaiKey: Boolean(process.env["OPENAI_API_KEY"]),
+    geminiKey: Boolean(process.env["GEMINI_API_KEY"]),
     stigmerCli: onPath("stigmer"),
   };
   const plan = planCells(env, flags);

@@ -80,6 +80,8 @@ export const TOOL_TYPE_EXTENSION = "extension";
 export const PROVIDER_ANTHROPIC = "anthropic";
 export const PROVIDER_OPENAI = "openai";
 export const PROVIDER_GCP_VERTEX_AI = "gcp.vertex_ai";
+/** Google's Gemini API (`generativelanguage.googleapis.com`), as against Gemini on Vertex. */
+export const PROVIDER_GCP_GEMINI = "gcp.gemini";
 export const PROVIDER_AWS_BEDROCK = "aws.bedrock";
 export const PROVIDER_AZURE_AI_INFERENCE = "azure.ai.inference";
 

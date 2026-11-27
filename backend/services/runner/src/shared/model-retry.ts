@@ -35,7 +35,9 @@
  *     `Cancel…` messages).
  *  2. The cloud's missing-key refusal stops (`PROVIDER_KEY_REQUIRED_SENTINEL`);
  *     an organization key's 401 or 403 stops by status like any other.
- *  3. Billing prose stops: no credit is not a passing condition.
+ *  3. Billing prose stops: no credit is not a passing condition. Never
+ *     read for Google, which words a passing per-minute limit the same way
+ *     (`google-error.ts`); its 429 is judged by the limit's name in 6.
  *  4. A context overflow stops: the same request overflows again.
  *  5. An error the request loop handled stops (the stamp, above; LangChain
  *     also stamps its own `ContextOverflowError` at birth, which 4 names
@@ -47,6 +49,9 @@
  *     429 with no hint included, which is where this rule departs from
  *     LangChain's (it gives up on a headerless 429; the cloud's relay sent
  *     no hint until 2026-10, and every rate limit is passing by nature).
+ *     Google's 429 stops on a daily limit and otherwise waits the delay
+ *     Google asks for (`google-error.ts`). The status is the SDKs' `status`
+ *     or the Google client's `statusCode`.
  *     408, 409 (the SDK's own rule) and every status of 500 and above
  *     retry, 529 included; every other status is a refusal and stops.
  *  7. A failure with no status mid-reply decides by the provider's error
@@ -78,6 +83,7 @@ import {
 } from "@langchain/core/utils/async_caller";
 
 import { causeChainOf } from "./error-chain.js";
+import { googleErrorOf, httpStatusOf, isGoogleDailyQuota } from "./google-error.js";
 import {
   PROVIDER_KEY_REQUIRED_SENTINEL,
   isModelTimeout,
@@ -170,7 +176,8 @@ export function retryDecisionOf(err: unknown): RetryDecision {
   if (links.some(isAbort)) return stop("aborted");
   const messages = links.map((link) => link.message);
   if (messages.some((message) => message.includes(PROVIDER_KEY_REQUIRED_SENTINEL))) return stop("key_required");
-  if (messages.some(isProviderBillingMessage)) return stop("billing");
+  const google = links.some((link) => googleErrorOf(link) !== undefined);
+  if (!google && messages.some(isProviderBillingMessage)) return stop("billing");
   if (links.some((link) => ContextOverflowError.isInstance(link))) return stop("context_overflow");
   if (handledByRequestLoop(err)) return stop("handled");
 
@@ -244,6 +251,11 @@ function decideByStatus(link: Error, status: number): RetryDecision {
   const hint = retryAfterOf(link);
   if (shouldRetry === "false") return { retry: false, reason: "provider_refused", status };
   if (shouldRetry === "true") return retryWithin("provider_asked", status, hint);
+  const google = googleErrorOf(link);
+  if (status === 429 && google !== undefined) {
+    if (isGoogleDailyQuota(google)) return { retry: false, reason: "quota", status };
+    return retryWithin("rate_limited", status, hint ?? google.retryDelayMs);
+  }
   if (status === 429) {
     const rateLimit = classifyRateLimitError(link);
     if (rateLimit?.action === "stop") return { retry: false, reason: "quota", status };
@@ -269,14 +281,19 @@ function retryAfterOf(link: Error): number | undefined {
 }
 
 function statusOf(link: Error): number | undefined {
-  const status = (link as { status?: unknown }).status;
-  return typeof status === "number" ? status : undefined;
+  return httpStatusOf(link);
 }
 
-/** A response header on an SDK error: both provider SDKs keep the answer's `Headers`. */
+/**
+ * A response header on an SDK error: the Anthropic and OpenAI SDKs keep the
+ * answer's `Headers`, the Google client a plain object of lower-cased names.
+ */
 function headerOf(link: Error, name: string): string | undefined {
   const headers = (link as { headers?: unknown }).headers;
-  return headers instanceof Headers ? (headers.get(name) ?? undefined) : undefined;
+  if (headers instanceof Headers) return headers.get(name) ?? undefined;
+  if (typeof headers !== "object" || headers === null) return undefined;
+  const value = (headers as Record<string, unknown>)[name];
+  return typeof value === "string" ? value : undefined;
 }
 
 function isAbort(link: Error): boolean {

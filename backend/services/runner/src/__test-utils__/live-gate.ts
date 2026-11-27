@@ -34,7 +34,7 @@
 import { appendFileSync } from "node:fs";
 
 /** The provider keys a live test may ask for; each is a credential a live run provides. */
-export type LiveSecretName = "ANTHROPIC_API_KEY";
+export type LiveSecretName = "ANTHROPIC_API_KEY" | "GEMINI_API_KEY";
 
 const announced = new Set<LiveSecretName>();
 

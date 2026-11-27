@@ -31,7 +31,8 @@
  */
 
 import { causeChainOf } from "./error-chain.js";
-import type { LlmProvider } from "./llm-proxy.js";
+import { googleErrorOf, httpStatusOf, isGoogleDailyQuota, isGoogleKeyRefusal, type GoogleErrorFacts } from "./google-error.js";
+import { LLM_PROVIDERS, type LlmProvider } from "./llm-proxy.js";
 import {
   parseAnthropicBackend,
   BACKEND_DOC_URL,
@@ -201,11 +202,22 @@ export function classifyModelCallError(
     };
   }
 
+  // 1c. Google's own refusals, by the reason Google names rather than its
+  //     prose (`google-error.ts`): a refused key (a 400, not a 401) is the
+  //     key's fault, and a daily limit is the account's quota; a per-minute
+  //     limit reads as the rate limit it is (status arm below).
+  const google = googleErrorOf(root);
+  if (google !== undefined) {
+    const classified = classifyGoogleError(google, message, ctx);
+    if (classified !== undefined) return classified;
+  }
+
   // 2. Provider billing prose: the account the key belongs to is out of
   //    credit, and that account is the caller's own in either mode (the
   //    cloud relays a failure on the organization's key marked, which 0b
-  //    words first).
-  if (isProviderBillingMessage(message)) {
+  //    words first). Never read for Google, which words a passing
+  //    per-minute limit the same way.
+  if (google === undefined && isProviderBillingMessage(message)) {
     return {
       code: "LLM_PROVIDER_BILLING",
       message:
@@ -215,11 +227,10 @@ export function classifyModelCallError(
     };
   }
 
-  // 3. HTTP status duck-typing. Both provider SDKs throw APIError subclasses
-  //    exposing `.status`; duck-typing avoids importing either SDK's classes.
-  const status = typeof (root as { status?: unknown }).status === "number"
-    ? (root as { status: number }).status
-    : undefined;
+  // 3. HTTP status duck-typing. The Anthropic and OpenAI SDKs throw APIError
+  //    subclasses exposing `.status`, the Google client a RequestError
+  //    exposing `.statusCode`; duck-typing avoids importing their classes.
+  const status = httpStatusOf(root);
   if (status !== undefined) {
     return classifyByStatus(status, message, ctx, backend);
   }
@@ -269,7 +280,27 @@ function classifyOrganizationKeyError(
   ctx: ModelErrorContext,
 ): ClassifiedModelError | undefined {
   const provider = providerSubject(ctx);
-  if (isProviderBillingMessage(message)) {
+  const google = googleErrorOf(root);
+  if (google !== undefined) {
+    if (isGoogleKeyRefusal(google)) {
+      return {
+        code: "LLM_AUTHENTICATION_ERROR",
+        message:
+          `Google refused your organization's own key (${google.reason}) for ${modelLabel(ctx)}. ` +
+          `Update the key on the Models & providers page.`,
+      };
+    }
+    if (isGoogleDailyQuota(google)) {
+      return {
+        code: "LLM_PROVIDER_BILLING",
+        message:
+          `Your organization's own Google key has used its daily quota for ${modelLabel(ctx)}. ` +
+          `Raise the key's limits in Google AI Studio, or update the key on the Models & providers page. ` +
+          `Provider message: ${message}`,
+      };
+    }
+  }
+  if (google === undefined && isProviderBillingMessage(message)) {
     return {
       code: "LLM_PROVIDER_BILLING",
       message:
@@ -278,9 +309,7 @@ function classifyOrganizationKeyError(
         `Provider message: ${message}`,
     };
   }
-  const status = typeof (root as { status?: unknown }).status === "number"
-    ? (root as { status: number }).status
-    : undefined;
+  const status = httpStatusOf(root);
   if (status === 401) {
     return {
       code: "LLM_AUTHENTICATION_ERROR",
@@ -469,7 +498,7 @@ export function isModelTimeout(links: readonly Error[]): boolean {
  * stream's error body, OpenAI's keeps the body's `type` on `error`.
  */
 export function providerErrorTypeOf(link: Error): string | undefined {
-  if (typeof (link as { status?: unknown }).status === "number") return undefined;
+  if (httpStatusOf(link) !== undefined) return undefined;
   const shaped = link as { type?: unknown; error?: { type?: unknown; error?: { type?: unknown } } };
   for (const type of [shaped.type, shaped.error?.error?.type, shaped.error?.type]) {
     if (typeof type === "string" && type !== "" && type !== "error") return type;
@@ -630,10 +659,41 @@ export function isProviderBillingMessage(message: string): boolean {
   );
 }
 
+/** Each provider's name, as a failure names it. */
+const PROVIDER_LABELS: Readonly<Record<LlmProvider, string>> = {
+  anthropic: "Anthropic",
+  openai: "OpenAI",
+  google: "Google",
+};
+
 function providerLabel(ctx: ModelErrorContext): string {
-  if (ctx.provider === "anthropic") return "Anthropic";
-  if (ctx.provider === "openai") return "OpenAI";
-  return "the model provider";
+  return ctx.provider ? PROVIDER_LABELS[ctx.provider] : "the model provider";
+}
+
+/**
+ * The Google failures with a cause of their own: a refused key, and a
+ * daily limit. Every other Google failure classifies by its status, as any
+ * provider's does.
+ */
+function classifyGoogleError(facts: GoogleErrorFacts, message: string, ctx: ModelErrorContext): ClassifiedModelError | undefined {
+  const context = modelLabel(ctx);
+  const where = ctx.proxyMode ? "" : ` Check that ${LLM_PROVIDERS.google.keyVariable} holds a valid Gemini API key.`;
+  if (isGoogleKeyRefusal(facts)) {
+    return {
+      code: "LLM_AUTHENTICATION_ERROR",
+      message: `Google refused the API key (${facts.reason}) for ${context}.${where}`,
+    };
+  }
+  if (isGoogleDailyQuota(facts)) {
+    return {
+      code: "LLM_PROVIDER_BILLING",
+      message:
+        `Your Google key has used its daily quota for ${context}. ` +
+        `Raise the key's limits in Google AI Studio or switch to a different model. ` +
+        `Provider message: ${message}`,
+    };
+  }
+  return undefined;
 }
 
 /** Sentence-initial form: "Anthropic" / "The model provider". */

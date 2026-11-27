@@ -15,6 +15,12 @@
 // Provider is decided by PATH, since both base URLs point here:
 //   POST /v1/messages          → Anthropic (SSE when `stream: true`, else JSON)
 //   POST /v1/chat/completions  → OpenAI    (SSE when `stream: true`, else JSON)
+//   POST /v1beta/models/<id>:generateContent,
+//        /v1beta/models/<id>:streamGenerateContent → Google's Gemini API
+//                                (SSE by the method, as Google streams; a
+//                                function call sent back without its thought
+//                                signature is refused 400, as Google refuses
+//                                it, and takes no queued answer)
 //   GET  /v1/models            → the provider-key check a key save makes,
 //                                never captured: it is not a model call, and
 //                                a suite that saves a key must still read an
@@ -54,10 +60,17 @@ import type { AddressInfo } from "node:net";
 import { setTimeout as delay } from "node:timers/promises";
 import {
   writeAnthropicSseEvents,
+  writeGeminiSse,
   writeJson,
   writeOpenAiSse,
   anthropicText,
+  geminiError,
+  geminiModelOfPath,
+  geminiResponseOf,
+  isGeminiStreamPath,
+  missingThoughtSignature,
   openAiText,
+  readGeminiRequest,
   type AnthropicMessageBody,
   type OpenAiChatCompletionBody,
 } from "./llm-wire.ts";
@@ -114,6 +127,9 @@ type UpstreamAnswer =
   // proxy relays (provider x-* headers) and which it strips (hop-by-hop).
   | { kind: "anthropic"; body: AnthropicMessageBody; delayMs?: number; headers?: Record<string, string> }
   | { kind: "openai"; body: OpenAiChatCompletionBody; includeUsage?: boolean; delayMs?: number; headers?: Record<string, string> }
+  // Google's answer, scripted as the same turn the Anthropic builders make
+  // (llm-wire.ts geminiResponseOf turns it into Gemini's shape).
+  | { kind: "google"; body: AnthropicMessageBody; delayMs?: number; headers?: Record<string, string> }
   // A provider error: status, JSON body and headers relayed by the proxy or
   // classified by it (Anthropic 400 billing text, OpenAI 429
   // insufficient_quota, 401/403 → the proxy's 503 rewrite).
@@ -125,12 +141,24 @@ type UpstreamAnswer =
 // Everything the provider saw: enough to assert what the proxy forwarded and
 // what it did not (secrets, hop-by-hop headers).
 export interface CapturedUpstreamRequest {
-  readonly provider: "anthropic" | "openai" | "unknown";
+  readonly provider: UpstreamProvider | "unknown";
   readonly method: string;
   readonly path: string;
   readonly headers: Record<string, string>;
   readonly body: unknown;
   readonly rawBody: string;
+}
+
+/** The providers the fake speaks. */
+export type UpstreamProvider = "anthropic" | "openai" | "google";
+
+/** Google's model-call paths, as Google's client builds them. */
+const GEMINI_CALL_PATH = /^\/v1beta\/models\/[^/:]+:(generateContent|streamGenerateContent)$/;
+
+function providerOfPath(path: string): UpstreamProvider | "unknown" {
+  if (path === "/v1/messages") return "anthropic";
+  if (path === "/v1/chat/completions") return "openai";
+  return GEMINI_CALL_PATH.test(path) ? "google" : "unknown";
 }
 
 export class FakeLlmUpstream {
@@ -219,7 +247,7 @@ export class FakeLlmUpstream {
       }
       return;
     }
-    const provider = path === "/v1/messages" ? "anthropic" : path === "/v1/chat/completions" ? "openai" : "unknown";
+    const provider = providerOfPath(path);
     this.captured.push({
       provider,
       method: req.method ?? "",
@@ -237,6 +265,13 @@ export class FakeLlmUpstream {
       return;
     }
     const request = this.captured[this.captured.length - 1]!;
+    if (provider === "google") {
+      const unsigned = missingThoughtSignature(readGeminiRequest(request.body));
+      if (unsigned !== undefined) {
+        writeJson(res, 400, geminiError(400, "INVALID_ARGUMENT", unsigned));
+        return;
+      }
+    }
     const index = this.scripts.findIndex((script) => script.matches === undefined || script.matches(request));
     const scripted = index === -1 ? undefined : this.scripts[index]!.repeat === true ? this.scripts[index] : this.scripts.splice(index, 1)[0];
     if (scripted === undefined && !this.defaultReply && this.defaultError === undefined) {
@@ -248,9 +283,9 @@ export class FakeLlmUpstream {
       scripted ??
       (this.defaultError !== undefined
         ? defaultErrorFor(provider, this.defaultError.message)
-        : defaultReplyFor(provider, requestModel(rawBody), this.defaultReplyText));
+        : defaultReplyFor(provider, provider === "google" ? geminiModelOfPath(path) : requestModel(rawBody), this.defaultReplyText));
 
-    const wantsStream = isStreamingRequest(rawBody);
+    const wantsStream = provider === "google" ? isGeminiStreamPath(req.url ?? "") : isStreamingRequest(rawBody);
     switch (next.kind) {
       case "anthropic": {
         if (next.delayMs !== undefined) await delay(next.delayMs);
@@ -272,6 +307,13 @@ export class FakeLlmUpstream {
         } else {
           writeJson(res, 200, next.body);
         }
+        return;
+      }
+      case "google": {
+        if (next.delayMs !== undefined) await delay(next.delayMs);
+        if (res.destroyed) return;
+        if (wantsStream) writeGeminiSse(res, next.body);
+        else writeJson(res, 200, geminiResponseOf(next.body), next.headers ?? {});
         return;
       }
       case "error": {
@@ -301,10 +343,10 @@ export class FakeLlmUpstream {
 
 // The canned turn default-reply mode answers with, in the provider's shape and
 // carrying the request's model so the caller's own model routing sees itself.
-function defaultReplyFor(provider: "anthropic" | "openai", model: string | undefined, text: string): UpstreamScript {
-  if (provider === "anthropic") {
+function defaultReplyFor(provider: UpstreamProvider, model: string | undefined, text: string): UpstreamScript {
+  if (provider === "anthropic" || provider === "google") {
     const body = anthropicText(text);
-    return { kind: "anthropic", body: model === undefined ? body : { ...body, model } };
+    return { kind: provider, body: model === undefined ? body : { ...body, model } };
   }
   const body = openAiText(text);
   return { kind: "openai", body: model === undefined ? body : { ...body, model } };
@@ -312,11 +354,13 @@ function defaultReplyFor(provider: "anthropic" | "openai", model: string | undef
 
 // The non-retryable 400 default-error mode answers with, in the provider's
 // error shape so its SDK surfaces the message.
-function defaultErrorFor(provider: "anthropic" | "openai", message: string): UpstreamScript {
+function defaultErrorFor(provider: UpstreamProvider, message: string): UpstreamScript {
   const body =
     provider === "anthropic"
       ? { type: "error", error: { type: "invalid_request_error", message } }
-      : { error: { type: "invalid_request_error", message, param: null, code: null } };
+      : provider === "google"
+        ? geminiError(400, "INVALID_ARGUMENT", message)
+        : { error: { type: "invalid_request_error", message, param: null, code: null } };
   return { kind: "error", status: 400, body };
 }
 

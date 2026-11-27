@@ -8,7 +8,7 @@
 // spawned WITHOUT `proxy` and WITH a log file under the run's directory. The
 // target itself is not reused because it hard-wires the mock proxy into every
 // boot. The runner child inherits this process's environment, which is how
-// ANTHROPIC_API_KEY and OPENAI_API_KEY (with OPENAI_BASE_URL, when the
+// ANTHROPIC_API_KEY, GEMINI_API_KEY and OPENAI_API_KEY (with OPENAI_BASE_URL, when the
 // Stigmer-harness model is served on another OpenAI-compatible address) reach it;
 // nothing is written anywhere. So one run holds one OpenAI-slot
 // address, and measures one Stigmer-harness model (cells.ts).

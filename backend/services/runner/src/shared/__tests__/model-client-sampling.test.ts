@@ -14,6 +14,7 @@ import { ChatAnthropic } from "@langchain/anthropic";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { buildChatModel, type BuildChatModelOptions } from "../model-client.js";
+import { ThinkingMode } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 import { BUDGET_THINKING_TOKENS } from "../thinking-mode.js";
 import { _resetRegistryCache } from "../model-registry.js";
 
@@ -83,14 +84,14 @@ describe("the Stigmer harness's execution turn's thinking and ceiling (real @lan
   }
 
   it.each(ADAPTIVE_ONLY_IDS)("%s: adaptive thinking with summarized display reaches the request", async (id) => {
-    const request = await params(id, { thinking: { type: "adaptive", display: "summarized" } });
+    const request = await params(id, { thinking: { mode: ThinkingMode.ENABLED, profile: { shape: "adaptive", required: undefined } } });
     expect(request.thinking).toEqual({ type: "adaptive", display: "summarized" });
     expect(request).not.toHaveProperty("temperature");
   });
 
   it("a budget row's fixed budget reaches the request below the row's ceiling", async () => {
     const request = await params("claude-haiku-4-5-20251001", {
-      thinking: { type: "enabled", budget_tokens: BUDGET_THINKING_TOKENS },
+      thinking: { mode: ThinkingMode.ENABLED, profile: { shape: "budget", required: undefined } },
       maxTokens: 64000,
       streaming: true,
     });
@@ -99,7 +100,7 @@ describe("the Stigmer harness's execution turn's thinking and ceiling (real @lan
   });
 
   it("an explicit disabled is sent as such, and an omitted one is not sent at all", async () => {
-    expect((await params("claude-sonnet-5", { thinking: { type: "disabled" } })).thinking).toEqual({ type: "disabled" });
+    expect((await params("claude-sonnet-5", { thinking: { mode: ThinkingMode.DISABLED, profile: { shape: "adaptive", required: false } } })).thinking).toEqual({ type: "disabled" });
     expect((await params("claude-sonnet-5", {})).thinking).toBeUndefined();
   });
 

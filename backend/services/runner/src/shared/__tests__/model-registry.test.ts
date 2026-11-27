@@ -51,14 +51,34 @@ describe("getSummarizationModel", () => {
     expect(result).toBe("solo-model-1");
   });
 
-  it("falls back to cross-provider economy model when primary not found", async () => {
+  it("never crosses providers: a model with no economy row of its provider is its own economy model", async () => {
     mockRegistryResponse([
       { id: "gpt-4.1", provider: "openai", costTier: "standard", harness: "stigmer" },
       { id: "claude-haiku-4.5", provider: "anthropic", costTier: "economy", harness: "stigmer" },
     ]);
 
-    const result = await getSummarizationModel("unknown-model-xyz");
-    expect(result).toBe("claude-haiku-4.5");
+    expect(await getSummarizationModel("gpt-4.1"), "an OpenAI-only runner keeps its titles on OpenAI").toBe("gpt-4.1");
+    expect(await getSummarizationModel("google:gemini-3-flash"), "a Gemini-only runner keeps them on Google").toBe("google:gemini-3-flash");
+    expect(await getSummarizationModel("unknown-model-xyz")).toBe("unknown-model-xyz");
+  });
+
+  it("places a turn that names no model by the harness's default model", async () => {
+    mockRegistryResponse([
+      { id: "claude-sonnet-4.6", apiModelId: "claude-sonnet-4-6", provider: "anthropic", costTier: "standard", harness: "stigmer" },
+      { id: "claude-haiku-4.5", provider: "anthropic", costTier: "economy", harness: "stigmer" },
+    ]);
+
+    expect(await getSummarizationModel("")).toBe("claude-haiku-4.5");
+    expect(await getSummarizationModel("default")).toBe("claude-haiku-4.5");
+  });
+
+  it("places a model the registry does not list by its name, and picks its provider's economy row", async () => {
+    mockRegistryResponse([
+      { id: "claude-haiku-4.5", provider: "anthropic", costTier: "economy", harness: "stigmer" },
+      { id: "gemini-3-flash-lite", provider: "google", costTier: "economy", harness: "stigmer" },
+    ]);
+
+    expect(await getSummarizationModel("google:gemini-3-pro")).toBe("gemini-3-flash-lite");
   });
 
   it("returns the primary model when registry fetch fails", async () => {

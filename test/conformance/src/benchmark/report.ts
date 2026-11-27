@@ -141,6 +141,7 @@ export type SampleOutcome = "completed" | "failed" | "cancelled" | "timeout";
 export type RefusalReason =
   | "missing ANTHROPIC_API_KEY"
   | "missing OPENAI_API_KEY"
+  | "missing GEMINI_API_KEY"
   | "model provider unknown"
   | "the Stigmer harness's model is pinned by --stigmer-model"
   | "thinking needs a catalog Claude model"
@@ -152,7 +153,7 @@ export type RefusalReason =
   | "runs only when --cells names it";
 
 /** The API a Stigmer-harness model's calls were made on. */
-export type StigmerApi = "messages" | "chat-completions" | "responses";
+export type StigmerApi = "messages" | "chat-completions" | "responses" | "generate-content";
 
 /** Whether the runner priced the Stigmer harness's model from a catalog row, or at its default rate. */
 export type StigmerCostBasis = "catalog" | "default-rate";
@@ -688,7 +689,7 @@ export function comparisonOf(scenario: ComparedScenario, sides: Partial<Record<B
 
 // ─── The reader ─────────────────────────────────────────────────────────────
 
-const STIGMER_APIS: readonly StigmerApi[] = ["messages", "chat-completions", "responses"];
+const STIGMER_APIS: readonly StigmerApi[] = ["messages", "chat-completions", "responses", "generate-content"];
 const STIGMER_COST_BASES: readonly StigmerCostBasis[] = ["catalog", "default-rate"];
 const SHELL_BACKGROUNDS: readonly ShellBackground[] = ["on", "off"];
 

@@ -47,6 +47,15 @@ describe("inferProvider", () => {
       expect(inferProvider("openai:ft:gpt-4o:org:suffix")).toBe("openai");
     });
 
+    it("resolves google: prefix", () => {
+      expect(inferProvider("google:gemini-3-flash")).toBe("google");
+      expect(inferProvider("Google:any-model")).toBe("google");
+    });
+
+    it("places a bare gemini id, the form a catalog row resolves to", () => {
+      expect(inferProvider("gemini-3-flash")).toBe("google");
+    });
+
     it("is case-insensitive for the prefix", () => {
       expect(inferProvider("OpenAI:gpt-4o")).toBe("openai");
       expect(inferProvider("Anthropic:claude-sonnet-4")).toBe("anthropic");
@@ -72,6 +81,12 @@ describe("inferProvider", () => {
       expect(() => inferProvider("mystery-model")).toThrow("mystery-model");
     });
 
+    it("names every provider's prefixes in the error, from the one table", () => {
+      expect(() => inferProvider("mystery-model")).toThrow(
+        "Known prefixes: claude* (anthropic), gpt*/o1*/o3*/o4*/chatgpt* (openai), gemini* (google).",
+      );
+    });
+
     it("suggests explicit prefix syntax in the error", () => {
       expect(() => inferProvider("deepseek-coder")).toThrow(
         "provider:model-name",
@@ -87,6 +102,10 @@ describe("stripProviderPrefix", () => {
 
   it("strips openai: prefix", () => {
     expect(stripProviderPrefix("openai:gpt-4o")).toBe("gpt-4o");
+  });
+
+  it("strips google: prefix", () => {
+    expect(stripProviderPrefix("google:gemini-3-flash")).toBe("gemini-3-flash");
   });
 
   it("returns original name when no explicit prefix", () => {
@@ -115,6 +134,12 @@ describe("resolveProxyBaseUrl", () => {
   it("constructs OpenAI proxy path (includes /v1 suffix)", () => {
     expect(resolveProxyBaseUrl(proxy, "openai")).toBe(
       "https://api.stigmer.ai/v1/proxy/llm/openai/v1",
+    );
+  });
+
+  it("constructs Google proxy path (the client adds its API version)", () => {
+    expect(resolveProxyBaseUrl(proxy, "google")).toBe(
+      "https://api.stigmer.ai/v1/proxy/llm/google",
     );
   });
 

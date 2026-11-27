@@ -308,7 +308,8 @@ export function loadConfig(): Config {
   const artifactProxyEndpoint = process.env.STIGMER_ARTIFACT_PROXY_ENDPOINT
     ?? proxyEndpoint;
 
-  const primaryModel = process.env.STIGMER_PRIMARY_MODEL ?? "gpt-4.1";
+  // Empty: a run that names no model is titled on the harness's default model.
+  const primaryModel = process.env.STIGMER_PRIMARY_MODEL ?? "";
 
   const cursorStreamStallTimeoutMs = process.env.CURSOR_STREAM_STALL_TIMEOUT_MS
     ? parseInt(process.env.CURSOR_STREAM_STALL_TIMEOUT_MS, 10)

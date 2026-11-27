@@ -15,8 +15,25 @@
 // And for the canned responses: every one carries its own message id, as a
 // provider's do, whatever usage it states (stigmer#2437: a repeated id made
 // the Stigmer harness's reducer replace each round with the next).
+//
+// And for Gemini's wire: a scripted turn's usage in Google's terms (the
+// prompt counting its cached tokens, thinking apart and in the total), its
+// function calls signed, its stream repeating the usage so far on every
+// frame, and Google's rule on an unsigned function call.
+import type { ServerResponse } from "node:http";
 import { describe, expect, it } from "vitest";
-import { anthropicText, anthropicToolUse, anthropicToolUses, readLastUserText, readTurnShapes } from "../llm-wire.ts";
+import {
+  anthropicText,
+  anthropicToolUse,
+  anthropicToolUses,
+  geminiResponseOf,
+  missingThoughtSignature,
+  mockThoughtSignature,
+  MOCK_THOUGHT_TOKENS_PER_BLOCK,
+  readLastUserText,
+  readTurnShapes,
+  writeGeminiSse,
+} from "../llm-wire.ts";
 
 describe("the canned responses' message ids", () => {
   it("are unique across text and tool-use turns, with or without stated usage", () => {
@@ -99,5 +116,45 @@ describe("readLastUserText", () => {
       /no user message/,
     );
     expect(() => readLastUserText({ model: "m" })).toThrow(/not an Anthropic messages body/);
+  });
+});
+
+describe("Gemini's wire", () => {
+  it("states a turn's usage as Google does: the prompt with its cached tokens, the thinking apart and in the total", () => {
+    const body = anthropicToolUse("c1", "f", {}, { inputTokens: 40, outputTokens: 9, cacheReadInputTokens: 30 });
+    const response = geminiResponseOf({ ...body, content: [{ type: "thinking", thinking: "hm" }, ...body.content] });
+
+    expect(response.usageMetadata).toEqual({
+      promptTokenCount: 70,
+      candidatesTokenCount: 9,
+      thoughtsTokenCount: MOCK_THOUGHT_TOKENS_PER_BLOCK,
+      cachedContentTokenCount: 30,
+      totalTokenCount: 70 + 9 + MOCK_THOUGHT_TOKENS_PER_BLOCK,
+    });
+    expect(response.candidates[0]?.content.parts).toEqual([
+      { text: "hm", thought: true },
+      { functionCall: { id: "c1", name: "f", args: {} }, thoughtSignature: mockThoughtSignature("c1") },
+    ]);
+  });
+
+  it("streams one frame per part, the last carrying the finish and the whole usage", () => {
+    const written: string[] = [];
+    const res = { writeHead: () => res, write: (chunk: string) => written.push(chunk), end: () => res } as unknown as ServerResponse;
+
+    writeGeminiSse(res, anthropicToolUses([{ toolCallId: "a", toolName: "f", toolInput: {} }, { toolCallId: "b", toolName: "g", toolInput: {} }], { inputTokens: 10, outputTokens: 4 }));
+
+    const frames = written.map((frame) => JSON.parse(frame.replace(/^data: /, "")) as { candidates: Array<{ finishReason?: string }>; usageMetadata: { candidatesTokenCount: number } });
+    expect(frames).toHaveLength(2);
+    expect(frames.map((frame) => frame.candidates[0]?.finishReason)).toEqual([undefined, "STOP"]);
+    expect(frames.map((frame) => frame.usageMetadata.candidatesTokenCount)).toEqual([0, 4]);
+  });
+
+  it("names the first unsigned function call of a model turn, and passes a signed conversation", () => {
+    const ask = { role: "user" as const, parts: [{ text: "go" }] };
+    const signed = { role: "model" as const, parts: [{ functionCall: { name: "f", args: {} }, thoughtSignature: "s" }, { functionCall: { name: "g", args: {} } }] };
+    const unsigned = { role: "model" as const, parts: [{ functionCall: { name: "h", args: {} } }] };
+
+    expect(missingThoughtSignature({ contents: [ask, signed] })).toBeUndefined();
+    expect(missingThoughtSignature({ contents: [ask, signed, unsigned] })).toContain("function call `h`, position 2");
   });
 });

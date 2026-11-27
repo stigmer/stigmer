@@ -15,18 +15,26 @@
  * its transport: its base URL is a provider lane of the runner's local
  * proxy and its credential the host's token (`model-lanes.ts`). Nothing
  * else here knows the difference.
+ *
+ * Where a call goes and what it carries is decided once, for every
+ * provider ({@link transportFor}); each provider then has one constructor
+ * ({@link buildAnthropic}, {@link buildOpenAi}, {@link buildGoogle}), chosen
+ * by an exhaustive switch, so a provider added to `llm-proxy.ts` is a
+ * compile error here until it has one.
  */
 
 import { ChatAnthropic } from "@langchain/anthropic";
-import type { ThinkingConfigParam } from "@anthropic-ai/sdk/resources/messages";
 import { ChatOpenAI } from "@langchain/openai";
 import type { BaseChatModel } from "@langchain/core/language_models/chat_models";
+import type { FailedAttemptHandler } from "@langchain/core/utils/async_caller";
+import { ServiceTier } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 
 import {
   inferProvider,
   stripProviderPrefix,
   resolveProxyBaseUrl,
   buildProxyHeaders,
+  LLM_PROVIDERS,
   type LlmProvider,
 } from "./llm-proxy.js";
 import {
@@ -44,9 +52,12 @@ import {
   PROVIDER_ANTHROPIC,
   PROVIDER_AWS_BEDROCK,
   PROVIDER_AZURE_AI_INFERENCE,
+  PROVIDER_GCP_GEMINI,
   PROVIDER_GCP_VERTEX_AI,
   PROVIDER_OPENAI,
 } from "../gen-ai-conventions.js";
+import { GEMINI_API_ENDPOINT, GEMINI_API_VERSION, googleTransport } from "./google-transport.js";
+import { toAnthropicThinking, toGoogleThinking, type ThinkingRequest } from "./thinking-mode.js";
 import { resolveToApiModelId } from "./model-registry.js";
 import { recordChatModelFacts } from "./model-facts.js";
 import {
@@ -124,16 +135,17 @@ export interface BuildChatModelOptions {
    */
   readonly serviceTier?: EffectiveServiceTier;
   /**
-   * Anthropic's `thinking` request parameter, already mapped by the caller
-   * from the execution's effective mode and the model's Stigmer registry row
-   * (thinking-mode.ts `toAnthropicThinking`). Unlike the tier it is sent on
-   * every Anthropic backend: both thinking forms exist on the public API,
-   * Vertex, Bedrock and Foundry alike. A value for a non-Anthropic model is
-   * refused rather than dropped: no other provider has a thinking mapping
-   * on the Stigmer harness, and a silently ignored mode is the #357 class of defect.
-   * Omitted, the request carries no thinking parameter (utility calls).
+   * The execution's effective thinking mode and the model's Stigmer
+   * registry row, mapped here to the provider's own parameter
+   * (thinking-mode.ts): Anthropic's `thinking`, sent on every Anthropic
+   * backend alike (both forms exist on the public API, Vertex, Bedrock and
+   * Foundry, unlike the tier), and Google's `thinkingConfig`. A request that
+   * would ask an OpenAI model to think is refused rather than dropped: OpenAI
+   * has no thinking mapping on the Stigmer harness, and a silently ignored
+   * mode is the #357 class of defect. Omitted, the request carries no
+   * thinking parameter (utility calls).
    */
-  readonly thinking?: ThinkingConfigParam;
+  readonly thinking?: ThinkingRequest;
 }
 
 /**
@@ -171,18 +183,141 @@ export async function buildChatModel(opts: BuildChatModelOptions): Promise<Built
   const apiModelId = stripProviderPrefix(resolved);
   const timeoutMs = opts.timeoutMs ?? resolveDefaultTimeoutMs();
 
-  // Backend precedence by construction: a proxied call never consults the
-  // backend var — the proxy owns provider routing (the factories' preflight
-  // warns when both are configured). Selection is deployment-static and read
-  // here the same way provider API keys are, not plumbed through Config.
-  const anthropicBackend =
-    provider === "anthropic" && !opts.proxyEndpoint
-      ? resolveAnthropicBackend()
-      : "public";
-
-  // Lanes stand in for every direct-mode credential below; never with a
-  // proxy, which carries its own (`model-lanes.ts`).
+  // Lanes stand in for every direct-mode credential; never with a proxy,
+  // which carries its own (`model-lanes.ts`).
   const lanes = opts.proxyEndpoint ? undefined : modelLanes();
+
+  // LangChain's client retry is the one loop for a request that fails,
+  // with the runner's classification in place of LangChain's
+  // (`model-retry.ts`), bound or no bound. Every model built here carries
+  // it: the turn's, each sub-agent's, structured extraction's and session
+  // subjects'. Under a bound, a model whose reply does not stream stops on a
+  // timed-out attempt (the `timeoutMs` field says why).
+  const retry: RetryFields = {
+    maxRetries: MODEL_REQUEST_RETRIES,
+    onFailedAttempt: timeoutMs !== undefined && !opts.streaming ? modelRequestFailedWholeReplyBound : modelRequestFailed,
+  };
+  const context: BuildContext = { opts, apiModelId, timeoutMs, lanes, retry };
+
+  let built: { readonly model: BaseChatModel; readonly providerName: string };
+  switch (provider) {
+    case "anthropic":
+      built = await buildAnthropic(context);
+      break;
+    case "openai":
+      built = buildOpenAi(context);
+      break;
+    case "google":
+      built = await buildGoogle(context);
+      break;
+    /* v8 ignore start -- @preserve: the never arm; the compiler proves no provider reaches it */
+    default: {
+      const exhaustive: never = provider;
+      throw new Error(`buildChatModel: no constructor for provider ${String(exhaustive)}`);
+    }
+    /* v8 ignore stop */
+  }
+
+  recordChatModelFacts(built.model, {
+    providerName: built.providerName,
+    requestModel: opts.modelName,
+    responseModel: apiModelId,
+  });
+  return { model: built.model, provider, apiModelId };
+}
+
+/** LangChain's own retry knobs, constructor-level on every wrapper. */
+interface RetryFields {
+  readonly maxRetries: number;
+  readonly onFailedAttempt: FailedAttemptHandler;
+}
+
+/** What every provider's constructor is built from. */
+interface BuildContext {
+  readonly opts: BuildChatModelOptions;
+  readonly apiModelId: string;
+  readonly timeoutMs: number | undefined;
+  readonly lanes: ModelLanes | undefined;
+  readonly retry: RetryFields;
+}
+
+/** Where a model's requests go and what they carry. */
+interface Transport {
+  /** The provider client's base URL; `undefined` keeps the client's own. */
+  readonly baseUrl: string | undefined;
+  /** Headers every request carries beside the credential: the Stigmer scope headers. */
+  readonly headers: Record<string, string> | undefined;
+  /** The client's credential: the run's Stigmer token, the host's lane token, or the operator's key. */
+  readonly apiKey: string;
+  /** Whether the request goes to a Stigmer endpoint (the platform's proxy or a local lane) rather than the provider. */
+  readonly viaStigmer: boolean;
+}
+
+/**
+ * Where one provider's requests go, for every provider alike:
+ *
+ *  - Through the platform's proxy (`proxyEndpoint`): the provider's proxy
+ *    path, the run's Stigmer token and the scope headers. A proxied call
+ *    never consults a backend: the proxy owns provider routing (the
+ *    factories' preflight warns when both are configured).
+ *  - Through a lane of the runner's local proxy, in the agent host: the
+ *    provider's lane and the host's token, except an Anthropic cloud
+ *    backend, whose adapter reaches its own lane (`buildAnthropic`).
+ *  - To the provider: the operator's key, resolved from the credential
+ *    store (the boot capture moved it out of process.env, #508). Only the
+ *    public Anthropic backend takes an operator-set address
+ *    (ANTHROPIC_BASE_URL: a gateway in front of Anthropic, or the install
+ *    journeys' fake model); the backend adapters reach their own cloud
+ *    endpoints, OpenAI keeps its default, and Google's client is always
+ *    handed its API's address, which keeps it from rerouting itself through
+ *    a gateway named in the environment.
+ */
+function transportFor(provider: LlmProvider, anthropicBackend: AnthropicBackend, context: BuildContext): Transport {
+  const { opts, lanes } = context;
+  const scope = opts.headerScope ?? {};
+  if (opts.proxyEndpoint) {
+    return {
+      baseUrl: resolveProxyBaseUrl(opts.proxyEndpoint, provider),
+      headers: opts.stigmerToken ? buildProxyHeaders(opts.stigmerToken, scope) : undefined,
+      apiKey: opts.stigmerToken ?? "proxy-managed",
+      viaStigmer: true,
+    };
+  }
+  const providerServed = provider !== "anthropic" || anthropicBackend === "public";
+  if (lanes) {
+    return {
+      baseUrl: providerServed ? modelLaneUrl(lanes, provider) : undefined,
+      headers: providerServed ? buildProxyHeaders(lanes.token, scope) : undefined,
+      apiKey: lanes.token,
+      viaStigmer: true,
+    };
+  }
+  return {
+    baseUrl: provider === "google" ? GEMINI_API_ENDPOINT : provider === "anthropic" && anthropicBackend === "public" ? resolveAnthropicBaseUrl() : undefined,
+    headers: undefined,
+    apiKey: getRunnerSecret(LLM_PROVIDERS[provider].keyVariable) ?? "",
+    viaStigmer: false,
+  };
+}
+
+/** The constructor fields every wrapper shares: sampling, credential, output ceiling, streaming, retries. */
+function commonFields(context: BuildContext, apiKey: string, maxTokens: number | undefined) {
+  const { opts, retry } = context;
+  return {
+    ...(opts.temperature === null ? {} : { temperature: opts.temperature ?? 0 }),
+    apiKey,
+    ...(maxTokens ? { maxTokens } : {}),
+    ...(opts.streaming ? { streaming: true } : {}),
+    ...retry,
+  };
+}
+
+async function buildAnthropic(context: BuildContext): Promise<{ readonly model: BaseChatModel; readonly providerName: string }> {
+  const { opts, apiModelId, timeoutMs, lanes } = context;
+  // Backend precedence by construction: a proxied call never consults the
+  // backend var (`transportFor`). Selection is deployment-static and read
+  // here the same way provider API keys are, not plumbed through Config.
+  const anthropicBackend = !opts.proxyEndpoint ? resolveAnthropicBackend() : "public";
   const laneHeaders = lanes ? buildProxyHeaders(lanes.token, opts.headerScope ?? {}) : undefined;
 
   // Backend SDKs (and their auth subtrees: google-auth-library, AWS smithy)
@@ -299,59 +434,10 @@ export async function buildChatModel(opts: BuildChatModelOptions): Promise<Built
     wireModelId = toFoundryDeploymentName(apiModelId);
   }
 
-  // The proxy's provider path wins; without one, only the public Anthropic
-  // backend takes an operator-set address (ANTHROPIC_BASE_URL: a gateway in
-  // front of Anthropic, or the install journeys' fake model). The backend
-  // adapters reach their own cloud endpoints and OpenAI keeps its default.
-  const baseUrl = opts.proxyEndpoint
-    ? resolveProxyBaseUrl(opts.proxyEndpoint, provider)
-    : lanes && (provider === "openai" || anthropicBackend === "public")
-      ? modelLaneUrl(lanes, provider)
-      : provider === "anthropic" && anthropicBackend === "public"
-        ? resolveAnthropicBaseUrl()
-        : undefined;
-  const headers = opts.proxyEndpoint && opts.stigmerToken
-    ? buildProxyHeaders(opts.stigmerToken, opts.headerScope ?? {})
-    : provider === "openai" || anthropicBackend === "public"
-      ? laneHeaders
-      : undefined;
-
-  // Proxy mode authenticates with the Stigmer token; direct mode falls back
-  // to the provider's own key, resolved from the credential store (the boot
-  // capture moved it out of process.env, #508).
-  const apiKey = opts.proxyEndpoint
-    ? (opts.stigmerToken ?? "proxy-managed")
-    : lanes
-      ? lanes.token
-      : provider === "openai"
-        ? (getRunnerSecret("OPENAI_API_KEY") ?? "")
-        : (getRunnerSecret("ANTHROPIC_API_KEY") ?? "");
-
-  // LangChain's client retry is the one loop for a request that fails,
-  // with the runner's classification in place of LangChain's
-  // (`model-retry.ts`), bound or no bound. Every model built here carries
-  // it: the turn's, each sub-agent's, structured extraction's and session
-  // subjects'. Under a bound, a model whose reply does not stream stops on a
-  // timed-out attempt (the `timeoutMs` field says why).
-  const retry = {
-    maxRetries: MODEL_REQUEST_RETRIES,
-    onFailedAttempt: timeoutMs !== undefined && !opts.streaming ? modelRequestFailedWholeReplyBound : modelRequestFailed,
-  };
-  if (opts.thinking !== undefined && provider !== "anthropic") {
-    throw new Error(
-      `buildChatModel: a thinking parameter was passed for ${opts.modelName}, a ${provider} model; ` +
-        "only Anthropic models have a thinking mapping on the Stigmer harness",
-    );
-  }
-
-  const common = {
-    ...(opts.temperature === null ? {} : { temperature: opts.temperature ?? 0 }),
-    apiKey,
-    ...(maxTokens ? { maxTokens } : {}),
-    ...(opts.streaming ? { streaming: true } : {}),
-    ...retry,
-  };
-  const anthropicThinkingField = opts.thinking !== undefined ? { thinking: opts.thinking } : {};
+  const { baseUrl, headers, apiKey } = transportFor("anthropic", anthropicBackend, context);
+  const common = commonFields(context, apiKey, maxTokens);
+  const thinking = opts.thinking ? toAnthropicThinking(opts.thinking.mode, opts.thinking.profile) : undefined;
+  const thinkingField = thinking !== undefined ? { thinking } : {};
 
   // The request timeout lives in a different slot per wrapper: ChatOpenAI
   // reads `timeout` as a constructor field, but ChatAnthropic ignores it
@@ -360,89 +446,214 @@ export async function buildChatModel(opts: BuildChatModelOptions): Promise<Built
   // SDK constructor. This split is what makes STIGMER_LLM_REQUEST_TIMEOUT_MS
   // bound every path; putting `timeout` in the shared constructor spread is
   // the exact regression that made it inert for Anthropic.
-  // The retry fields above stay constructor-level for both wrappers: they
-  // are LangChain's own retry knobs, distinct from the SDK-level maxRetries
+  // The retry fields stay constructor-level for every wrapper: they are
+  // LangChain's own retry knobs, distinct from the SDK-level maxRetries
   // the factories receive (always 0, so the SDK never retries beneath it).
-  const anthropicClientOptions = {
+  const clientOptions = {
     ...(timeoutMs ? { timeout: timeoutMs } : {}),
     ...(baseUrl ? { baseURL: baseUrl } : {}),
     ...(headers ? { defaultHeaders: headers } : {}),
   };
-  const anthropicClientOptionsField =
-    Object.keys(anthropicClientOptions).length > 0
-      ? { clientOptions: anthropicClientOptions }
-      : {};
+  const clientOptionsField = Object.keys(clientOptions).length > 0 ? { clientOptions } : {};
 
-  // The tier rides the request body per provider dialect (#361): OpenAI
-  // takes `service_tier` as a first-class constructor field; ChatAnthropic
-  // has no such field, so it rides `invocationKwargs`, which the wrapper
-  // spreads into every request body. Both spellings resolve through the
-  // shared mapping so no construction site can invent a third one.
-  const openAiServiceTierField = opts.serviceTier !== undefined
-    ? { service_tier: toOpenAiServiceTier(opts.serviceTier) }
-    : {};
-  const anthropicServiceTierField = opts.serviceTier !== undefined
+  if (backendCreateClient) {
+    // Backend adapter: the translated id is wire detail only — each
+    // client moves it from the JSON body into its URL path. The waiver
+    // in ChatAnthropic (an API key is not required when createClient is
+    // provided) is what lets this construct with no ANTHROPIC_API_KEY.
+    // (Backend mode never has a proxy — see `transportFor` — so the
+    // clientOptions here carry at most the timeout.)
+    //
+    // service_tier deliberately does NOT ride backend requests:
+    // standard/priority tiers are an Anthropic-FIRST-PARTY billing
+    // concept, and Vertex/Bedrock/Foundry bill through the cloud
+    // provider with no tier dimension — an unknown body param there is
+    // a request refusal waiting to happen. The account-default price
+    // hole this parameter closes does not exist on those backends.
+    const model = new ChatAnthropic({
+      model: wireModelId,
+      ...common,
+      ...thinkingField,
+      ...clientOptionsField,
+      createClient: backendCreateClient,
+    });
+    return { model, providerName: providerNameOf(anthropicBackend) };
+  }
+
+  // The tier rides the request body per provider dialect (#361):
+  // ChatAnthropic has no tier field, so it rides `invocationKwargs`, which
+  // the wrapper spreads into every request body, through the shared mapping
+  // so no construction site can invent another spelling.
+  const serviceTierField = opts.serviceTier !== undefined
     ? { invocationKwargs: { service_tier: toAnthropicServiceTier(opts.serviceTier) } }
     : {};
-
-  // The two SDKs name the transport-override block differently (OpenAI:
-  // `configuration`, Anthropic: `clientOptions`) — encapsulating that here is
-  // the whole point, since the shape mismatch is where bugs hide.
-  const model: BaseChatModel = provider === "openai"
-    ? new ChatOpenAI({
-        model: apiModelId,
-        ...common,
-        ...openAiServiceTierField,
-        ...(timeoutMs ? { timeout: timeoutMs } : {}),
-        ...(baseUrl || headers
-          ? {
-              configuration: {
-                ...(baseUrl ? { baseURL: baseUrl } : {}),
-                ...(headers ? { defaultHeaders: headers } : {}),
-              },
-            }
-          : {}),
-      })
-    : backendCreateClient
-      ? // Backend adapter: the translated id is wire detail only — each
-        // client moves it from the JSON body into its URL path. The waiver
-        // in ChatAnthropic (an API key is not required when createClient is
-        // provided) is what lets this construct with no ANTHROPIC_API_KEY.
-        // (Backend mode never has a proxy — see the precedence rule above —
-        // so the clientOptions here carry at most the timeout.)
-        //
-        // service_tier deliberately does NOT ride backend requests:
-        // standard/priority tiers are an Anthropic-FIRST-PARTY billing
-        // concept, and Vertex/Bedrock/Foundry bill through the cloud
-        // provider with no tier dimension — an unknown body param there is
-        // a request refusal waiting to happen. The account-default price
-        // hole this parameter closes does not exist on those backends.
-        new ChatAnthropic({
-          model: wireModelId,
-          ...common,
-          ...anthropicThinkingField,
-          ...anthropicClientOptionsField,
-          createClient: backendCreateClient,
-        })
-      : new ChatAnthropic({
-          model: apiModelId,
-          ...common,
-          ...anthropicThinkingField,
-          ...anthropicServiceTierField,
-          ...anthropicClientOptionsField,
-        });
-
-  recordChatModelFacts(model, {
-    providerName: providerNameOf(provider, anthropicBackend),
-    requestModel: opts.modelName,
-    responseModel: apiModelId,
+  const model = new ChatAnthropic({
+    model: apiModelId,
+    ...common,
+    ...thinkingField,
+    ...serviceTierField,
+    ...clientOptionsField,
   });
-  return { model, provider, apiModelId };
+  return { model, providerName: providerNameOf(anthropicBackend) };
 }
 
-/** The conventions' provider name for where a model is served from. */
-function providerNameOf(provider: LlmProvider, anthropicBackend: AnthropicBackend): string {
-  if (provider === "openai") return PROVIDER_OPENAI;
+function buildOpenAi(context: BuildContext): { readonly model: BaseChatModel; readonly providerName: string } {
+  const { opts, apiModelId, timeoutMs } = context;
+  if (opts.thinking && toAnthropicThinking(opts.thinking.mode, opts.thinking.profile) !== undefined) {
+    throw new Error(
+      `buildChatModel: thinking was asked of ${opts.modelName}, an openai model; ` +
+        "OpenAI models have no thinking mapping on the Stigmer harness",
+    );
+  }
+  const { baseUrl, headers, apiKey } = transportFor("openai", "public", context);
+  // OpenAI takes `service_tier` as a first-class constructor field (#361),
+  // through the shared mapping.
+  const serviceTierField = opts.serviceTier !== undefined
+    ? { service_tier: toOpenAiServiceTier(opts.serviceTier) }
+    : {};
+  // The SDKs name the transport-override block differently (OpenAI:
+  // `configuration`, Anthropic: `clientOptions`) — encapsulating that here
+  // is the whole point, since the shape mismatch is where bugs hide.
+  const model = new ChatOpenAI({
+    model: apiModelId,
+    ...commonFields(context, apiKey, opts.maxTokens),
+    ...serviceTierField,
+    ...(timeoutMs ? { timeout: timeoutMs } : {}),
+    ...(baseUrl || headers
+      ? {
+          configuration: {
+            ...(baseUrl ? { baseURL: baseUrl } : {}),
+            ...(headers ? { defaultHeaders: headers } : {}),
+          },
+        }
+      : {}),
+  });
+  return { model, providerName: PROVIDER_OPENAI };
+}
+
+/**
+ * Gemini, through LangChain's Google client on the runner's own transport
+ * (`google-transport.ts`): the credential and the per-attempt bound are the
+ * transport's, so the client never reads the environment (no
+ * `GOOGLE_API_KEY`, no Google Cloud identity, no gateway). The package loads
+ * lazily, like the Anthropic backend SDKs, and only its main entry, which
+ * never loads Google's auth library.
+ *
+ * Google receives no tier: its default is its standard tier, and the run's
+ * create-time check refuses FAST for a model whose catalog row prices no
+ * fast variant, which no Gemini row does; a FAST that arrives anyway is
+ * refused here rather than silently served at the standard rate.
+ */
+async function buildGoogle(context: BuildContext): Promise<{ readonly model: BaseChatModel; readonly providerName: string }> {
+  const { opts, apiModelId, timeoutMs } = context;
+  if (opts.serviceTier === ServiceTier.FAST) {
+    throw new Error(
+      `buildChatModel: the fast service tier was asked of ${opts.modelName}, a google model; ` +
+        "Google models are served on the standard tier only",
+    );
+  }
+  const { baseUrl, headers, apiKey, viaStigmer } = transportFor("google", "public", context);
+  const thinking = opts.thinking ? toGoogleThinking(opts.thinking.mode, opts.thinking.profile) : undefined;
+  const { ChatGoogle } = await import("@langchain/google");
+  const GoogleModel = stigmerGoogleModelOf(ChatGoogle);
+  const model = new GoogleModel({
+    model: apiModelId,
+    // The transport carries the credential (the module header). An empty key
+    // keeps the constructor from reading GOOGLE_API_KEY into the instance.
+    apiKey: "",
+    apiClient: googleTransport({
+      credential: viaStigmer ? { kind: "stigmer", headers: headers ?? buildProxyHeaders(apiKey, opts.headerScope ?? {}) } : { kind: "google-key", key: apiKey },
+      ...(timeoutMs ? { timeoutMs } : {}),
+    }),
+    platformType: "gai",
+    endpoint: baseUrl ?? GEMINI_API_ENDPOINT,
+    apiVersion: GEMINI_API_VERSION,
+    ...(opts.temperature === null ? {} : { temperature: opts.temperature ?? 0 }),
+    ...(opts.maxTokens ? { maxOutputTokens: opts.maxTokens } : {}),
+    // `streaming: false` would also turn off the client's streamed path for
+    // good (`disableStreaming`); only `true` is ever passed.
+    ...(opts.streaming ? { streaming: true } : {}),
+    ...thinking,
+    ...context.retry,
+  });
+  return { model, providerName: PROVIDER_GCP_GEMINI };
+}
+
+/**
+ * `ChatGoogle` with three corrections the agent loop needs from LangChain's
+ * Google client, each deleted once the library or deepagents makes it
+ * (`__tests__/google-client.test.ts` and
+ * `activities/execute-deep-agent/__tests__/gemini-graph-profile.test.ts`
+ * pin them). The class keeps the library's name: nothing else differs.
+ *
+ *  - Its event stream starts inside LangChain's retry caller. The agent loop
+ *    streams through `streamEvents`, which asks a model for its events
+ *    (`_streamChatModelEvents`). The client fetches that stream outside its
+ *    caller (`@langchain/google` 0.2.12
+ *    `GenerateContentApiHandler.streamChatModelEvents`; its chunk and
+ *    whole-reply paths fetch inside it), so a Google 429 or 503 would skip
+ *    the runner's request loop (`model-retry.ts`), the one loop for a
+ *    request that fails before its reply begins. Here the stream is started
+ *    inside the caller, with the model's own retries and `onFailedAttempt`,
+ *    until its first event: an attempt that fails before then is a new
+ *    request, and nothing of it has reached the loop. Core's own default
+ *    (events bridged from the chunk path) is no answer: it carries the
+ *    client's function calls as the client's own content blocks, not as tool
+ *    calls, so the agent would stop after a tool call (measured on core
+ *    1.2.20).
+ *  - Its usage counts the thinking. On that event stream the client reports
+ *    `output_tokens` as Google's `candidatesTokenCount`, without
+ *    `thoughtsTokenCount`, which Google bills as output; its chunk path counts
+ *    both. Google's `totalTokenCount` is the prompt, the answer and the
+ *    thinking (and the prompts of Google's built-in tools, which the runner
+ *    never sends), so the output is the total less the input. Cached input
+ *    is not reported on that stream at all, so it is priced at the input
+ *    rate: over, never under.
+ *  - It names itself `google:<id>` (`modelName`), deepagents' own
+ *    `provider:model` form. deepagents places a model's harness profile by its
+ *    class, from a table of three names that does not hold `ChatGoogle`
+ *    (deepagents 1.14.1 to 1.17.1), and falls back to that identifier; without
+ *    it a Gemini graph would get deepagents' own `general-purpose` sub-agent,
+ *    outside the approval gate, and the `delete` tool
+ *    (`deepagents-profiles.ts`).
+ */
+function stigmerGoogleModelOf(base: typeof import("@langchain/google").ChatGoogle) {
+  return class ChatGoogle extends base {
+    static override lc_name(): string {
+      return "ChatGoogle";
+    }
+
+    /** The model's `provider:model` name, which deepagents places a harness profile by. */
+    get modelName(): string {
+      return `google:${this.model}`;
+    }
+
+    override async *_streamChatModelEvents(
+      ...args: Parameters<BaseChatModel["_streamChatModelEvents"]>
+    ): ReturnType<BaseChatModel["_streamChatModelEvents"]> {
+      const [, options] = args;
+      const started = await this.caller.callWithOptions({ signal: options.signal }, async () => {
+        const events = super._streamChatModelEvents(...args);
+        return { events, first: await events.next() };
+      });
+      if (started.first.done === true) return;
+      yield withThinkingCounted(started.first.value);
+      for await (const event of started.events) yield withThinkingCounted(event);
+    }
+  };
+}
+
+type ChatModelStreamEvent = Awaited<ReturnType<ReturnType<BaseChatModel["_streamChatModelEvents"]>["next"]>> extends IteratorResult<infer E> ? E : never;
+
+/** An event whose usage counts the thinking as output (`stigmerGoogleModelOf`). */
+function withThinkingCounted(event: ChatModelStreamEvent): ChatModelStreamEvent {
+  const usage = (event as { usage?: { input_tokens: number; output_tokens: number; total_tokens: number } }).usage;
+  if (usage === undefined || usage.total_tokens <= usage.input_tokens + usage.output_tokens) return event;
+  return { ...event, usage: { ...usage, output_tokens: usage.total_tokens - usage.input_tokens } } as ChatModelStreamEvent;
+}
+
+/** The conventions' provider name for where an Anthropic model is served from. */
+function providerNameOf(anthropicBackend: AnthropicBackend): string {
   switch (anthropicBackend) {
     case "public":
       return PROVIDER_ANTHROPIC;

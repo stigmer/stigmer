@@ -108,8 +108,9 @@ describe("unknownModelPinRefusal", () => {
     );
   });
 
-  it("accepts an explicit openai: or anthropic: model on the Stigmer harness and any harness", () => {
+  it("accepts an explicit openai:, anthropic: or google: model on the Stigmer harness and any harness", () => {
     expect(unknownModelPinRefusal(STORE, "f", "stigmer", "openai:llama-3.3-70b")).toBe("");
+    expect(unknownModelPinRefusal(STORE, "f", "stigmer", "google:gemini-3-flash")).toBe("");
     expect(unknownModelPinRefusal(STORE, "f", "stigmer", "Anthropic:my-claude")).toBe("");
     expect(unknownModelPinRefusal(STORE, "f", "", "openai:llama-3.3-70b")).toBe("");
   });
