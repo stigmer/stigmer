@@ -379,6 +379,19 @@ describe("an agent's own server that signs in", () => {
     );
     expect(signInServers(reading)).toEqual([]);
   });
+
+  it("reads no answers for a subagent named by slug alone, which has no row id to read them from", async () => {
+    const reading = await readAgentServers(
+      client({}, { "": { mcpServers: [{ name: "jira", url: "https://jira.example/mcp", headers: {} }] } }, undefined, {
+        "": [signsIn("jira", "https://jira.example/mcp")],
+      }),
+      spec({ subagents: [{ org: "acme", slug: "jira", version: PIN }] }),
+      "acme",
+      { plugins: "throw" },
+    );
+    expect(serversOf(reading).map((server) => server.name)).toEqual(["jira"]);
+    expect(signInServers(reading)).toEqual([]);
+  });
 });
 
 describe("readAgentServers", () => {

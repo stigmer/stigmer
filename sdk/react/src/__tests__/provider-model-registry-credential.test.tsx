@@ -74,6 +74,69 @@ describe("StigmerProvider model list and a late sign-in", () => {
     expect(seen.at(-1)?.error).toBeNull();
   });
 
+  it("keeps waiting through a token provider that throws, and reads once it hands a credential", async () => {
+    let mode: "none" | "throw" | "token" = "none";
+    const { client } = makeClient(() => {
+      if (mode === "throw") throw new Error("host sign-in not ready");
+      return mode === "token" ? "host-user-token" : null;
+    });
+    render(
+      <StigmerProvider client={client}>
+        <Probe />
+      </StigmerProvider>,
+    );
+
+    await elapse(60_000);
+    mode = "throw";
+    await elapse(5_000);
+    expect(seen.at(-1)?.count).toBe(0);
+
+    mode = "token";
+    await elapse(5_000);
+    expect(seen.at(-1)?.count).toBe(1);
+  });
+
+  it("stops asking for a credential once the provider unmounts, even mid-ask", async () => {
+    let answer: ((token: string | null) => void) | null = null;
+    let deferred = false;
+    const { client, getAuthCredential, fetch } = makeClient(() => null);
+    getAuthCredential.mockImplementation(async () => (deferred ? new Promise<string | null>((resolve) => (answer = resolve)) : null));
+    const view = render(
+      <StigmerProvider client={client}>
+        <Probe />
+      </StigmerProvider>,
+    );
+    await elapse(60_000);
+
+    // One ask is in flight when the provider unmounts; its late answer starts no read.
+    deferred = true;
+    await elapse(3_000);
+    expect(answer).not.toBeNull();
+    const reads = fetch.mock.calls.length;
+    view.unmount();
+    await act(async () => {
+      answer?.("host-user-token");
+    });
+    const asked = getAuthCredential.mock.calls.length;
+    await elapse(10_000);
+    expect(fetch.mock.calls.length).toBe(reads);
+    expect(getAuthCredential.mock.calls.length).toBe(asked);
+  });
+
+  it("stops asking for a credential once the provider unmounts between asks", async () => {
+    const { client, getAuthCredential } = makeClient(() => null);
+    const view = render(
+      <StigmerProvider client={client}>
+        <Probe />
+      </StigmerProvider>,
+    );
+    await elapse(60_000);
+    view.unmount();
+    const asked = getAuthCredential.mock.calls.length;
+    await elapse(10_000);
+    expect(getAuthCredential.mock.calls.length).toBe(asked);
+  });
+
   it("never waits for a credential when the tokenless read succeeds", async () => {
     const { client, getAuthCredential } = makeClient(() => null, { tokenlessOk: true });
     render(

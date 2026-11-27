@@ -78,6 +78,38 @@ describe("useAgentSetupFailure under an OrgProvider", () => {
     expect(result.current.classified).toBe(first);
   });
 
+  it("drops the answer for a failure a newer one replaced while its reads were in flight", async () => {
+    const { client, answer } = deferredClient();
+    const whoAmIAnswers: ((value: unknown) => void)[] = [];
+    client.identityAccount.whoAmI = vi.fn(() => new Promise((resolve) => whoAmIAnswers.push(resolve)));
+    const first = new ConnectError("not found", Code.NotFound);
+    const second = new ConnectError("denied", Code.PermissionDenied);
+    const { result, rerender } = renderHook(({ failure }) => useAgentSetupFailure(failure, "acme", "reporter"), {
+      wrapper: wrapperFor(client),
+      initialProps: { failure: first as Error },
+    });
+    await act(async () => {
+      answer([ACME]);
+    });
+    await waitFor(() => expect(whoAmIAnswers).toHaveLength(1));
+
+    // A newer failure arrives before the first one's reads answer.
+    rerender({ failure: second });
+    await waitFor(() => expect(whoAmIAnswers).toHaveLength(2));
+
+    // The first failure's reads answer late: their classification is dropped.
+    await act(async () => {
+      whoAmIAnswers[0]?.({});
+    });
+    expect(result.current).toBeNull();
+
+    await act(async () => {
+      whoAmIAnswers[1]?.({});
+    });
+    await waitFor(() => expect(result.current?.reason).toBe("no-access"));
+    expect(result.current?.cause).toBe(second);
+  });
+
   it("reads a list that failed to load as unread: a NotFound is the agent's", async () => {
     const { client, answer } = deferredClient();
     const { result } = renderHook(() => useAgentSetupFailure(NOT_FOUND, "acme", "reporter"), { wrapper: wrapperFor(client) });
