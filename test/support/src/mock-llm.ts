@@ -7,6 +7,15 @@
 // replays canned Anthropic responses as Server-Sent Events that the runner's
 // @langchain/anthropic streaming parser accepts. No API keys, no network.
 //
+// It speaks Gemini too, on Google's proxy path (`/v1/proxy/llm/google/...`):
+// a suite scripts a turn once with the Anthropic builders, and a call on the
+// Google path is answered with the same turn in Gemini's shape (llm-wire.ts,
+// geminiResponseOf). There streaming is the URL's method
+// (`:streamGenerateContent`), not a body flag, and the mock keeps Google's
+// rule that a function call is sent back with its thought signature: a
+// request that drops one is answered 400, as Google answers it, and claims no
+// turn (disposition "refused").
+//
 // Why long-lived + programmable (not built per test): the conformance runner boots ONCE per test file with a fixed proxy
 // URL, so the response source must be mutable at runtime. Each test enqueues the
 // turns it expects and resets in afterEach; Class B runs files serially
@@ -20,8 +29,8 @@
 // turns broke every agent suite at once (approval gates sailed to COMPLETED on
 // the eaten tool_use turn, forced failures completed, smoke turns starved —
 // stigmer/stigmer#715). Three defenses, in order:
-//   1. Provider fence — this mock speaks ONLY Anthropic; a request on any
-//      other provider's proxy path is answered with a loud 500 instead of a
+//   1. Provider fence — this mock speaks Anthropic and Gemini; a request on
+//      any other provider's proxy path is answered with a loud 500 instead of a
 //      queued turn (#715's thief was the titling call leaving on the OpenAI
 //      path via the runner's baked gpt-4.1 primaryModel default, eating
 //      Anthropic turns it couldn't even parse; the harness now pins
@@ -88,9 +97,18 @@
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from "node:http";
 import {
   anthropicText,
+  geminiError,
+  geminiModelOfPath,
+  geminiResponseOf,
+  geminiSystemText,
+  isGeminiStreamPath,
+  missingThoughtSignature,
+  readGeminiRequest,
   writeAnthropicSse,
+  writeGeminiSse,
   writeJson,
   type AnthropicMessageBody,
+  type GeminiRequestBody,
 } from "./llm-wire.ts";
 import { setTimeout as delay } from "node:timers/promises";
 import type { AddressInfo } from "node:net";
@@ -153,13 +171,48 @@ export interface EnqueueErrorOptions extends EnqueueOptions {
 }
 
 // An injected failure, answered: the scripted status and body, or a dropped
-// connection.
-function answerError(res: ServerResponse, error: QueuedError): void {
+// connection. On Google's path an arm that scripted no body of its own gets
+// Google's envelope, so the client surfaces the error it would from Google.
+function answerError(res: ServerResponse, error: QueuedError, provider: MockProvider): void {
   if (error.drop === true) {
     res.socket?.destroy();
     return;
   }
-  writeJson(res, error.status, error.body, error.headers);
+  const body =
+    provider === "google" && error.body === DEFAULT_ERROR_BODY
+      ? geminiError(error.status, "INVALID_ARGUMENT", "MockLlmProxy: injected failure")
+      : error.body;
+  writeJson(res, error.status, body, error.headers);
+}
+
+// The providers this mock speaks, told apart by the proxy path a call takes.
+export type MockProvider = "anthropic" | "google";
+
+// The proxy path Google's calls take (the runner's provider table names it).
+export const GOOGLE_PROXY_PATH = "/v1/proxy/llm/google/";
+
+function providerOfPath(path: string): MockProvider {
+  return path.includes(GOOGLE_PROXY_PATH) ? "google" : "anthropic";
+}
+
+// A turn's body as the request's provider and streaming mode want it.
+function writeTurn(res: ServerResponse, provider: MockProvider, body: AnthropicMessageBody, streaming: boolean): void {
+  if (provider === "google") {
+    if (streaming) writeGeminiSse(res, body);
+    else writeJson(res, 200, geminiResponseOf(body));
+    return;
+  }
+  if (streaming) writeAnthropicSse(res, body);
+  else writeJson(res, 200, body);
+}
+
+// A Gemini request body, or undefined when the body is not one.
+function asGeminiRequest(body: unknown): GeminiRequestBody | undefined {
+  try {
+    return readGeminiRequest(body);
+  } catch {
+    return undefined;
+  }
 }
 
 // The body an error turn carries when the arm supplies none: Anthropic's
@@ -179,9 +232,12 @@ export const DEFAULT_ERROR_BODY = {
 //   or with the persistent fault a scripted turn left behind);
 // - retired: came from a run an earlier reset() retired, and was refused
 //   with a 410 before the queue was consulted;
+// - refused: broke a rule the provider itself enforces (a Gemini function
+//   call sent back without its thought signature), answered as the provider
+//   answers it, before the queue was consulted;
 // - routed: answered by the router from the request's own content (a
 //   router's background answer, marked outOfBand, is out-of-band).
-export type RequestDisposition = "scripted" | "out-of-band" | "fenced" | "unscripted" | "routed" | "retired";
+export type RequestDisposition = "scripted" | "out-of-band" | "fenced" | "unscripted" | "routed" | "retired" | "refused";
 
 // The header every model call the runner makes for a run carries
 // (shared/llm-proxy.ts buildProxyHeaders), as Node lower-cases it.
@@ -282,13 +338,18 @@ const TITLE_GENERATION_SIGNATURE = "session title generator";
 // (≤50 chars, no trailing punctuation) to arrive verbatim.
 export const MOCK_SESSION_TITLE = "Conformance Agent Session";
 
-// True when an Anthropic messages payload is the runner's background
-// session-titling call rather than an agent-loop turn. LangChain sends the
-// system prompt as `system`, either a plain string or an array of text blocks
-// depending on client version — both shapes are folded to text before matching.
-function isTitleGenerationRequest(body: unknown): boolean {
+// True when a payload is the runner's background session-titling call rather
+// than an agent-loop turn. LangChain sends Anthropic's system prompt as
+// `system`, either a plain string or an array of text blocks depending on
+// client version, and Gemini's as `systemInstruction` parts; every shape is
+// folded to text before matching.
+function isTitleGenerationRequest(body: unknown, provider: MockProvider): boolean {
   if (typeof body !== "object" || body === null) {
     return false;
+  }
+  if (provider === "google") {
+    const gemini = asGeminiRequest(body);
+    return gemini !== undefined && geminiSystemText(gemini).toLowerCase().includes(TITLE_GENERATION_SIGNATURE);
   }
   const system = (body as { system?: unknown }).system;
   let text: string;
@@ -316,13 +377,18 @@ export const SUMMARY_PROMPT_OPENING = "You are writing the checkpoint another ag
 // The canned summary every out-of-band summary call receives.
 export const MOCK_CONVERSATION_SUMMARY = "Summary (mock): the conversation so far, condensed.";
 
-// True when an Anthropic messages payload is the Stigmer harness's compaction
-// summary call rather than an agent-loop turn: exactly one user message
-// whose text opens with the summary prompt. A content array is folded to
-// its text.
-function isSummaryRequest(body: unknown): boolean {
+// True when a payload is the Stigmer harness's compaction summary call
+// rather than an agent-loop turn: exactly one user message whose text opens
+// with the summary prompt. A content array (Gemini's parts) is folded to its
+// text.
+function isSummaryRequest(body: unknown, provider: MockProvider): boolean {
   if (typeof body !== "object" || body === null) {
     return false;
+  }
+  if (provider === "google") {
+    const contents = asGeminiRequest(body)?.contents;
+    if (contents?.length !== 1 || contents[0]?.role !== "user") return false;
+    return contents[0].parts.map((part) => part.text ?? "").join("").trimStart().startsWith(SUMMARY_PROMPT_OPENING);
   }
   const messages = (body as { messages?: unknown }).messages;
   if (!Array.isArray(messages) || messages.length !== 1) {
@@ -517,6 +583,10 @@ export class MockLlmProxy {
   // unresolved is the regression they exist to catch.
   requestModels(): string[] {
     return this.captured.flatMap((request) => {
+      if (providerOfPath(request.path) === "google") {
+        const model = geminiModelOfPath(request.path);
+        return model === undefined ? [] : [model];
+      }
       const model = (request.body as { model?: unknown } | undefined)?.model;
       return typeof model === "string" ? [model] : [];
     });
@@ -675,7 +745,7 @@ export class MockLlmProxy {
 
   // A router's answer: an error or a JSON document as is, a message body
   // streamed or whole as the request asked, after its hold.
-  private async answerRouted(res: ServerResponse, request: CapturedLlmRequest, routed: RoutedResponse, streaming: boolean): Promise<void> {
+  private async answerRouted(res: ServerResponse, request: CapturedLlmRequest, routed: RoutedResponse, provider: MockProvider, streaming: boolean): Promise<void> {
     if ("error" in routed) {
       writeJson(res, routed.error.status, routed.error.body, routed.error.headers ?? {});
       return;
@@ -685,8 +755,7 @@ export class MockLlmProxy {
       return;
     }
     if (routed.delayMs !== undefined && routed.delayMs > 0 && (await this.hold(res, request, routed.delayMs))) return;
-    if (streaming) writeAnthropicSse(res, routed.body);
-    else writeJson(res, 200, routed.body);
+    writeTurn(res, provider, routed.body, streaming);
   }
 
   private async handle(req: IncomingMessage, res: ServerResponse): Promise<void> {
@@ -718,10 +787,11 @@ export class MockLlmProxy {
       this.handleEmbeddings(path, parsedBody, res);
       return;
     }
+    const provider = providerOfPath(path);
     const streaming =
-      typeof parsedBody === "object" &&
-      parsedBody !== null &&
-      (parsedBody as { stream?: unknown }).stream === true;
+      provider === "google"
+        ? isGeminiStreamPath(path)
+        : typeof parsedBody === "object" && parsedBody !== null && (parsedBody as { stream?: unknown }).stream === true;
 
     // Every branch below captures the request with the disposition it
     // decides, right where it decides it (see the header): the record of how
@@ -732,12 +802,13 @@ export class MockLlmProxy {
     // body) and the test (stolen turn). Fail loudly instead — the message
     // names the fix so a future non-Anthropic caller is a five-minute triage,
     // not a phase-timeout mystery (#715).
-    const isForeignProvider = path.includes("/v1/proxy/llm/") && !path.includes("/v1/proxy/llm/anthropic");
+    const isForeignProvider =
+      path.includes("/v1/proxy/llm/") && !path.includes("/v1/proxy/llm/anthropic") && provider !== "google";
     if (isForeignProvider) {
       this.capture({ path, body: parsedBody, disposition: "fenced", headers, receivedAt });
       writeJson(res, 500, {
         error:
-          `MockLlmProxy speaks only Anthropic but received ${path}. A runner-side LLM caller ` +
+          `MockLlmProxy speaks only Anthropic and Gemini but received ${path}. A runner-side LLM caller ` +
           `is routing to another provider — pin its model to an Anthropic one in the harness ` +
           `env (see STIGMER_PRIMARY_MODEL in runner-process.ts) or teach this mock the provider.`,
       });
@@ -749,34 +820,24 @@ export class MockLlmProxy {
     // starves or derails the loop under test (#715). The canned title is
     // wired all the way through — the titling activity really parses it and
     // writes it as the session subject, so suites can pin the feature.
-    if (isTitleGenerationRequest(parsedBody)) {
+    if (isTitleGenerationRequest(parsedBody, provider)) {
       this.capture({ path, body: parsedBody, disposition: "out-of-band", headers, receivedAt });
       this.titleRequestCount += 1;
-      const body = anthropicText(MOCK_SESSION_TITLE);
-      if (streaming) {
-        writeAnthropicSse(res, body);
-      } else {
-        writeJson(res, 200, body);
-      }
+      writeTurn(res, provider, anthropicText(MOCK_SESSION_TITLE), streaming);
       return;
     }
 
     const routed = (this.testRoute ?? this.route)?.({ path, body: parsedBody, headers });
     if (routed !== undefined) {
       const request = this.capture({ path, body: parsedBody, disposition: routed.outOfBand === true ? "out-of-band" : "routed", headers, receivedAt });
-      await this.answerRouted(res, request, routed, streaming);
+      await this.answerRouted(res, request, routed, provider, streaming);
       return;
     }
 
-    if (isSummaryRequest(parsedBody)) {
+    if (isSummaryRequest(parsedBody, provider)) {
       this.capture({ path, body: parsedBody, disposition: "out-of-band", headers, receivedAt });
       this.summaryRequestCount += 1;
-      const body = anthropicText(MOCK_CONVERSATION_SUMMARY);
-      if (streaming) {
-        writeAnthropicSse(res, body);
-      } else {
-        writeJson(res, 200, body);
-      }
+      writeTurn(res, provider, anthropicText(MOCK_CONVERSATION_SUMMARY), streaming);
       return;
     }
 
@@ -801,6 +862,16 @@ export class MockLlmProxy {
       return;
     }
 
+    // Google refuses a conversation whose function call lost its signature;
+    // so does this mock, before a turn is claimed (the header).
+    const gemini = provider === "google" ? asGeminiRequest(parsedBody) : undefined;
+    const unsigned = gemini === undefined ? undefined : missingThoughtSignature(gemini);
+    if (unsigned !== undefined) {
+      this.capture({ path, body: parsedBody, disposition: "refused", headers, receivedAt });
+      writeJson(res, 400, geminiError(400, "INVALID_ARGUMENT", unsigned));
+      return;
+    }
+
     // Claim the head turn synchronously so concurrent or retried calls can't race
     // for the same entry. An empty queue is a test-authoring error, surfaced as
     // 500 — unless a persistent error turn was served, in which case the fault
@@ -809,7 +880,7 @@ export class MockLlmProxy {
     const request = this.capture({ path, body: parsedBody, disposition: next === undefined ? "unscripted" : "scripted", headers, receivedAt });
     if (next === undefined) {
       if (this.persistentError !== undefined) {
-        answerError(res, this.persistentError);
+        answerError(res, this.persistentError, provider);
         return;
       }
       writeJson(res, 500, { error: `MockLlmProxy: no queued response (consumed ${this.consumedCount})` });
@@ -831,7 +902,7 @@ export class MockLlmProxy {
     // proxy relays a provider error.
     if (next.error !== undefined) {
       if (next.error.persistent) this.persistentError = next.error;
-      answerError(res, next.error);
+      answerError(res, next.error, provider);
       return;
     }
 
@@ -841,11 +912,7 @@ export class MockLlmProxy {
       return;
     }
 
-    if (streaming) {
-      writeAnthropicSse(res, next.body);
-    } else {
-      writeJson(res, 200, next.body);
-    }
+    writeTurn(res, provider, next.body, streaming);
   }
 
   // Answers one batched embeddings call by computation (header). The retriever

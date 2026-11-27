@@ -69,7 +69,7 @@ import { getDefaultModel, getRequestProfile } from "../../shared/model-registry.
 import { buildChatModel } from "../../shared/model-client.js";
 import { recordModelWindow, windowLogLines } from "../../shared/model-window.js";
 import { createCompactionMiddleware } from "../../middleware/compaction.js";
-import { graphThinks, toAnthropicThinking } from "../../shared/thinking-mode.js";
+import { thinkingRefusesForcedTool } from "../../shared/thinking-mode.js";
 import { buildMcpApprovalDefault, isUnattendedApprovalMode, type McpApprovalDefault } from "../../shared/approval-policy.js";
 import { definitionOf, type McpToolListing, type OfferedTool } from "../../shared/mcp-tool-listing.js";
 import { McpToolIndex } from "../../shared/mcp-tool-names.js";
@@ -584,8 +584,8 @@ export async function buildEngine(
   //   4096 on models its table does not know (stigmer/stigmer#1343), and
   //   streaming on every call because the SDK refuses a non-streaming
   //   request at that ceiling;
-  // - the execution's thinking mode in the form the row declares
-  //   (thinking-mode.ts toAnthropicThinking).
+  // - the execution's thinking mode in the form the row declares, in the
+  //   provider's own parameter (thinking-mode.ts; buildChatModel maps it).
   // A model with no Stigmer row (an unreachable registry) keeps the library
   // defaults and sends no thinking parameter, as before.
   //
@@ -593,7 +593,7 @@ export async function buildEngine(
   // (`shared/model-window.ts`: the library on the first-party id, then the
   // row's `contextWindowTokens`), and said once per model in the turn's log.
   const windowLines = new Set<string>();
-  const buildModelFor = async (name: string) => {
+  const buildFor = async (name: string) => {
     const profile = await getRequestProfile(name, "stigmer");
     const built = await buildChatModel({
       modelName: name,
@@ -604,7 +604,7 @@ export async function buildEngine(
       temperature: null,
       maxTokens: profile?.maxOutputTokens,
       streaming: true,
-      thinking: toAnthropicThinking(input.model.thinkingMode, profile?.thinking),
+      thinking: { mode: input.model.thinkingMode, profile: profile?.thinking },
     });
     const windowFacts = { provider: built.provider, apiModelId: built.apiModelId, catalogTokens: profile?.contextWindowTokens };
     recordModelWindow(built.model, windowFacts);
@@ -613,13 +613,20 @@ export async function buildEngine(
       windowLines.add(line);
       console.log(line);
     }
-    return built.model;
+    return built;
   };
-  const model = await buildModelFor(modelName);
-  // Whether this graph reasons natively, derived from the same mapping the
-  // request carries: it decides the structured-output strategy below, so the
-  // strategy cannot disagree with the wire.
-  const parentThinks = graphThinks(input.model.thinkingMode, (await getRequestProfile(modelName, "stigmer"))?.thinking);
+  const buildModelFor = async (name: string) => (await buildFor(name)).model;
+  const parent = await buildFor(modelName);
+  const model = parent.model;
+  // Whether this graph thinks on a provider that then refuses a forced tool,
+  // derived from the same mapping the request carries: it decides the
+  // structured-output strategy below, so the strategy cannot disagree with
+  // the wire.
+  const parentRefusesForcedTool = thinkingRefusesForcedTool(
+    parent.provider,
+    input.model.thinkingMode,
+    (await getRequestProfile(modelName, "stigmer"))?.thinking,
+  );
   sink.setupTiming.mark("build_model");
 
   await ensurePricingLoaded();
@@ -865,7 +872,7 @@ export async function buildEngine(
   );
 
   // The strategy and its reasons: `structured-output-format.ts`.
-  const responseFormat = structuredOutputFormat(input.structuredOutputSchema, parentThinks);
+  const responseFormat = structuredOutputFormat(input.structuredOutputSchema, parentRefusesForcedTool);
 
   const graph = await createDeepAgent({
     model,

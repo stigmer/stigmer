@@ -25,7 +25,16 @@
 
 import { registerHarnessProfile } from "deepagents";
 
-const PROVIDERS_WITH_STIGMER_PROFILE = ["anthropic", "openai"] as const;
+/**
+ * deepagents resolves a graph's profile from its model's class, by a closed
+ * table of three names (`ChatAnthropic`, `ChatOpenAI`,
+ * `ChatGoogleGenerativeAI`) at deepagents 1.14.1, so a Gemini graph built on
+ * LangChain's current Google client (`ChatGoogle`) resolves no profile and
+ * keeps both defaults: `google` is registered for the release that maps
+ * that class. What such a graph exposes until then is pinned by
+ * `__tests__/hermetic/gemini-graph-profile.test.ts`.
+ */
+const PROVIDERS_WITH_STIGMER_PROFILE = ["anthropic", "openai", "google"] as const;
 
 /** Built-in tools the Stigmer harness never exposes; see the header. */
 export const EXCLUDED_BUILTIN_TOOLS: readonly string[] = ["delete"];

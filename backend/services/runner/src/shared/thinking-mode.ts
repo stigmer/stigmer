@@ -14,10 +14,11 @@
  * thinking-specific rates.
  *
  * Each harness translates the mode in its own dialect: the Stigmer harness
- * as Anthropic's `thinking` request parameter in the form the model's
- * Stigmer-harness registry row declares ({@link toAnthropicThinking}).
- * ENABLED means "the model reasons before it answers", whichever form the
- * row takes.
+ * as its provider's request parameter in the form the model's
+ * Stigmer-harness registry row declares (Anthropic's `thinking`,
+ * {@link toAnthropicThinking}; Google's thinking budget,
+ * {@link toGoogleThinking}; `model-client.ts` picks by provider). ENABLED
+ * means "the model reasons before it answers", whichever form the row takes.
  *
  * One model family breaks the "always explicit" rule on purpose: a row
  * that states `thinkingRequired` names a model that always thinks and
@@ -28,9 +29,29 @@
  */
 
 import type { ThinkingConfigParam } from "@anthropic-ai/sdk/resources/messages";
+import type { ChatGoogleParams } from "@langchain/google";
 import { ThinkingMode } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 
+import type { LlmProvider } from "./llm-proxy.js";
 import type { ThinkingProfile } from "./model-registry.js";
+
+/** An execution's thinking, as a model is built for it: the effective mode and the model's Stigmer row. */
+export interface ThinkingRequest {
+  readonly mode: EffectiveThinkingMode;
+  readonly profile: ThinkingProfile | undefined;
+}
+
+/**
+ * Google's thinking, as LangChain's Google client takes it: a token budget.
+ * The client writes the request's `thinkingConfig` from it, per model
+ * generation (`thinkingBudget` for Gemini 2.5, the matching `thinkingLevel`
+ * for Gemini 3), with `includeThoughts` on unless the budget is zero; the
+ * client's own `thinkingConfig` field never reaches the request.
+ */
+export type GoogleThinking = Required<Pick<ChatGoogleParams, "thinkingBudget">>;
+
+/** Google's budget for "the model picks its own depth" (dynamic thinking). */
+export const GOOGLE_DYNAMIC_THINKING_BUDGET = -1;
 
 /**
  * The effective mode after platform-default resolution: never UNSPECIFIED.
@@ -107,10 +128,67 @@ export function toAnthropicThinking(
 }
 
 /**
+ * Google's thinking for an execution's effective mode on a model's Stigmer
+ * row, or `undefined` to send none, by the same rules as
+ * {@link toAnthropicThinking}:
+ *
+ * - A row that requires thinking, or ENABLED, gets the row's form: adaptive
+ *   is the model picking its own depth ({@link GOOGLE_DYNAMIC_THINKING_BUDGET}),
+ *   the fixed budget is {@link BUDGET_THINKING_TOKENS}. Either way the
+ *   model's reasoning streams back with its answer.
+ * - DISABLED gets a zero budget only where the row declares a form and
+ *   states `thinkingRequired: false`; a Gemini model that cannot stop
+ *   thinking is a row that says it requires it.
+ * - No row sends nothing, and the model thinks by its own default.
+ */
+export function toGoogleThinking(
+  mode: EffectiveThinkingMode,
+  profile: ThinkingProfile | undefined,
+): GoogleThinking | undefined {
+  if (profile === undefined) return undefined;
+  if (profile.required === true || mode === ThinkingMode.ENABLED) {
+    switch (profile.shape) {
+      case "adaptive":
+        return { thinkingBudget: GOOGLE_DYNAMIC_THINKING_BUDGET };
+      case "budget":
+        return { thinkingBudget: BUDGET_THINKING_TOKENS };
+      case "none":
+        return undefined;
+    }
+  }
+  return profile.required === false && profile.shape !== "none" ? { thinkingBudget: 0 } : undefined;
+}
+
+/**
+ * Whether a provider refuses a forced tool choice while its model thinks:
+ * Anthropic does, on every platform and model, so a thinking graph there
+ * answers structured output in the provider's own JSON form; Google's
+ * function calling takes a forced choice with thinking on. OpenAI keeps the
+ * answer it has always had here: it has no thinking mapping on this harness
+ * (`model-client.ts` refuses one), and its structured output under thinking
+ * is stigmer#3322.
+ */
+const REFUSES_FORCED_TOOL_WHILE_THINKING: Readonly<Record<LlmProvider, boolean>> = {
+  anthropic: true,
+  openai: true,
+  google: false,
+};
+
+/**
+ * Whether a graph on this provider and row must answer structured output
+ * without a forced tool: it thinks, and its provider refuses a forced tool
+ * while it does.
+ */
+export function thinkingRefusesForcedTool(provider: LlmProvider, mode: EffectiveThinkingMode, profile: ThinkingProfile | undefined): boolean {
+  return REFUSES_FORCED_TOOL_WHILE_THINKING[provider] && graphThinks(mode, profile);
+}
+
+/**
  * Whether a graph built on this row reasons natively: true exactly when
  * {@link toAnthropicThinking} asks for thinking. Derived from the same
  * mapping, never decided separately, so the structured output strategy can
- * never disagree with the wire.
+ * never disagree with the wire. {@link toGoogleThinking} asks for thinking
+ * on exactly the same rows.
  */
 export function graphThinks(
   mode: EffectiveThinkingMode,

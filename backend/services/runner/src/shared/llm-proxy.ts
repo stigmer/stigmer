@@ -8,7 +8,13 @@
  *    path pattern expected by stigmer-cloud's LlmProxyController:
  *      - Anthropic: {proxy}/v1/proxy/llm/anthropic
  *      - OpenAI:    {proxy}/v1/proxy/llm/openai/v1
+ *      - Google:    {proxy}/v1/proxy/llm/google
  * 3. Build authorization and scope headers for proxy requests.
+ *
+ * Every per-provider fact lives in one table, {@link LLM_PROVIDERS}, and
+ * every other per-provider table in the runner is typed over
+ * {@link LlmProvider}, so a provider added here is a compile error at each
+ * site that must say something about it.
  *
  * These utilities mirror the Python agent-runner's `LLMConfig.build_llm_kwargs`
  * but as composable functions rather than a config class method.
@@ -16,30 +22,57 @@
 
 import { turnKeyHeader } from "./execution-context.js";
 
-export type LlmProvider = "anthropic" | "openai";
+/** The providers the runner builds a chat model for; each is its own explicit prefix (`google:gemini-3-flash`). */
+export type LlmProvider = "anthropic" | "openai" | "google";
 
-/**
- * Provider-specific path suffixes appended to `STIGMER_PROXY_ENDPOINT`.
- *
- * OpenAI's SDK includes `/v1` in its default base URL (https://api.openai.com/v1),
- * so the proxy path includes it: `/v1/proxy/llm/openai/v1`.
- *
- * Anthropic's SDK does NOT include `/v1` in its base URL (https://api.anthropic.com),
- * so the proxy path omits it: `/v1/proxy/llm/anthropic`.
- */
-const PROXY_PATHS: Readonly<Record<LlmProvider, string>> = {
-  anthropic: "/v1/proxy/llm/anthropic",
-  openai: "/v1/proxy/llm/openai/v1",
-};
+/** What the runner knows about one provider. */
+export interface LlmProviderRow {
+  /**
+   * The name prefixes a bare model id is placed by (`claude-sonnet-4-6`).
+   * A bare id reaches the runner from a catalog row, which resolves to its
+   * provider's API id (`model-registry.ts` `resolveToApiModelId`).
+   */
+  readonly namePrefixes: readonly string[];
+  /**
+   * The platform proxy's path for the provider, appended to
+   * `STIGMER_PROXY_ENDPOINT`. Each is where the provider's client appends its
+   * own API path: OpenAI's SDK includes `/v1` in its default base URL
+   * (https://api.openai.com/v1), so its path does too; Anthropic's SDK does
+   * not (https://api.anthropic.com); Google's client puts its API version
+   * (`/v1beta`) after the endpoint itself.
+   */
+  readonly proxyPath: string;
+  /** The variable the operator's direct-mode key is read from (`runner-credential-keys.ts` captures each at boot). */
+  readonly keyVariable: string;
+}
 
-const OPENAI_PREFIXES = ["gpt", "o1", "o3", "o4", "chatgpt"] as const;
+export const LLM_PROVIDERS: Readonly<Record<LlmProvider, LlmProviderRow>> = Object.freeze({
+  anthropic: { namePrefixes: ["claude"], proxyPath: "/v1/proxy/llm/anthropic", keyVariable: "ANTHROPIC_API_KEY" },
+  openai: { namePrefixes: ["gpt", "o1", "o3", "o4", "chatgpt"], proxyPath: "/v1/proxy/llm/openai/v1", keyVariable: "OPENAI_API_KEY" },
+  google: { namePrefixes: ["gemini"], proxyPath: "/v1/proxy/llm/google", keyVariable: "GEMINI_API_KEY" },
+});
+
+const PROVIDER_NAMES = Object.keys(LLM_PROVIDERS) as LlmProvider[];
+
+/** Whether `name` is a provider the runner builds a chat model for. */
+export function isLlmProvider(name: string): name is LlmProvider {
+  return Object.hasOwn(LLM_PROVIDERS, name);
+}
+
+/** The explicit prefix of a `provider:model` name, when it names a known provider. */
+function explicitProviderOf(modelName: string): LlmProvider | undefined {
+  const colonIdx = modelName.indexOf(":");
+  if (colonIdx <= 0 || colonIdx >= modelName.length - 1) return undefined;
+  const prefix = modelName.slice(0, colonIdx).toLowerCase();
+  return isLlmProvider(prefix) ? prefix : undefined;
+}
 
 /**
  * Infer the LLM provider from a model name.
  *
  * Resolution order:
  * 1. Explicit prefix syntax: "provider:model-name" (e.g. "openai:gpt-4.1")
- * 2. Name prefix heuristics (claude → anthropic, gpt/o1/o3/o4 → openai)
+ * 2. Name prefix heuristics ({@link LLM_PROVIDERS}' `namePrefixes`)
  *
  * Throws if the provider cannot be determined — callers should not silently
  * fall back to a default provider when an unknown model is requested.
@@ -49,29 +82,17 @@ export function inferProvider(modelName: string): LlmProvider {
     throw new Error("Model name is required but received an empty string");
   }
 
-  const colonIdx = modelName.indexOf(":");
-  if (colonIdx > 0 && colonIdx < modelName.length - 1) {
-    const prefix = modelName.slice(0, colonIdx).toLowerCase();
-    if (prefix === "anthropic" || prefix === "openai") {
-      return prefix;
-    }
-  }
+  const explicit = explicitProviderOf(modelName);
+  if (explicit !== undefined) return explicit;
 
   const lower = modelName.toLowerCase();
+  const placed = PROVIDER_NAMES.find((provider) => LLM_PROVIDERS[provider].namePrefixes.some((prefix) => lower.startsWith(prefix)));
+  if (placed !== undefined) return placed;
 
-  if (lower.startsWith("claude")) {
-    return "anthropic";
-  }
-
-  for (const prefix of OPENAI_PREFIXES) {
-    if (lower.startsWith(prefix)) {
-      return "openai";
-    }
-  }
-
+  const known = PROVIDER_NAMES.map((provider) => `${LLM_PROVIDERS[provider].namePrefixes.map((prefix) => `${prefix}*`).join("/")} (${provider})`).join(", ");
   throw new Error(
     `Cannot determine LLM provider for model "${modelName}". ` +
-    `Known prefixes: claude* (anthropic), gpt*/o1*/o3*/o4*/chatgpt* (openai). ` +
+    `Known prefixes: ${known}. ` +
     `Use explicit prefix syntax "provider:model-name" for non-standard model names.`,
   );
 }
@@ -97,14 +118,7 @@ export function tryInferProvider(modelName: string): LlmProvider | null {
  * the original name unchanged.
  */
 export function stripProviderPrefix(modelName: string): string {
-  const colonIdx = modelName.indexOf(":");
-  if (colonIdx > 0 && colonIdx < modelName.length - 1) {
-    const prefix = modelName.slice(0, colonIdx).toLowerCase();
-    if (prefix === "anthropic" || prefix === "openai") {
-      return modelName.slice(colonIdx + 1);
-    }
-  }
-  return modelName;
+  return explicitProviderOf(modelName) === undefined ? modelName : modelName.slice(modelName.indexOf(":") + 1);
 }
 
 /**
@@ -124,7 +138,7 @@ export function resolveProxyBaseUrl(
   provider: LlmProvider,
 ): string {
   const base = proxyEndpoint.replace(/\/+$/, "");
-  return `${base}${PROXY_PATHS[provider]}`;
+  return `${base}${LLM_PROVIDERS[provider].proxyPath}`;
 }
 
 /**

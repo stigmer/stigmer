@@ -11,7 +11,7 @@
  * behavior.
  */
 
-import type { LlmProvider } from "./llm-proxy.js";
+import { LLM_PROVIDERS, type LlmProvider } from "./llm-proxy.js";
 import { runnerSecretsEnvView } from "./runner-credential-store.js";
 
 // ─── Backend selection ───────────────────────────────────────────────────────
@@ -409,10 +409,11 @@ export function checkDirectCredentials(
   // not captured.
   env: NodeJS.ProcessEnv = runnerSecretsEnvView(),
 ): string | null {
-  if (provider === "openai") {
-    if (env.OPENAI_API_KEY?.trim()) return null;
+  if (provider !== "anthropic") {
+    const key = LLM_PROVIDERS[provider].keyVariable;
+    if (env[key]?.trim()) return null;
     return (
-      `OPENAI_API_KEY is not set and no proxy is configured. Set the API ` +
+      `${key} is not set and no proxy is configured. Set the API ` +
       `key in your environment or connect to a Stigmer Cloud deployment. ` +
       `See ${BACKEND_DOC_URL}.`
     );
