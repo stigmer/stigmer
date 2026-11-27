@@ -106,9 +106,10 @@ export function toMcpClientConfig(
       if (!server.env || Object.keys(server.env).length === 0) {
         console.log(
           `[MCP] Server '${server.slug}' declares no env — its subprocess ` +
-          `starts with the minimal base environment and the egress gateway's ` +
-          `trust settings only. Declare variables the server reads in its ` +
-          `plugin's MCP configuration to pass them.`,
+          `starts with the minimal base environment` +
+          (Object.keys(trust).length > 0 ? ` and the egress gateway's trust settings` : ``) +
+          ` only. Declare variables the server reads in its plugin's MCP ` +
+          `configuration to pass them.`,
         );
       }
       const serverEnv = { ...trust, ...server.env };
