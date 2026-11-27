@@ -5,7 +5,8 @@
  * message the person sent mid-turn, closed on no answer: nothing leads, no
  * message carries the scores, its messages stay in time order under "How
  * it got there", and the run's scores sit at the turn's foot. A turn that
- * wrote no message carries no scores, as before.
+ * wrote no message (it only ran steps) carries them at its foot too
+ * (stigmer/stigmer#3299).
  */
 import { describe, it, expect } from "vitest";
 import type { SessionEvent } from "@stigmer/apis/ai/stigmer/agentic/session/v1/event_pb";
@@ -83,9 +84,16 @@ describe("buildThreadItems answer", () => {
     ]);
   });
 
-  it("carries no scores row when the turn closed on its answer, or wrote no message", () => {
+  it("carries no scores row when the turn closed on its answer", () => {
     expect(footScores(finished(call("c1", "read_file"), said(R, 0, "Done.")))).toBeUndefined();
-    expect(footScores(finished(call("c1", "read_file")))).toBeUndefined();
+  });
+
+  it("carries the scores at its foot, once, when the turn ran steps and wrote no message", () => {
+    const items = finished(call("c1", "read_file"), call("c2", "grep"), call("c3", "shell"));
+
+    expect(scored(items)).toBeUndefined();
+    expect(footScores(items)).toBe(R);
+    expect(items.filter((item) => item.kind === "turn-scores")).toHaveLength(1);
   });
 
   it("leads with the last message when the turn closed on it", () => {
