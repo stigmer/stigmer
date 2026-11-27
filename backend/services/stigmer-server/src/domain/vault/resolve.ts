@@ -55,6 +55,9 @@
  *      a login the integrator set for everyone stays the one used, and
  *      the sign-in the embedded chat offers is used only where nothing
  *      the organization set fills it. The run still records no person.
+ *      The service account that minted the user's token must still be one,
+ *      as the token verifier requires (domain/token/verifier.ts) and as a
+ *      queued turn's start does (domain/run/queued-turn.ts).
  * A conversation uses exactly what it chose: an integrator calling with an
  * admin's key, which leaves include_my_vault off, never reaches the
  * admin's own logins, and an agent carries no vaults of its own.
@@ -191,6 +194,7 @@ import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/ap
 import { OrganizationSchema } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/api_pb";
 import type { ApiResourceReference } from "@stigmer/apis/ai/stigmer/commons/apiresource/io_pb";
 import { IamPermission } from "@stigmer/apis/ai/stigmer/iam/v1/enum_pb";
+import { IdentityAccountProvisioningMode } from "@stigmer/apis/ai/stigmer/iam/identityaccount/v1/enum_pb";
 
 import type { Logger } from "../../boot/logger.js";
 import type { SecretService } from "../../encryption/encryption.js";
@@ -1120,6 +1124,19 @@ export function newVaultResolver(deps: VaultResolverDeps): VaultResolver {
     return { sources, closedMyVault };
   }
 
+  /**
+   * The app user whose own turn the run is (`appUserOfRun`), while the
+   * service account that minted their token still is one (source 5).
+   */
+  async function standingAppUserOf(execution: Run, stored: Session): Promise<string | undefined> {
+    const appUser = appUserOfRun(execution, stored);
+    if (appUser === undefined) {
+      return undefined;
+    }
+    const minter = await deps.accounts.findById(execution.status?.audit?.specAudit?.createdBy?.mintedBy ?? "");
+    return minter?.spec?.provisioningMode === IdentityAccountProvisioningMode.service_account ? appUser : undefined;
+  }
+
   /** A vault as a source: its entries, sealed. */
   function vaultSource(label: string, origin: RunValueOrigin, vault: Vault): Source {
     const sealed = deps.vaults.entries(vault);
@@ -1388,7 +1405,7 @@ export function newVaultResolver(deps: VaultResolverDeps): VaultResolver {
       }
       // An app user's own turn: the logins in their own My vault, last
       // (source 5), never for another organization's agent.
-      const appUser = appUserOfRun(execution, stored);
+      const appUser = await standingAppUserOf(execution, stored);
       let ownSignIns = false;
       if (appUser !== undefined) {
         if (foreignAgent) {
@@ -1469,7 +1486,10 @@ export function newVaultResolver(deps: VaultResolverDeps): VaultResolver {
       if (entry.origin === RunValueOrigin.MY_VAULT) {
         // A person's own My vault, or an app user's own sign-ins (source 5):
         // the same stamps the plan read, read again from the stored rows.
-        const owner = person ?? appUserOfRun(execution, stored);
+        const owner = person ?? (await standingAppUserOf(execution, stored));
+        if (owner === undefined && appUserOfRun(execution, stored) !== undefined) {
+          return { ok: false, why: "the service account that signed this user in is gone" };
+        }
         if (owner === undefined || stored.spec?.includeMyVault !== true) {
           return { ok: false, why: "this conversation no longer includes My vault" };
         }

@@ -140,17 +140,17 @@ async function signInVaultsOf(stigmer: Stigmer, listed: readonly Vault[]): Promi
 
 /**
  * The keys `vaults` fill: their secret names, and the login key of each of
- * `servers` a login of theirs serves. A vault in `loginsOnly` fills logins
- * alone (an app user's My vault: the server reads only its logins).
+ * `servers` a login of theirs serves. `loginsOnly` fills logins alone (an
+ * app user's My vault: the server reads only its logins).
  */
 function keysHeldBy(
   vaults: readonly Vault[],
   servers: readonly McpServerEntry[],
-  loginsOnly: ReadonlySet<Vault> = new Set(),
+  loginsOnly: Vault | null = null,
 ): Set<string> {
   const keys = new Set<string>();
   for (const vault of vaults) {
-    if (!loginsOnly.has(vault)) {
+    if (vault !== loginsOnly) {
       for (const name of Object.keys(vault.spec?.secrets ?? {})) keys.add(name);
     }
     for (const server of servers) {
@@ -413,7 +413,7 @@ export function useAgentSetup(
         const readVaults = readsMyVault && mine !== null ? [mine, ...listed] : listed;
         // An app user's run reads My vault's logins alone (their sign-ins);
         // its secrets fill nothing.
-        const loginsOnly = new Set<Vault>(appUser && mine !== null ? [mine] : []);
+        const loginsOnly = appUser ? mine : null;
         const { servers, pendingSignIns, declarations, signInVariables } = await readServers(stigmer, agent, readVaults);
         const envDeclarations =
           Object.keys(declarations).length > 0 ? typedDeclarations(declarations, signInVariables) : undefined;
@@ -447,24 +447,11 @@ export function useAgentSetup(
           };
         }
 
-        // The agent declares keys. Keys already saved where the run reads
-        // need nothing.
-        const existingKeys = envDeclarations ? keysHeldBy(readVaults, servers, loginsOnly) : new Set<string>();
-        const savedOnlyMissing = envDeclarations ? diffEnv(envDeclarations, existingKeys) : [];
-
         // No env declarations — agent is immediately ready (direct mode).
         // Nor is anything asked of a run carrying another organization's
         // agent: it never reads My vault, so a key saved here would never
-        // reach it. Nor of an app user, whose runs read only My vault's
-        // logins: a key by name is the integrator's to provide, in vaults
-        // this client cannot read, so what it cannot see may well be
-        // there; the server's refusal names who provides a key that is not.
-        if (
-          !envDeclarations ||
-          Object.keys(envDeclarations).length === 0 ||
-          foreign ||
-          (appUser && savedOnlyMissing.length > 0)
-        ) {
+        // reach it.
+        if (!envDeclarations || Object.keys(envDeclarations).length === 0 || foreign) {
           const resolution: AgentResolution = { mode: "direct" };
           settle({
             type: "RESOLVE_READY",
@@ -475,6 +462,10 @@ export function useAgentSetup(
           return { status: "ready", agentRef: ref, agentName, resolution };
         }
 
+        // The agent declares keys. Keys already saved where the run reads
+        // need nothing.
+        const existingKeys = keysHeldBy(readVaults, servers, loginsOnly);
+        const savedOnlyMissing = diffEnv(envDeclarations, existingKeys);
         const missingVariables = diffEnv(envDeclarations, existingKeys, coveredKeys);
 
         if (savedOnlyMissing.length === 0) {
@@ -488,8 +479,12 @@ export function useAgentSetup(
           return { status: "ready", agentRef: ref, agentName, resolution };
         }
 
-        if (missingVariables.length === 0) {
-          // Keys filled elsewhere (the platform's own) cover the rest.
+        if (missingVariables.length === 0 || appUser) {
+          // Keys filled elsewhere (the platform's own) cover the rest. Nor is
+          // an app user asked, whose runs read only My vault's logins: a key
+          // by name is the integrator's to provide, in vaults this client
+          // cannot read, so what it cannot see may well be there; the
+          // server's refusal names who provides a key that is not.
           const resolution: AgentResolution = { mode: "direct" };
           settle({
             type: "RESOLVE_READY",

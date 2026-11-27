@@ -74,7 +74,8 @@
  *     clone's), never another app user's, never for another organization's
  *     agent, a participant or a chat-link guest; opening refuses when My
  *     vault was left out since, the vault is not the account's, or the
- *     entry is no login; the refusal offers the sign-in.
+ *     entry is no login; the minting service account must still be one,
+ *     at the plan and at the open; the refusal offers the sign-in.
  */
 import { randomBytes } from "node:crypto";
 
@@ -3177,6 +3178,27 @@ describe("an app user's own sign-ins", () => {
     await refusal(resolve({ run: appRun(OMAR), session: appSession(PRIYA), plugins: [linear()] }));
     await refusal(resolve({ run: runOf({ sender: PRIYA }), session: appSession(PRIYA), plugins: [linear()] }));
     expect(freshened).toEqual([]);
+  });
+
+  it("are read only while the service account that minted the app user's token still is one, as a queued turn's are", async () => {
+    await embedding();
+    await ownVault(PRIYA, { address: LINEAR });
+    accounts.delete(MINTER);
+    await refusal(resolve({ run: appRun(PRIYA), session: appSession(PRIYA), plugins: [linear()] }));
+    accounts.set(MINTER, create(IdentityAccountSchema, { metadata: { id: MINTER, org: ORG } }));
+    await refusal(resolve({ run: appRun(PRIYA), session: appSession(PRIYA), plugins: [linear()] }));
+    expect(freshened).toEqual([]);
+  });
+
+  it("refuse to open when the minting service account is gone since the plan", async () => {
+    await embedding();
+    await ownVault(PRIYA, { address: LINEAR });
+    const failure = await refusal(
+      open({ run: appRun(PRIYA), session: appSession(PRIYA), plugins: [linear()] }, async () => {
+        accounts.delete(MINTER);
+      }),
+    );
+    expect(failure.rawMessage).toContain("the service account that signed this user in is gone");
   });
 
   it("refuse to open when My vault was left out since the plan", async () => {
