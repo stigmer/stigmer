@@ -15,6 +15,7 @@ import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { DatabaseSync } from "node:sqlite";
 import {
   MemorySaver,
   emptyCheckpoint,
@@ -23,9 +24,10 @@ import {
   type Checkpoint,
   type CheckpointMetadata,
   type PendingWrite,
+  uuid6,
 } from "@langchain/langgraph-checkpoint";
 import type { RunnableConfig } from "@langchain/core/runnables";
-import { SqliteCheckpointSaver } from "../sqlite-saver.js";
+import { SqliteCheckpointRows, SqliteCheckpointSaver } from "../sqlite-saver.js";
 
 const THREAD = "thread-abc";
 
@@ -130,20 +132,20 @@ describe("SqliteCheckpointSaver", () => {
     expect(byChannel.get("messages")).toBe("original");
   });
 
-  it("lists checkpoints newest-first with limit and before", async () => {
+  it("lists the kept checkpoints newest-first with limit and before", async () => {
     for (const id of ["cp-1", "cp-2", "cp-3"]) {
       await saver.put(threadConfig(), makeCheckpoint(id), meta("loop", 1), {});
     }
 
     const all: string[] = [];
     for await (const t of saver.list(threadConfig())) all.push(t.checkpoint.id);
-    expect(all).toEqual(["cp-3", "cp-2", "cp-1"]);
+    expect(all, "a namespace keeps its two newest").toEqual(["cp-3", "cp-2"]);
 
     const limited: string[] = [];
-    for await (const t of saver.list(threadConfig(), { limit: 2 })) {
+    for await (const t of saver.list(threadConfig(), { limit: 1 })) {
       limited.push(t.checkpoint.id);
     }
-    expect(limited).toEqual(["cp-3", "cp-2"]);
+    expect(limited).toEqual(["cp-3"]);
 
     const before: string[] = [];
     for await (const t of saver.list(threadConfig(), {
@@ -151,7 +153,7 @@ describe("SqliteCheckpointSaver", () => {
     })) {
       before.push(t.checkpoint.id);
     }
-    expect(before).toEqual(["cp-2", "cp-1"]);
+    expect(before).toEqual(["cp-2"]);
   });
 
   it("deleteThread removes checkpoints and writes", async () => {
@@ -208,5 +210,162 @@ describe("SqliteCheckpointSaver", () => {
     const sqliteResult = await run(saver);
     const memoryResult = await run(memory);
     expect(sqliteResult).toEqual(memoryResult);
+  });
+});
+
+/**
+ * The prune on save (stigmer/stigmer#3117): LangGraph saves a whole copy of
+ * the state every step, and before this the file kept every copy. Ids are
+ * minted by LangGraph's own `uuid6`, as the engine mints them, because the
+ * prune compares ids in byte order and only real ids sort by time: a
+ * hand-made `cp-sub-1` sorts after `cp-2`.
+ */
+describe("SqliteCheckpointSaver pruning", () => {
+  const OTHER_THREAD = "thread-other";
+  const HELPER = "tools:helper-a";
+  const OTHER_HELPER = "tools:helper-b";
+
+  let dir: string;
+  let dbPath: string;
+  let saver: SqliteCheckpointSaver;
+
+  beforeEach(() => {
+    dir = mkdtempSync(join(tmpdir(), "stigmer-sqlite-prune-"));
+    dbPath = join(dir, "checkpoints.db");
+    saver = new SqliteCheckpointSaver(dbPath);
+  });
+
+  afterEach(() => {
+    saver.close();
+    rmSync(dir, { recursive: true, force: true });
+  });
+
+  function at(ns: string, thread = THREAD): RunnableConfig {
+    return { configurable: { thread_id: thread, checkpoint_ns: ns } };
+  }
+
+  /** Save a fresh, time-ordered checkpoint and one write for it; returns its id. */
+  async function step(ns = "", thread = THREAD): Promise<string> {
+    const id = uuid6(-1);
+    await saver.put(at(ns, thread), makeCheckpoint(id), meta("loop", 1), {});
+    await saver.putWrites({ configurable: { thread_id: thread, checkpoint_ns: ns, checkpoint_id: id } }, [["messages", id]], "task-1");
+    return id;
+  }
+
+  /** The file's rows, read past the saver: `ns/id` per checkpoint, and per write. */
+  function rows(thread = THREAD): { checkpoints: string[]; writes: string[] } {
+    const db = new DatabaseSync(dbPath);
+    try {
+      const keys = (table: string) =>
+        (db.prepare(`SELECT checkpoint_ns, checkpoint_id FROM ${table} WHERE thread_id = ? ORDER BY checkpoint_ns, checkpoint_id`).all(thread) as { checkpoint_ns: string; checkpoint_id: string }[]).map(
+          (r) => `${r.checkpoint_ns}/${r.checkpoint_id}`,
+        );
+      return { checkpoints: keys("checkpoints"), writes: keys("writes") };
+    } finally {
+      db.close();
+    }
+  }
+
+  const keyed = (ns: string, ...ids: string[]) => ids.map((id) => `${ns}/${id}`);
+
+  it("keeps a namespace's two newest checkpoints and only their writes", async () => {
+    const ids: string[] = [];
+    for (let i = 0; i < 5; i++) ids.push(await step());
+
+    expect(rows()).toEqual({ checkpoints: keyed("", ids[3], ids[4]), writes: keyed("", ids[3], ids[4]) });
+    expect((await saver.getTuple(threadConfig()))?.checkpoint.id, "resume reads the newest").toBe(ids[4]);
+  });
+
+  it("deletes nothing below three checkpoints, and never another thread's", async () => {
+    const one = await step();
+    expect(rows().checkpoints).toEqual(keyed("", one));
+    const two = await step();
+    expect(rows()).toEqual({ checkpoints: keyed("", one, two), writes: keyed("", one, two) });
+
+    for (let i = 0; i < 4; i++) await step("", OTHER_THREAD);
+
+    expect(rows(), "the other thread's saves leave this one whole").toEqual({ checkpoints: keyed("", one, two), writes: keyed("", one, two) });
+    expect(rows(OTHER_THREAD).checkpoints).toHaveLength(2);
+  });
+
+  it("a helper's save prunes only the helper's namespace", async () => {
+    const m1 = await step();
+    const m2 = await step();
+    const g1 = await step(OTHER_HELPER);
+    const h: string[] = [];
+    for (let i = 0; i < 3; i++) h.push(await step(HELPER));
+
+    expect(rows()).toEqual({
+      checkpoints: [...keyed("", m1, m2), ...keyed(HELPER, h[1], h[2]), ...keyed(OTHER_HELPER, g1)],
+      writes: [...keyed("", m1, m2), ...keyed(HELPER, h[1], h[2]), ...keyed(OTHER_HELPER, g1)],
+    });
+  });
+
+  it("a main save drops finished helpers below its second-newest and keeps a helper newer than its latest", async () => {
+    await step();
+    await step(HELPER);
+    const m2 = await step();
+    const recent = await step(OTHER_HELPER);
+    const m3 = await step();
+
+    // Bound m2: the helper finished before m2 goes; the one saved after m2 stays.
+    expect(rows()).toEqual({
+      checkpoints: [...keyed("", m2, m3), ...keyed(OTHER_HELPER, recent)],
+      writes: [...keyed("", m2, m3), ...keyed(OTHER_HELPER, recent)],
+    });
+
+    const live = await step(HELPER);
+    const m4 = await step();
+
+    // Bound m3: `recent` is a step older now and goes; `live`, newer than m3, stays.
+    expect(rows()).toEqual({
+      checkpoints: [...keyed("", m3, m4), ...keyed(HELPER, live)],
+      writes: [...keyed("", m3, m4), ...keyed(HELPER, live)],
+    });
+  });
+
+  it("rolls a failed save back whole, and the next save still saves and prunes", async () => {
+    const kept = [await step(), await step()];
+    saver.close();
+    const file = new SqliteCheckpointRows(dbPath);
+    try {
+      // A row the schema refuses (no checkpoint id) fails inside the transaction.
+      const refused = { thread_id: THREAD, checkpoint_ns: "", checkpoint_id: null as unknown as string, parent_checkpoint_id: null, type: "json", checkpoint: new Uint8Array([1]), metadata: new Uint8Array([1]) };
+      await expect(file.putRow(refused)).rejects.toThrow(/NOT NULL/);
+      expect(rows().checkpoints, "nothing of the failed save landed, nothing was pruned").toEqual(keyed("", ...kept));
+
+      const next = uuid6(-1);
+      await file.putRow({ ...refused, checkpoint_id: next });
+      expect(rows().checkpoints, "the connection left no transaction open").toEqual(keyed("", kept[1], next));
+    } finally {
+      file.close();
+    }
+    saver = new SqliteCheckpointSaver(dbPath);
+  });
+
+  it("trims a file that grew before the prune at its next save, and the trim survives a reopen", async () => {
+    // A file as an older runner left it: five copies, every one kept.
+    const legacy: string[] = [];
+    for (let i = 0; i < 5; i++) legacy.push(uuid6(-1));
+    await saver.getTuple(threadConfig()); // creates the schema
+    saver.close();
+    const db = new DatabaseSync(dbPath);
+    try {
+      for (const id of legacy) {
+        db.prepare("INSERT INTO checkpoints (thread_id, checkpoint_ns, checkpoint_id, type, checkpoint, metadata) VALUES (?, '', ?, 'json', x'7b7d', x'7b7d')").run(THREAD, id);
+        db.prepare("INSERT INTO writes (thread_id, checkpoint_ns, checkpoint_id, task_id, idx, channel, type, value) VALUES (?, '', ?, 't', 0, 'messages', 'json', x'7b7d')").run(THREAD, id);
+      }
+    } finally {
+      db.close();
+    }
+    expect(rows().checkpoints).toHaveLength(5);
+
+    saver = new SqliteCheckpointSaver(dbPath);
+    const next = await step();
+    saver.close();
+
+    saver = new SqliteCheckpointSaver(dbPath);
+    expect(rows()).toEqual({ checkpoints: keyed("", legacy[4], next), writes: keyed("", legacy[4], next) });
+    expect((await saver.getTuple(threadConfig()))?.checkpoint.id).toBe(next);
   });
 });

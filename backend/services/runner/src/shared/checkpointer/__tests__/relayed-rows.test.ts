@@ -142,6 +142,20 @@ describe("the relayed saver", () => {
     }
   });
 
+  it("keeps a namespace's two newest checkpoints in the file, as today's saver does", async () => {
+    const path = freshFile();
+    const rows = new SqliteCheckpointRows(path);
+    try {
+      const relayed = relayedSaver(rows);
+      await relayed.put(config(), checkpoint("cp-1", {}), meta(0), {});
+      await relayed.put(config("cp-1"), checkpoint("cp-2", {}), meta(1), {});
+      await relayed.put(config("cp-2"), checkpoint("cp-3", {}), meta(2), {});
+    } finally {
+      rows.close();
+    }
+    expect(dump(path).checkpoints.map((row) => (row as { checkpoint_id: string }).checkpoint_id)).toEqual(["cp-2", "cp-3"]);
+  });
+
   it("names its thread on every op, and refuses a read that names none", async () => {
     const seen: CheckpointRowsOp[] = [];
     const rows = new SqliteCheckpointRows(freshFile());
