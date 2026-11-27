@@ -116,9 +116,9 @@ test.describe("Plugin install journey", () => {
     await expect(page.getByRole("heading", { level: 1, name: HOSTED_PLUGIN })).toBeVisible({ timeout: 15_000 });
     await expectPluginHolds(page, HOSTED_PLUGIN, HOSTED_SKILL, HOSTED_SERVER);
 
-    // The server reads a key, asked for when a conversation that uses it starts.
+    // The server reads a key, saved below or pasted when a conversation that uses it asks.
     const servers = page.getByRole("list", { name: "MCP servers", exact: true });
-    await expect(servers.getByText(/asked for when a conversation that uses it starts/)).toBeVisible();
+    await expect(servers.getByText(/Save it below, or paste it when a conversation that uses it asks/)).toBeVisible();
     await expect(servers.getByRole("button", { name: "Check tools" })).toBeVisible();
     await expect(page.getByRole("list", { name: "Keys this plugin reads" }).getByText("API_TOKEN")).toBeVisible();
 
