@@ -107,6 +107,37 @@ describe("runSubagents", () => {
     expect(Object.keys(subagents[0]!.spec.env)).toEqual(["RESEARCHER_KEY"]);
   });
 
+  it("carries the agent's current sign-in answers at a pinned older version, never the version's snapshot", async () => {
+    const answered = { name: "app-tools", url: "https://tools.acme.test/mcp", signIn: { oauthOnly: true } };
+    await store.saveResource(
+      ApiResourceKind.agent,
+      "agt_signer",
+      AgentSchema,
+      create(AgentSchema, {
+        metadata: { id: "agt_signer", org: ORG, slug: "signer", name: "signer" },
+        spec: { instructions: "Signs in, as it is now." },
+        status: { versionHash: HEAD, serverSignIns: [answered] },
+      }),
+    );
+    await store.saveAudit(
+      ApiResourceKind.agent,
+      "agt_signer",
+      AgentSchema,
+      create(AgentSchema, {
+        metadata: { id: "agt_signer", org: ORG, slug: "signer", name: "signer" },
+        spec: { instructions: "Signs in, as it was." },
+        status: { versionHash: OLDER, serverSignIns: [] },
+      }),
+      OLDER,
+      "",
+    );
+    const [signer] = await runSubagents(store, listing({ id: "agt_signer", version: OLDER, org: ORG }), ORG);
+    expect(signer?.spec.instructions).toBe("Signs in, as it was.");
+    expect(signer?.serverSignIns?.map((answer) => [answer.name, answer.url, answer.signIn?.oauthOnly])).toEqual([
+      ["app-tools", "https://tools.acme.test/mcp", true],
+    ]);
+  });
+
   it("refuses two listed agents that answer to one name now, naming it", async () => {
     const error = await runSubagents(
       store,
