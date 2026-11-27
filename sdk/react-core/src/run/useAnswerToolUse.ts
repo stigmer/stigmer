@@ -55,7 +55,7 @@ export interface UseAnswerToolUseReturn {
    * With the hook bound to a session (`useAnswerToolUse(sessionId)`), only
    * the failures of answers for that session, made while it is the bound
    * one: another session starts clean, and an answer that fails after the
-   * switch, or answers another session, shows here never. Unbound, the
+   * switch, or answers another session, never shows here. Unbound, the
    * failure of any answer.
    */
   readonly error: Error | null;

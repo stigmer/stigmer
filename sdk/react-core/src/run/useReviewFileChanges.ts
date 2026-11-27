@@ -67,8 +67,8 @@ export interface UseReviewFileChangesReturn {
    * With the hook bound to a session (`useReviewFileChanges(sessionId)`),
    * only the failures of decisions for that session, made while it is the
    * bound one: another session starts clean, and a decision that fails
-   * after the switch, or decides another session's changes, shows here
-   * never. Unbound, the failure of any decision.
+   * after the switch, or decides another session's changes, never shows
+   * here. Unbound, the failure of any decision.
    */
   readonly error: Error | null;
   /** Reset every decision error (both {@link decisionErrors} and {@link error}). */
