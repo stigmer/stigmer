@@ -8,7 +8,7 @@
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { geminiError } from "@stigmer/test-support/llm-wire";
 
-import { classifyModelCallError } from "../model-error.js";
+import { classifyModelCallError, ORGANIZATION_PROVIDER_KEY_SENTINEL } from "../model-error.js";
 import { retryDecisionOf } from "../model-retry.js";
 import { googleErrorOf, httpStatusOf } from "../google-error.js";
 import { buildChatModel } from "../model-client.js";
@@ -121,5 +121,37 @@ describe("a Google failure", () => {
     const err = await clientError(429, PER_MINUTE, { "retry-after": "5" });
 
     expect(retryDecisionOf(err)).toMatchObject({ retry: true, retryAfterMs: 5_000 });
+  });
+});
+
+describe("a Google failure on an organization's own key", () => {
+  const ORG = `(${ORGANIZATION_PROVIDER_KEY_SENTINEL})`;
+
+  it("a refused key names the organization's key", async () => {
+    const err = await clientError(400, geminiError(400, "INVALID_ARGUMENT", `API key not valid. ${ORG}`, "API_KEY_INVALID"));
+
+    expect(classifyModelCallError(err, { ...CONTEXT, proxyMode: true })).toMatchObject({
+      code: "LLM_AUTHENTICATION_ERROR",
+      message: expect.stringContaining("Google refused your organization's own key (API_KEY_INVALID)"),
+    });
+  });
+
+  it("a daily limit names the organization's key, not a passing rate limit", async () => {
+    const body = { error: { ...PER_DAY.error, message: `${PER_DAY.error.message} ${ORG}` } };
+
+    expect(classifyModelCallError(await clientError(429, body), { ...CONTEXT, proxyMode: true })).toMatchObject({
+      code: "LLM_PROVIDER_BILLING",
+      message: expect.stringContaining("Your organization's own Google key has used its daily quota"),
+    });
+  });
+});
+
+describe("what is not a Google failure", () => {
+  it("a status with a body that carries no Google error", () => {
+    expect(googleErrorOf(Object.assign(new Error("x"), { statusCode: 500, data: "Bad gateway" }))).toBeUndefined();
+  });
+
+  it("a status error with no headers decides by its status alone", () => {
+    expect(retryDecisionOf(Object.assign(new Error("unavailable"), { statusCode: 503 }))).toEqual({ retry: true, reason: "server_error", status: 503 });
   });
 });

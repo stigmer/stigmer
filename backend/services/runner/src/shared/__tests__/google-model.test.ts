@@ -10,6 +10,7 @@
  */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { HumanMessage } from "@langchain/core/messages";
 import { ServiceTier, ThinkingMode } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 
 import { buildChatModel } from "../model-client.js";
@@ -131,6 +132,17 @@ describe("buildChatModel for a Google model", () => {
     expect(model.params).not.toHaveProperty("temperature");
     expect(model.getName()).toBe("ChatGoogle");
     expect(model.modelName).toBe("google:gemini-3-flash");
+  });
+
+  it("a stream that ends before its first event yields nothing", async () => {
+    setRunnerSecret("GEMINI_API_KEY", "k");
+    const model = (await buildChatModel({ modelName: "google:gemini-3-flash" })).model;
+    vi.stubGlobal("fetch", async () => new Response(null, { status: 200 }));
+
+    const events: unknown[] = [];
+    for await (const event of model._streamChatModelEvents([new HumanMessage("Hello")], {})) events.push(event);
+
+    expect(events).toEqual([]);
   });
 
   it("never passes streaming: false, which would turn the client's streamed path off", async () => {

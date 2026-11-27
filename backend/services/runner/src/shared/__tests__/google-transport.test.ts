@@ -33,6 +33,10 @@ describe("googleTransport", () => {
     expect(seen?.get("content-type")).toBe("application/json");
   });
 
+  it("names no project: the runner never builds a Vertex path", async () => {
+    expect(await googleTransport({ credential: { kind: "google-key", key: "k" } }).getProjectId()).toBe("");
+  });
+
   it("adds the Stigmer headers, and no Google key, to a call to a Stigmer endpoint", async () => {
     let seen: Headers | undefined;
     vi.stubGlobal("fetch", async (request: Request) => {
