@@ -13,9 +13,9 @@
 // mock does the same (disposition `refused`), so a completed turn is the
 // proof the signatures survived the stream, the checkpoint and the resume.
 //
-// Out of scope: Google as a key slot (the provider list, a run judged for a
-// Google key), the platform proxy's lane itself, and real Gemini models
-// (the runner's live suites).
+// Out of scope: Google as a key slot (a run judged for a Google key is
+// run-admission's, the readiness answer platform's), the platform proxy's
+// lane itself, and real Gemini models (the runner's live suites).
 import { RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 import { Harness } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";

@@ -166,7 +166,7 @@ print_next_steps() {
 
   printf '\n%sGet started:%s\n' "$BOLD" "$RESET"
   printf '  1. Provide a model API key:   export ANTHROPIC_API_KEY=sk-ant-...\n'
-  printf '     (or OPENAI_API_KEY, or a local model via Ollama)\n'
+  printf '     (or OPENAI_API_KEY, GEMINI_API_KEY, or a local model via Ollama)\n'
   printf '  2. Start the local stack:     stigmer up\n'
   printf '\n'
   printf 'Upgrade any time by re-running this installer.\n'
