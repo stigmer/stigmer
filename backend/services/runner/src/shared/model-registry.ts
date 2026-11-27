@@ -226,7 +226,8 @@ export async function getSummarizationModel(primaryModel: string): Promise<strin
  *
  * Resolution order:
  * 1. Find the primary model's provider: its registry row's, else the one its
- *    name places (`llm-proxy.ts` `inferProvider`)
+ *    name places (`llm-proxy.ts` `inferProvider`); a turn that names no
+ *    model is placed by the harness's default model
  * 2. Find an economy-tier Stigmer-harness model from that provider
  * 3. Last resort: return the primary model itself
  *
@@ -248,8 +249,10 @@ export async function getEconomyModel(primaryModel: string): Promise<string> {
     return primaryModel;
   }
 
-  const primary = registry.find((m) => m.id === primaryModel);
-  const targetProvider = primary?.provider ?? tryInferProvider(primaryModel);
+  // A turn that names no model runs the harness's default (`getDefaultModel`).
+  const named = primaryModel === "" || primaryModel === "default" ? await getDefaultModel("stigmer") : primaryModel;
+  const primary = registry.find((m) => m.id === named || m.apiModelId === named);
+  const targetProvider = primary?.provider ?? tryInferProvider(named);
 
   const sameProviderEconomy = targetProvider === null
     ? undefined
@@ -258,10 +261,10 @@ export async function getEconomyModel(primaryModel: string): Promise<string> {
 
   if (!primary) {
     console.warn(
-      `Model "${primaryModel}" not found in registry and no economy model of its provider; using it for the economy tier`,
+      `Model "${named}" not found in registry and no economy model of its provider; using it for the economy tier`,
     );
   }
-  return primaryModel;
+  return named;
 }
 
 /**

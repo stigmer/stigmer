@@ -17,6 +17,7 @@
 // Google key), the platform proxy's lane itself, and real Gemini models
 // (the runner's live suites).
 import { RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
+import { Harness } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import type { ConformanceClients } from "../harness/clients";
 import { FixtureTracker } from "../harness/fixtures";
@@ -64,7 +65,13 @@ describe("Run — a turn on a google: model", () => {
     const { org } = await target.provisionTenancy();
     const plugin = await pushFixturePlugin(clients, mcp, fixtures, { org, name: uniqueName("gated"), tools: [DESTRUCTIVE_ECHO_TOOL_NAME] });
     const agent = await clients.agentCommand.create(
-      makeAgent({ org, name: uniqueName("agent-gemini"), plugins: [plugin.metadata!.slug], runConfig: { modelName: `google:${GOOGLE_MODEL}` } }),
+      makeAgent({
+        org,
+        name: uniqueName("agent-gemini"),
+        plugins: [plugin.metadata!.slug],
+        harness: Harness.STIGMER,
+        runConfig: { modelName: `google:${GOOGLE_MODEL}` },
+      }),
     );
     fixtures.defer(() => clients.agentCommand.delete({ value: agent.metadata!.id }));
     const echo = mcpToolName(toolServerSegment(plugin.metadata!.name), DESTRUCTIVE_ECHO_TOOL_NAME);

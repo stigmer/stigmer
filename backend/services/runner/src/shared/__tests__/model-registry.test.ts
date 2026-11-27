@@ -62,6 +62,16 @@ describe("getSummarizationModel", () => {
     expect(await getSummarizationModel("unknown-model-xyz")).toBe("unknown-model-xyz");
   });
 
+  it("places a turn that names no model by the harness's default model", async () => {
+    mockRegistryResponse([
+      { id: "claude-sonnet-4.6", apiModelId: "claude-sonnet-4-6", provider: "anthropic", costTier: "standard", harness: "stigmer" },
+      { id: "claude-haiku-4.5", provider: "anthropic", costTier: "economy", harness: "stigmer" },
+    ]);
+
+    expect(await getSummarizationModel("")).toBe("claude-haiku-4.5");
+    expect(await getSummarizationModel("default")).toBe("claude-haiku-4.5");
+  });
+
   it("places a model the registry does not list by its name, and picks its provider's economy row", async () => {
     mockRegistryResponse([
       { id: "claude-haiku-4.5", provider: "anthropic", costTier: "economy", harness: "stigmer" },
