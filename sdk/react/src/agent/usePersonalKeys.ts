@@ -18,7 +18,9 @@
  * at the server's address first, so the person signs in for it rather
  * than saving a key. So the keys named here are the run's
  * (`runDeclarations`) minus every such login key, and none at all for a
- * run carrying another organization's agent. The reading is the
+ * run carrying another organization's agent, or for an app user (an
+ * account a host's product signed in, `isAppUser`), whose runs read only
+ * the logins in their My vault, never a key by name. The reading is the
  * composer's own (`useAgentSetup`), so the two never disagree.
  *
  * A run's organization may be named by its slug, as an embedded chat names
@@ -45,6 +47,7 @@ import type { Stigmer } from "@stigmer/client";
 import { useStigmer } from "@stigmer/react-core";
 import { useFetch } from "@stigmer/react-core/internal";
 import { readAgentServers, runDeclarations, signInKeys, subagentOrgs } from "./runServers.js";
+import { isAppUser } from "./appUser.js";
 import { findOrgByRef, useKnownOrgs } from "../organization/OrgProvider.js";
 
 /**
@@ -124,6 +127,10 @@ export function usePersonalKeys(
   const { data: serverKeys, isLoading } = useFetch(
     sameOrganization && spec
       ? async () => {
+          // An app user's runs read no key by name from My vault (the module header).
+          if (await isAppUser(stigmer)) {
+            return { declared: [], signIn: new Set<string>() };
+          }
           // An unreadable subagent or plugin is left out: its keys are not known (the module header).
           const reading = await readAgentServers(stigmer, spec, agentOrg, { plugins: "skip" });
           return { declared: Object.keys(runDeclarations(reading)), signIn: signInKeys(reading) };

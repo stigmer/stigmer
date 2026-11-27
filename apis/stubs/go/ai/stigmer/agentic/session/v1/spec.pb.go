@@ -103,7 +103,9 @@ type SessionSpec struct {
 	//
 	// Each person who sends a turn uses their own My vault, never another's.
 	// A turn with no person, or one that runs another organization's agent,
-	// ignores it.
+	// ignores it, except an app user's own turn (a user an integrator's
+	// product signed in, in a conversation they created), which reads the
+	// logins in their My vault, each for the tool at its address, last.
 	IncludeMyVault bool `protobuf:"varint,18,opt,name=include_my_vault,json=includeMyVault,proto3" json:"include_my_vault,omitempty"`
 	// Plugins this conversation uses, each whole, besides its agent's: their
 	// skills, agents, hooks and MCP servers. A chat with the built-in

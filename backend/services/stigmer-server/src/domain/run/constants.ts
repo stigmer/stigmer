@@ -109,6 +109,14 @@ export function sessionTurnPausedMessage(sessionId: string, runId: string): stri
 export const SEND_MESSAGE_NEEDS_SESSION_MESSAGE =
   "a message is sent to an existing session: set spec.session_id";
 
+/**
+ * Why a session's queued messages were dropped when the service account
+ * that minted their sender's token is gone: the token no longer verifies
+ * (../token/verifier.ts), so the queue does not send what its sender no
+ * longer could.
+ */
+export const QUEUED_SENDER_MINTER_GONE_MESSAGE = "the service account that signed their sender in is gone";
+
 /** The reason a turn started from a session's queue is refused: a message it would take no longer waits. */
 export const QUEUED_MESSAGE_GONE_REASON = "QUEUED_MESSAGE_GONE";
 

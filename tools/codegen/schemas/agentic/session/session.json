@@ -112,7 +112,7 @@
       "type": {
         "kind": "bool"
       },
-      "description": "Whether each turn also uses its sender's own My vault, first, ahead of\n the listed vaults. Off unless the caller sets it.\n\n Each person who sends a turn uses their own My vault, never another's.\n A turn with no person, or one that runs another organization's agent,\n ignores it.",
+      "description": "Whether each turn also uses its sender's own My vault, first, ahead of\n the listed vaults. Off unless the caller sets it.\n\n Each person who sends a turn uses their own My vault, never another's.\n A turn with no person, or one that runs another organization's agent,\n ignores it, except an app user's own turn (a user an integrator's\n product signed in, in a conversation they created), which reads the\n logins in their My vault, each for the tool at its address, last.",
       "required": false
     },
     {

@@ -473,7 +473,8 @@ enum RunValueOrigin {
   // The conversation's own token for the repository.
   RUN_VALUE_ORIGIN_REPOSITORY_TOKEN = 1;
 
-  // The turn's person's My vault.
+  // The turn's person's My vault, or the logins in an app user's own My
+  // vault (a user an integrator's product signed in, on their own turn).
   RUN_VALUE_ORIGIN_MY_VAULT = 2;
 
   // A vault the conversation lists.

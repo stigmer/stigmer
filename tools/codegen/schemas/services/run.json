@@ -1844,7 +1844,7 @@
         {
           "name": "RUN_VALUE_ORIGIN_MY_VAULT",
           "number": 2,
-          "description": "The turn's person's My vault."
+          "description": "The turn's person's My vault, or the logins in an app user's own My\n vault (a user an integrator's product signed in, on their own turn)."
         },
         {
           "name": "RUN_VALUE_ORIGIN_VAULT",

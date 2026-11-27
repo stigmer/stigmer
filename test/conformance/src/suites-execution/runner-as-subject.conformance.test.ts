@@ -52,10 +52,13 @@
 //     conversation chose: an agent carries none, so a usable team vault
 //     serves a member's run only once the conversation lists it. An app
 //     user, signed in from the organization's own product by a minted
-//     token, is no person of their run, so their run reads no My vault,
-//     even their own and even when the conversation includes it: only the
-//     conversation's vaults and the organization's embedding vaults serve
-//     it (an integrator keeps such a user's keys in a vault it names). A routine's
+//     token, is no person of their run, so their run reads no key by name
+//     from any My vault, even their own and even when the conversation
+//     includes it: only the conversation's vaults and the organization's
+//     embedding vaults serve keys (an integrator keeps such a user's keys
+//     in a vault it names). Their own sign-in is the one exception: the
+//     login in their own My vault serves their own run's tool at that
+//     login's address, last, and never another app user's run. A routine's
 //     vault stops serving its fires once the account that attached it may
 //     no longer use it. A member's run with memory
 //     on, whose agent calls `remember`, writes a Memory whose subject is the
@@ -105,7 +108,7 @@ import {
 } from "@stigmer/test-support/llm-wire";
 import { ECHO_TOOL_NAME, mcpToolName } from "../harness/mcp-server";
 import type { MockLlmProxy } from "@stigmer/test-support/mock-llm";
-import { type AgentRefInit, agentRefOf, makeAgent } from "../support/agents";
+import { type AgentOptions, type AgentRefInit, agentRefOf, makeAgent } from "../support/agents";
 import {
   awaitTerminal,
   makeAgentExecution,
@@ -122,8 +125,21 @@ import {
   mintUserToken,
   setEmbedding,
 } from "../support/user-tokens";
-import { makeSharedVault, myVaultTarget, setSecretsInput, vaultTarget } from "../support/vaults";
-import { RunValueOrigin, agentSourceOf, fetchRunValues, runSourcesOf, sourcesFor } from "../support/run-values";
+import {
+  makeSharedVault,
+  myVaultTarget,
+  setConnectionInput,
+  setSecretsInput,
+  vaultTarget,
+} from "../support/vaults";
+import {
+  RunValueDeclarerKind,
+  RunValueOrigin,
+  agentSourceOf,
+  fetchRunValues,
+  runSourcesOf,
+  sourcesFor,
+} from "../support/run-values";
 import { pollUntil } from "../support/run-poll";
 import { FIXTURE_SERVER, oneServerPlugin, pushPlugin } from "../support/plugins";
 import {
@@ -1000,6 +1016,124 @@ describe.skipIf(!runnerActsAsRunCreator)(
         RunValueOrigin.SURFACE_VAULT,
       );
       expect(viaEmbedding?.vaultId).toBe(team.metadata!.id);
+    });
+
+    it("[rpc:RunCommandController.create] an app user's own sign-in reaches their own run and no other app user's, and their My vault never fills a key by name", async (ctx) => {
+      const { lane, mock } = laneOrSkip(ctx);
+      if (!target.capabilities.userTokens) {
+        return ctx.skip("this target's enforcing lane mints no user tokens");
+      }
+      const people = await provisionPeople(lane);
+      const mcpTools = requireMcpFixture(target);
+      const minter = await createMinter(people.founder, {
+        org: people.org,
+        name: uniqueName("ras-own-minter"),
+      });
+      fixtures.defer(() => deleteMinter(people.founder, minter.accountId));
+      await setEmbedding(people.founder, people.org, { signInRole: IamRole.member });
+      const appUser = async (name: string): Promise<ConformanceClients> =>
+        lane.clientsPresenting(
+          await mintUserToken(lane.clientsPresenting(minter.key), people.org, uniqueName(name)),
+        );
+      const priya = await appUser("ras-app-priya");
+      const omar = await appUser("ras-app-omar");
+
+      // The founder installs an org-visible plugin whose one server takes a
+      // login (an `Authorization: Bearer ${VAR}` header), and two agents: one
+      // that uses it, one that declares a key of its own.
+      const address = mcpTools.url();
+      const plugin = await pushPlugin(
+        people.founder,
+        fixtures,
+        people.org,
+        oneServerPlugin({
+          name: uniqueName("ras-own-login"),
+          server: { url: address, headers: { Authorization: "Bearer ${RAS_APP_LOGIN}" } },
+        }),
+        { visibility: ApiResourceVisibility.visibility_org },
+      );
+      const orgAgent = async (name: string, spec: Pick<AgentOptions, "plugins" | "env">) => {
+        const input = makeAgent({ org: people.org, name: uniqueName(name), ...spec });
+        input.metadata = { ...input.metadata, visibility: ApiResourceVisibility.visibility_org };
+        const agent = await people.founder.agentCommand.create(input);
+        fixtures.defer(() => people.founder.agentCommand.delete({ value: agent.metadata!.id }));
+        return agent;
+      };
+      const toolAgent = await orgAgent("ras-own-tool", { plugins: [plugin.metadata!.slug] });
+      const keyAgent = await orgAgent("ras-own-key", { env: { RAS_APP_KEY: {} } });
+
+      // Priya signs in from the chat: the login lands in her own My vault,
+      // beside a key by name she saved there herself.
+      const priyas = await priya.vaultCommand.setConnection(
+        setConnectionInput(myVaultTarget(people.org), address, "priya-login"),
+      );
+      fixtures.defer(() =>
+        priya.vaultCommand.delete({ resourceId: priyas.metadata!.id }).catch(() => undefined),
+      );
+      await priya.vaultCommand.setSecrets(
+        setSecretsInput(myVaultTarget(people.org), { RAS_APP_KEY: "priya-key" }),
+      );
+
+      // Her own run's tool takes her login, from her own My vault.
+      mock.enqueue(anthropicText("Working..."), { delayMs: 30_000 });
+      const created = await priya.agentExecutionCommand.create(
+        makeAgentExecution({
+          org: people.org,
+          name: uniqueName("ras-own-run"),
+          agentRef: agentRefOf(toolAgent),
+          sessionSpec: makeSessionSpec({ subject: "app user, own sign-in", includeMyVault: true }),
+        }),
+      );
+      fixtures.defer(async () => {
+        mock.releaseHolds();
+        await awaitTerminal(priya, created.metadata!.id);
+        await priya.agentExecutionCommand.delete({ value: created.metadata!.id });
+      });
+      const [login, ...more] = sourcesFor(
+        await runSourcesOf(priya, created.metadata!.id),
+        "RAS_APP_LOGIN",
+        RunValueDeclarerKind.TOOL,
+      );
+      expect(more, "one login entry for the tool").toEqual([]);
+      expect(
+        [login?.origin, login?.vaultId, login?.login],
+        "the tool's login comes from the app user's own My vault",
+      ).toEqual([RunValueOrigin.MY_VAULT, priyas.metadata!.id, true]);
+
+      // Another app user of the same organization never reads it: their run
+      // lacks the login. (This fixture's server records no sign-in, so the
+      // refusal names the vault to attach; one that does offers the sign-in,
+      // which the resolver's unit arms pin.)
+      const omars = await expectGrpcCode(
+        () =>
+          omar.agentExecutionCommand.create(
+            makeAgentExecution({
+              org: people.org,
+              name: uniqueName("ras-own-other"),
+              agentRef: agentRefOf(toolAgent),
+              sessionSpec: makeSessionSpec({ subject: "another app user", includeMyVault: true }),
+            }),
+          ),
+        Code.FailedPrecondition,
+        "another app user's run, whose own My vault holds no login",
+      );
+      expect(omars.rawMessage).toContain("needs RAS_APP_LOGIN");
+
+      // Her My vault fills no key by name: the key only there is missing.
+      const byName = await expectGrpcCode(
+        () =>
+          priya.agentExecutionCommand.create(
+            makeAgentExecution({
+              org: people.org,
+              name: uniqueName("ras-own-key-run"),
+              agentRef: agentRefOf(keyAgent),
+              sessionSpec: makeSessionSpec({ subject: "app user, key by name", includeMyVault: true }),
+            }),
+          ),
+        Code.FailedPrecondition,
+        "an app user's run whose key by name is only in their own My vault",
+      );
+      expect(byName.rawMessage).toContain("RAS_APP_KEY");
     });
 
     it("[rpc:RoutineCommandController.fire] a routine's vault stops serving its fires once the account that attached it may no longer use it", async (ctx) => {

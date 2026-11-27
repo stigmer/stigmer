@@ -139,7 +139,9 @@ export type SessionSpec = Message<"ai.stigmer.agentic.session.v1.SessionSpec"> &
    *
    * Each person who sends a turn uses their own My vault, never another's.
    * A turn with no person, or one that runs another organization's agent,
-   * ignores it.
+   * ignores it, except an app user's own turn (a user an integrator's
+   * product signed in, in a conversation they created), which reads the
+   * logins in their My vault, each for the tool at its address, last.
    *
    * @generated from field: bool include_my_vault = 18;
    */

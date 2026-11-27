@@ -25,8 +25,12 @@
  *                     message is queued instead.
  *   Queue ........... the message's user.message, with no run and no
  *                     accepted time, and the turn it would start, kept
- *                     with the files it was admitted with and the person
- *                     that turn records (its authority, queue.ts). The
+ *                     with the files it was admitted with, the person
+ *                     that turn records (its authority, queue.ts), and
+ *                     who admitted it (the audit actor its run would be
+ *                     stamped with, the service account that minted a
+ *                     minted caller's token included, which queued-turn.ts
+ *                     gives back to the turn it starts). The
  *                     reply is that user.message. When nothing was working
  *                     as it was queued (the turn that held the session
  *                     ended in between, or a queue nothing started), the
@@ -59,6 +63,7 @@ import type { CallerIdentity } from "../../extensions/identity.js";
 import type { QueuedSenderLane } from "../../extensions/queued-sender-lane.js";
 import { errorReasonOf, failedPreconditionError, internalError } from "../../pipeline/errors.js";
 import { RequestContext } from "../../pipeline/request-context.js";
+import { auditActorFor } from "../../pipeline/steps/defaults.js";
 import type { Store } from "../../store/interface.js";
 import type { SessionEventBroker } from "../session/events/broker.js";
 import { eventOf } from "../session/events/codec.js";
@@ -133,7 +138,7 @@ export async function sendMessage(
       sessionId,
       org: reqCtx.newState.metadata?.org ?? "",
       sender: identity.identityId,
-      turn: queuedTurnOf(turn, reqCtx.newState, runPersonOfRequest(reqCtx)),
+      turn: queuedTurnOf(turn, reqCtx.newState, runPersonOfRequest(reqCtx), identity),
       lane: deps.queuedSenderLane?.encode(identity),
     });
     if ("refused" in outcome) {
@@ -254,10 +259,13 @@ export async function createTurn(chain: TurnChain, reqCtx: RequestContext<typeof
  * The turn a queued message would start: the request as sent, in its
  * session, naming the conversation's own copies of its files, with the
  * blocks its message carries them as (status.message_files, read only to
- * write the queued user.message), and the person its turn records
- * (status.credentials: the message's authority, queue.ts).
+ * write the queued user.message), the person its turn records
+ * (status.credentials: the message's authority, queue.ts), and who
+ * admitted it (status.audit's creator, as a run created now would be
+ * stamped). The status is the server's own: the request's is replaced
+ * whole, so no client names a minter here.
  */
-function queuedTurnOf(request: Run, admitted: Run, person: string | undefined): Run {
+function queuedTurnOf(request: Run, admitted: Run, person: string | undefined, admittedBy: CallerIdentity): Run {
   const turn = clone(RunSchema, request);
   const spec = (turn.spec ??= create(RunSpecSchema));
   spec.fileIds = [...(admitted.spec?.fileIds ?? [])];
@@ -267,6 +275,7 @@ function queuedTurnOf(request: Run, admitted: Run, person: string | undefined): 
   turn.status = create(RunStatusSchema, {
     messageFiles: admitted.status?.messageFiles ?? [],
     credentials: person === undefined ? {} : { person },
+    audit: { specAudit: { createdBy: auditActorFor(admittedBy) } },
   });
   return turn;
 }

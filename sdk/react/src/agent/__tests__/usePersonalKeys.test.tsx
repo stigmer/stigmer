@@ -4,7 +4,9 @@
  * own MCP servers read, and the keys their plugins' servers and hooks
  * read, minus the login key of every server that signs in (a sign-in
  * fills it) and every key the runner fills itself, and none for a run
- * carrying an agent or subagent of another organization. Not ready while
+ * carrying an agent or subagent of another organization, nor for an app
+ * user (whoAmI answers `app_user`), whose runs read only My vault's
+ * logins. Not ready while
  * the plugins load; a plugin that cannot be read leaves the other keys
  * named. Without an organization list, a reference is looked up among the
  * person's own organizations (a slug names its id; one they cannot read, or
@@ -21,6 +23,8 @@ import { create } from "@bufbuild/protobuf";
 import { AgentSchema } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb";
 import { AgentVersionEntrySchema } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/version_pb";
 import { PluginSchema } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/api_pb";
+import { IdentityAccountSchema } from "@stigmer/apis/ai/stigmer/iam/identityaccount/v1/api_pb";
+import { IdentityAccountProvisioningMode } from "@stigmer/apis/ai/stigmer/iam/identityaccount/v1/enum_pb";
 import type { Stigmer } from "@stigmer/client";
 import { StigmerContext } from "@stigmer/react-core";
 import { FetchCacheContext } from "@stigmer/react-core/internal";
@@ -29,8 +33,16 @@ import { organizationIdOf, useOrganizationId, usePersonalKeys } from "../usePers
 
 const ORG = "org_acme";
 
-function wrapperFor(getPlugin: ReturnType<typeof vi.fn>, getVersion: ReturnType<typeof vi.fn> = vi.fn()) {
-  const client = { plugin: { getByReference: getPlugin }, agent: { getVersion } } as unknown as Stigmer;
+function wrapperFor(
+  getPlugin: ReturnType<typeof vi.fn>,
+  getVersion: ReturnType<typeof vi.fn> = vi.fn(),
+  whoAmI: ReturnType<typeof vi.fn> = vi.fn().mockRejectedValue(new Error("not answered")),
+) {
+  const client = {
+    plugin: { getByReference: getPlugin },
+    agent: { getVersion },
+    identityAccount: { whoAmI },
+  } as unknown as Stigmer;
   return function Wrapper({ children }: { children: ReactNode }) {
     return (
       <FetchCacheContext.Provider value={null}>
@@ -85,6 +97,18 @@ describe("usePersonalKeys", () => {
     await waitFor(() => expect(result.current.isReady).toBe(true));
     expect(result.current.keys).toEqual(["CAL_REGION", "GITHUB_TOKEN"]);
     expect(getPlugin).toHaveBeenCalledWith({ org: ORG, slug: "calendar" });
+  });
+
+  it("is ready with no keys, reading no plugin, for an app user, whose runs read only My vault's logins", async () => {
+    const agent = agentIn(ORG);
+    const getPlugin = vi.fn().mockResolvedValue(calendar);
+    const appUser = create(IdentityAccountSchema, { spec: { provisioningMode: IdentityAccountProvisioningMode.app_user } });
+    const { result } = renderHook(() => usePersonalKeys(agent, agent.spec, ORG), {
+      wrapper: wrapperFor(getPlugin, vi.fn(), vi.fn().mockResolvedValue(appUser)),
+    });
+    await waitFor(() => expect(result.current.isReady).toBe(true));
+    expect(result.current.keys).toEqual([]);
+    expect(getPlugin).not.toHaveBeenCalled();
   });
 
   it("names the keys the agent's own servers read, but no value the runner fills", async () => {

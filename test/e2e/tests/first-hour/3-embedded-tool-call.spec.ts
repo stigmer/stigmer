@@ -9,13 +9,12 @@
 // row goes and the agent needs no more setup, and the window the login page
 // returned to never says "Connected".
 //
-// Then the app user's next message, which should call the tool. Today their
-// run never reads the login their sign-in saved (stigmer/stigmer#3470: an app
-// user's runs read only the vaults on the Organization's embedding
-// settings), and the message is refused, naming the key it lacks. The step
-// holds that as a known gap (@stigmer/test-support/known-gap): it passes
-// while the refusal is exactly that, and fails the day the tool call
-// arrives, so the fix's pull request turns this into the assertion.
+// Then the app user's next message calls the tool as that user: their run
+// reads the login their own sign-in saved in their My vault (an app user's
+// own turn reads the logins there, each for the tool at its address, after
+// the conversation's and the embedding settings' vaults; stigmer/stigmer#3470),
+// the tool's result carries the step's nonce, and the refusal naming the
+// login key never shows.
 //
 // The earlier pages' state (the `report-backend` service account and its
 // key, account creation on in the embedding settings) is made through the
@@ -25,7 +24,6 @@
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { expectKnownGap } from "@stigmer/test-support/known-gap";
 import { TOOL_SERVER, expect, journeySkipReason, test } from "../../fixtures/first-hour";
 import { APP_PORT, packKit, runTutorial, type TutorialRun } from "../../helpers/embed-tutorial";
 import {
@@ -35,7 +33,6 @@ import {
   nonce,
   prepareEmbedding,
   scriptToolCall,
-  turnSummary,
 } from "../../helpers/first-hour/steps";
 
 /** The login the tool server's sign-in saves, as a run asks for it by name. */
@@ -53,7 +50,7 @@ test.describe("a developer's app, on its own address, signs its user in to the t
     if (folder !== "") rmSync(folder, { recursive: true, force: true });
   });
 
-  test("the tutorial's app signs its user in through the login page, and the next message meets the known gap", async ({ journey, browser }) => {
+  test("the tutorial's app signs its user in through the login page, and the next message calls the tool as that user", async ({ journey, browser }) => {
     journey.require("embedded-tool-call");
     const { target } = journey;
     const org = journey.found.org ?? "";
@@ -91,7 +88,7 @@ test.describe("a developer's app, on its own address, signs its user in to the t
         }
       });
 
-      await test.step("the user's next message: the tool call, held as a known gap until stigmer/stigmer#3470", async () => {
+      await test.step("the user's next message calls the tool with the user's own sign-in", async () => {
         const value = nonce("embedded");
         await scriptToolCall(target.model, value, "call_first_hour_embedded");
         const composer = app.getByRole("textbox").first();
@@ -108,24 +105,14 @@ test.describe("a developer's app, on its own address, signs its user in to the t
           await app.waitForTimeout(3_000);
         }
 
-        const refusal = app.getByText(new RegExp(`needs ${LOGIN_KEY}`)).first();
-        const called = turnSummary(app);
-        await expect(refusal.or(called).first(), "the message either calls the tool or is refused").toBeVisible({ timeout: 120_000 });
-        const refused = await refusal.isVisible();
-
-        await expectKnownGap(
-          {
-            issue: "stigmer/stigmer#3470",
-            today: {
-              says: `the message is refused: the run reads only the embedding settings' vaults, never the login the user's sign-in saved, so it lacks ${LOGIN_KEY}`,
-              holds: () => refused,
-            },
-          },
-          async () => {
-            await expectToolResultInTimeline(app, value, refused ? 5_000 : 120_000);
-          },
-        );
-        await drainModel(target.model, !refused);
+        // The run reads the login the user's own sign-in saved: the tool's
+        // result carries the nonce, and the refusal naming the key never shows.
+        await expectToolResultInTimeline(app, value, 120_000);
+        await expect(
+          app.getByText(new RegExp(`needs ${LOGIN_KEY}`)),
+          "the message is never refused for the login the user signed in with",
+        ).toHaveCount(0);
+        await drainModel(target.model);
       });
     } finally {
       await appContext.close();

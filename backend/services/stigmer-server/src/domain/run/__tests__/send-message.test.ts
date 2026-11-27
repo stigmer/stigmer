@@ -11,7 +11,8 @@
  * instead; a message queued while nothing works (a turn ended in between,
  * or a queue nothing started) has the queue's turn started at once, and
  * the reply names that turn when it reads the message; a queued message
- * keeps the person its turn would record; a refused admission
+ * keeps the person its turn would record, and who admitted it (the
+ * minting service account of a minted caller); a refused admission
  * takes back the files and decides nothing. A queued turn keeps the
  * organization its admission settled. Run create (createTurn) admits then
  * starts, taking back the files of a turn that failed.
@@ -281,6 +282,16 @@ describe("sendMessage", () => {
     await sendMessage(deps, message("mine"), caller);
     const [queued] = await temp.store.sessionEvents.queued("s1");
     expect(queuedTurnOf(queued!).status?.credentials?.person ?? "").toBe(runPersonOfCaller(caller) ?? "");
+  });
+
+  it("keeps who admitted the message with the queued message, the minting service account of a minted caller included", async () => {
+    await working();
+    await sendMessage(deps, message("from the app"), testCallerIdentity({ identityId: "app-user", mintedBy: "minter-sa" }));
+    await sendMessage(deps, message("mine"), caller);
+    const [minted, own] = await temp.store.sessionEvents.queued("s1");
+    const keptBy = (turn: Run) => turn.status?.audit?.specAudit?.createdBy;
+    expect(keptBy(queuedTurnOf(minted!))).toMatchObject({ id: "app-user", mintedBy: "minter-sa" });
+    expect(keptBy(queuedTurnOf(own!))).toMatchObject({ id: "person-a", mintedBy: "" });
   });
 
   it("keeps the lane its sender came through with the queued message, and none with no lane to keep", async () => {
