@@ -53,12 +53,12 @@
     "backend/services/stigmer-server": {
       "lines": 97.2,
       "branches": 86.9,
-      "cases": 9414
+      "cases": 9439
     },
     "client-apps/cli": {
       "lines": 93.4,
       "branches": 84.7,
-      "cases": 2762
+      "cases": 2770
     },
     "client-apps/desktop": {
       "lines": 91.1,
@@ -67,7 +67,7 @@
     },
     "client-apps/web": {
       "lines": 86.3,
-      "branches": 74.8,
+      "branches": 74.9,
       "cases": 474
     },
     "coding-agents": {
@@ -101,9 +101,9 @@
       "cases": 419
     },
     "sdk/react": {
-      "lines": 92.2,
-      "branches": 84.6,
-      "cases": 6465
+      "lines": 92.3,
+      "branches": 84.7,
+      "cases": 6497
     },
     "sdk/react-core": {
       "lines": 85.3,
@@ -122,13 +122,13 @@
     },
     "site": {
       "lines": 82.7,
-      "branches": 75.8,
-      "cases": 626
+      "branches": 75.9,
+      "cases": 637
     },
     "test/conformance": {
-      "lines": 84.6,
+      "lines": 84.7,
       "branches": 83.6,
-      "cases": 642
+      "cases": 643
     },
     "tools/codegen": {
       "lines": 91.5,
