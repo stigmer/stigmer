@@ -4,9 +4,10 @@
  * the case sets and records every call. A running container is the fast
  * path (nothing started), a stopped one is restarted as-is with its
  * original env while its baked token is good, and recreated with the
- * fresh token once that token has expired: its workspace and home carried
- * over as tar streams into a container created fresh from the runner image
- * beside it, copied in without `--archive` so each file keeps the owner its
+ * fresh token once that token has expired: its workspace, the runner's home
+ * and the agent's home carried over as tar streams into a container created
+ * fresh from the runner image beside it, each copied into its own parent
+ * folder (stigmer#3361), and without `--archive` so each file keeps the owner its
  * tar header names, the agent user's included (`--archive` would chown
  * them all to the container's user, and refuses a `--user 0:0` container
  * outright: stigmer#3155), then swapped in, so no variable the driver no longer sets
@@ -20,8 +21,16 @@
  * and the attempt it replaced) take turns, so a recreate never runs twice. An
  * absent one is created (a connect sandbox on its
  * own queue), with the operator's runner
- * secrets beside the token, never on the command line. The real CLI and
- * image are the live test's (docker.live.test.ts).
+ * secrets beside the token, never on the command line. Which agent's home
+ * a recreate carries is the one the new runner will use: the operator's
+ * STIGMER_AGENT_HOME when it is a folder of its own, else the default
+ * (carriedDirs); when the old container was made under another agent's
+ * home, the state is not where the new runner looks, so the recreate goes
+ * ahead without it and says so. A folder above a home that the new
+ * container lacks is made before the copy (an empty archive copied into a
+ * folder probes it), and an agent's home the old container never made is
+ * nothing to carry. The real CLI and image are the live test's
+ * (docker.live.test.ts).
  */
 import { chmodSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -30,7 +39,9 @@ import path from "node:path";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 
 import type { LogFields, Logger } from "../../boot/logger.js";
-import { createArgsFor, newDockerSandboxProvisioner, tokenExpiryMs } from "../docker.js";
+import { execFileSync } from "node:child_process";
+
+import { carriedDirs, createArgsFor, directoriesTar, newDockerSandboxProvisioner, tokenExpiryMs } from "../docker.js";
 import { sandboxBaseName } from "../naming.js";
 import type { SandboxDriverConfig, SandboxFacts } from "../provisioner.js";
 
@@ -60,6 +71,16 @@ let originalPath: string | undefined;
 /** The fake CLI: answers `inspect` from the state file, records every call. */
 const FAKE_DOCKER = `#!/bin/sh
 echo "$*" >> "$FAKE_DOCKER_DIR/calls.log"
+if [ "$1" = "cp" ] && [ "$2" != "-" ] && [ -f "$FAKE_DOCKER_DIR/absent-path" ] && [ "\${2#*:}" = "$(cat "$FAKE_DOCKER_DIR/absent-path")" ]; then
+  echo "Error response from daemon: Could not find the file \${2#*:} in container x" >&2
+  exit 1
+fi
+if [ "$1" = "cp" ] && [ "$2" = "-" ] && [ -f "$FAKE_DOCKER_DIR/fresh-missing" ] && grep -qx "\${3#*:}" "$FAKE_DOCKER_DIR/fresh-missing"; then
+  # Missing until made: the first copy into it fails, as the probe's does.
+  : > "$FAKE_DOCKER_DIR/fresh-missing"
+  echo "destination \"x:\${3#*:}\" must be a directory" >&2
+  exit 1
+fi
 if [ "$1" = "cp" ] && [ "$2" != "-" ] && [ -f "$FAKE_DOCKER_DIR/copy-out-fails" ]; then
   echo "Error: no such path" >&2
   exit 1
@@ -105,6 +126,7 @@ echo ok
 interface Baked {
   readonly image?: string;
   readonly release?: string;
+  readonly agentHome?: string;
 }
 
 function setState(
@@ -115,6 +137,7 @@ function setState(
   writeFileSync(path.join(dir, "state"), state);
   const env = ["PATH=/usr/bin", `STIGMER_TOKEN=${bakedToken}`];
   if (baked.release !== undefined) env.push(`STIGMER_SERVER_RELEASE=${baked.release}`);
+  if (baked.agentHome !== undefined) env.push(`STIGMER_AGENT_HOME=${baked.agentHome}`);
   writeFileSync(
     path.join(dir, "config"),
     JSON.stringify({ Image: baked.image ?? CONFIG.runnerImage, Env: env }),
@@ -144,14 +167,20 @@ function calls(): string[] {
   return readFileSync(path.join(dir, "calls.log"), "utf8").split("\n").filter(Boolean);
 }
 
-function capturingLogger(): { logger: Logger; infos: Array<[string, LogFields | undefined]> } {
+function capturingLogger(): {
+  logger: Logger;
+  infos: Array<[string, LogFields | undefined]>;
+  warns: Array<[string, LogFields | undefined]>;
+} {
   const infos: Array<[string, LogFields | undefined]> = [];
+  const warns: Array<[string, LogFields | undefined]> = [];
   return {
     infos,
+    warns,
     logger: {
       debug: () => undefined,
       info: (message, fields) => infos.push([message, fields]),
-      warn: () => undefined,
+      warn: (message, fields) => warns.push([message, fields]),
       error: () => undefined,
     },
   };
@@ -211,20 +240,25 @@ describe("docker driver ensure", () => {
 
     const made = calls();
     const fresh = `${name}-fresh`;
-    expect(made.slice(0, 4)).toEqual([
+    expect(made.slice(0, 5)).toEqual([
       `inspect --format {{.State.Running}} ${name}`,
       `inspect --format {{json .Config}} ${name}`,
       `cp ${name}:/workspace -`,
       `cp ${name}:/root -`,
+      `cp ${name}:/home/stigmer-agent -`,
     ]);
     // Created fresh from the runner image, with only what this ensure gives it.
-    expect(made[4]?.startsWith(`create --name ${fresh} `)).toBe(true);
-    expect(made[4]).toContain(` ${CONFIG.runnerImage} `);
-    expect(made[4]).toMatch(/ --env STIGMER_TOKEN( |$)/);
-    expect(made[4]).not.toContain("STIGMER_TEMPORAL_");
-    expect(made.slice(5)).toEqual([
+    expect(made[5]?.startsWith(`create --name ${fresh} `)).toBe(true);
+    expect(made[5]).toContain(` ${CONFIG.runnerImage} `);
+    expect(made[5]).toMatch(/ --env STIGMER_TOKEN( |$)/);
+    expect(made[5]).not.toContain("STIGMER_TEMPORAL_");
+    // Each folder's tar is rooted at its base name, so it goes into its
+    // parent: `/home` is probed with an empty archive, then copied into.
+    expect(made.slice(6)).toEqual([
       `cp - ${fresh}:/`,
       `cp - ${fresh}:/`,
+      `cp - ${fresh}:/home`,
+      `cp - ${fresh}:/home`,
       `rm --force ${name}`,
       `rename ${fresh} ${name}`,
       `start ${name}`,
@@ -232,6 +266,96 @@ describe("docker driver ensure", () => {
     expect(infos).toEqual([
       ["Docker sandbox recreated with a fresh token", { scope: "session", id: "ses_ensure", container: name }],
     ]);
+  });
+
+  it("recreates without the agent's home when the old container was made under another one, and says so", async () => {
+    setState("stopped", jwtExpiringIn(-60));
+    const moved: SandboxDriverConfig = { ...CONFIG, runnerEnv: { ...CONFIG.runnerEnv, STIGMER_AGENT_HOME: "/data/agent" } };
+    const { logger, warns } = capturingLogger();
+    await newDockerSandboxProvisioner({ config: moved, logger }).ensureSessionSandbox("ses_ensure", ENV);
+
+    const made = calls();
+    const fresh = `${name}-fresh`;
+    // The old runner kept the agent's state at the default home; the new one
+    // looks in /data/agent, which the old container never had.
+    expect(made.filter((c) => c.startsWith("cp "))).toEqual([
+      `cp ${name}:/workspace -`,
+      `cp ${name}:/root -`,
+      `cp - ${fresh}:/`,
+      `cp - ${fresh}:/`,
+    ]);
+    expect(made.slice(-3)).toEqual([`rm --force ${name}`, `rename ${fresh} ${name}`, `start ${name}`]);
+    expect(warns).toEqual([
+      [
+        "Docker sandbox recreated under another agent home; the agent's earlier state was not carried",
+        { scope: "session", id: "ses_ensure", container: name, fromAgentHome: "/home/stigmer-agent", toAgentHome: "/data/agent" },
+      ],
+    ]);
+  });
+
+  it("makes the folders above an operator's agent home that the new container lacks, then copies the home in", async () => {
+    setState("stopped", jwtExpiringIn(-60), { agentHome: "/data/agent" });
+    writeFileSync(path.join(dir, "fresh-missing"), "/data\n");
+    try {
+      const atData: SandboxDriverConfig = { ...CONFIG, runnerEnv: { ...CONFIG.runnerEnv, STIGMER_AGENT_HOME: "/data/agent" } };
+      const { logger } = capturingLogger();
+      await newDockerSandboxProvisioner({ config: atData, logger }).ensureSessionSandbox("ses_ensure", ENV);
+
+      const fresh = `${name}-fresh`;
+      expect(calls().filter((c) => c.startsWith("cp "))).toEqual([
+        `cp ${name}:/workspace -`,
+        `cp ${name}:/root -`,
+        `cp ${name}:/data/agent -`,
+        `cp - ${fresh}:/`,
+        `cp - ${fresh}:/`,
+        // The probe finds /data missing, it is made from /, and the home goes in.
+        `cp - ${fresh}:/data`,
+        `cp - ${fresh}:/`,
+        `cp - ${fresh}:/data`,
+      ]);
+      expect(calls().at(-1)).toBe(`start ${name}`);
+    } finally {
+      rmSync(path.join(dir, "fresh-missing"), { force: true });
+    }
+  });
+
+  it("recreates without the agent's home when the old container never made one, and says so", async () => {
+    setState("stopped", jwtExpiringIn(-60));
+    writeFileSync(path.join(dir, "absent-path"), "/home/stigmer-agent");
+    try {
+      const { logger, infos } = capturingLogger();
+      await newDockerSandboxProvisioner({ config: CONFIG, logger }).ensureSessionSandbox("ses_ensure", ENV);
+
+      const fresh = `${name}-fresh`;
+      expect(calls().filter((c) => c.startsWith("cp "))).toEqual([
+        `cp ${name}:/workspace -`,
+        `cp ${name}:/root -`,
+        `cp ${name}:/home/stigmer-agent -`,
+        `cp - ${fresh}:/`,
+        `cp - ${fresh}:/`,
+      ]);
+      expect(calls().at(-1)).toBe(`start ${name}`);
+      expect(infos).toContainEqual([
+        "Docker sandbox recreated without an agent home; the old container never made one",
+        { scope: "session", id: "ses_ensure", container: name, agentHome: "/home/stigmer-agent" },
+      ]);
+    } finally {
+      rmSync(path.join(dir, "absent-path"), { force: true });
+    }
+  });
+
+  it("still fails the recreate when the workspace cannot be found in the old container", async () => {
+    setState("stopped", jwtExpiringIn(-60));
+    writeFileSync(path.join(dir, "absent-path"), "/workspace");
+    try {
+      const { logger } = capturingLogger();
+      await expect(
+        newDockerSandboxProvisioner({ config: CONFIG, logger }).ensureSessionSandbox("ses_ensure", ENV),
+      ).rejects.toThrow(/Could not find the file \/workspace/);
+      expect(calls().at(-1)).toBe(`cp ${name}:/workspace -`);
+    } finally {
+      rmSync(path.join(dir, "absent-path"), { force: true });
+    }
   });
 
   it("touches nothing when the files cannot be copied out of the old container", async () => {
@@ -320,17 +444,20 @@ describe("a container started under another configuration (stigmer#1843)", () =>
   /** The calls of a recreate that carries the files, after `before`. */
   function expectRecreated(made: string[], before: string[]): void {
     const fresh = `${name}-fresh`;
-    expect(made.slice(0, before.length + 2)).toEqual([
+    expect(made.slice(0, before.length + 3)).toEqual([
       ...before,
       `cp ${name}:/workspace -`,
       `cp ${name}:/root -`,
+      `cp ${name}:/home/stigmer-agent -`,
     ]);
-    const create = made[before.length + 2];
+    const create = made[before.length + 3];
     expect(create?.startsWith(`create --name ${fresh} `)).toBe(true);
     expect(create).toContain(` ${CONFIG.runnerImage} `);
-    expect(made.slice(before.length + 3)).toEqual([
+    expect(made.slice(before.length + 4)).toEqual([
       `cp - ${fresh}:/`,
       `cp - ${fresh}:/`,
+      `cp - ${fresh}:/home`,
+      `cp - ${fresh}:/home`,
       `rm --force ${name}`,
       `rename ${fresh} ${name}`,
       `start ${name}`,
@@ -500,6 +627,63 @@ describe("tokenExpiryMs", () => {
     expect(tokenExpiryMs(`h.${Buffer.from(JSON.stringify({ exp: 10 })).toString("base64url")}.s`)).toBe(10_000);
     for (const token of ["opaque", "h.%%%.s", `h.${Buffer.from("{}").toString("base64url")}.s`]) {
       expect(tokenExpiryMs(token)).toBeUndefined();
+    }
+  });
+});
+
+describe("carriedDirs (stigmer#3361)", () => {
+  /** The config whose runner list (`list`) names `home` as the agent's home. */
+  function configWith(home: string, list: "runnerEnv" | "runnerSecretEnv" = "runnerEnv"): SandboxDriverConfig {
+    return { ...CONFIG, [list]: { ...CONFIG[list], STIGMER_AGENT_HOME: home } };
+  }
+
+  /** The folders a recreate carries when the old container was made under the same agent's home. */
+  function carriedWith(home: string, list: "runnerEnv" | "runnerSecretEnv" = "runnerEnv"): readonly string[] {
+    return carriedDirs(configWith(home, list), [`STIGMER_AGENT_HOME=${home}`]);
+  }
+
+  it("carries the workspace, the runner's home and the agent's default home", () => {
+    expect(carriedDirs(CONFIG, ["PATH=/usr/bin"])).toEqual(["/workspace", "/root", "/home/stigmer-agent"]);
+  });
+
+  it("leaves the agent's home out when the old container was made under another one", () => {
+    expect(carriedDirs(CONFIG, ["STIGMER_AGENT_HOME=/data/agent"])).toEqual(["/workspace", "/root"]);
+    expect(carriedDirs(configWith("/data/agent"), [])).toEqual(["/workspace", "/root"]);
+    expect(carriedDirs(configWith("/data/agent"), ["STIGMER_AGENT_HOME=/data/other"])).toEqual(["/workspace", "/root"]);
+    // The same folder spelled another way, or a blank one read as the default, has not moved.
+    expect(carriedDirs(configWith("/data/agent/"), ["STIGMER_AGENT_HOME=/data/agent"])).toEqual(["/workspace", "/root", "/data/agent"]);
+    expect(carriedDirs(CONFIG, ["STIGMER_AGENT_HOME= "])).toEqual(["/workspace", "/root", "/home/stigmer-agent"]);
+  });
+
+  it("carries the operator's own agent home instead, from either runner list", () => {
+    expect(carriedWith("/data/agent")).toEqual(["/workspace", "/root", "/data/agent"]);
+    expect(carriedWith("/data/agent", "runnerSecretEnv")).toEqual(["/workspace", "/root", "/data/agent"]);
+    expect(carriedWith("  /data/agent/ ")).toEqual(["/workspace", "/root", "/data/agent"]);
+    // A sibling whose name only starts with a carried folder's is a folder of its own.
+    expect(carriedWith("/workspace-agent")).toEqual(["/workspace", "/root", "/workspace-agent"]);
+  });
+
+  it("reads a blank STIGMER_AGENT_HOME as unset, as the runner does", () => {
+    for (const home of ["", "   "]) {
+      expect(carriedWith(home)).toEqual(["/workspace", "/root", "/home/stigmer-agent"]);
+    }
+  });
+
+  it("leaves out an agent home a carried folder already holds, or one that would hold them", () => {
+    for (const home of ["/workspace/agent", "/root/agent", "/root", "agent", "./agent", "/", "/../"]) {
+      expect(carriedWith(home), home).toEqual(["/workspace", "/root"]);
+    }
+  });
+});
+
+describe("directoriesTar", () => {
+  it("is an archive of root's 0755 folders, the names given", () => {
+    const listing = execFileSync("tar", ["-tvf", "-"], { input: directoriesTar(["data/", "data/agent-parent/"]) }).toString();
+    const lines = listing.trim().split("\n");
+    expect(lines).toHaveLength(2);
+    for (const [line, name] of lines.map((line, i) => [line, ["data/", "data/agent-parent/"][i]!] as const)) {
+      expect(line.startsWith("drwxr-xr-x"), line).toBe(true);
+      expect(line.trimEnd().endsWith(name), line).toBe(true);
     }
   });
 });
