@@ -24,7 +24,9 @@
  * secrets beside the token, never on the command line. Which agent's home
  * a recreate carries is the one the new runner will use: the operator's
  * STIGMER_AGENT_HOME when it is a folder of its own, else the default
- * (carriedDirs). The real CLI and image are the live test's
+ * (carriedDirs); when the old container was made under another agent's
+ * home, the state is not where the new runner looks, so the recreate goes
+ * ahead without it and says so. The real CLI and image are the live test's
  * (docker.live.test.ts).
  */
 import { chmodSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
@@ -109,6 +111,7 @@ echo ok
 interface Baked {
   readonly image?: string;
   readonly release?: string;
+  readonly agentHome?: string;
 }
 
 function setState(
@@ -119,6 +122,7 @@ function setState(
   writeFileSync(path.join(dir, "state"), state);
   const env = ["PATH=/usr/bin", `STIGMER_TOKEN=${bakedToken}`];
   if (baked.release !== undefined) env.push(`STIGMER_SERVER_RELEASE=${baked.release}`);
+  if (baked.agentHome !== undefined) env.push(`STIGMER_AGENT_HOME=${baked.agentHome}`);
   writeFileSync(
     path.join(dir, "config"),
     JSON.stringify({ Image: baked.image ?? CONFIG.runnerImage, Env: env }),
@@ -148,14 +152,20 @@ function calls(): string[] {
   return readFileSync(path.join(dir, "calls.log"), "utf8").split("\n").filter(Boolean);
 }
 
-function capturingLogger(): { logger: Logger; infos: Array<[string, LogFields | undefined]> } {
+function capturingLogger(): {
+  logger: Logger;
+  infos: Array<[string, LogFields | undefined]>;
+  warns: Array<[string, LogFields | undefined]>;
+} {
   const infos: Array<[string, LogFields | undefined]> = [];
+  const warns: Array<[string, LogFields | undefined]> = [];
   return {
     infos,
+    warns,
     logger: {
       debug: () => undefined,
       info: (message, fields) => infos.push([message, fields]),
-      warn: () => undefined,
+      warn: (message, fields) => warns.push([message, fields]),
       error: () => undefined,
     },
   };
@@ -238,6 +248,31 @@ describe("docker driver ensure", () => {
     ]);
     expect(infos).toEqual([
       ["Docker sandbox recreated with a fresh token", { scope: "session", id: "ses_ensure", container: name }],
+    ]);
+  });
+
+  it("recreates without the agent's home when the old container was made under another one, and says so", async () => {
+    setState("stopped", jwtExpiringIn(-60));
+    const moved: SandboxDriverConfig = { ...CONFIG, runnerEnv: { ...CONFIG.runnerEnv, STIGMER_AGENT_HOME: "/data/agent" } };
+    const { logger, warns } = capturingLogger();
+    await newDockerSandboxProvisioner({ config: moved, logger }).ensureSessionSandbox("ses_ensure", ENV);
+
+    const made = calls();
+    const fresh = `${name}-fresh`;
+    // The old runner kept the agent's state at the default home; the new one
+    // looks in /data/agent, which the old container never had.
+    expect(made.filter((c) => c.startsWith("cp "))).toEqual([
+      `cp ${name}:/workspace -`,
+      `cp ${name}:/root -`,
+      `cp - ${fresh}:/`,
+      `cp - ${fresh}:/`,
+    ]);
+    expect(made.slice(-3)).toEqual([`rm --force ${name}`, `rename ${fresh} ${name}`, `start ${name}`]);
+    expect(warns).toEqual([
+      [
+        "Docker sandbox recreated under another agent home; the agent's earlier state stays behind",
+        { scope: "session", id: "ses_ensure", container: name, fromAgentHome: "/home/stigmer-agent", toAgentHome: "/data/agent" },
+      ],
     ]);
   });
 
@@ -514,13 +549,27 @@ describe("tokenExpiryMs", () => {
 });
 
 describe("carriedDirs (stigmer#3361)", () => {
-  /** The folders a recreate carries under a runner list naming `home` as the agent's home. */
+  /** The config whose runner list (`list`) names `home` as the agent's home. */
+  function configWith(home: string, list: "runnerEnv" | "runnerSecretEnv" = "runnerEnv"): SandboxDriverConfig {
+    return { ...CONFIG, [list]: { ...CONFIG[list], STIGMER_AGENT_HOME: home } };
+  }
+
+  /** The folders a recreate carries when the old container was made under the same agent's home. */
   function carriedWith(home: string, list: "runnerEnv" | "runnerSecretEnv" = "runnerEnv"): readonly string[] {
-    return carriedDirs({ ...CONFIG, [list]: { ...CONFIG[list], STIGMER_AGENT_HOME: home } });
+    return carriedDirs(configWith(home, list), [`STIGMER_AGENT_HOME=${home}`]);
   }
 
   it("carries the workspace, the runner's home and the agent's default home", () => {
-    expect(carriedDirs(CONFIG)).toEqual(["/workspace", "/root", "/home/stigmer-agent"]);
+    expect(carriedDirs(CONFIG, ["PATH=/usr/bin"])).toEqual(["/workspace", "/root", "/home/stigmer-agent"]);
+  });
+
+  it("leaves the agent's home out when the old container was made under another one", () => {
+    expect(carriedDirs(CONFIG, ["STIGMER_AGENT_HOME=/data/agent"])).toEqual(["/workspace", "/root"]);
+    expect(carriedDirs(configWith("/data/agent"), [])).toEqual(["/workspace", "/root"]);
+    expect(carriedDirs(configWith("/data/agent"), ["STIGMER_AGENT_HOME=/data/other"])).toEqual(["/workspace", "/root"]);
+    // The same folder spelled another way, or a blank one read as the default, has not moved.
+    expect(carriedDirs(configWith("/data/agent/"), ["STIGMER_AGENT_HOME=/data/agent"])).toEqual(["/workspace", "/root", "/data/agent"]);
+    expect(carriedDirs(CONFIG, ["STIGMER_AGENT_HOME= "])).toEqual(["/workspace", "/root", "/home/stigmer-agent"]);
   });
 
   it("carries the operator's own agent home instead, from either runner list", () => {
