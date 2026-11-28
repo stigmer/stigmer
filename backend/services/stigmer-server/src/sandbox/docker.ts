@@ -19,8 +19,9 @@
  * refused for an expired token. It is RECREATED with the fresh token
  * instead, carrying its filesystem and nothing else: no volume backs the
  * workspace, so `/workspace`, the runner's home and the agent's home (where
- * the conversation's state lives, stigmer#3361; carriedDirs) are copied
- * out of it as tar streams (`docker cp <c>:<dir> -`, whose headers keep
+ * the conversation's state lives, stigmer#3361; carriedDirs: not carried,
+ * with a warning, when the operator has moved it since the old container
+ * was made) are copied out of it as tar streams (`docker cp <c>:<dir> -`, whose headers keep
  * each file's owner, the agent user's included) into a container created
  * fresh from the runner image under a temporary name. Each stream is rooted
  * at its folder's base name, so it is copied into the folder's parent, and
@@ -301,7 +302,7 @@ export const newDockerSandboxProvisioner: SandboxProvisionerFactory = ({
       // as it was rather than left stopped.
       await docker(["stop", name]);
       try {
-        await recreateCarryingFiles(scope, id, facts, name);
+        await recreateCarryingFiles(scope, id, facts, name, baked);
       } catch (error) {
         await docker(["start", name]).catch(() => undefined);
         throw error;
@@ -312,7 +313,7 @@ export const newDockerSandboxProvisioner: SandboxProvisionerFactory = ({
     if (state === "stopped") {
       const baked = await inspectBaked(name);
       if (startedElsewhere(baked)) {
-        await recreateCarryingFiles(scope, id, facts, name);
+        await recreateCarryingFiles(scope, id, facts, name, baked);
         logMoved(scope, id, name, baked);
         return;
       }
@@ -325,7 +326,7 @@ export const newDockerSandboxProvisioner: SandboxProvisionerFactory = ({
       }
       // Its token has expired: carry the filesystem over to a container
       // holding the fresh one (the module header).
-      await recreateCarryingFiles(scope, id, facts, name);
+      await recreateCarryingFiles(scope, id, facts, name, baked);
       logger.info("Docker sandbox recreated with a fresh token", { scope, id, container: name });
       return;
     }
@@ -355,10 +356,11 @@ export const newDockerSandboxProvisioner: SandboxProvisionerFactory = ({
     id: string,
     facts: SandboxFacts,
     name: string,
+    baked: BakedContainer,
   ): Promise<void> {
     const carry = mkdtempSync(path.join(tmpdir(), "stigmer-sandbox-carry-"));
     const fresh = `${name}${FRESH_SUFFIX}`;
-    const carried = carriedDirs(config);
+    const carried = carriedDirs(config, baked.env);
     try {
       for (const dir of carried) {
         await dockerToFile(["cp", `${name}:${dir}`, "-"], path.join(carry, `${carriedName(dir)}.tar`));
@@ -386,6 +388,16 @@ export const newDockerSandboxProvisioner: SandboxProvisionerFactory = ({
       await docker(["rm", "--force", name]);
       await docker(["rename", fresh, name]);
       await docker(["start", name]);
+      const moved = agentHomeMove(config, baked.env);
+      if (moved !== undefined) {
+        logger.warn("Docker sandbox recreated under another agent home; the agent's earlier state was not carried", {
+          scope,
+          id,
+          container: name,
+          fromAgentHome: moved.from,
+          toAgentHome: moved.to,
+        });
+      }
     } finally {
       rmSync(carry, { recursive: true, force: true });
     }
@@ -495,17 +507,46 @@ const EXPIRY_MARGIN_MS = 10 * 60_000;
  * folder already carried, or that holds one is left out: a relative one
  * resolves under the runner's workdir, `/workspace`, carried already, as is
  * one inside `/workspace` or `/root`; one that holds them (`/`) the runner
- * refuses at start, and carrying it would copy the whole filesystem.
+ * refuses at start, and carrying it would copy the whole filesystem. So is
+ * one the operator has moved since the old container was made (its baked
+ * STIGMER_AGENT_HOME, `bakedEnv`, names another): the old runner kept the
+ * state elsewhere, the folder the new runner looks in was never made, and
+ * copying it out would fail every recreate of that container. A folder
+ * that should be there and is not still fails the recreate before its swap.
  */
 export function carriedDirs(
   config: Pick<SandboxDriverConfig, "runnerEnv" | "runnerSecretEnv">,
+  bakedEnv: readonly string[],
 ): readonly string[] {
   const always = [CONTAINER_WORKSPACE_DIR, RUNNER_HOME];
-  const named = agentHomeOf({ ...config.runnerEnv, ...config.runnerSecretEnv });
-  if (!path.posix.isAbsolute(named)) return always;
-  const agentHome = path.posix.resolve(named);
+  const agentHome = homeFolder(configuredAgentHome(config));
+  if (agentHome === undefined || agentHomeMove(config, bakedEnv) !== undefined) return always;
   const apart = always.every((dir) => !within(dir, agentHome) && !within(agentHome, dir));
   return apart ? [...always, agentHome] : always;
+}
+
+/**
+ * The agent's home the old container's runner used and the one the new
+ * runner will use, when the operator has moved it in between (compared as
+ * folders, so a trailing slash is no move); undefined when it has not.
+ */
+export function agentHomeMove(
+  config: Pick<SandboxDriverConfig, "runnerEnv" | "runnerSecretEnv">,
+  bakedEnv: readonly string[],
+): { readonly from: string; readonly to: string } | undefined {
+  const to = configuredAgentHome(config);
+  const from = agentHomeOf({ STIGMER_AGENT_HOME: bakedValue(bakedEnv, "STIGMER_AGENT_HOME") });
+  return (homeFolder(from) ?? from) === (homeFolder(to) ?? to) ? undefined : { from, to };
+}
+
+/** The agent's home this server's runner lists name (agentHomeOf over both, as the container receives both). */
+function configuredAgentHome(config: Pick<SandboxDriverConfig, "runnerEnv" | "runnerSecretEnv">): string {
+  return agentHomeOf({ ...config.runnerEnv, ...config.runnerSecretEnv });
+}
+
+/** An absolute agent's home as a normalized folder path; undefined for a relative one. */
+function homeFolder(home: string): string | undefined {
+  return path.posix.isAbsolute(home) ? path.posix.resolve(home) : undefined;
 }
 
 /** Whether `target` is `dir` or lies inside it, by path segment (the runner's `within`). */

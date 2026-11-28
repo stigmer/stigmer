@@ -270,7 +270,7 @@ describe("docker driver ensure", () => {
     expect(made.slice(-3)).toEqual([`rm --force ${name}`, `rename ${fresh} ${name}`, `start ${name}`]);
     expect(warns).toEqual([
       [
-        "Docker sandbox recreated under another agent home; the agent's earlier state stays behind",
+        "Docker sandbox recreated under another agent home; the agent's earlier state was not carried",
         { scope: "session", id: "ses_ensure", container: name, fromAgentHome: "/home/stigmer-agent", toAgentHome: "/data/agent" },
       ],
     ]);
