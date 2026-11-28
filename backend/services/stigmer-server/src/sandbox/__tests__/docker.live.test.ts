@@ -20,7 +20,8 @@
  * an agent-owned file keeping its owner and mode in the `--user 0:0`
  * container the driver creates (stigmer#3155), and the agent's home with
  * them, back at its own path, so the conversation's state survives
- * (stigmer#3361). It reads the files with
+ * (stigmer#3361). A third carries an operator's own agent home, at a
+ * folder the runner image does not have (`/data/agent`), the same way. It reads the files with
  * `docker cp`, so it holds whether the runner is still up or has exited.
  *
  * It needs a Docker daemon and fails without one, never skips: the live
@@ -269,5 +270,62 @@ describe("docker driver moving a container to another image (stigmer#1843)", () 
     const moved = docker(["inspect", "--format", "{{.Id}}", containerName]).toString().trim();
     await current.ensureSessionSandbox(sessionId, { ...facts, runnerIdle: true });
     expect(docker(["inspect", "--format", "{{.Id}}", containerName]).toString().trim()).toBe(moved);
+  });
+});
+
+describe("docker driver carrying an operator's own agent home (stigmer#3361)", () => {
+  const sessionId = `ses_docker_home_${Date.now()}`;
+  const containerName = sandboxBaseName("session", sessionId);
+  const earlierImage = `stigmer-live-earlier-home-runner:${Date.now()}`;
+  const config: SandboxDriverConfig = {
+    backendEndpoint: "http://host.docker.internal:7234",
+    mcpPublicEndpoint: "",
+    temporalNamespace: "default",
+    runnerImage: process.env["STIGMER_SANDBOX_RUNNER_IMAGE"] ?? "ghcr.io/stigmer/runner:latest",
+    runnerCommand: "unused-by-this-driver",
+    kubernetesNamespace: "unused-by-this-driver",
+    // The image has no /data: the copy into the new container makes it.
+    runnerEnv: { STIGMER_AGENT_HOME: "/data/agent" },
+    runnerSecretEnv: {},
+    serverRelease: "",
+    artifactLane: false,
+  };
+  const facts: SandboxFacts = {
+    taskQueue: `session:${sessionId}`,
+    stigmerToken: "",
+    callerClass: "user",
+    executionId: "aex_test",
+  };
+  const current = newDockerSandboxProvisioner({ config, logger: silentLogger });
+
+  afterAll(async () => {
+    await current.deprovisionSessionSandbox(sessionId);
+    execFileSync("docker", ["rmi", earlierImage], { stdio: "pipe" });
+  });
+
+  function docker(args: string[], input?: Buffer): Buffer {
+    return execFileSync("docker", args, { stdio: "pipe", ...(input !== undefined ? { input } : {}) });
+  }
+
+  it("recreates it with the agent's home at /data/agent, a folder the image lacks, its file keeping its owner and mode", async () => {
+    docker(["tag", config.runnerImage, earlierImage]);
+    const earlier = newDockerSandboxProvisioner({
+      config: { ...config, runnerImage: earlierImage },
+      logger: silentLogger,
+    });
+    await earlier.ensureSessionSandbox(sessionId, facts);
+    docker(
+      ["cp", "-", `${containerName}:/`],
+      tarOf([{ name: "data/agent/.stigmer/sessions/carried.txt", uid: 10001, gid: 10001, mode: 0o600, body: "the agent's state" }]),
+    );
+    const before = docker(["inspect", "--format", "{{.Id}}", containerName]).toString().trim();
+
+    await current.ensureSessionSandbox(sessionId, { ...facts, runnerIdle: true });
+
+    expect(docker(["inspect", "--format", "{{.Id}}", containerName]).toString().trim()).not.toBe(before);
+    expect(
+      firstFileOf(docker(["cp", `${containerName}:/data/agent/.stigmer/sessions/carried.txt`, "-"])),
+      "the operator's agent home came back at its own path",
+    ).toEqual({ uid: 10001, gid: 10001, mode: 0o600, body: "the agent's state" });
   });
 });
