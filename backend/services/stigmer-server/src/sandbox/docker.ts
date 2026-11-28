@@ -24,14 +24,17 @@
  * was made) are copied out of it as tar streams (`docker cp <c>:<dir> -`, whose headers keep
  * each file's owner, the agent user's included) into a container created
  * fresh from the runner image under a temporary name. Each stream is rooted
- * at its folder's base name, so it is copied into the folder's parent, and
- * without `--archive`, which would chown every file to the container's user
+ * at its folder's base name, so it is copied into the folder's parent (made
+ * first when the image lacks it, as for an operator's `/data/agent`: a
+ * created container cannot run `mkdir`), and without `--archive`, which would chown every file to the container's user
  * and refuses a `--user 0:0` container outright (stigmer#3155). Only then is the old container
  * removed and the new one renamed and started. A fresh container takes
  * the environment this ensure gives it and no other: a variable the
  * driver no longer sets (a removed runner secret, a cleared Environment)
  * does not survive, as it would through an image. A failure before the
- * swap leaves the old container as it was.
+ * swap leaves the old container as it was. One exception: an agent's home
+ * the old container never made (its runner refused to start, so never
+ * reached the handover) holds no state, and is nothing to carry.
  *
  * A container started under another configuration is recreated the same
  * way (stigmer#1843): one whose image is not this server's runner image,
@@ -77,7 +80,7 @@
  * minutes later — the loud-fail doctrine puts the error at boot instead.
  */
 import { execFile, spawn } from "node:child_process";
-import { closeSync, mkdtempSync, openSync, rmSync } from "node:fs";
+import { closeSync, mkdtempSync, openSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { promisify } from "node:util";
@@ -360,10 +363,19 @@ export const newDockerSandboxProvisioner: SandboxProvisionerFactory = ({
   ): Promise<void> {
     const carry = mkdtempSync(path.join(tmpdir(), "stigmer-sandbox-carry-"));
     const fresh = `${name}${FRESH_SUFFIX}`;
-    const carried = carriedDirs(config, baked.env);
+    const carried: string[] = [];
+    let homeNeverMade: string | undefined;
     try {
-      for (const dir of carried) {
-        await dockerToFile(["cp", `${name}:${dir}`, "-"], path.join(carry, `${carriedName(dir)}.tar`));
+      for (const dir of carriedDirs(config, baked.env)) {
+        try {
+          await dockerToFile(["cp", `${name}:${dir}`, "-"], path.join(carry, `${carriedName(dir)}.tar`));
+          carried.push(dir);
+        } catch (error) {
+          // The workspace and the runner's home are always there; only an
+          // agent's home can be one the old container never made.
+          if (dir === CONTAINER_WORKSPACE_DIR || dir === RUNNER_HOME || !isMissingPath(error)) throw error;
+          homeNeverMade = dir;
+        }
       }
       const run = buildDockerRun(scope, id, facts, config);
       await docker(
@@ -376,6 +388,7 @@ export const newDockerSandboxProvisioner: SandboxProvisionerFactory = ({
           // base name. No --archive: it chowns every file to the
           // container's user, and refuses a `--user 0:0` container
           // outright (stigmer#3155).
+          await ensureFolder(fresh, path.posix.dirname(dir), carry);
           await dockerFromFile(
             ["cp", "-", `${fresh}:${path.posix.dirname(dir)}`],
             path.join(carry, `${carriedName(dir)}.tar`),
@@ -388,6 +401,14 @@ export const newDockerSandboxProvisioner: SandboxProvisionerFactory = ({
       await docker(["rm", "--force", name]);
       await docker(["rename", fresh, name]);
       await docker(["start", name]);
+      if (homeNeverMade !== undefined) {
+        logger.info("Docker sandbox recreated without an agent home; the old container never made one", {
+          scope,
+          id,
+          container: name,
+          agentHome: homeNeverMade,
+        });
+      }
       const moved = agentHomeMove(config, baked.env);
       if (moved !== undefined) {
         logger.warn("Docker sandbox recreated under another agent home; the agent's earlier state was not carried", {
@@ -400,6 +421,36 @@ export const newDockerSandboxProvisioner: SandboxProvisionerFactory = ({
       }
     } finally {
       rmSync(carry, { recursive: true, force: true });
+    }
+  }
+
+  /**
+   * Makes sure `folder` exists in the created, never-started container
+   * `fresh`, since `docker cp` copies only into a folder that exists and a
+   * created container cannot run `mkdir`. Each folder above it, from the
+   * top, is probed by copying an empty archive into it, which changes
+   * nothing and fails only where the folder is missing; the missing ones are
+   * made by one archive of their entries, root's and 0755 as `mkdir` would
+   * make them, copied into the deepest folder that exists. A folder that
+   * exists is never in that archive, whose entry would reset its owner and
+   * mode.
+   */
+  async function ensureFolder(fresh: string, folder: string, carry: string): Promise<void> {
+    const chain: string[] = [];
+    for (let at = folder; at !== "/"; at = path.posix.dirname(at)) chain.unshift(at);
+    const empty = path.join(carry, "empty.tar");
+    writeFileSync(empty, Buffer.alloc(TAR_BLOCK * 2));
+    for (const [index, at] of chain.entries()) {
+      try {
+        await dockerFromFile(["cp", "-", `${fresh}:${at}`], empty);
+      } catch (error) {
+        if (!isNotAFolder(error)) throw error;
+        const base = path.posix.dirname(at);
+        const folders = path.join(carry, "folders.tar");
+        writeFileSync(folders, directoriesTar(chain.slice(index).map((made) => `${path.posix.relative(base, made)}/`)));
+        await dockerFromFile(["cp", "-", `${fresh}:${base}`], folders);
+        return;
+      }
     }
   }
 
@@ -583,6 +634,60 @@ export function tokenExpiryMs(token: string): number | undefined {
   } catch {
     return undefined;
   }
+}
+
+/** `docker cp`'s answer for a source path the container does not have. */
+function isMissingPath(error: unknown): boolean {
+  return error instanceof Error && error.message.includes("Could not find the file");
+}
+
+/** `docker cp`'s answer for a destination that is not a folder in the container (a missing one included). */
+function isNotAFolder(error: unknown): boolean {
+  return error instanceof Error && error.message.includes("must be a directory");
+}
+
+/** A tar archive's block: headers and padding come in these. */
+const TAR_BLOCK = 512;
+
+/**
+ * A ustar archive of folders only, root's and 0755, named as given (each
+ * ending in "/"), for ensureFolder. Exported for its unit test.
+ */
+export function directoriesTar(names: readonly string[]): Buffer {
+  const blocks: Buffer[] = [];
+  for (const name of names) {
+    const header = Buffer.alloc(TAR_BLOCK);
+    let prefix = "";
+    let rest = name;
+    if (Buffer.byteLength(rest) > 100) {
+      // ustar's name field holds 100 bytes; a longer path splits at a "/" into its 155-byte prefix.
+      const cut = rest.lastIndexOf("/", rest.length - 2);
+      prefix = cut > 0 ? rest.slice(0, cut) : "";
+      rest = cut > 0 ? rest.slice(cut + 1) : rest;
+      if (Buffer.byteLength(rest) > 100 || Buffer.byteLength(prefix) > 155) {
+        throw new Error(`a folder path too long for a ustar archive: ${name}`);
+      }
+    }
+    const octal = (value: number, width: number, at: number) =>
+      header.write(`${value.toString(8).padStart(width - 1, "0")}\0`, at, "utf8");
+    header.write(rest, 0, "utf8");
+    octal(0o755, 8, 100);
+    octal(0, 8, 108);
+    octal(0, 8, 116);
+    octal(0, 12, 124);
+    octal(Math.floor(Date.now() / 1000), 12, 136);
+    header.write("        ", 148, "latin1");
+    header.write("5", 156, "latin1");
+    header.write("ustar\0", 257, "latin1");
+    header.write("00", 263, "latin1");
+    header.write(prefix, 345, "utf8");
+    let sum = 0;
+    for (const byte of header) sum += byte;
+    header.write(`${sum.toString(8).padStart(6, "0")}\0 `, 148, "latin1");
+    blocks.push(header);
+  }
+  blocks.push(Buffer.alloc(TAR_BLOCK * 2));
+  return Buffer.concat(blocks);
 }
 
 /** Docker CLI's not-found shapes ("No such container"/"No such object"). */
